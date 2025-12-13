@@ -1,0 +1,245 @@
+"""Database manager for player states"""
+import aiosqlite
+import json
+from typing import Optional, Dict
+from pathlib import Path
+from ..models.player_state import PlayerState
+
+
+class DatabaseManager:
+    """Manages SQLite database for player states"""
+    
+    def __init__(self, db_path: str = "game_data.db"):
+        self.db_path = db_path
+    
+    async def initialize(self):
+        """Create tables if they don't exist"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS players (
+                    user_id INTEGER PRIMARY KEY,
+                    state_json TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS opponent_teams (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    nickname TEXT NOT NULL,
+                    team_json TEXT NOT NULL,
+                    wins INTEGER DEFAULT 0,
+                    level INTEGER DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS leaderboard (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    nickname TEXT NOT NULL,
+                    wins INTEGER NOT NULL,
+                    losses INTEGER NOT NULL,
+                    level INTEGER NOT NULL,
+                    round_number INTEGER NOT NULL,
+                    team_json TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            await db.commit()
+    
+    async def save_player(self, player: PlayerState):
+        """Save or update player state"""
+        state_json = json.dumps(player.to_dict())
+        
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("""
+                INSERT INTO players (user_id, state_json, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    state_json = excluded.state_json,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (player.user_id, state_json))
+            await db.commit()
+    
+    async def load_player(self, user_id: int) -> Optional[PlayerState]:
+        """Load player state by user ID"""
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute(
+                "SELECT state_json FROM players WHERE user_id = ?",
+                (user_id,)
+            ) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    data = json.loads(row[0])
+                    return PlayerState.from_dict(data)
+        return None
+    
+    async def delete_player(self, user_id: int):
+        """Delete player state"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("DELETE FROM players WHERE user_id = ?", (user_id,))
+            await db.commit()
+    
+    async def list_all_players(self):
+        """Load all players from database"""
+        players = []
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute("SELECT state_json FROM players") as cursor:
+                async for row in cursor:
+                    data = json.loads(row[0])
+                    players.append(PlayerState.from_dict(data))
+        return players
+    
+    async def save_to_leaderboard(self, user_id: int, nickname: str, wins: int, losses: int, level: int, round_number: int, team_units: list):
+        """Save final game result to leaderboard"""
+        team_json = json.dumps(team_units)
+        
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("""
+                INSERT INTO leaderboard (user_id, nickname, wins, losses, level, round_number, team_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, nickname, wins, losses, level, round_number, team_json))
+            await db.commit()
+    
+    async def get_leaderboard(self, limit: int = 10) -> list:
+        """Get top players from leaderboard table"""
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute("""
+                SELECT nickname, wins, losses, level, round_number, created_at
+                FROM leaderboard
+                ORDER BY wins DESC, round_number DESC
+                LIMIT ?
+            """, (limit,)) as cursor:
+                rows = await cursor.fetchall()
+                return rows
+    
+    async def has_system_opponents(self) -> bool:
+        """Check if system bots exist in database (need at least 15/20)"""
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute("SELECT COUNT(*) FROM opponent_teams WHERE user_id <= 100") as cursor:
+                row = await cursor.fetchone()
+                return row[0] >= 15 if row else False
+    
+    async def save_opponent_team(self, user_id: int, nickname: str, team_units: list, wins: int, level: int):
+        """Save team snapshot - keeps history of all teams"""
+        team_json = json.dumps(team_units)
+        
+        async with aiosqlite.connect(self.db_path) as db:
+            # Don't delete - just insert new entry for history
+            # Only delete old system bots (1-100) to keep them at 1 entry each
+            if user_id <= 100:
+                await db.execute("DELETE FROM opponent_teams WHERE user_id = ?", (user_id,))
+            
+            # Insert new team
+            await db.execute("""
+                INSERT INTO opponent_teams (user_id, nickname, team_json, wins, level)
+                VALUES (?, ?, ?, ?, ?)
+            """, (user_id, nickname, team_json, wins, level))
+            await db.commit()
+    
+    async def get_random_opponent(self, exclude_user_id: Optional[int] = None, player_wins: int = 0) -> Optional[Dict]:
+        """Get opponent team with closest win count (prioritize real players over bots)"""
+        async with aiosqlite.connect(self.db_path) as db:
+            if exclude_user_id is not None:
+                # First try to find real player (user_id > 100) with closest win count
+                query = """
+                    SELECT nickname, team_json, wins, level FROM opponent_teams
+                    WHERE user_id != ? AND user_id > 100
+                    ORDER BY ABS(wins - ?) ASC, RANDOM()
+                    LIMIT 1
+                """
+                async with db.execute(query, (exclude_user_id, player_wins)) as cursor:
+                    row = await cursor.fetchone()
+                
+                # If no real players, fallback to bots
+                if not row:
+                    query = """
+                        SELECT nickname, team_json, wins, level FROM opponent_teams
+                        WHERE user_id != ? AND user_id <= 100
+                        ORDER BY ABS(wins - ?) ASC, RANDOM()
+                        LIMIT 1
+                    """
+                    async with db.execute(query, (exclude_user_id, player_wins)) as cursor:
+                        row = await cursor.fetchone()
+            else:
+                # Prioritize real players
+                async with db.execute("""
+                    SELECT nickname, team_json, wins, level FROM opponent_teams
+                    WHERE user_id > 100
+                    ORDER BY wins ASC, RANDOM()
+                    LIMIT 1
+                """) as cursor:
+                    row = await cursor.fetchone()
+                
+                # Fallback to bots if no real players
+                if not row:
+                    async with db.execute("""
+                        SELECT nickname, team_json, wins, level FROM opponent_teams
+                        WHERE user_id <= 100
+                        ORDER BY wins ASC, RANDOM()
+                        LIMIT 1
+                    """) as cursor:
+                        row = await cursor.fetchone()
+            
+            if row:
+                return {
+                    'nickname': row[0],
+                    'team': json.loads(row[1]),
+                    'wins': row[2],
+                    'level': row[3]
+                }
+        return None
+    
+    async def add_sample_teams(self, units: list):
+        """Add sample opponent teams for testing"""
+        import random
+        
+        sample_opponents = [
+            # Beginner tier (0-5 wins) - bardzo słabe
+            {"nickname": "🆕 Tutorial Bot", "wins": 0, "level": 1, "team_size": 1, "star_level": 1},
+            {"nickname": "🎯 Practice Dummy", "wins": 1, "level": 1, "team_size": 1, "star_level": 1},
+            {"nickname": "🌱 Rookie Fighter", "wins": 3, "level": 2, "team_size": 2, "star_level": 1},
+            {"nickname": "🔰 Beginner", "wins": 5, "level": 2, "team_size": 2, "star_level": 1},
+            
+            # Bronze tier (5-15 wins) - słabe
+            {"nickname": "🥉 Bronze Bot", "wins": 7, "level": 3, "team_size": 3, "star_level": 1},
+            {"nickname": "⚔️ Bronze Fighter", "wins": 10, "level": 3, "team_size": 3, "star_level": 1},
+            {"nickname": "🛡️ Bronze Guard", "wins": 13, "level": 4, "team_size": 4, "star_level": 1},
+            {"nickname": "🔱 Bronze Elite", "wins": 15, "level": 4, "team_size": 4, "star_level": 1},
+            
+            # Silver tier (15-30 wins) - średnie
+            {"nickname": "🥈 Silver Bot", "wins": 17, "level": 5, "team_size": 5, "star_level": 1},
+            {"nickname": "⚡ Silver Storm", "wins": 20, "level": 5, "team_size": 5, "star_level": 1},
+            {"nickname": "🌟 Silver Star", "wins": 25, "level": 6, "team_size": 6, "star_level": 1},
+            {"nickname": "👑 Silver King", "wins": 30, "level": 6, "team_size": 6, "star_level": 2},
+            
+            # Gold tier (30-45 wins) - mocne
+            {"nickname": "🥇 Gold Bot", "wins": 32, "level": 7, "team_size": 7, "star_level": 2},
+            {"nickname": "💫 Gold Ace", "wins": 37, "level": 7, "team_size": 7, "star_level": 2},
+            {"nickname": "🔥 Gold Blaze", "wins": 42, "level": 8, "team_size": 8, "star_level": 2},
+            {"nickname": "⭐ Gold Legend", "wins": 45, "level": 8, "team_size": 8, "star_level": 2},
+            
+            # Platinum/Diamond tier (45+ wins) - bardzo mocne
+            {"nickname": "💎 Platinum Pro", "wins": 48, "level": 9, "team_size": 9, "star_level": 2},
+            {"nickname": "🏆 Diamond Ace", "wins": 55, "level": 9, "team_size": 9, "star_level": 2},
+            {"nickname": "👹 Diamond Beast", "wins": 65, "level": 10, "team_size": 10, "star_level": 3},
+            {"nickname": "💀 Master of War", "wins": 80, "level": 10, "team_size": 10, "star_level": 3},
+        ]
+        
+        for idx, opp in enumerate(sample_opponents, start=1):
+            team = []
+            selected_units = random.sample(units, min(opp['team_size'], len(units)))
+            for unit in selected_units:
+                team.append({
+                    'unit_id': unit.id,
+                    'star_level': opp['star_level']
+                })
+            
+            await self.save_opponent_team(
+                user_id=idx,  # System opponents (1-20)
+                nickname=opp['nickname'],
+                team_units=team,
+                wins=opp['wins'],
+                level=opp['level']
+            )

@@ -1,0 +1,13 @@
+.env
+bot_venv/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.log
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

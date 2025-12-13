@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+env/
+venv/
+env.bak/
+venv.bak/
+*.sqlite3
+waffen-tactics/waffen_tactics_game.db
+
+# Node / frontend
+node_modules/
+dist/
+build/
+waffen-tactics-web/node_modules/
+waffen-tactics-web/dist/
+
+# Editor files
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
+backend.log
+
+# OS files
+Thumbs.db
+
+# Virtualenv inside project
+waffen-tactics/bot_venv/
+
+# dotenv
+.env
+.env.local
+
+# Other
+coverage/
+*.egg-info/

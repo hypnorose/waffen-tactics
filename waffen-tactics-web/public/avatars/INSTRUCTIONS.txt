@@ -1,0 +1,108 @@
+===========================================
+UNIT AVATAR SETUP INSTRUCTIONS
+===========================================
+
+All 52 units now have avatar fields configured in units.json.
+They are mapped to: /avatars/{unit_id}.png
+
+WHAT YOU NEED TO DO:
+--------------------
+
+1. Place your prepared avatar images in this directory:
+   /home/ubuntu/waffen-tactics-game/waffen-tactics-web/public/avatars/
+
+2. Name each file exactly as the unit's ID from units.json:
+   - rafcikd.png
+   - falconbalkon.png
+   - piwniczak.png
+   - capybara.png
+   - kubica.png
+   - denvii.png
+   - miki.png
+   - yossarian.png
+   - olsak.png
+   - pepe.png
+   ... and so on for all 52 units
+
+3. Image requirements:
+   - Format: PNG (preferred) or JPG
+   - Size: 64x64px minimum (larger is fine, will be scaled)
+   - Shape: Square (displayed in circle)
+
+4. The images will automatically appear in:
+   - Shop cards
+   - Bench units
+   - Board units
+   - Combat overlay
+
+FALLBACK BEHAVIOR:
+------------------
+If an image is missing or fails to load, a placeholder emoji (👤) will be displayed.
+
+TESTING:
+--------
+After placing images, refresh the browser to see them appear in the game.
+No server restart needed - these are static assets.
+
+CURRENT STATUS:
+---------------
+✅ Backend Unit model includes avatar field
+✅ Frontend Unit interface includes avatar field  
+✅ UnitCard component displays avatar images with fallback
+✅ All 52 units have avatar paths configured
+⏳ Waiting for actual image files to be placed in this directory
+
+LIST OF ALL UNIT IDs:
+---------------------
+1. rafcikd.png
+2. falconbalkon.png
+3. piwniczak.png
+4. capybara.png
+5. kubica.png
+6. denvii.png
+7. miki.png
+8. yossarian.png
+9. olsak.png
+10. pepe.png
+11. hyodo888.png
+12. grzalcia.png
+13. adrianski.png
+14. laylo.png
+15. szachowymentor.png
+16. mrvlook.png
+17. wodazlodowca.png
+18. turboglovica.png
+19. operatorkosiarki.png
+20. beligol.png
+21. xntentacion.png
+22. dawid_czerw.png
+23. jaskol95.png
+24. igor_janik.png
+25. olaczka.png
+26. merex.png
+27. socjopata.png
+28. neko.png
+29. noname.png
+30. dumb.png
+31. maxas12.png
+32. mrozu.png
+33. v7.png
+34. wu_hao.png
+35. frajdzia.png
+36. wrzechu.png
+37. galanonim.png
+38. stalin.png
+39. krasu.png
+40. atomowy_coggers.png
+41. szalwia.png
+42. bosman.png
+43. un4given.png
+44. beudzik.png
+45. buba.png
+46. hikki.png
+47. alyson_stark.png
+48. flaminga.png
+49. vitas.png
+50. fiko.png
+51. puszmen12.png
+52. pan_yakuza.png

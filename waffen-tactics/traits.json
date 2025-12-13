@@ -1,0 +1,384 @@
+{
+  "traits": [
+    {
+      "name": "Srebrna Gwardia",
+      "type": "faction",
+      "description": "Twarde jak stal - Srebrna Gwardia zyskuje dodatkową obronę",
+      "thresholds": [3, 5, 7],
+      "effects": [
+        {
+          "type": "stat_buff",
+          "stat": "defense",
+          "value": 15,
+          "is_percentage": false
+        },
+        {
+          "type": "stat_buff",
+          "stat": "defense",
+          "value": 25,
+          "is_percentage": false
+        },
+        {
+          "type": "stat_buff",
+          "stat": "defense",
+          "value": 40,
+          "is_percentage": false
+        }
+      ]
+    },
+    {
+      "name": "Streamer",
+      "type": "faction",
+      "description": "Za każdego pokonanego wroga Streamerzy zyskują atak i obronę",
+      "thresholds": [2, 3, 4, 5],
+      "effects": [
+        {
+          "type": "on_enemy_death",
+          "stats": ["attack", "defense"],
+          "value": 2
+        },
+        {
+          "type": "on_enemy_death",
+          "stats": ["attack", "defense"],
+          "value": 4
+        },
+        {
+          "type": "on_enemy_death",
+          "stats": ["attack", "defense"],
+          "value": 6
+        },
+        {
+          "type": "on_enemy_death",
+          "stats": ["attack", "defense"],
+          "value": 12
+        }
+      ]
+    },
+    {
+      "name": "XN Waffen",
+      "type": "faction",
+      "description": "Błyskawiczne ataki - zwiększona prędkość ataku",
+      "thresholds": [3, 5, 7, 10],
+      "effects": [
+        {
+          "type": "stat_buff",
+          "stat": "attack_speed",
+          "value": 5,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stat": "attack_speed",
+          "value": 10,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stat": "attack_speed",
+          "value": 15,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stat": "attack_speed",
+          "value": 30,
+          "is_percentage": true
+        }
+      ]
+    },
+    {
+      "name": "XN KGB",
+      "type": "faction",
+      "description": "Potęga Rosji - masywny bonus do ataku",
+      "thresholds": [3, 5, 7, 9],
+      "effects": [
+        {
+          "type": "stat_buff",
+          "stat": "attack",
+          "value": 10,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stat": "attack",
+          "value": 20,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stat": "attack",
+          "value": 30,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stat": "attack",
+          "value": 50,
+          "is_percentage": true
+        }
+      ]
+    },
+    {
+      "name": "Denciak",
+      "type": "faction",
+      "description": "Kiedy sojusznik umiera, zyskujesz złoto",
+      "thresholds": [2, 4, 6],
+      "effects": [
+        {
+          "type": "on_ally_death",
+          "reward": "gold",
+          "value": 1
+        },
+        {
+          "type": "on_ally_death",
+          "reward": "gold",
+          "value": 2
+        },
+        {
+          "type": "on_ally_death",
+          "reward": "gold",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "name": "Starokurwy",
+      "type": "faction",
+      "description": "Z każdą rundą stają się silniejsi - bonus HP co rundę",
+      "thresholds": [2, 3, 4, 5],
+      "effects": [
+        {
+          "type": "per_round_buff",
+          "stat": "hp",
+          "value": 0.5,
+          "is_percentage": true
+        },
+        {
+          "type": "per_round_buff",
+          "stat": "hp",
+          "value": 1,
+          "is_percentage": true
+        },
+        {
+          "type": "per_round_buff",
+          "stat": "hp",
+          "value": 1.5,
+          "is_percentage": true
+        },
+        {
+          "type": "per_round_buff",
+          "stat": "hp",
+          "value": 2,
+          "is_percentage": true
+        }
+      ]
+    },
+    {
+      "name": "Prostaczka",
+      "type": "class",
+      "description": "Osłabiają przeciwników - zmniejszają ich atak",
+      "thresholds": [2, 4, 5],
+      "effects": [
+        {
+          "type": "enemy_debuff",
+          "stat": "attack",
+          "value": 4,
+          "is_percentage": false
+        },
+        {
+          "type": "enemy_debuff",
+          "stat": "attack",
+          "value": 15,
+          "is_percentage": false
+        },
+        {
+          "type": "enemy_debuff",
+          "stat": "attack",
+          "value": 30,
+          "is_percentage": false
+        }
+      ]
+    },
+    {
+      "name": "Femboy",
+      "type": "class",
+      "description": "Po zabiciu wroga regenerują HP",
+      "thresholds": [2, 3, 4, 5],
+      "effects": [
+        {
+          "type": "hp_regen_on_kill",
+          "value": 5,
+          "is_percentage": true
+        },
+        {
+          "type": "hp_regen_on_kill",
+          "value": 8,
+          "is_percentage": true
+        },
+        {
+          "type": "hp_regen_on_kill",
+          "value": 12,
+          "is_percentage": true
+        },
+        {
+          "type": "hp_regen_on_kill",
+          "value": 20,
+          "is_percentage": true
+        }
+      ]
+    },
+    {
+      "name": "Szachista",
+      "type": "class",
+      "description": "Bonus do ataku i HP za każdą aktywną synergię",
+      "thresholds": [2, 3, 4],
+      "effects": [
+        {
+          "type": "per_trait_buff",
+          "stats": ["attack", "hp"],
+          "value": 4,
+          "is_percentage": true
+        },
+        {
+          "type": "per_trait_buff",
+          "stats": ["attack", "hp"],
+          "value": 6,
+          "is_percentage": true
+        },
+        {
+          "type": "per_trait_buff",
+          "stats": ["attack", "hp"],
+          "value": 10,
+          "is_percentage": true
+        }
+      ]
+    },
+    {
+      "name": "Spell",
+      "type": "class",
+      "description": "Szybciej ładują manę do umiejętności",
+      "thresholds": [3, 5, 7],
+      "effects": [
+        {
+          "type": "mana_regen",
+          "value": 3
+        },
+        {
+          "type": "mana_regen",
+          "value": 5
+        },
+        {
+          "type": "mana_regen",
+          "value": 9
+        }
+      ]
+    },
+    {
+      "name": "Konfident",
+      "type": "class",
+      "description": "Sprzedaż jednostek daje dodatkowe złoto i XP",
+      "thresholds": [2, 4, 6],
+      "effects": [
+        {
+          "type": "on_sell_bonus",
+          "gold_per_star": 0,
+          "xp": 1
+        },
+        {
+          "type": "on_sell_bonus",
+          "gold_per_star": 1,
+          "xp": 2
+        },
+        {
+          "type": "on_sell_bonus",
+          "gold_per_star": 2,
+          "xp": 3
+        }
+      ]
+    },
+    {
+      "name": "Haker",
+      "type": "class",
+      "description": "Kradną obronę przeciwnikom",
+      "thresholds": [3, 5, 7],
+      "effects": [
+        {
+          "type": "stat_steal",
+          "stat": "defense",
+          "value": 3,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_steal",
+          "stat": "defense",
+          "value": 6,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_steal",
+          "stat": "defense",
+          "value": 15,
+          "is_percentage": true
+        }
+      ]
+    },
+    {
+      "name": "Gamer",
+      "type": "class",
+      "description": "Bonus do ataku i prędkości ataku",
+      "thresholds": [3, 5, 7, 9],
+      "effects": [
+        {
+          "type": "stat_buff",
+          "stats": ["attack", "attack_speed"],
+          "value": 3,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stats": ["attack", "attack_speed"],
+          "value": 6,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stats": ["attack", "attack_speed"],
+          "value": 9,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stats": ["attack", "attack_speed"],
+          "value": 16,
+          "is_percentage": true
+        }
+      ]
+    },
+    {
+      "name": "Normik",
+      "type": "class",
+      "description": "Zwykli ludzie z dodatkowym HP",
+      "thresholds": [2, 4, 5],
+      "effects": [
+        {
+          "type": "stat_buff",
+          "stat": "hp",
+          "value": 10,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stat": "hp",
+          "value": 20,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stat": "hp",
+          "value": 25,
+          "is_percentage": true
+        }
+      ]
+    }
+  ]
+}

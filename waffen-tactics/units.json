@@ -1,0 +1,651 @@
+{
+  "units": [
+    {
+      "id": "rafcikd",
+      "name": "RafcikD",
+      "factions": [
+        "Denciak"
+      ],
+      "classes": [
+        "Normik"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/rafcikd.png"
+    },
+    {
+      "id": "falconbalkon",
+      "name": "FalconBalkon",
+      "factions": [
+        "Denciak"
+      ],
+      "classes": [
+        "Gamer"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/falconbalkon.png"
+    },
+    {
+      "id": "piwniczak",
+      "name": "Piwniczak",
+      "factions": [
+        "Denciak"
+      ],
+      "classes": [
+        "Haker"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/piwniczak.png"
+    },
+    {
+      "id": "capybara",
+      "name": "Capybara",
+      "factions": [
+        "Denciak"
+      ],
+      "classes": [
+        "Femboy"
+      ],
+      "cost": 3,
+      "avatar": "/avatars/capybara.png"
+    },
+    {
+      "id": "kubica",
+      "name": "Kubica",
+      "factions": [
+        "Denciak"
+      ],
+      "classes": [
+        "Konfident"
+      ],
+      "cost": 4,
+      "avatar": "/avatars/kubica.png"
+    },
+    {
+      "id": "denvii",
+      "name": "Denvii",
+      "factions": [
+        "Denciak"
+      ],
+      "classes": [
+        "Spell"
+      ],
+      "cost": 5,
+      "avatar": "/avatars/denvii.png"
+    },
+    {
+      "id": "miki",
+      "name": "Miki",
+      "factions": [
+        "Hitman"
+      ],
+      "classes": [],
+      "cost": 3,
+      "avatar": "/avatars/miki.png"
+    },
+    {
+      "id": "yossarian",
+      "name": "Yossarian",
+      "factions": [
+        "Randomized"
+      ],
+      "classes": [
+        "Haker"
+      ],
+      "cost": 7,
+      "avatar": "/avatars/yossarian.png"
+    },
+    {
+      "id": "olsak",
+      "name": "Olsak",
+      "factions": [
+        "Srebrna Gwardia"
+      ],
+      "classes": [
+        "Prostaczka"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/olsak.png"
+    },
+    {
+      "id": "pepe",
+      "name": "Pepe",
+      "factions": [
+        "Srebrna Gwardia"
+      ],
+      "classes": [
+        "Haker"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/pepe.png"
+    },
+    {
+      "id": "hyodo888",
+      "name": "Hyodo888",
+      "factions": [
+        "Srebrna Gwardia"
+      ],
+      "classes": [
+        "Normik"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/hyodo888.png"
+    },
+    {
+      "id": "grzalcia",
+      "name": "Grzałcia",
+      "factions": [
+        "Srebrna Gwardia"
+      ],
+      "classes": [
+        "Prostaczka"
+      ],
+      "cost": 3,
+      "avatar": "/avatars/grzalcia.png"
+    },
+    {
+      "id": "adrianski",
+      "name": "Adrianski",
+      "factions": [
+        "Srebrna Gwardia"
+      ],
+      "classes": [
+        "Spell"
+      ],
+      "cost": 4,
+      "avatar": "/avatars/adrianski.png"
+    },
+    {
+      "id": "laylo",
+      "name": "Laylo",
+      "factions": [
+        "Srebrna Gwardia"
+      ],
+      "classes": [
+        "Konfident",
+        "Femboy"
+      ],
+      "cost": 5,
+      "avatar": "/avatars/laylo.png"
+    },
+    {
+      "id": "szachowymentor",
+      "name": "SzachowyMentor",
+      "factions": "Srebrna Gwardia",
+      "classes": [
+        "Randomized"
+      ],
+      "cost": 7,
+      "avatar": "/avatars/szachowymentor.png"
+    },
+    {
+      "id": "mrvlook",
+      "name": "Mrvlook",
+      "factions": [
+        "Starokurwy"
+      ],
+      "classes": [
+        "Haker"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/mrvlook.png"
+    },
+    {
+      "id": "wodazlodowca",
+      "name": "Woda z lodowca",
+      "factions": [
+        "Starokurwy"
+      ],
+      "classes": [
+        "Normik"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/wodazlodowca.png"
+    },
+    {
+      "id": "turboglovica",
+      "name": "Turbogłowica",
+      "factions": [
+        "Starokurwy"
+      ],
+      "classes": [
+        "Konfident"
+      ],
+      "cost": 3,
+      "avatar": "/avatars/turboglovica.png"
+    },
+    {
+      "id": "operatorkosiarki",
+      "name": "OperatorKosiarki",
+      "factions": [
+        "Starokurwy"
+      ],
+      "classes": [
+        "Haker"
+      ],
+      "cost": 4,
+      "avatar": "/avatars/operatorkosiarki.png"
+    },
+    {
+      "id": "beligol",
+      "name": "Beligol",
+      "factions": [
+        "Starokurwy"
+      ],
+      "classes": [
+        "Szachista"
+      ],
+      "cost": 5,
+      "avatar": "/avatars/beligol.png"
+    },
+    {
+      "id": "xntentacion",
+      "name": "xntentacion",
+      "factions": [
+        "Streamer"
+      ],
+      "classes": [
+        "Spell"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/xntentacion.png"
+    },
+    {
+      "id": "dawid_czerw",
+      "name": "Dawid Czerw",
+      "factions": [
+        "Streamer"
+      ],
+      "classes": [
+        "Szachista"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/dawid_czerw.png"
+    },
+    {
+      "id": "jaskol95",
+      "name": "Jaskół95",
+      "factions": [
+        "Streamer"
+      ],
+      "classes": [
+        "Gamer"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/jaskol95.png"
+    },
+    {
+      "id": "igor_janik",
+      "name": "Igor Janik",
+      "factions": [
+        "Streamer"
+      ],
+      "classes": [
+        "Szachista"
+      ],
+      "cost": 3,
+      "avatar": "/avatars/igor_janik.png"
+    },
+    {
+      "id": "olaczka",
+      "name": "Olaczka",
+      "factions": [
+        "Streamer"
+      ],
+      "classes": [
+        "Prostaczka"
+      ],
+      "cost": 5,
+      "avatar": "/avatars/olaczka.png"
+    },
+    {
+      "id": "merex",
+      "name": "Merex",
+      "factions": [
+        "Wygnaniec"
+      ],
+      "classes": [
+        "Femboy"
+      ],
+      "cost": 4,
+      "avatar": "/avatars/merex.png"
+    },
+    {
+      "id": "socjopata",
+      "name": "Socjopata",
+      "factions": [
+        "XN Cwel"
+      ],
+      "classes": [
+        "Spell"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/socjopata.png"
+    },
+    {
+      "id": "neko",
+      "name": "Neko",
+      "factions": [
+        "XN HomoKomando"
+      ],
+      "classes": [
+        "Szachista"
+      ],
+      "cost": 4,
+      "avatar": "/avatars/neko.png"
+    },
+    {
+      "id": "noname",
+      "name": "Noname",
+      "factions": [
+        "XN Jugend"
+      ],
+      "classes": [
+        "Haker"
+      ],
+      "cost": 3,
+      "avatar": "/avatars/noname.png"
+    },
+    {
+      "id": "dumb",
+      "name": "Dumb",
+      "factions": [
+        "XN KGB"
+      ],
+      "classes": [
+        "Gamer"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/dumb.png"
+    },
+    {
+      "id": "maxas12",
+      "name": "maxas12",
+      "factions": [
+        "XN KGB"
+      ],
+      "classes": [
+        "Gamer"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/maxas12.png"
+    },
+    {
+      "id": "mrozu",
+      "name": "Mrozu",
+      "factions": [
+        "XN KGB"
+      ],
+      "classes": [
+        "Normik"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/mrozu.png"
+    },
+    {
+      "id": "v7",
+      "name": "V7",
+      "factions": [
+        "XN KGB"
+      ],
+      "classes": [
+        "Haker"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/v7.png"
+    },
+    {
+      "id": "wu_hao",
+      "name": "Wu_hao",
+      "factions": [
+        "XN KGB"
+      ],
+      "classes": [
+        "Femboy"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/wu_hao.png"
+    },
+    {
+      "id": "frajdzia",
+      "name": "Frajdzia",
+      "factions": [
+        "XN KGB"
+      ],
+      "classes": [
+        "Prostaczka"
+      ],
+      "cost": 3,
+      "avatar": "/avatars/frajdzia.png"
+    },
+    {
+      "id": "wrzechu",
+      "name": "Wrzechu",
+      "factions": [
+        "XN KGB"
+      ],
+      "classes": [
+        "Spell"
+      ],
+      "cost": 4,
+      "avatar": "/avatars/wrzechu.png"
+    },
+    {
+      "id": "galanonim",
+      "name": "GalAnonim",
+      "factions": [
+        "XN KGB"
+      ],
+      "classes": [
+        "Konfident"
+      ],
+      "cost": 5,
+      "avatar": "/avatars/galanonim.png"
+    },
+    {
+      "id": "stalin",
+      "name": "Stalin",
+      "factions": [
+        "XN KGB"
+      ],
+      "classes": [
+        "Femboy"
+      ],
+      "cost": 5,
+      "avatar": "/avatars/stalin.png"
+    },
+    {
+      "id": "krasu",
+      "name": "Krasu",
+      "factions": [
+        "XN Mod"
+      ],
+      "classes": [
+        "Gamer"
+      ],
+      "cost": 5,
+      "avatar": "/avatars/krasu.png"
+    },
+    {
+      "id": "atomowy_coggers",
+      "name": "Atomowy coggers",
+      "factions": [
+        "XN Monter"
+      ],
+      "classes": [],
+      "cost": 4,
+      "avatar": "/avatars/atomowy_coggers.png"
+    },
+    {
+      "id": "szalwia",
+      "name": "Szałwia",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Konfident"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/szalwia.png"
+    },
+    {
+      "id": "bosman",
+      "name": "Bosman",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Femboy"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/bosman.png"
+    },
+    {
+      "id": "un4given",
+      "name": "Un4given",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Gamer"
+      ],
+      "cost": 1,
+      "avatar": "/avatars/un4given.png"
+    },
+    {
+      "id": "beudzik",
+      "name": "Beudzik",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Gamer"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/beudzik.png"
+    },
+    {
+      "id": "buba",
+      "name": "Buba",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Spell"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/buba.png"
+    },
+    {
+      "id": "hikki",
+      "name": "Hikki",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Spell"
+      ],
+      "cost": 2,
+      "avatar": "/avatars/hikki.png"
+    },
+    {
+      "id": "alyson_stark",
+      "name": "Alyson Stark",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Prostaczka"
+      ],
+      "cost": 3,
+      "avatar": "/avatars/alyson_stark.png"
+    },
+    {
+      "id": "flaminga",
+      "name": "Flaminga",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Gamer"
+      ],
+      "cost": 3,
+      "avatar": "/avatars/flaminga.png"
+    },
+    {
+      "id": "vitas",
+      "name": "Vitas",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Normik"
+      ],
+      "cost": 3,
+      "avatar": "/avatars/vitas.png"
+    },
+    {
+      "id": "fiko",
+      "name": "Fiko",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Gamer"
+      ],
+      "cost": 4,
+      "avatar": "/avatars/fiko.png"
+    },
+    {
+      "id": "puszmen12",
+      "name": "Puszmen12",
+      "factions": [
+        "XN Waffen"
+      ],
+      "classes": [
+        "Konfident"
+      ],
+      "cost": 4,
+      "avatar": "/avatars/puszmen12.png"
+    },
+    {
+      "id": "pan_yakuza",
+      "name": "Pan Yakuza",
+      "factions": [
+        "XN Yakuza"
+      ],
+      "classes": [
+        "Haker"
+      ],
+      "cost": 5,
+      "avatar": "/avatars/pan_yakuza.png"
+    }
+  ],
+  "factions": [
+    "Denciak",
+    "Hitman",
+    "Randomized",
+    "Srebrna Gwardia",
+    "Starokurwy",
+    "Streamer",
+    "Wygnaniec",
+    "XN Cwel",
+    "XN HomoKomando",
+    "XN Jugend",
+    "XN KGB",
+    "XN Mod",
+    "XN Monter",
+    "XN Waffen",
+    "XN Yakuza"
+  ],
+  "classes": [
+    "Normik",
+    "Gamer",
+    "Haker",
+    "Femboy",
+    "Konfident",
+    "Spell",
+    "Prostaczka",
+    "Szachista",
+    "Randomized"
+  ]
+}

@@ -1,0 +1,25 @@
+waffentactics.pl {
+    # Automatyczny HTTPS (Let's Encrypt)
+    
+    # API backend (Flask) - strip /api prefix
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy localhost:8000
+    }
+    
+    # React app (frontend) - Vite dev server
+    reverse_proxy localhost:3000
+    
+    # Kompresja
+    encode gzip
+    
+    # Logi
+    log {
+        output file /var/log/caddy/waffentactics.log
+    }
+}
+
+www.waffentactics.pl {
+    # Redirect www -> non-www
+    redir https://waffentactics.pl{uri} permanent
+}
