@@ -29,13 +29,9 @@ HP_STACK_PER_STAR = 5  # default: add 5 HP per star level to unit's persistent h
 app = Flask(__name__)
 CORS(app)
 
-# Discord OAuth Config
-DISCORD_CLIENT_ID = '1449028504615256217'
-DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET', 'YOUR_CLIENT_SECRET_HERE')
-DISCORD_REDIRECT_URI = 'https://waffentactics.pl/auth/callback'
-JWT_SECRET = os.getenv('JWT_SECRET', 'waffen-tactics-secret-key-change-in-production')
-
-print(f"🔑 JWT Secret loaded: {JWT_SECRET[:10]}... (length: {len(JWT_SECRET)})")
+# Register auth blueprint (routes moved to separate module)
+from routes.auth import auth_bp, require_auth, verify_token
+app.register_blueprint(auth_bp, url_prefix='/auth')
 
 # Database path - use the same DB as Discord bot
 DB_PATH = str(Path(__file__).parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')
@@ -63,100 +59,14 @@ async def init_sample_bots():
 
 run_async(init_sample_bots())
 
-# JWT verification decorator
-def require_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization', '').replace('Bearer ', '')
-        if not token:
-            return jsonify({'error': 'Missing token'}), 401
-        
-        try:
-            payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-            user_id = int(payload['user_id'])
-            return f(user_id, *args, **kwargs)
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Token expired'}), 401
-        except Exception as e:
-            print(f"Auth error: {e}")
-            return jsonify({'error': 'Invalid token'}), 401
-    
-    return decorated
+# Authorization helpers are provided by `routes.auth` (blueprint registered above)
 
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
     return jsonify({'status': 'ok', 'db': DB_PATH})
 
-@app.route('/auth/exchange', methods=['POST'])
-def exchange_code():
-    """Exchange Discord authorization code for access token"""
-    try:
-        data = request.json
-        print(f"📥 Auth exchange request: {data}")
-        code = data.get('code')
-        
-        if not code:
-            print("❌ Missing code in request")
-            return jsonify({'error': 'Missing authorization code'}), 400
-        
-        # Exchange code for access token
-        token_response = requests.post(
-            'https://discord.com/api/oauth2/token',
-            data={
-                'client_id': DISCORD_CLIENT_ID,
-                'client_secret': DISCORD_CLIENT_SECRET,
-                'grant_type': 'authorization_code',
-                'code': code,
-                'redirect_uri': DISCORD_REDIRECT_URI
-            },
-            headers={'Content-Type': 'application/x-www-form-urlencoded'}
-        )
-        
-        if token_response.status_code != 200:
-            print(f"❌ Discord token error ({token_response.status_code}): {token_response.text}")
-            return jsonify({'error': 'Failed to exchange code', 'details': token_response.text}), 400
-        
-        token_data = token_response.json()
-        access_token = token_data['access_token']
-        
-        # Get user info
-        user_response = requests.get(
-            'https://discord.com/api/users/@me',
-            headers={'Authorization': f'Bearer {access_token}'}
-        )
-        
-        if user_response.status_code != 200:
-            return jsonify({'error': 'Failed to get user info'}), 400
-        
-        user_data = user_response.json()
-        
-        # Create JWT token
-        jwt_token = jwt.encode(
-            {
-                'user_id': user_data['id'],
-                'username': user_data['username'],
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
-            },
-            JWT_SECRET,
-            algorithm='HS256'
-        )
-        
-        return jsonify({
-            'user': {
-                'id': user_data['id'],
-                'username': user_data['username'],
-                'discriminator': user_data.get('discriminator', '0'),
-                'avatar': user_data.get('avatar')
-            },
-            'token': jwt_token
-        })
-        
-    except Exception as e:
-        print(f"❌ Error in exchange_code: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+# Auth exchange endpoint moved to `routes.auth` (registered at `/auth/exchange`)
 
 def enrich_player_state(player: PlayerState) -> dict:
     """Add computed data to player state (synergies, shop odds, etc.)"""
@@ -544,7 +454,7 @@ def start_combat():
         return jsonify({'error': 'Missing token'}), 401
     
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        payload = verify_token(token)
         user_id = int(payload['user_id'])
     except Exception as e:
         return jsonify({'error': 'Invalid token'}), 401
@@ -1035,7 +945,7 @@ def reset_game(user_id):
         
         # Get username from token
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
-        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        payload = verify_token(token)
         username = payload.get('username', f'Player_{user_id}')
         
         # Save to leaderboard if game was played (round > 1)
@@ -1074,7 +984,7 @@ def surrender_game(user_id):
         
         # Get username from token
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
-        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        payload = verify_token(token)
         username = payload.get('username', f'Player_{user_id}')
         
         # Set HP to 0 (game over)
@@ -1104,11 +1014,6 @@ def surrender_game(user_id):
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    print("🚀 Starting Waffen Tactics API on port 8000...")
-    print(f"📦 Database: {DB_PATH}")
-    print(f"🔐 Discord Client ID: {DISCORD_CLIENT_ID}")
-    print(f"🌐 Redirect URI: {DISCORD_REDIRECT_URI}")
-    
     # Initialize database
     run_async(db_manager.initialize())
     print("✅ Database initialized")
