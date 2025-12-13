@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import UnitCard from './UnitCard'
+import { useGameStore } from '../store/gameStore'
 import { gameAPI } from '../services/api'
 
 interface BenchProps {
@@ -9,6 +10,7 @@ interface BenchProps {
 
 export default function Bench({ playerState, onUpdate }: BenchProps) {
   const [loading, setLoading] = useState(false)
+  const { detailedView } = useGameStore()
 
   const handleMoveToBoard = async (instanceId: string) => {
     if (playerState.board.length >= playerState.max_board_size) {
@@ -71,7 +73,7 @@ export default function Bench({ playerState, onUpdate }: BenchProps) {
                   💰
                 </button>
               </div>
-              <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} />
+              <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} buffedStats={unitInstance.buffed_stats} />
             </div>
           ))}
         </div>

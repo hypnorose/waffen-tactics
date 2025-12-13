@@ -9,6 +9,15 @@ class Stats:
     max_mana: int
     attack_speed: float  # attacks per second
 
+    def get(self, key: str, default=None):
+        """Compatibility helper: allow dict-like `.get` access for Stats.
+
+        Some older code paths expect unit.stats to be a mapping and call
+        `.get(key, default)`. Provide that interface to avoid runtime
+        errors while keeping `Stats` a typed dataclass.
+        """
+        return getattr(self, key, default)
+
 @dataclass
 class Skill:
     name: str

@@ -6,6 +6,7 @@ from ..services.data_loader import load_game_data, GameData
 from ..services.shop import ShopService
 from ..services.synergy import SynergyEngine
 from ..services.combat import CombatSimulator
+from ..services.combat_shared import CombatSimulator as SharedCombatSimulator, CombatUnit
 import random
 import logging
 
@@ -295,9 +296,126 @@ class GameManager:
                 'duration': 0.0
             }
         
-        # Run combat
-        simulator = CombatSimulator()
-        result = simulator.simulate(player_units, opponent_board, timeout=120)
+        # Build buffed CombatUnit lists and run shared simulator so synergies affect combat
+        try:
+            active_synergies = self.get_board_synergies(player)
+
+            team_a_combat = []
+            for ui in player.board:
+                unit = next((u for u in self.data.units if u.id == ui.unit_id), None)
+                if not unit:
+                    continue
+                # Base stats with star multiplier
+                hp = int(unit.stats.hp * ui.star_level)
+                attack = int(unit.stats.attack * ui.star_level)
+                defense = int(unit.stats.defense * ui.star_level)
+                attack_speed = float(unit.stats.attack_speed)
+
+                # Apply active static trait effects (stat_buff and per_trait_buff)
+                # Apply active static trait effects (stat_buff and per_trait_buff)
+                for trait_name, (count, tier) in active_synergies.items():
+                    trait_obj = next((t for t in self.data.traits if t.get('name') == trait_name), None)
+                    if not trait_obj:
+                        continue
+                    effects = trait_obj.get('effects', [])
+                    idx = tier - 1
+                    if idx < 0 or idx >= len(effects):
+                        continue
+                    effect = effects[idx]
+
+                    # Only apply if this unit has the trait
+                    if trait_name not in unit.factions and trait_name not in unit.classes:
+                        continue
+
+                    etype = effect.get('type')
+                    if etype == 'stat_buff':
+                        stats = []
+                        if 'stat' in effect:
+                            stats = [effect['stat']]
+                        elif 'stats' in effect:
+                            stats = effect['stats']
+                        for st in stats:
+                            val = effect.get('value', 0)
+                            if st == 'hp':
+                                if effect.get('is_percentage'):
+                                    hp = int(hp * (1 + val / 100.0))
+                                else:
+                                    hp = int(hp + val)
+                            elif st == 'attack':
+                                if effect.get('is_percentage'):
+                                    attack = int(attack * (1 + val / 100.0))
+                                else:
+                                    attack = int(attack + val)
+                            elif st == 'defense':
+                                if effect.get('is_percentage'):
+                                    defense = int(defense * (1 + val / 100.0))
+                                else:
+                                    defense = int(defense + val)
+                            elif st == 'attack_speed':
+                                if effect.get('is_percentage'):
+                                    attack_speed = attack_speed * (1 + val / 100.0)
+                                else:
+                                    attack_speed = attack_speed + val
+                    elif etype == 'per_trait_buff':
+                        stats = effect.get('stats', [])
+                        per_val = effect.get('value', 0)
+                        multiplier = len(active_synergies)
+                        for st in stats:
+                            if st == 'hp':
+                                hp = int(hp * (1 + (per_val * multiplier) / 100.0))
+                            elif st == 'attack':
+                                attack = int(attack * (1 + (per_val * multiplier) / 100.0))
+
+                # Attach active effects for this unit (for event-driven buffs)
+                effects_a = []
+                for trait_name, (count, tier) in active_synergies.items():
+                    trait_obj = next((t for t in self.data.traits if t.get('name') == trait_name), None)
+                    if not trait_obj:
+                        continue
+                    idx = tier - 1
+                    if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+                        continue
+                    effect = trait_obj.get('effects', [])[idx]
+                    if trait_name in unit.factions or trait_name in unit.classes:
+                        effects_a.append(effect)
+
+                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a))
+
+            # Opponent team - convert given Unit objects (assume base stats, star=1)
+            # Also compute opponent synergies so their effects can apply
+            opponent_units = [u for u in opponent_board]
+            opponent_active = self.synergy_engine.compute(opponent_units)
+
+            team_b_combat = []
+            for i, u in enumerate(opponent_board):
+                # Base stats
+                hp_b = int(u.stats.hp * 1)
+                attack_b = int(u.stats.attack * 1)
+                defense_b = int(u.stats.defense * 1)
+                attack_speed_b = float(u.stats.attack_speed)
+
+                # Collect active effects for this opponent unit
+                effects_b = []
+                for trait_name, (count_b, tier_b) in opponent_active.items():
+                    trait_obj_b = next((t for t in self.data.traits if t.get('name') == trait_name), None)
+                    if not trait_obj_b:
+                        continue
+                    idx_b = tier_b - 1
+                    if idx_b < 0 or idx_b >= len(trait_obj_b.get('effects', [])):
+                        continue
+                    effect_b = trait_obj_b.get('effects', [])[idx_b]
+                    # Only attach if unit has the trait
+                    if trait_name in u.factions or trait_name in u.classes:
+                        effects_b.append(effect_b)
+
+                team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b))
+
+            shared = SharedCombatSimulator(dt=0.1, timeout=120)
+            result = shared.simulate(team_a_combat, team_b_combat)
+        except Exception:
+            # Fallback to existing wrapper if anything fails
+            simulator = CombatSimulator()
+            result = simulator.simulate(player_units, opponent_board, timeout=120)
         
         bot_logger.info(f"[COMBAT] Result: {result['winner']}, Duration: {result.get('duration', 0):.1f}s, Log lines: {len(result.get('log', []))}")
         

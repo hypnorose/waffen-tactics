@@ -5,6 +5,7 @@ import { gameAPI } from '../services/api'
 import GameBoard from '../components/GameBoard'
 import Shop from '../components/Shop'
 import Bench from '../components/Bench'
+import TopDetailedToggle from '../components/TopDetailedToggle'
 import CombatOverlay from '../components/CombatOverlay'
 import { loadUnits } from '../data/units'
 
@@ -221,7 +222,7 @@ export default function Game() {
               </div>
             </div>
             
-            {/* Right: Combat/Surrender Buttons + Leaderboard + Logout */}
+            {/* Right: Combat/Surrender Buttons + Leaderboard + Logout + Global Toggle */}
             <div className="flex items-center gap-3">
               {!isGameOver && (
                 <>
@@ -251,6 +252,8 @@ export default function Game() {
               <button onClick={logout} className="btn btn-danger">
                 🚪 Wyloguj
               </button>
+              {/* Detailed view toggle (global) */}
+              <TopDetailedToggle />
             </div>
           </div>
         </div>

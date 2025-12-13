@@ -170,7 +170,7 @@
     {
       "id": "szachowymentor",
       "name": "SzachowyMentor",
-      "factions": "Srebrna Gwardia",
+      "factions": ["Srebrna Gwardia"],
       "classes": [
         "Randomized"
       ],

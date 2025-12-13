@@ -59,6 +59,8 @@ interface GameState {
   setUnits: (units: Unit[]) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
+  detailedView: boolean
+  setDetailedView: (detailed: boolean) => void
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -70,4 +72,6 @@ export const useGameStore = create<GameState>((set) => ({
   setUnits: (units) => set({ units }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
+  detailedView: false,
+  setDetailedView: (detailed: boolean) => set({ detailedView: detailed }),
 }))

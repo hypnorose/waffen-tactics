@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import UnitCard from './UnitCard'
+import { useGameStore } from '../store/gameStore'
 import { gameAPI } from '../services/api'
 
 const getTraitColor = (tier: number) => {
@@ -18,6 +19,7 @@ interface GameBoardProps {
 
 export default function GameBoard({ playerState, onUpdate }: GameBoardProps) {
   const [loading, setLoading] = useState(false)
+  const { detailedView } = useGameStore()
 
   const handleMoveToBench = async (instanceId: string) => {
     if (playerState.bench.length >= playerState.max_bench_size) {
@@ -58,7 +60,7 @@ export default function GameBoard({ playerState, onUpdate }: GameBoardProps) {
               >
                 ↓
               </button>
-              <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} />
+              <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} buffedStats={unitInstance.buffed_stats} />
             </div>
           ))}
         </div>
