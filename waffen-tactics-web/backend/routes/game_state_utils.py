@@ -90,10 +90,11 @@ def enrich_player_state(player: PlayerState) -> dict:
                 print(f"⚠️ Unit {ui.unit_id} not found in data, skipping stats calculation")
                 continue
             star_level = ui.star_level
-            hp_stacks = ui.hp_stacks or 0
+            hp_stacks = ui.hp_stacks or 0  # DEPRECATED, use persistent_buffs
+            persistent_buffs = ui.persistent_buffs or {}
             # Calculate base stats (before buffs)
             base = deepcopy(unit.stats)
-            base_hp = int(base.hp * star_level) + (hp_stacks or 0)
+            base_hp = int(base.hp * star_level) + int(persistent_buffs.get("hp", 0)) + (hp_stacks or 0)
             base_attack = int(base.attack * star_level)
             base_defense = int(base.defense * star_level)
             base_attack_speed = float(base.attack_speed)

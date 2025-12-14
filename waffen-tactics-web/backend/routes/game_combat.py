@@ -611,14 +611,40 @@ def start_combat():
                 losses=player.losses,
                 level=player.level
             ))
-            # Apply persistent per-round HP stacking to units on player's board
+            # Apply persistent per-round buffs from traits to units on player's board
             try:
+                player_synergies = game_manager.get_board_synergies(player)
                 for ui in player.board:
-                    current = getattr(ui, 'hp_stacks', 0) or 0
-                    increment = HP_STACK_PER_STAR * max(1, getattr(ui, 'star_level', 1))
-                    ui.hp_stacks = current + increment
-            except Exception:
-                pass
+                    unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
+                    if not unit:
+                        continue
+                    for trait_name, (count, tier) in player_synergies.items():
+                        trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
+                        if not trait_obj:
+                            continue
+                        idx = tier - 1
+                        if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+                            continue
+                        # Only apply if this unit has the trait
+                        if trait_name not in unit.factions and trait_name not in unit.classes:
+                            continue
+                        effect = trait_obj.get('effects', [])[idx]
+                        etype = effect.get('type')
+                        if etype == 'per_round_buff':
+                            stat = effect.get('stat')
+                            value = effect.get('value', 0)
+                            is_percentage = effect.get('is_percentage', False)
+                            if stat:
+                                current_buff = ui.persistent_buffs.get(stat, 0)
+                                if is_percentage:
+                                    # For percentage, add based on base stat
+                                    base_stat = getattr(unit.stats, stat, 0) * ui.star_level
+                                    increment = base_stat * (value / 100.0)
+                                else:
+                                    increment = value
+                                ui.persistent_buffs[stat] = current_buff + increment
+            except Exception as e:
+                print(f"Error applying per-round buffs: {e}")
 
 
             # Save state

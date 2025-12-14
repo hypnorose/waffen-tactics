@@ -10,7 +10,8 @@ class UnitInstance:
     unit_id: str  # Reference to unit from units.json
     star_level: int = 1  # 1, 2, or 3 stars
     instance_id: Optional[str] = None  # Unique ID for this specific instance
-    hp_stacks: int = 0  # persistent HP stacks (added per round)
+    hp_stacks: int = 0  # DEPRECATED: use persistent_buffs instead
+    persistent_buffs: Dict[str, float] = field(default_factory=dict)  # persistent stat buffs accumulated over rounds
     
     def __post_init__(self):
         if self.instance_id is None:
@@ -130,9 +131,9 @@ class PlayerState:
             'level': self.level,
             'xp': self.xp,
             'hp': self.hp,
-            'bench': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'hp_stacks': getattr(u, 'hp_stacks', 0)} 
+            'bench': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'hp_stacks': getattr(u, 'hp_stacks', 0), 'persistent_buffs': getattr(u, 'persistent_buffs', {})} 
                      for u in self.bench],
-            'board': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'hp_stacks': getattr(u, 'hp_stacks', 0)} 
+            'board': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'hp_stacks': getattr(u, 'hp_stacks', 0), 'persistent_buffs': getattr(u, 'persistent_buffs', {})} 
                      for u in self.board],
             'round_number': self.round_number,
             'wins': self.wins,
