@@ -1,6 +1,7 @@
 {
   "name": "waffen-tactics-web",
   "private": true,
+  "start": "node --max-old-space-size=512 index.js",
   "version": "1.0.0",
   "type": "module",
   "scripts": {

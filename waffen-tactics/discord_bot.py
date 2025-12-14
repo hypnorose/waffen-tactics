@@ -106,6 +106,7 @@ class OpponentPreviewView(View):
             nickname=interaction.user.display_name,
             team_units=player_team,
             wins=player.wins,
+            losses=player.losses,
             level=player.level
         )
         
@@ -968,6 +969,7 @@ class WaffenTacticsBot:
             nickname=interaction.user.display_name,
             team_units=player_team,
             wins=player.wins,
+            losses=player.losses,
             level=player.level
         )
         

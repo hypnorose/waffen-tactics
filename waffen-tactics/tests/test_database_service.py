@@ -48,16 +48,16 @@ async def test_has_system_opponents(db):
     assert not await db.has_system_opponents()
     # Dodaj 15 botów
     for i in range(1, 16):
-        await db.save_opponent_team(i, f"Bot{i}", [{'unit_id': i, 'star_level': 1}], wins=i, level=1)
+        await db.save_opponent_team(i, f"Bot{i}", [{'unit_id': i, 'star_level': 1}], wins=i, losses=i//2, level=1)
     assert await db.has_system_opponents()
 
 @pytest.mark.asyncio
 async def test_get_random_opponent(db):
     await db.initialize()
     # Dodaj 2 boty i 1 gracza
-    await db.save_opponent_team(1, "Bot1", [{'unit_id': 1, 'star_level': 1}], wins=2, level=1)
-    await db.save_opponent_team(2, "Bot2", [{'unit_id': 2, 'star_level': 1}], wins=5, level=1)
-    await db.save_opponent_team(101, "RealPlayer", [{'unit_id': 3, 'star_level': 2}], wins=5, level=2)
+    await db.save_opponent_team(1, "Bot1", [{'unit_id': 1, 'star_level': 1}], wins=2, losses=1, level=1)
+    await db.save_opponent_team(2, "Bot2", [{'unit_id': 2, 'star_level': 1}], wins=5, losses=2, level=1)
+    await db.save_opponent_team(101, "RealPlayer", [{'unit_id': 3, 'star_level': 2}], wins=5, losses=3, level=2)
     # Preferuje gracza
     opp = await db.get_random_opponent(exclude_user_id=999, player_wins=5)
     assert opp is not None
@@ -101,7 +101,7 @@ async def test_add_and_get_opponent_team(db):
         {'unit_id': 1, 'star_level': 2},
         {'unit_id': 2, 'star_level': 1},
     ]
-    await db.save_opponent_team(user_id=123, nickname='TestBot', team_units=team_units, wins=5, level=2)
+    await db.save_opponent_team(user_id=123, nickname='TestBot', team_units=team_units, wins=5, losses=2, level=2)
     # Pobieramy drużynę
     result = await db.get_opponent_team(123)
     assert result is not None

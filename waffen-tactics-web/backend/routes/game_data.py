@@ -1,0 +1,59 @@
+"""
+Game data endpoints - handlers for getting game data like units, traits, leaderboard
+"""
+from flask import jsonify
+from pathlib import Path
+from waffen_tactics.services.database import DatabaseManager
+from waffen_tactics.services.game_manager import GameManager
+from .game_state_utils import run_async
+
+# Initialize services
+DB_PATH = str(Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')
+db_manager = DatabaseManager(DB_PATH)
+game_manager = GameManager()
+
+
+def get_leaderboard():
+    """Get leaderboard"""
+    leaderboard = run_async(db_manager.get_leaderboard())
+    return jsonify(leaderboard)
+
+
+def get_units():
+    """Get all units with stats"""
+    units_data = []
+    for unit in game_manager.data.units:
+        # Prefer authoritative stats from game data when available so frontend
+        # displays the same base values the backend uses for buff calculations.
+        base_stats = getattr(unit, 'stats', None)
+        if not base_stats:
+            # Fallback formula (legacy)
+            base_stats = {
+                'hp': 80 + (unit.cost * 40),
+                'attack': 20 + (unit.cost * 10),
+                'defense': 10 + (unit.cost * 5),
+                'attack_speed': 1.0
+            }
+        units_data.append({
+            'id': unit.id,
+            'name': unit.name,
+            'cost': unit.cost,
+            'factions': unit.factions,
+            'classes': unit.classes,
+            'avatar': getattr(unit, 'avatar', None),
+            'stats': base_stats
+        })
+    return jsonify(units_data)
+
+
+def get_traits():
+    """Get all traits with thresholds and effects"""
+    traits_data = []
+    for trait in game_manager.data.traits:
+        traits_data.append({
+            'name': trait['name'],
+            'type': trait['type'],
+            'thresholds': trait['thresholds'],
+            'effects': trait['effects']
+        })
+    return jsonify(traits_data)

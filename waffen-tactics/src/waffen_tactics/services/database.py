@@ -42,6 +42,7 @@ class DatabaseManager:
                     nickname TEXT NOT NULL,
                     team_json TEXT NOT NULL,
                     wins INTEGER DEFAULT 0,
+                    losses INTEGER DEFAULT 0,
                     level INTEGER DEFAULT 1,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -59,6 +60,14 @@ class DatabaseManager:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            
+            # Migration: Add losses column to opponent_teams if it doesn't exist
+            try:
+                await db.execute("ALTER TABLE opponent_teams ADD COLUMN losses INTEGER DEFAULT 0")
+            except aiosqlite.OperationalError:
+                # Column already exists
+                pass
+            
             await db.commit()
     
     async def save_player(self, player: PlayerState):
@@ -134,7 +143,7 @@ class DatabaseManager:
                 row = await cursor.fetchone()
                 return row[0] >= 15 if row else False
     
-    async def save_opponent_team(self, user_id: int, nickname: str, team_units: list, wins: int, level: int):
+    async def save_opponent_team(self, user_id: int, nickname: str, team_units: list, wins: int, losses: int, level: int):
         """Save team snapshot - keeps history of all teams"""
         team_json = json.dumps(team_units)
         
@@ -145,7 +154,7 @@ class DatabaseManager:
                 await db.execute("DELETE FROM opponent_teams WHERE user_id = ?", (user_id,))
             
             # Insert new team
-            await db.execute("INSERT INTO opponent_teams (user_id, nickname, team_json, wins, level) VALUES (?, ?, ?, ?, ?)", (user_id, nickname, team_json, wins, level))
+            await db.execute("INSERT INTO opponent_teams (user_id, nickname, team_json, wins, losses, level) VALUES (?, ?, ?, ?, ?, ?)", (user_id, nickname, team_json, wins, losses, level))
             await db.commit()
     
     async def reset_leaderboard(self):
@@ -160,48 +169,66 @@ class DatabaseManager:
             await db.execute("DELETE FROM opponent_teams")
             await db.commit()
     
-    async def get_random_opponent(self, exclude_user_id: Optional[int] = None, player_wins: int = 0) -> Optional[Dict]:
-        """Get opponent team with closest win count (prioritize real players over bots)"""
+    async def get_random_opponent(self, exclude_user_id: Optional[int] = None, player_wins: int = 0, player_rounds: int = 0) -> Optional[Dict]:
+        """Get opponent team - use bots when no real players within 1 round difference"""
         async with aiosqlite.connect(self.db_path) as db:
             if exclude_user_id is not None:
-                # First try to find real player (user_id > 100) with closest win count
+                # First check if there are real players within 1 round difference
                 query = """
-                    SELECT nickname, team_json, wins, level FROM opponent_teams
+                    SELECT COUNT(*) FROM opponent_teams
                     WHERE user_id != ? AND user_id > 100
-                    ORDER BY ABS(wins - ?) ASC, RANDOM()
-                    LIMIT 1
+                    AND ABS((wins + losses) - ?) <= 1
                 """
-                async with db.execute(query, (exclude_user_id, player_wins)) as cursor:
-                    row = await cursor.fetchone()
+                async with db.execute(query, (exclude_user_id, player_rounds)) as cursor:
+                    count_row = await cursor.fetchone()
+                    has_close_players = count_row and count_row[0] > 0
                 
-                # If no real players, fallback to bots
-                if not row:
+                if has_close_players:
+                    # Use closest real player within 1 round difference
                     query = """
-                        SELECT nickname, team_json, wins, level FROM opponent_teams
-                        WHERE user_id != ? AND user_id <= 100
-                        ORDER BY ABS(wins - ?) ASC, RANDOM()
+                        SELECT nickname, team_json, wins, losses, level FROM opponent_teams
+                        WHERE user_id != ? AND user_id > 100 AND ABS((wins + losses) - ?) <= 1
+                        ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
                         LIMIT 1
                     """
-                    async with db.execute(query, (exclude_user_id, player_wins)) as cursor:
+                    async with db.execute(query, (exclude_user_id, player_rounds, player_rounds)) as cursor:
+                        row = await cursor.fetchone()
+                else:
+                    # No real players within 1 round difference, use bot
+                    query = """
+                        SELECT nickname, team_json, wins, losses, level FROM opponent_teams
+                        WHERE user_id != ? AND user_id <= 100
+                        ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
+                        LIMIT 1
+                    """
+                    async with db.execute(query, (exclude_user_id, player_rounds)) as cursor:
                         row = await cursor.fetchone()
             else:
-                # Prioritize real players
-                async with db.execute("""
-                    SELECT nickname, team_json, wins, level FROM opponent_teams
-                    WHERE user_id > 100
-                    ORDER BY wins ASC, RANDOM()
-                    LIMIT 1
-                """) as cursor:
-                    row = await cursor.fetchone()
+                # Prioritize real players within 1 round difference
+                query = """
+                    SELECT COUNT(*) FROM opponent_teams
+                    WHERE user_id > 100 AND ABS((wins + losses) - ?) <= 1
+                """
+                async with db.execute(query, (player_rounds,)) as cursor:
+                    count_row = await cursor.fetchone()
+                    has_close_players = count_row and count_row[0] > 0
                 
-                # Fallback to bots if no real players
-                if not row:
+                if has_close_players:
                     async with db.execute("""
-                        SELECT nickname, team_json, wins, level FROM opponent_teams
-                        WHERE user_id <= 100
-                        ORDER BY wins ASC, RANDOM()
+                        SELECT nickname, team_json, wins, losses, level FROM opponent_teams
+                        WHERE user_id > 100 AND ABS((wins + losses) - ?) <= 1
+                        ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
                         LIMIT 1
-                    """) as cursor:
+                    """, (player_rounds, player_rounds)) as cursor:
+                        row = await cursor.fetchone()
+                else:
+                    # Fallback to bots
+                    async with db.execute("""
+                        SELECT nickname, team_json, wins, losses, level FROM opponent_teams
+                        WHERE user_id <= 100
+                        ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
+                        LIMIT 1
+                    """, (player_rounds,)) as cursor:
                         row = await cursor.fetchone()
             
             if row:
@@ -209,7 +236,8 @@ class DatabaseManager:
                     'nickname': row[0],
                     'team': json.loads(row[1]),
                     'wins': row[2],
-                    'level': row[3]
+                    'losses': row[3],
+                    'level': row[4]
                 }
         return None
     
@@ -275,5 +303,6 @@ class DatabaseManager:
                 nickname=opp['nickname'],
                 team_units=team,
                 wins=opp['wins'],
+                losses=max(1, opp['wins'] // 3),  # Estimate losses as roughly 1/3 of wins
                 level=opp['level']
             )

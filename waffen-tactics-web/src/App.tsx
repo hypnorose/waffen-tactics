@@ -7,8 +7,13 @@ import TermsOfService from './pages/TermsOfService'
 import './App.css'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthStore()
-  return user ? <>{children}</> : <Navigate to="/login" />
+  const { user, token, hydrated } = useAuthStore()
+  
+  if (!hydrated) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  }
+  
+  return user && token ? <>{children}</> : <Navigate to="/login" />
 }
 
 function App() {

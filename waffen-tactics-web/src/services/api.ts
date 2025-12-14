@@ -13,8 +13,10 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token
+  console.log('🔐 API Request:', config.method?.toUpperCase(), config.url, 'Token present:', !!token)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+    console.log('🔐 Added Authorization header')
   }
   return config
 })

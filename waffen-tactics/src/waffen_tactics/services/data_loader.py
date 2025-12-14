@@ -6,7 +6,7 @@ from waffen_tactics.models.unit import Unit, Stats, Skill
 DATA_FILE = Path(__file__).resolve().parents[3] / "units.json"
 TRAITS_FILE = Path(__file__).resolve().parents[3] / "traits.json"
 
-DEFAULT_STATS = Stats(attack=50, hp=500, defense=20, max_mana=50, attack_speed=1.0)
+DEFAULT_STATS = Stats(attack=50, hp=500, defense=20, max_mana=100, attack_speed=1.0)
 DEFAULT_SKILL = Skill(name="Basic Skill", description="Deals bonus damage to a random target.", mana_cost=100, effect={"type": "damage", "amount": 100})
 
 class GameData:
@@ -22,13 +22,13 @@ def build_stats_for_cost(cost: int) -> Stats:
     attack = 40 + 12 * cost
     hp = 420 + 120 * cost
     defense = 12 + 6 * cost
-    max_mana = 50
+    max_mana = 40 + 10 * cost
     # Attack speed: attacks per second; keep within reasonable bounds
     attack_speed = 0.7 + 0.06 * cost  # e.g., cost 1: 0.76, cost 5: 1.0
     return Stats(attack=attack, hp=hp, defense=defense, max_mana=max_mana, attack_speed=attack_speed)
 
 def build_skill_for_cost(cost: int) -> Skill:
-    dmg = 60 + 25 * cost
+    dmg = 40 + 10 * cost
     return Skill(name="Basic Skill", description="Deals bonus damage to a random target.", mana_cost=100, effect={"type": "damage", "amount": dmg})
 
 def load_game_data() -> GameData:

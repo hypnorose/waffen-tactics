@@ -73,7 +73,7 @@ export default function Bench({ playerState, onUpdate }: BenchProps) {
                   💰
                 </button>
               </div>
-              <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} buffedStats={unitInstance.buffed_stats} />
+              <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
             </div>
           ))}
         </div>

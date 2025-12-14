@@ -8,11 +8,21 @@ interface UnitCardProps {
   disabled?: boolean
   showCost?: boolean
   detailed?: boolean
+  baseStats?: {
+    hp?: number
+    attack?: number
+    defense?: number
+    attack_speed?: number
+    max_mana?: number
+    current_mana?: number
+  }
   buffedStats?: {
     hp?: number
     attack?: number
     defense?: number
     attack_speed?: number
+    max_mana?: number
+    current_mana?: number
   }
 }
 
@@ -23,6 +33,7 @@ export default function UnitCard({
   disabled,
   showCost = true,
   detailed = false,
+  baseStats,
   buffedStats,
 }: UnitCardProps) {
   const unit = getUnit(unitId)
@@ -39,14 +50,18 @@ export default function UnitCard({
   }
 
   const multiplier = starLevel
-  const scaledStats = unit.stats
+  // Use base stats received from backend instead of calculating
+  const scaledStats = baseStats || (unit.stats
     ? {
         hp: Math.floor(unit.stats.hp * multiplier),
         attack: Math.floor(unit.stats.attack * multiplier),
         defense: Math.floor(unit.stats.defense * multiplier),
         attack_speed: unit.stats.attack_speed,
+        // support max_mana/current_mana when provided by backend
+        max_mana: (unit as any).stats?.max_mana ? Math.floor((unit as any).stats.max_mana * multiplier) : undefined,
+        current_mana: 0,
       }
-    : null
+    : null)
 
   const deltas =
     scaledStats && buffedStats
@@ -55,6 +70,7 @@ export default function UnitCard({
           attack: (buffedStats.attack ?? scaledStats.attack) - scaledStats.attack,
           defense: (buffedStats.defense ?? scaledStats.defense) - scaledStats.defense,
           attack_speed: (buffedStats.attack_speed ?? scaledStats.attack_speed) - scaledStats.attack_speed,
+          max_mana: (buffedStats.max_mana ?? (scaledStats as any).max_mana ?? 0) - ((scaledStats as any).max_mana ?? 0),
         }
       : null
 
@@ -64,6 +80,8 @@ export default function UnitCard({
         attack: buffedStats?.attack ?? scaledStats.attack,
         defense: buffedStats?.defense ?? scaledStats.defense,
         attack_speed: buffedStats?.attack_speed ?? scaledStats.attack_speed,
+        max_mana: buffedStats?.max_mana ?? (scaledStats as any).max_mana ?? 100,
+        current_mana: buffedStats?.current_mana ?? (scaledStats as any).current_mana ?? 0,
       }
     : null
 
@@ -185,7 +203,7 @@ export default function UnitCard({
                   <span className="text-base">🔮</span>
                   <span className="font-semibold">Max Mana</span>
                 </span>
-                <span className="font-bold text-white text-sm">100</span>
+                <span className="font-bold text-white text-sm">{displayStats?.max_mana ?? 100}</span>
               </div>
             </div>
           )}
@@ -298,7 +316,7 @@ export default function UnitCard({
                 <span className="text-purple-400">🔮</span>
                 <span className="text-sm font-semibold">Mana</span>
               </div>
-              <span className="font-bold text-sm">100</span>
+              <span className="font-bold text-sm">{displayStats?.current_mana ?? 0}/{displayStats?.max_mana ?? 100}</span>
             </div>
           </div>
         )}

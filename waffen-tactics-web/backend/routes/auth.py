@@ -38,18 +38,24 @@ def verify_token(token: str) -> dict:
 def require_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        auth_header = request.headers.get('Authorization', '')
+        print(f"🔐 Auth check - Authorization header: '{auth_header[:50]}...'")
+        token = auth_header.replace('Bearer ', '')
+        print(f"🔐 Auth check - Token present: {bool(token)}, Length: {len(token) if token else 0}")
         if not token:
+            print("❌ No token in Authorization header")
             return jsonify({'error': 'Missing token'}), 401
 
         try:
             payload = verify_token(token)
             user_id = int(payload['user_id'])
+            print(f"✅ Token valid for user_id: {user_id}")
             return f(user_id, *args, **kwargs)
         except jwt.ExpiredSignatureError:
+            print("❌ Token expired")
             return jsonify({'error': 'Token expired'}), 401
         except Exception as e:
-            print(f"Auth error: {e}")
+            print(f"❌ Token invalid: {e}")
             return jsonify({'error': 'Invalid token'}), 401
 
     return decorated
