@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 
 class CombatUnit:
     """Lightweight unit representation for combat with effect hooks"""
-    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, skill: Optional[Dict[str, Any]] = None):
+    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, skill: Optional[Dict[str, Any]] = None, mana_regen: int = 0, stats: Optional['Stats'] = None):
         self.id = id
         self.name = name
         self.hp = hp
@@ -19,6 +19,8 @@ class CombatUnit:
         # Mana system (for future skills)
         self.max_mana = max_mana
         self.mana = 0
+        self.mana_regen = mana_regen
+        self.stats = stats
         # Skill system
         if skill and hasattr(skill, 'name'):
             # Convert Skill object to dict
@@ -44,3 +46,5 @@ class CombatUnit:
                 self.lifesteal = max(self.lifesteal, float(eff.get('value', 0)))
             if etype == 'damage_reduction':
                 self.damage_reduction = max(self.damage_reduction, float(eff.get('value', 0)))
+            if etype == 'mana_regen':
+                self.mana_regen += int(eff.get('value', 0))

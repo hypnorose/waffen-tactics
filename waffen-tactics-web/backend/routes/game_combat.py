@@ -185,6 +185,9 @@ def start_combat():
                         defense=defense,
                         attack_speed=attack_speed,
                         effects=effects_for_unit,
+                        max_mana=max_mana,
+                        mana_regen=stat_val(base_stats, 'mana_regen', 5),
+                        stats=base_stats,
                         skill={
                             'name': unit.skill.name,
                             'description': unit.skill.description,
@@ -334,6 +337,9 @@ def start_combat():
                             defense=defense,
                             attack_speed=attack_speed,
                             effects=effects_b_for_unit,
+                            max_mana=max_mana,
+                            mana_regen=stat_val(base_stats_b, 'mana_regen', 5),
+                            stats=base_stats_b,
                             skill={
                                 'name': unit.skill.name,
                                 'description': unit.skill.description,

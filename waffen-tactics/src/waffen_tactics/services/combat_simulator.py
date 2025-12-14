@@ -171,8 +171,8 @@ class CombatSimulator(
                         attacking_hp[i] = min(unit.max_hp, attacking_hp[i] + heal)
                         log.append(f"{unit.name} lifesteals {heal}")
 
-                # Mana gain: +10 per attack
-                unit.mana = min(unit.max_mana, unit.mana + 10)
+                # Mana gain: per attack
+                unit.mana = min(unit.max_mana, unit.mana + unit.stats.mana_on_attack)
 
                 # Send mana update event
                 if event_callback:

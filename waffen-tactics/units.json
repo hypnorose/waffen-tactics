@@ -10,6 +10,8 @@
         "Normik"
       ],
       "cost": 1,
+      "role": "defender",
+      "max_mana": 80,
       "avatar": "/avatars/rafcikd.png"
     },
     {
@@ -22,6 +24,8 @@
         "Gamer"
       ],
       "cost": 2,
+      "role": "fighter",
+      "max_mana": 100,
       "avatar": "/avatars/falconbalkon.png"
     },
     {
@@ -34,6 +38,8 @@
         "Haker"
       ],
       "cost": 2,
+      "role": "mage",
+      "max_mana": 150,
       "avatar": "/avatars/piwniczak.png"
     },
     {
@@ -46,6 +52,8 @@
         "Femboy"
       ],
       "cost": 3,
+      "role": "duelist",
+      "max_mana": 120,
       "avatar": "/avatars/capybara.png"
     },
     {

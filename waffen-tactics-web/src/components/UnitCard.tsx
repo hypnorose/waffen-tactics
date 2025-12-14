@@ -49,19 +49,15 @@ export default function UnitCard({
     )
   }
 
-  const multiplier = starLevel
-  // Use base stats received from backend instead of calculating
-  const scaledStats = baseStats || (unit.stats
-    ? {
-        hp: Math.floor(unit.stats.hp * multiplier),
-        attack: Math.floor(unit.stats.attack * multiplier),
-        defense: Math.floor(unit.stats.defense * multiplier),
-        attack_speed: unit.stats.attack_speed,
-        // support max_mana/current_mana when provided by backend
-        max_mana: (unit as any).stats?.max_mana ? (unit as any).stats.max_mana : undefined,
-        current_mana: 0,
-      }
-    : null)
+  // Use base stats received from backend - no client-side calculation
+  const scaledStats = baseStats || (unit.stats ? {
+    hp: unit.stats.hp,
+    attack: unit.stats.attack,
+    defense: unit.stats.defense,
+    attack_speed: unit.stats.attack_speed,
+    max_mana: (unit as any).stats?.max_mana,
+    current_mana: 0,
+  } : null)
 
   const deltas =
     scaledStats && buffedStats

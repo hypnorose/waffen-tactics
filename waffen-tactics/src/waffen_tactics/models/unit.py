@@ -8,6 +8,8 @@ class Stats:
     defense: int
     max_mana: int
     attack_speed: float  # attacks per second
+    mana_on_attack: int = 10  # mana gained per attack
+    mana_regen: int = 5  # mana regenerated per turn
 
     def get(self, key: str, default=None):
         """Compatibility helper: allow dict-like `.get` access for Stats.

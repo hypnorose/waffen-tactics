@@ -1,0 +1,36 @@
+{
+  "roles": {
+    "defender": {
+      "hp": 600,
+      "attack": 40,
+      "defense": 30,
+      "attack_speed": 0.8,
+      "mana_on_attack": 8,
+      "mana_regen": 4
+    },
+    "fighter": {
+      "hp": 500,
+      "attack": 60,
+      "defense": 20,
+      "attack_speed": 1.0,
+      "mana_on_attack": 10,
+      "mana_regen": 5
+    },
+    "duelist": {
+      "hp": 450,
+      "attack": 70,
+      "defense": 15,
+      "attack_speed": 1.2,
+      "mana_on_attack": 12,
+      "mana_regen": 6
+    },
+    "mage": {
+      "hp": 400,
+      "attack": 50,
+      "defense": 10,
+      "attack_speed": 0.9,
+      "mana_on_attack": 15,
+      "mana_regen": 8
+    }
+  }
+}

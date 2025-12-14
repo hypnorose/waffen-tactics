@@ -270,3 +270,21 @@ class CombatEffectProcessor:
                                 'unit_hp': b_hp[idx_u],
                                 'unit_max_hp': u.max_hp
                             })
+
+        # Apply base mana regen for all units
+        for u in team_a + team_b:
+            if u.mana_regen > 0:
+                old_mana = u.mana
+                u.mana = min(u.max_mana, u.mana + u.mana_regen)
+                add = u.mana - old_mana
+                if add > 0:
+                    log.append(f"{u.name} +{add} Mana (regen)")
+                    if event_callback:
+                        event_callback('mana_update', {
+                            'unit_id': u.id,
+                            'unit_name': u.name,
+                            'current_mana': u.mana,
+                            'max_mana': u.max_mana,
+                            'side': 'team_a' if u in team_a else 'team_b',
+                            'timestamp': time
+                        })
