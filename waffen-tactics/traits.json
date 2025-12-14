@@ -202,28 +202,32 @@
     {
       "name": "Femboy",
       "type": "class",
-      "description": "Po zabiciu wroga regenerują HP",
+      "description": "Po zabiciu wroga regenerują HP przez 5 sekund",
       "thresholds": [2, 3, 4, 5],
       "effects": [
         {
           "type": "hp_regen_on_kill",
           "value": 5,
-          "is_percentage": true
+          "is_percentage": true,
+          "duration": 5
         },
         {
           "type": "hp_regen_on_kill",
           "value": 8,
-          "is_percentage": true
+          "is_percentage": true,
+          "duration": 5
         },
         {
           "type": "hp_regen_on_kill",
           "value": 12,
-          "is_percentage": true
+          "is_percentage": true,
+          "duration": 5
         },
         {
           "type": "hp_regen_on_kill",
           "value": 20,
-          "is_percentage": true
+          "is_percentage": true,
+          "duration": 5
         }
       ]
     },
@@ -378,6 +382,61 @@
           "value": 25,
           "is_percentage": true
         }
+      ]
+    }
+  ,
+    {
+      "name": "Hitman",
+      "type": "class",
+      "description": "Zawsze atakuje jednostkę z najmniejszym HP",
+      "thresholds": [1],
+      "effects": [
+        { "type": "target_least_hp" }
+      ]
+    },
+    {
+      "name": "Wygnaniec",
+      "type": "class",
+      "description": "Leczy pierwszego sojusznika, który spadnie poniżej progu HP",
+      "thresholds": [1],
+      "effects": [
+        { "type": "on_ally_hp_below", "threshold_percent": 30, "heal_percent": 50, "once": true }
+      ]
+    },
+    {
+      "name": "XN Jugend",
+      "type": "class",
+      "description": "Wzmacnia wszystkie buffy na tej jednostce (x2)",
+      "thresholds": [1],
+      "effects": [
+        { "type": "buff_amplifier", "multiplier": 2 }
+      ]
+    },
+    {
+      "name": "XN Mod",
+      "type": "class",
+      "description": "30% szans na darmowy reroll gdy aktywne",
+      "thresholds": [1],
+      "effects": [
+        { "type": "reroll_free_chance", "chance_percent": 30 }
+      ]
+    },
+    {
+      "name": "XN Monter",
+      "type": "class",
+      "description": "Daje procentowy bonus do HP za każdą przegraną rundę",
+      "thresholds": [1],
+      "effects": [
+        { "type": "dynamic_hp_per_loss", "percent_per_loss": 5 }
+      ]
+    },
+    {
+      "name": "XN Yakuza",
+      "type": "class",
+      "description": "Za każdą wygraną rundę zyskujesz stałe i procentowe bonusy",
+      "thresholds": [1],
+      "effects": [
+        { "type": "win_scaling", "atk_per_win": 1, "def_per_win": 1, "hp_percent_per_win": 1, "as_per_win": 0.01 }
       ]
     }
   ]

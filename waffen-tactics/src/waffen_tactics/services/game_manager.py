@@ -9,6 +9,7 @@ from ..services.combat import CombatSimulator
 from ..services.combat_shared import CombatSimulator as SharedCombatSimulator, CombatUnit
 import random
 import logging
+from copy import deepcopy
 
 bot_logger = logging.getLogger('waffen_tactics')
 
@@ -26,12 +27,30 @@ class GameManager:
         return PlayerState(user_id=user_id)
     
     def generate_shop(self, player: PlayerState, force_new: bool = False) -> List[str]:
-        """Generate shop offers for player"""
+        """Generate shop offers for player, filtering out units already at 3★"""
         if player.locked_shop and not force_new and player.last_shop:
             return player.last_shop
-        
-        offers = self.shop_service.roll(player.level, count=5)
-        player.last_shop = [u.id for u in offers]
+
+        # Get set of unit_ids that player has at 3★ (bench or board)
+        owned_3star = set()
+        for u in player.bench + player.board:
+            if u.star_level == 3:
+                owned_3star.add(u.unit_id)
+
+        # Roll until we have 5 valid offers (avoid infinite loop by limiting attempts)
+        offers = []
+        attempts = 0
+        while len(offers) < 5 and attempts < 50:
+            unit = self.shop_service.roll(player.level, count=1)[0]
+            if unit.id not in owned_3star and unit.id not in [u.id for u in offers]:
+                offers.append(unit)
+            attempts += 1
+
+        # If not enough unique offers, fill with empty slots
+        while len(offers) < 5:
+            offers.append(None)
+
+        player.last_shop = [u.id if u else '' for u in offers]
         player.locked_shop = False
         return player.last_shop
     
@@ -204,19 +223,24 @@ class GameManager:
         if len(matching) >= 3:
             # Take first 3 units
             units_to_merge = matching[:3]
-            
+
+            # Check if any merged unit was on board
+            merged_on_board = any(unit in player.board for unit in units_to_merge)
+
             # Remove from bench/board
             for unit in units_to_merge:
                 if unit in player.bench:
                     player.bench.remove(unit)
                 elif unit in player.board:
                     player.board.remove(unit)
-            
+
             # Create upgraded unit
             upgraded = UnitInstance(unit_id=unit_id, star_level=star_level + 1)
-            
-            # Put on bench if has space, otherwise board
-            if len(player.bench) < player.max_bench_size:
+
+            # Prefer board if any merged unit was on board and there's space
+            if merged_on_board and len(player.board) < player.max_board_size:
+                player.board.append(upgraded)
+            elif len(player.bench) < player.max_bench_size:
                 player.bench.append(upgraded)
             elif len(player.board) < player.max_board_size:
                 player.board.append(upgraded)
@@ -224,7 +248,7 @@ class GameManager:
                 # No space, put back one unit
                 player.bench.append(units_to_merge[0])
                 return None
-            
+
             # Try to upgrade again (3x ⭐⭐ → ⭐⭐⭐)
             further_upgrade = self.try_auto_upgrade(player, unit_id, star_level + 1)
             return further_upgrade if further_upgrade else star_level + 1
@@ -235,15 +259,37 @@ class GameManager:
         """Reroll shop for 2 gold"""
         if player.locked_shop:
             return False, "Sklep jest zablokowany! Odblokuj go przed odświeżeniem."
-        
+        # Check for reroll-free chance from active synergies (e.g., XN Mod)
+        active = self.get_board_synergies(player)
+        free_reroll = False
+        free_reason = None
+        for trait_name, (count, tier) in active.items():
+            trait_obj = next((t for t in self.data.traits if t.get('name') == trait_name), None)
+            if not trait_obj:
+                continue
+            idx = tier - 1
+            if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+                continue
+            effect = trait_obj.get('effects', [])[idx]
+            if effect.get('type') == 'reroll_free_chance':
+                chance = float(effect.get('chance_percent', 0))
+                if random.random() * 100.0 < chance:
+                    free_reroll = True
+                    free_reason = f"{trait_name} darmowy reroll ({chance}%)"
+                    break
+
         cost = 2
-        if not player.can_afford(cost):
-            return False, f"Brak golda! Reroll kosztuje {cost}g."
-        
-        player.spend_gold(cost)
+        if not free_reroll:
+            if not player.can_afford(cost):
+                return False, f"Brak golda! Reroll kosztuje {cost}g."
+            player.spend_gold(cost)
+
         player.shop_rerolls += 1
         self.generate_shop(player, force_new=True)
-        
+
+        if free_reroll:
+            return True, f"Darmowy reroll dzięki {free_reason}!"
+
         return True, f"Reroll za {cost}g!"
     
     def buy_xp(self, player: PlayerState) -> Tuple[bool, str]:
@@ -377,7 +423,25 @@ class GameManager:
                         continue
                     effect = trait_obj.get('effects', [])[idx]
                     if trait_name in unit.factions or trait_name in unit.classes:
-                        effects_a.append(effect)
+                        effects_a.append(deepcopy(effect))
+
+                # Apply dynamic effects that depend on player state (losses/wins) BEFORE creating CombatUnit
+                for eff in effects_a:
+                    etype = eff.get('type')
+                    if etype == 'dynamic_hp_per_loss':
+                        percent_per_loss = float(eff.get('percent_per_loss', 0))
+                        extra_multiplier = 1.0 + (percent_per_loss * float(player.losses) / 100.0)
+                        hp = int(hp * extra_multiplier)
+                    if etype == 'win_scaling':
+                        atk_per_win = float(eff.get('atk_per_win', 0))
+                        def_per_win = float(eff.get('def_per_win', 0))
+                        hp_percent_per_win = float(eff.get('hp_percent_per_win', 0))
+                        as_per_win = float(eff.get('as_per_win', 0))
+                        attack += int(atk_per_win * player.wins)
+                        defense += int(def_per_win * player.wins)
+                        if hp_percent_per_win:
+                            hp = int(hp * (1 + (hp_percent_per_win * player.wins) / 100.0))
+                        attack_speed += as_per_win * player.wins
 
                 team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a))
 
@@ -406,7 +470,7 @@ class GameManager:
                     effect_b = trait_obj_b.get('effects', [])[idx_b]
                     # Only attach if unit has the trait
                     if trait_name in u.factions or trait_name in u.classes:
-                        effects_b.append(effect_b)
+                        effects_b.append(deepcopy(effect_b))
 
                 team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b))
 

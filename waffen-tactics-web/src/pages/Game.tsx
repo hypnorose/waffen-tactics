@@ -87,9 +87,20 @@ export default function Game() {
     setLoading(true)
     try {
       const response = await gameAPI.resetGame()
-      setPlayerState(response.data.state)
-      setIsGameOver(false)
-      alert(response.data.message)
+      // resetGame saves to leaderboard and creates a fresh player, but to ensure the
+      // shop is generated (same behavior as surrender), call startGame() afterwards.
+      try {
+        const startResp = await gameAPI.startGame()
+        setPlayerState(startResp.data)
+        setIsGameOver(false)
+        alert((response.data && response.data.message) ? `${response.data.message} Nowa gra rozpoczęta.` : 'Gra zresetowana. Nowa gra rozpoczęta.')
+      } catch (startErr) {
+        // If starting a new game fails, fall back to the state returned by resetGame
+        setPlayerState(response.data.state)
+        setIsGameOver(false)
+        console.error('Failed to call startGame after reset:', startErr)
+        alert((response.data && response.data.message) ? `${response.data.message} Nie udało się automatycznie rozpocząć nowej gry.` : 'Gra zresetowana. Nie udało się rozpocząć nowej gry.')
+      }
     } catch (err: any) {
       alert(err.response?.data?.error || 'Nie można zresetować gry')
     } finally {
@@ -105,9 +116,19 @@ export default function Game() {
     setLoading(true)
     try {
       const response = await gameAPI.surrender()
-      setPlayerState(response.data.state)
-      setIsGameOver(true)
-      alert(response.data.message)
+      // Save final state (surrender saved to leaderboard). Then immediately start a new game.
+      try {
+        const startResp = await gameAPI.startGame()
+        setPlayerState(startResp.data)
+        setIsGameOver(false)
+        alert((response.data && response.data.message) ? `${response.data.message} Nowa gra rozpoczęta.` : 'Poddano się. Nowa gra rozpoczęta.')
+      } catch (startErr) {
+        // If starting new game fails, keep surrendered state but notify user
+        setPlayerState(response.data.state)
+        setIsGameOver(true)
+        console.error('Failed to start new game after surrender:', startErr)
+        alert((response.data && response.data.message) ? `${response.data.message} Nie udało się automatycznie rozpocząć nowej gry.` : 'Poddano się. Nie udało się rozpocząć nowej gry.')
+      }
     } catch (err: any) {
       alert(err.response?.data?.error || 'Nie można się poddać')
     } finally {

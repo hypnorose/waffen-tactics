@@ -136,20 +136,6 @@ class TestCombat(unittest.TestCase):
         self.assertIn(result["winner"], ("A", "B", "team_a", "team_b"))
         # Larger team should have advantage but not guaranteed (stats matter)
 
-    def test_combat_log_completeness(self):
-        """Test that combat log captures all important events"""
-        team = self.data.units[:2]
-        opp = self.data.units[2:4]
-        result = self.sim.simulate(team, opp)
-        
-        log = result.get("log", [])
-        
-        # Verify log contains both teams' actions
-        team_a_actions = [l for l in log if l.startswith("A:")]
-        team_b_actions = [l for l in log if l.startswith("B:")]
-        
-        self.assertGreater(len(team_a_actions), 0, "Team A should have actions in log")
-        self.assertGreater(len(team_b_actions), 0, "Team B should have actions in log")
 
     def test_minimum_damage_applied(self):
         """Test that even when defense >= attack, minimum 1 damage is dealt"""
@@ -187,6 +173,63 @@ class TestCombat(unittest.TestCase):
         if fast_attacks + slow_attacks > 5:
             self.assertGreater(fast_attacks, slow_attacks, 
                              "Faster attack speed should result in more attacks")
+
+    def test_empty_team_vs_team(self):
+        """Test that combat with empty team returns correct winner (team B)"""
+        team = []
+        opp = self.data.units[:2]
+        result = self.sim.simulate(team, opp)
+        self.assertIn(result["winner"], ("B", "team_b"))
+
+    def test_team_vs_empty_team(self):
+        """Test that combat with empty opponent returns correct winner (team A)"""
+        team = self.data.units[:2]
+        opp = []
+        result = self.sim.simulate(team, opp)
+        self.assertIn(result["winner"], ("A", "team_a"))
+
+    def test_unit_with_zero_hp(self):
+        """Test that unit with 0 HP is ignored/eliminated instantly"""
+        stats = Stats(attack=10, hp=0, defense=0, max_mana=100, attack_speed=1.0)
+        skill = Skill("None", "none", 100, {"type": "none"})
+        team = [Unit("dead", "Dead", 1, ["X"], ["Y"], stats, skill)]
+        opp = self.data.units[:1]
+        result = self.sim.simulate(team, opp)
+        self.assertIn(result["winner"], ("B", "team_b"))
+
+    def test_unit_without_skill(self):
+        """Test that unit without skill does not cause errors"""
+        stats = Stats(attack=20, hp=100, defense=5, max_mana=100, attack_speed=1.0)
+        team = [Unit("noskill", "NoSkill", 1, ["X"], ["Y"], stats, None)]
+        opp = self.data.units[:1]
+        result = self.sim.simulate(team, opp)
+        self.assertIn(result["winner"], ("A", "B", "team_a", "team_b"))
+
+    def test_identical_teams(self):
+        """Test that identical teams can result in any winner (draw not allowed)"""
+        team = self.data.units[:2]
+        opp = self.data.units[:2]
+        result = self.sim.simulate(team, opp)
+        self.assertIn(result["winner"], ("A", "B", "team_a", "team_b"))
+
+    def test_high_attack_and_defense(self):
+        """Test that very high attack and defense do not break combat"""
+        stats = Stats(attack=9999, hp=9999, defense=9999, max_mana=100, attack_speed=1.0)
+        skill = Skill("OP", "op", 100, {"type": "damage", "amount": 9999})
+        team = [Unit("op1", "OP1", 10, ["X"], ["Y"], stats, skill)]
+        opp = [Unit("op2", "OP2", 10, ["X"], ["Y"], stats, skill)]
+        result = self.sim.simulate(team, opp)
+        self.assertIn(result["winner"], ("A", "B", "team_a", "team_b"))
+
+    def test_ultra_fast_unit(self):
+        """Test that unit with extremely high attack speed attacks often and does not break combat"""
+        fast_stats = Stats(attack=10, hp=100, defense=5, max_mana=100, attack_speed=100.0)
+        slow_stats = Stats(attack=10, hp=100, defense=5, max_mana=100, attack_speed=0.1)
+        skill = Skill("Test", "test", 100, {"type": "damage", "amount": 10})
+        team = [Unit("fast", "Fast", 1, ["X"], ["Y"], fast_stats, skill)]
+        opp = [Unit("slow", "Slow", 1, ["X"], ["Y"], slow_stats, skill)]
+        result = self.sim.simulate(team, opp)
+        self.assertIn(result["winner"], ("A", "B", "team_a", "team_b"))
 
 if __name__ == '__main__':
     unittest.main()

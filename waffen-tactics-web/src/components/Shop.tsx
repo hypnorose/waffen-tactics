@@ -1,242 +1,302 @@
-import { useState, useEffect } from 'react'
-import UnitCard from './UnitCard'
-import { gameAPI } from '../services/api'
-import { useGameStore } from '../store/gameStore'
+import { useEffect, useMemo, useState } from "react";
+import UnitCard from "./UnitCard";
+import { gameAPI } from "../services/api";
+import { useGameStore } from "../store/gameStore";
 
 interface ShopProps {
-    playerState: any
-    onUpdate: (state: any) => void
+  playerState: any;
+  onUpdate: (state: any) => void;
 }
 
 export default function Shop({ playerState, onUpdate }: ShopProps) {
-    const [loading, setLoading] = useState(false)
-    const { detailedView } = useGameStore()
+  const [loading, setLoading] = useState(false);
+  const { detailedView } = useGameStore();
 
-    // Keyboard shortcuts: D = reroll, F = buy XP
-    useEffect(() => {
-        const handler = (e: KeyboardEvent) => {
-            // Ignore if typing in an input/textarea or if modifier keys pressed
-            const target = e.target as HTMLElement | null
-            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
-            if (e.altKey || e.ctrlKey || e.metaKey) return
+  // --- Backend-driven odds/XP ---
+  const shopOdds: number[] = useMemo(
+    () => playerState?.shop_odds || [100, 0, 0, 0, 0],
+    [playerState]
+  );
 
-            const key = e.key.toLowerCase()
-            if (key === 'd') {
-                // trigger reroll if possible
-                if (!loading && !playerState.locked_shop && playerState.gold >= 2) {
-                    e.preventDefault()
-                    handleReroll()
-                }
-            } else if (key === 'f') {
-                // trigger buy XP if possible
-                if (!loading && playerState.gold >= 4) {
-                    e.preventDefault()
-                    handleBuyXP()
-                }
-            }
-        }
+  const xpForNext: number = useMemo(
+    () => playerState?.xp_to_next_level || 0,
+    [playerState]
+  );
 
-        window.addEventListener('keydown', handler)
-        return () => window.removeEventListener('keydown', handler)
-    }, [loading, playerState])
+  const xpProgress: number = useMemo(() => {
+    if (!xpForNext) return 100;
+    const cur = Number(playerState?.xp || 0);
+    return Math.min((cur / xpForNext) * 100, 100);
+  }, [playerState, xpForNext]);
 
-    const handleBuyUnit = async (unitId: string) => {
-        setLoading(true)
-        try {
-            const response = await gameAPI.buyUnit(unitId)
-            onUpdate(response.data.state)
+  // --- Actions ---
+  const handleReroll = async () => {
+    if (loading) return;
+    if (playerState?.locked_shop) return;
+    if ((playerState?.gold ?? 0) < 2) return;
 
-            // Show success message if present
-            if (response.data.message) {
-                console.log('✅', response.data.message)
-            }
-        } catch (err: any) {
-            alert(err.response?.data?.error || 'Nie można kupić jednostki')
-        } finally {
-            setLoading(false)
-        }
+    setLoading(true);
+    try {
+      const next = await gameAPI.rerollShop();
+      onUpdate(next);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const handleReroll = async () => {
-        if (playerState.gold < 2) {
-            alert('Potrzebujesz 2 złota na odświeżenie!')
-            return
-        }
+  const handleBuyXP = async () => {
+    if (loading) return;
+    if ((playerState?.gold ?? 0) < 4) return;
 
-        setLoading(true)
-        try {
-            const response = await gameAPI.rerollShop()
-            onUpdate(response.data.state)
-        } catch (err: any) {
-            alert(err.response?.data?.error || 'Nie można odświeżyć sklepu')
-        } finally {
-            setLoading(false)
-        }
+    setLoading(true);
+    try {
+      const next = await gameAPI.buyXP();
+      onUpdate(next);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const handleBuyXP = async () => {
-        if (playerState.gold < 4) {
-            alert('Potrzebujesz 4 złota na XP!')
-            return
-        }
+  const handleToggleLock = async () => {
+    if (loading) return;
 
-        setLoading(true)
-        try {
-            const response = await gameAPI.buyXP()
-            onUpdate(response.data.state)
-
-            if (response.data.message) {
-                console.log('✅', response.data.message)
-            }
-        } catch (err: any) {
-            alert(err.response?.data?.error || 'Nie można kupić XP')
-        } finally {
-            setLoading(false)
-        }
+    setLoading(true);
+    try {
+      const next = await gameAPI.toggleShopLock();
+      onUpdate(next);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const handleToggleLock = async () => {
-        setLoading(true)
-        try {
-            const response = await gameAPI.toggleShopLock()
-            onUpdate(response.data.state)
+  const handleBuyUnit = async (unitId: string) => {
+    if (loading) return;
 
-            if (response.data.message) {
-                console.log(playerState.locked_shop ? '🔓' : '🔒', response.data.message)
-            }
-        } catch (err: any) {
-            alert(err.response?.data?.error || 'Nie można zmienić blokady sklepu')
-        } finally {
-            setLoading(false)
-        }
+    setLoading(true);
+    try {
+      const next = await gameAPI.buyUnit(unitId);
+      onUpdate(next);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Use shop odds and XP data from backend
-    const shopOdds = playerState.shop_odds || [100, 0, 0, 0, 0]
-    const xpForNext = playerState.xp_to_next_level || 0
-    const xpProgress = xpForNext > 0 ? Math.min((playerState.xp / xpForNext) * 100, 100) : 100
+  // Keyboard shortcuts: D = reroll, F = buy XP
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
 
-    return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between relative">
-                    <div className="flex flex-col w-full relative">
-                        {/* First row: Buy XP and Level info */}
-                        <div className="flex items-center justify-between mb-2">
-                            <div>
-                                <button
-                                    onClick={handleBuyXP}
-                                    disabled={loading || playerState.gold < 4}
-                                    className={`px-3 py-1 rounded-md text-sm font-semibold text-white shadow ${loading || playerState.gold < 4 ? 'bg-purple-300 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600'}`}
-                                >
-                                    ⬆️ Kup XP (4💰)
-                                </button>
-                            </div>
+      // Ignore if typing
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      )
+        return;
 
-                            <div className="flex items-center gap-3">
-                                        <div className="bg-blue-500/20 px-3 py-1 rounded border border-blue-500/30 flex items-center gap-3">
-                                            <span className="text-sm font-bold text-blue-400">⭐ Lvl {playerState.level}</span>
-                                            <div className="flex flex-col">
-                                                <div className="text-xs text-text/60">XP {playerState.xp}/{xpForNext || '—'}</div>
-                                                <div className="w-36 h-2 bg-gray-700/30 rounded overflow-hidden mt-1">
-                                                    <div className="h-full bg-gradient-to-r from-purple-400 to-purple-600" style={{ width: `${xpProgress}%` }} />
-                                                </div>
-                                            </div>
-                                            {/* global toggle is available in the top bar */}
-                                        </div>
-                            </div>
-                        </div>
+      // Ignore with modifiers
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
 
-                        {/* Second row: Reroll, Lock, Interest and Gold */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex gap-2 items-center">
-                                <button
-                                    onClick={handleReroll}
-                                    disabled={loading || playerState.gold < 2 || playerState.locked_shop}
-                                    className={`px-3 py-1 rounded-md text-sm font-semibold text-white shadow ${loading || playerState.gold < 2 || playerState.locked_shop ? 'bg-indigo-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600'}`}
-                                >
-                                    🔄 Odśwież (2💰)
-                                </button>
-                                <button
-                                    onClick={handleToggleLock}
-                                    disabled={loading}
-                                    className={`px-3 py-1 rounded-md text-sm font-semibold text-black shadow ${playerState.locked_shop ? 'bg-yellow-400 hover:bg-yellow-500' : 'bg-yellow-300 hover:bg-yellow-400'}`}
-                                >
-                                    {playerState.locked_shop ? '🔒 Odblokuj' : '🔓 Zablokuj'}
-                                </button>
-                            </div>
+      const key = e.key.toLowerCase();
+      if (key === "d") {
+        if (!loading && !playerState?.locked_shop && (playerState?.gold ?? 0) >= 2) {
+          e.preventDefault();
+          void handleReroll();
+        }
+      } else if (key === "f") {
+        if (!loading && (playerState?.gold ?? 0) >= 4) {
+          e.preventDefault();
+          void handleBuyXP();
+        }
+      }
+    };
 
-                            <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-1">
-                                    {Array.from({ length: 5 }).map((_, i) => {
-                                        const interest = Math.min(5, Math.floor((playerState.gold || 0) / 10))
-                                        const filled = i < interest
-                                        return (
-                                            <div key={i} className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${filled ? 'bg-yellow-400 text-black' : 'bg-gray-300 text-gray-600'}`}>
-                                                💰
-                                            </div>
-                                        )
-                                    })}
-                                </div>
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [loading, playerState]); // OK, bo zależy od aktualnych gold/lock
 
-                                <div className="bg-yellow-500/20 px-3 py-1 rounded border border-yellow-500/30">
-                                    <span className="text-sm font-bold text-yellow-400">💰 {playerState.gold}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+  const shopUnits: string[] = Array.isArray(playerState?.last_shop)
+    ? playerState.last_shop
+    : [];
 
-                {/* Shop odds moved below units */}
-
-                {/* (interest + gold shown within the second row) */}
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between relative">
+        <div className="flex flex-col w-full relative">
+          {/* First row: Buy XP and Level info */}
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <button
+                onClick={handleBuyXP}
+                disabled={loading || (playerState?.gold ?? 0) < 4}
+                className={`px-3 py-1 rounded-md text-sm font-semibold text-white shadow ${
+                  loading || (playerState?.gold ?? 0) < 4
+                    ? "bg-purple-300 cursor-not-allowed"
+                    : "bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
+                }`}
+              >
+                ⬆️ Kup XP (4💰)
+              </button>
             </div>
 
-                        {/* Shop Units - responsive grid so expanded cards wrap without overlap */}
-                        <div className="pb-2" style={{ overflow: 'visible' }}>
-                            <div
-                                className="grid gap-3 justify-center"
-                                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(14rem, 1fr))' }}
-                            >
-                                {playerState.last_shop.map((unitId: string, index: number) => {
-                // Empty slot
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-500/20 px-3 py-1 rounded border border-blue-500/30 flex items-center gap-3">
+                <span className="text-sm font-bold text-blue-400">
+                  ⭐ Lvl {playerState?.level ?? "—"}
+                </span>
+                <div className="flex flex-col">
+                  <div className="text-xs text-text/60">
+                    XP {playerState?.xp ?? 0}/{xpForNext || "—"}
+                  </div>
+                  <div className="w-36 h-2 bg-gray-700/30 rounded overflow-hidden mt-1">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-400 to-purple-600"
+                      style={{ width: `${xpProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Second row: Reroll, Lock, Interest and Gold */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2 items-center">
+              <button
+                onClick={handleReroll}
+                disabled={
+                  loading ||
+                  (playerState?.gold ?? 0) < 2 ||
+                  !!playerState?.locked_shop
+                }
+                className={`px-3 py-1 rounded-md text-sm font-semibold text-white shadow ${
+                  loading ||
+                  (playerState?.gold ?? 0) < 2 ||
+                  !!playerState?.locked_shop
+                    ? "bg-indigo-300 cursor-not-allowed"
+                    : "bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600"
+                }`}
+              >
+                🔄 Odśwież (2💰)
+              </button>
+
+              <button
+                onClick={handleToggleLock}
+                disabled={loading}
+                className={`px-3 py-1 rounded-md text-sm font-semibold text-black shadow ${
+                  playerState?.locked_shop
+                    ? "bg-yellow-400 hover:bg-yellow-500"
+                    : "bg-yellow-300 hover:bg-yellow-400"
+                }`}
+              >
+                {playerState?.locked_shop ? "🔒 Odblokuj" : "🔓 Zablokuj"}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const interest = Math.min(
+                    5,
+                    Math.floor((playerState?.gold || 0) / 10)
+                  );
+                  const filled = i < interest;
+                  return (
+                    <div
+                      key={i}
+                      className={`w-4 h-4 rounded-full ${
+                        filled ? "bg-yellow-400" : "bg-gray-300"
+                      }`}
+                      title={`Interest: ${interest}/5`}
+                    />
+                  );
+                })}
+              </div>
+
+              <div className="bg-yellow-500/20 px-3 py-1 rounded border border-yellow-500/30">
+                <span className="text-sm font-bold text-yellow-400">
+                  💰 {playerState?.gold ?? 0}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Shop Units */}
+          <div className="pb-2" style={{ overflow: "visible" }}>
+            <div
+              className="grid gap-3 justify-center"
+              style={{
+                gridTemplateColumns: "repeat(auto-fill, minmax(14rem, 1fr))",
+              }}
+            >
+              {shopUnits.map((unitId: string, index: number) => {
                 if (!unitId) {
-                                        return (
-                                            <div key={`empty-${index}`} className="w-full max-w-[14rem]">
-                                                <div className="rounded-lg bg-surface/30 h-48 flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600">
-                                                    <span className="text-2xl">∅</span>
-                                                </div>
-                                            </div>
-                                        )
+                  return (
+                    <div key={`empty-${index}`} className="w-full max-w-[14rem]">
+                      <div className="rounded-lg bg-surface/30 h-48 flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600">
+                        <span className="text-2xl">∅</span>
+                      </div>
+                    </div>
+                  );
                 }
 
-                                return (
-                                    <div key={`${unitId}-${index}`} className="w-full max-w-[14rem] flex justify-center">
-                                        <UnitCard
-                                            unitId={unitId}
-                                            onClick={() => handleBuyUnit(unitId)}
-                                            disabled={loading}
-                                            detailed={detailedView}
-                                        />
-                                    </div>
-                                )
-            })}
-                            </div>
-                        </div>
+                const isOnBoard = playerState?.board?.some(
+                  (u: any) => u.unit_id === unitId
+                );
 
-            {/* Shop odds (moved below units) */}
-            <div className="flex items-center gap-2 text-xs justify-center mt-2">
-                <span className="text-text/60">Szanse:</span>
-                {shopOdds.map((chance: number, tier: number) => (
-                    <div key={tier} className="flex items-center gap-1">
-                        <div className={`w-3 h-3 rounded-full ${tier === 0 ? 'bg-gray-400' :
-                                tier === 1 ? 'bg-green-400' :
-                                    tier === 2 ? 'bg-blue-400' :
-                                        tier === 3 ? 'bg-purple-400' :
-                                            'bg-yellow-400'
-                            }`} />
-                        <span className="font-mono">{chance}%</span>
-                    </div>
-                ))}
+                return (
+                  <div
+                    key={`${unitId}-${index}`}
+                    className="w-full max-w-[14rem] flex justify-center relative"
+                  >
+                    <UnitCard
+                      unitId={unitId}
+                      onClick={() => handleBuyUnit(unitId)}
+                      disabled={loading}
+                      detailed={detailedView}
+                    />
+
+                    {isOnBoard && (
+                      <span
+                        className="absolute inset-0 pointer-events-none rounded-2xl animate-pulse-shop-highlight"
+                        style={{
+                          boxShadow:
+                            "0 0 0 6px #22d3ee33, 0 0 24px 6px #22d3ee66",
+                          zIndex: 2,
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
+          </div>
+
+          {/* Shop odds */}
+          <div className="flex items-center gap-2 text-xs justify-center mt-2">
+            <span className="text-text/60">Szanse:</span>
+            {shopOdds.map((chance: number, tier: number) => (
+              <div key={tier} className="flex items-center gap-1">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    tier === 0
+                      ? "bg-gray-400"
+                      : tier === 1
+                      ? "bg-green-400"
+                      : tier === 2
+                      ? "bg-blue-400"
+                      : tier === 3
+                      ? "bg-purple-400"
+                      : "bg-yellow-400"
+                  }`}
+                />
+                <span className="font-mono">{chance}%</span>
+              </div>
+            ))}
+          </div>
         </div>
-    )
+      </div>
+    </div>
+  );
 }

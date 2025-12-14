@@ -23,6 +23,10 @@ class CombatUnit:
         # Convenience caches for common passive values
         self.lifesteal = 0.0
         self.damage_reduction = 0.0
+        # Regen-per-second gained from kills (hp_regen_on_kill)
+        self.hp_regen_per_sec = 0.0
+        # Accumulator for fractional healing per tick
+        self._hp_regen_accumulator = 0.0
         # Populate caches from effects
         for eff in self.effects:
             etype = eff.get('type')
@@ -84,12 +88,15 @@ class CombatSimulator:
                     if not targets:
                         # Team A wins
                         return self._finish_combat("team_a", time, a_hp, b_hp, log)
-                    
-                    # Target selection: 60% highest defense, 40% random
-                    if random.random() < 0.6:
-                        target_idx = max(targets, key=lambda x: x[1])[0]
+                    # Target selection override: if attacker has 'target_least_hp', pick alive target with least current HP
+                    if any(e.get('type') == 'target_least_hp' for e in getattr(unit, 'effects', [])):
+                        target_idx = min([t[0] for t in targets], key=lambda idx: b_hp[idx])
                     else:
-                        target_idx = random.choice([t[0] for t in targets])
+                        # Target selection: 60% highest defense, 40% random
+                        if random.random() < 0.6:
+                            target_idx = max(targets, key=lambda x: x[1])[0]
+                        else:
+                            target_idx = random.choice([t[0] for t in targets])
                     
                     # Calculate damage: LoL-style armor reduction
                     target_defense = team_b[target_idx].defense
@@ -103,7 +110,7 @@ class CombatSimulator:
                     b_hp[target_idx] = max(0, b_hp[target_idx])
                     
                     # Log and callback
-                    msg = f"A:{unit.name} hits B:{team_b[target_idx].name} for {damage}, hp={b_hp[target_idx]}"
+                    msg = f"[{time:.2f}s] A:{unit.name} hits B:{team_b[target_idx].name} for {damage}, hp={b_hp[target_idx]}"
                     log.append(msg)
                     
                     # Attack callback
@@ -116,7 +123,8 @@ class CombatSimulator:
                             'damage': damage,
                             'target_hp': b_hp[target_idx],
                             'target_max_hp': team_b[target_idx].max_hp,
-                            'side': 'team_a'
+                            'side': 'team_a',
+                            'timestamp': time
                         })
 
                     # Post-attack effect processing (lifesteal, mana on attack)
@@ -140,8 +148,43 @@ class CombatSimulator:
                             event_callback('unit_died', {
                                 'unit_id': team_b[target_idx].id,
                                 'unit_name': team_b[target_idx].name,
-                                'side': 'team_b'
+                                'side': 'team_b',
+                                'timestamp': time
                             })
+                        # Killer-specific effects for 'hp_regen_on_kill'
+                        try:
+                            for eff in getattr(unit, 'effects', []):
+                                if eff.get('type') == 'hp_regen_on_kill':
+                                    # Semantics: when this unit kills an enemy, it gains a regen-over-time
+                                    # amount that lasts until end of combat. The trait's `value` is the
+                                    # TOTAL amount to restore (percent of max HP if `is_percentage`)
+                                    # and may be optionally spread over `duration` seconds defined
+                                    # on the effect. Default duration is 5 seconds.
+                                    is_pct = eff.get('is_percentage', False)
+                                    val = float(eff.get('value', 0))
+                                    duration = float(eff.get('duration', 5.0))
+                                    if duration <= 0:
+                                        duration = 5.0
+                                    if is_pct:
+                                        total_amount = unit.max_hp * (val / 100.0)
+                                    else:
+                                        total_amount = float(val)
+                                    add_per_sec = total_amount / duration
+                                    if add_per_sec > 0:
+                                        unit.hp_regen_per_sec += add_per_sec
+                                        log.append(f"[{time:.2f}s] {unit.name} gains +{total_amount:.2f} HP over {duration}s (+{add_per_sec:.2f} HP/s) (on kill)")
+                                        if event_callback:
+                                            event_callback('regen_gain', {
+                                                'unit_id': unit.id,
+                                                'timestamp': time,
+                                                'unit_name': unit.name,
+                                                'amount_per_sec': add_per_sec,
+                                                'total_amount': total_amount,
+                                                'duration': duration,
+                                                'side': 'team_a'
+                                            })
+                        except Exception:
+                            pass
                         # Trigger on_enemy_death effects for team_a units
                         for ai, aunit in enumerate(team_a):
                             for eff in getattr(aunit, 'effects', []):
@@ -155,7 +198,12 @@ class CombatSimulator:
                                                 add = int(aunit.attack * (val / 100.0))
                                             else:
                                                 add = int(val)
-                                            a_hp[ai] = a_hp[ai]  # HP unchanged
+                                            # Apply buff amplifier if target has such an effect
+                                            mult = 1.0
+                                            for beff in getattr(aunit, 'effects', []):
+                                                if beff.get('type') == 'buff_amplifier':
+                                                    mult = max(mult, float(beff.get('multiplier', 1)))
+                                            add = int(add * mult)
                                             aunit.attack += add
                                             log.append(f"{aunit.name} gains +{add} Atak (on enemy death)")
                                         if st == 'hp':
@@ -163,6 +211,11 @@ class CombatSimulator:
                                                 add = int(aunit.max_hp * (val / 100.0))
                                             else:
                                                 add = int(val)
+                                            mult = 1.0
+                                            for beff in getattr(aunit, 'effects', []):
+                                                if beff.get('type') == 'buff_amplifier':
+                                                    mult = max(mult, float(beff.get('multiplier', 1)))
+                                            add = int(add * mult)
                                             a_hp[ai] = min(aunit.max_hp, a_hp[ai] + add)
                                             log.append(f"{aunit.name} heals +{add} HP (on enemy death)")
                         # Trigger on_ally_death effects for surviving allies on team_b
@@ -174,12 +227,31 @@ class CombatSimulator:
                                     stats = eff.get('stats', [])
                                     val = eff.get('value', 0)
                                     is_pct = eff.get('is_percentage', False)
+                                    # Handle reward effects (e.g. Denciak: gold on ally death)
+                                    try:
+                                        if eff.get('reward') == 'gold':
+                                            amount = int(eff.get('value', 0))
+                                            log.append(f"{bunit.name} triggers reward: +{amount} gold (ally died)")
+                                            if event_callback:
+                                                event_callback('gold_reward', {
+                                                    'amount': amount,
+                                                    'unit_id': getattr(bunit, 'id', None),
+                                                    'unit_name': getattr(bunit, 'name', None),
+                                                    'side': 'team_b'
+                                                })
+                                    except Exception:
+                                        pass
                                     for st in stats:
                                         if st == 'attack':
                                             if is_pct:
                                                 add = int(bunit.attack * (val / 100.0))
                                             else:
                                                 add = int(val)
+                                            mult = 1.0
+                                            for beff in getattr(bunit, 'effects', []):
+                                                if beff.get('type') == 'buff_amplifier':
+                                                    mult = max(mult, float(beff.get('multiplier', 1)))
+                                            add = int(add * mult)
                                             bunit.attack += add
                                             log.append(f"{bunit.name} gains +{add} Atak (ally died)")
                                         if st == 'hp':
@@ -187,8 +259,33 @@ class CombatSimulator:
                                                 add = int(bunit.max_hp * (val / 100.0))
                                             else:
                                                 add = int(val)
+                                            mult = 1.0
+                                            for beff in getattr(bunit, 'effects', []):
+                                                if beff.get('type') == 'buff_amplifier':
+                                                    mult = max(mult, float(beff.get('multiplier', 1)))
+                                            add = int(add * mult)
                                             b_hp[bi] = min(bunit.max_hp, b_hp[bi] + add)
                                             log.append(f"{bunit.name} heals +{add} HP (ally died)")
+                        
+                        # Check for on_ally_hp_below triggers on team_b (healers)
+                        try:
+                            # target just died; skip hp-below check when dead
+                            pass
+                        except Exception:
+                            pass
+                    else:
+                        # Target is still alive -> check for on_ally_hp_below triggers on team_b
+                        for bi, bunit in enumerate(team_b):
+                            for eff in getattr(bunit, 'effects', []):
+                                if eff.get('type') == 'on_ally_hp_below' and not eff.get('_triggered'):
+                                    thresh = float(eff.get('threshold_percent', 30))
+                                    heal_pct = float(eff.get('heal_percent', 50))
+                                    if b_hp[target_idx] <= team_b[target_idx].max_hp * (thresh / 100.0):
+                                        heal_amt = int(team_b[target_idx].max_hp * (heal_pct / 100.0))
+                                        b_hp[target_idx] = min(team_b[target_idx].max_hp, b_hp[target_idx] + heal_amt)
+                                        log.append(f"{bunit.name} heals {team_b[target_idx].name} for {heal_amt} (ally hp below {thresh}%)")
+                                        eff['_triggered'] = True
+                                        break
             
             # Team B attacks
             for i, unit in enumerate(team_b):
@@ -201,10 +298,14 @@ class CombatSimulator:
                         # Team B wins
                         return self._finish_combat("team_b", time, a_hp, b_hp, log)
                     
-                    if random.random() < 0.6:
-                        target_idx = max(targets, key=lambda x: x[1])[0]
+                    # Target selection override for units with 'target_least_hp'
+                    if any(e.get('type') == 'target_least_hp' for e in getattr(unit, 'effects', [])):
+                        target_idx = min([t[0] for t in targets], key=lambda idx: a_hp[idx])
                     else:
-                        target_idx = random.choice([t[0] for t in targets])
+                        if random.random() < 0.6:
+                            target_idx = max(targets, key=lambda x: x[1])[0]
+                        else:
+                            target_idx = random.choice([t[0] for t in targets])
                     
                     # Calculate damage: LoL-style armor reduction
                     # Effective damage = attack * 100 / (100 + defense)
@@ -253,6 +354,34 @@ class CombatSimulator:
                                 'unit_name': team_a[target_idx].name,
                                 'side': 'team_a'
                             })
+                        # Killer-specific effects for 'hp_regen_on_kill' for team_b attacker
+                        try:
+                            for eff in getattr(unit, 'effects', []):
+                                if eff.get('type') == 'hp_regen_on_kill':
+                                    is_pct = eff.get('is_percentage', False)
+                                    val = float(eff.get('value', 0))
+                                    duration = float(eff.get('duration', 5.0))
+                                    if duration <= 0:
+                                        duration = 5.0
+                                    if is_pct:
+                                        total_amount = unit.max_hp * (val / 100.0)
+                                    else:
+                                        total_amount = float(val)
+                                    add_per_sec = total_amount / duration
+                                    if add_per_sec > 0:
+                                        unit.hp_regen_per_sec += add_per_sec
+                                        log.append(f"{unit.name} gains +{total_amount:.2f} HP over {duration}s (+{add_per_sec:.2f} HP/s) (on kill)")
+                                        if event_callback:
+                                            event_callback('regen_gain', {
+                                                'unit_id': unit.id,
+                                                'unit_name': unit.name,
+                                                'amount_per_sec': add_per_sec,
+                                                'total_amount': total_amount,
+                                                'duration': duration,
+                                                'side': 'team_b'
+                                            })
+                        except Exception:
+                            pass
                         # Trigger on_enemy_death effects for team_b units
                         for bi, bunit in enumerate(team_b):
                             for eff in getattr(bunit, 'effects', []):
@@ -266,6 +395,11 @@ class CombatSimulator:
                                                 add = int(bunit.attack * (val / 100.0))
                                             else:
                                                 add = int(val)
+                                            mult = 1.0
+                                            for beff in getattr(bunit, 'effects', []):
+                                                if beff.get('type') == 'buff_amplifier':
+                                                    mult = max(mult, float(beff.get('multiplier', 1)))
+                                            add = int(add * mult)
                                             bunit.attack += add
                                             log.append(f"{bunit.name} gains +{add} Atak (on enemy death)")
                                         if st == 'hp':
@@ -273,6 +407,11 @@ class CombatSimulator:
                                                 add = int(bunit.max_hp * (val / 100.0))
                                             else:
                                                 add = int(val)
+                                            mult = 1.0
+                                            for beff in getattr(bunit, 'effects', []):
+                                                if beff.get('type') == 'buff_amplifier':
+                                                    mult = max(mult, float(beff.get('multiplier', 1)))
+                                            add = int(add * mult)
                                             b_hp[bi] = min(bunit.max_hp, b_hp[bi] + add)
                                             log.append(f"{bunit.name} heals +{add} HP (on enemy death)")
                         # Trigger on_ally_death effects for surviving allies on team_a
@@ -284,12 +423,31 @@ class CombatSimulator:
                                     stats = eff.get('stats', [])
                                     val = eff.get('value', 0)
                                     is_pct = eff.get('is_percentage', False)
+                                    # Handle reward effects (e.g. Denciak: gold on ally death)
+                                    try:
+                                        if eff.get('reward') == 'gold':
+                                            amount = int(eff.get('value', 0))
+                                            log.append(f"{aunit2.name} triggers reward: +{amount} gold (ally died)")
+                                            if event_callback:
+                                                event_callback('gold_reward', {
+                                                    'amount': amount,
+                                                    'unit_id': getattr(aunit2, 'id', None),
+                                                    'unit_name': getattr(aunit2, 'name', None),
+                                                    'side': 'team_a'
+                                                })
+                                    except Exception:
+                                        pass
                                     for st in stats:
                                         if st == 'attack':
                                             if is_pct:
                                                 add = int(aunit2.attack * (val / 100.0))
                                             else:
                                                 add = int(val)
+                                            mult = 1.0
+                                            for beff in getattr(aunit2, 'effects', []):
+                                                if beff.get('type') == 'buff_amplifier':
+                                                    mult = max(mult, float(beff.get('multiplier', 1)))
+                                            add = int(add * mult)
                                             aunit2.attack += add
                                             log.append(f"{aunit2.name} gains +{add} Atak (ally died)")
                                         if st == 'hp':
@@ -297,8 +455,71 @@ class CombatSimulator:
                                                 add = int(aunit2.max_hp * (val / 100.0))
                                             else:
                                                 add = int(val)
+                                            mult = 1.0
+                                            for beff in getattr(aunit2, 'effects', []):
+                                                if beff.get('type') == 'buff_amplifier':
+                                                    mult = max(mult, float(beff.get('multiplier', 1)))
+                                            add = int(add * mult)
                                             a_hp[ai2] = min(aunit2.max_hp, a_hp[ai2] + add)
                                             log.append(f"{aunit2.name} heals +{add} HP (ally died)")
+                        
+                        # If target is still alive, check for on_ally_hp_below triggers on team_a
+                        for ai_check, aunit_check in enumerate(team_a):
+                            for eff in getattr(aunit_check, 'effects', []):
+                                if eff.get('type') == 'on_ally_hp_below' and not eff.get('_triggered'):
+                                    thresh = float(eff.get('threshold_percent', 30))
+                                    heal_pct = float(eff.get('heal_percent', 50))
+                                    if a_hp[target_idx] <= team_a[target_idx].max_hp * (thresh / 100.0):
+                                        heal_amt = int(team_a[target_idx].max_hp * (heal_pct / 100.0))
+                                        a_hp[target_idx] = min(team_a[target_idx].max_hp, a_hp[target_idx] + heal_amt)
+                                        log.append(f"{aunit_check.name} heals {team_a[target_idx].name} for {heal_amt} (ally hp below {thresh}%)")
+                                        eff['_triggered'] = True
+                                        break
+
+            # Apply HP regen-over-time for both teams (from hp_regen_on_kill)
+            try:
+                # Team A regen
+                for idx_u, u in enumerate(team_a):
+                    if a_hp[idx_u] > 0 and getattr(u, 'hp_regen_per_sec', 0.0) > 0:
+                        heal = u.hp_regen_per_sec * self.dt
+                        # accumulate fractional healing
+                        u._hp_regen_accumulator += heal
+                        int_heal = int(u._hp_regen_accumulator)
+                        if int_heal > 0:
+                            u._hp_regen_accumulator -= int_heal
+                            a_hp[idx_u] = min(u.max_hp, a_hp[idx_u] + int_heal)
+                            log.append(f"{u.name} regenerates +{int_heal} HP (regen over time)")
+                            if event_callback:
+                                event_callback('heal', {
+                                    'unit_id': u.id,
+                                    'unit_name': u.name,
+                                    'amount': int_heal,
+                                    'side': 'team_a',
+                                    'unit_hp': a_hp[idx_u],
+                                    'unit_max_hp': u.max_hp
+                                })
+
+                # Team B regen
+                for idx_u, u in enumerate(team_b):
+                    if b_hp[idx_u] > 0 and getattr(u, 'hp_regen_per_sec', 0.0) > 0:
+                        heal_b = u.hp_regen_per_sec * self.dt
+                        u._hp_regen_accumulator += heal_b
+                        int_heal_b = int(u._hp_regen_accumulator)
+                        if int_heal_b > 0:
+                            u._hp_regen_accumulator -= int_heal_b
+                            b_hp[idx_u] = min(u.max_hp, b_hp[idx_u] + int_heal_b)
+                            log.append(f"{u.name} regenerates +{int_heal_b} HP (regen over time)")
+                            if event_callback:
+                                event_callback('heal', {
+                                    'unit_id': u.id,
+                                    'unit_name': u.name,
+                                    'amount': int_heal_b,
+                                    'side': 'team_b',
+                                    'unit_hp': b_hp[idx_u],
+                                    'unit_max_hp': u.max_hp
+                                })
+            except Exception:
+                pass
             
             # Check win conditions
             if all(h <= 0 for h in b_hp):
@@ -317,18 +538,26 @@ class CombatSimulator:
                             stat = eff.get('stat')
                             val = eff.get('value', 0)
                             is_pct = eff.get('is_percentage', False)
+                            # Check for buff amplifier on this unit
+                            mult = 1.0
+                            for beff in getattr(u, 'effects', []):
+                                if beff.get('type') == 'buff_amplifier':
+                                    try:
+                                        mult = max(mult, float(beff.get('multiplier', 1)))
+                                    except Exception:
+                                        pass
                             if stat == 'attack':
                                 if is_pct:
-                                    add = int(u.attack * (val / 100.0))
+                                    add = int(u.attack * (val / 100.0) * mult)
                                 else:
-                                    add = int(val)
+                                    add = int(val * mult)
                                 u.attack += add
                                 log.append(f"{u.name} +{add} Atak (per round)")
                             if stat == 'hp':
                                 if is_pct:
-                                    add = int(u.max_hp * (val / 100.0))
+                                    add = int(u.max_hp * (val / 100.0) * mult)
                                 else:
-                                    add = int(val)
+                                    add = int(val * mult)
                                 a_hp[idx_u] = min(u.max_hp, a_hp[idx_u] + add)
                                 log.append(f"{u.name} +{add} HP (per round)")
 
@@ -338,18 +567,26 @@ class CombatSimulator:
                             stat = eff.get('stat')
                             val = eff.get('value', 0)
                             is_pct = eff.get('is_percentage', False)
+                            # Check for buff amplifier on this unit
+                            mult_b = 1.0
+                            for beff2 in getattr(u, 'effects', []):
+                                if beff2.get('type') == 'buff_amplifier':
+                                    try:
+                                        mult_b = max(mult_b, float(beff2.get('multiplier', 1)))
+                                    except Exception:
+                                        pass
                             if stat == 'attack':
                                 if is_pct:
-                                    add = int(u.attack * (val / 100.0))
+                                    add = int(u.attack * (val / 100.0) * mult_b)
                                 else:
-                                    add = int(val)
+                                    add = int(val * mult_b)
                                 u.attack += add
                                 log.append(f"{u.name} +{add} Atak (per round)")
                             if stat == 'hp':
                                 if is_pct:
-                                    add = int(u.max_hp * (val / 100.0))
+                                    add = int(u.max_hp * (val / 100.0) * mult_b)
                                 else:
-                                    add = int(val)
+                                    add = int(val * mult_b)
                                 b_hp[idx_u] = min(u.max_hp, b_hp[idx_u] + add)
                                 log.append(f"{u.name} +{add} HP (per round)")
         

@@ -7,8 +7,21 @@ from ..models.player_state import PlayerState
 
 
 class DatabaseManager:
+    async def get_opponent_team(self, user_id: int) -> Optional[Dict]:
+        """Get opponent team by user_id"""
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute("SELECT nickname, team_json, wins, level FROM opponent_teams WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,)) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    return {
+                        'nickname': row[0],
+                        'team': json.loads(row[1]),
+                        'wins': row[2],
+                        'level': row[3]
+                    }
+        return None
+
     """Manages SQLite database for player states"""
-    
     def __init__(self, db_path: str = "game_data.db"):
         self.db_path = db_path
     
@@ -196,35 +209,47 @@ class DatabaseManager:
         import random
         
         sample_opponents = [
-            # Beginner tier (0-5 wins) - bardzo słabe
+            # Boty na każdy win do 30 (statycznie, kreatywne nazwy)
             {"nickname": "🆕 Tutorial Bot", "wins": 0, "level": 1, "team_size": 1, "star_level": 1},
             {"nickname": "🎯 Practice Dummy", "wins": 1, "level": 1, "team_size": 1, "star_level": 1},
-            {"nickname": "🌱 Rookie Fighter", "wins": 3, "level": 2, "team_size": 2, "star_level": 1},
-            {"nickname": "🔰 Beginner", "wins": 5, "level": 2, "team_size": 2, "star_level": 1},
-            
-            # Bronze tier (5-15 wins) - słabe
-            {"nickname": "🥉 Bronze Bot", "wins": 7, "level": 3, "team_size": 3, "star_level": 1},
-            {"nickname": "⚔️ Bronze Fighter", "wins": 10, "level": 3, "team_size": 3, "star_level": 1},
-            {"nickname": "🛡️ Bronze Guard", "wins": 13, "level": 4, "team_size": 4, "star_level": 1},
-            {"nickname": "🔱 Bronze Elite", "wins": 15, "level": 4, "team_size": 4, "star_level": 1},
-            
-            # Silver tier (15-30 wins) - średnie
-            {"nickname": "🥈 Silver Bot", "wins": 17, "level": 5, "team_size": 5, "star_level": 1},
-            {"nickname": "⚡ Silver Storm", "wins": 20, "level": 5, "team_size": 5, "star_level": 1},
-            {"nickname": "🌟 Silver Star", "wins": 25, "level": 6, "team_size": 6, "star_level": 1},
-            {"nickname": "👑 Silver King", "wins": 30, "level": 6, "team_size": 6, "star_level": 2},
-            
-            # Gold tier (30-45 wins) - mocne
-            {"nickname": "🥇 Gold Bot", "wins": 32, "level": 7, "team_size": 7, "star_level": 2},
-            {"nickname": "💫 Gold Ace", "wins": 37, "level": 7, "team_size": 7, "star_level": 2},
-            {"nickname": "🔥 Gold Blaze", "wins": 42, "level": 8, "team_size": 8, "star_level": 2},
-            {"nickname": "⭐ Gold Legend", "wins": 45, "level": 8, "team_size": 8, "star_level": 2},
-            
-            # Platinum/Diamond tier (45+ wins) - bardzo mocne
-            {"nickname": "💎 Platinum Pro", "wins": 48, "level": 9, "team_size": 9, "star_level": 2},
-            {"nickname": "🏆 Diamond Ace", "wins": 55, "level": 9, "team_size": 9, "star_level": 2},
-            {"nickname": "👹 Diamond Beast", "wins": 65, "level": 10, "team_size": 10, "star_level": 3},
-            {"nickname": "💀 Master of War", "wins": 80, "level": 10, "team_size": 10, "star_level": 3},
+            {"nickname": "🌱 Rookie Fighter", "wins": 2, "level": 1, "team_size": 1, "star_level": 1},
+            {"nickname": "🔰 Beginner", "wins": 3, "level": 2, "team_size": 2, "star_level": 1},
+            {"nickname": "🦾 Young Gun", "wins": 4, "level": 2, "team_size": 2, "star_level": 1},
+            {"nickname": "🦆 Duckling", "wins": 5, "level": 2, "team_size": 2, "star_level": 1},
+            {"nickname": "🥉 Bronze Bot", "wins": 6, "level": 3, "team_size": 3, "star_level": 1},
+            {"nickname": "⚔️ Bronze Fighter", "wins": 7, "level": 3, "team_size": 3, "star_level": 1},
+            {"nickname": "🛡️ Bronze Guard", "wins": 8, "level": 3, "team_size": 3, "star_level": 1},
+            {"nickname": "🔱 Bronze Elite", "wins": 9, "level": 4, "team_size": 4, "star_level": 1},
+            {"nickname": "🥈 Silver Bot", "wins": 10, "level": 4, "team_size": 4, "star_level": 1},
+            {"nickname": "⚡ Silver Storm", "wins": 11, "level": 4, "team_size": 4, "star_level": 1},
+            {"nickname": "🌟 Silver Star", "wins": 12, "level": 5, "team_size": 5, "star_level": 1},
+            {"nickname": "👑 Silver King", "wins": 13, "level": 5, "team_size": 5, "star_level": 1},
+            {"nickname": "🦁 Silver Lion", "wins": 14, "level": 5, "team_size": 5, "star_level": 1},
+            {"nickname": "🥇 Gold Bot", "wins": 15, "level": 6, "team_size": 6, "star_level": 1},
+            {"nickname": "💫 Gold Ace", "wins": 16, "level": 6, "team_size": 6, "star_level": 1},
+            {"nickname": "🔥 Gold Blaze", "wins": 17, "level": 6, "team_size": 6, "star_level": 1},
+            {"nickname": "⭐ Gold Legend", "wins": 18, "level": 7, "team_size": 7, "star_level": 1},
+            {"nickname": "🦅 Gold Eagle", "wins": 19, "level": 7, "team_size": 7, "star_level": 1},
+            {"nickname": "💎 Platinum Pro", "wins": 20, "level": 7, "team_size": 7, "star_level": 1},
+            {"nickname": "🏆 Platinum Ace", "wins": 21, "level": 8, "team_size": 8, "star_level": 1},
+            {"nickname": "👾 Platinum Cyborg", "wins": 22, "level": 8, "team_size": 8, "star_level": 1},
+            {"nickname": "🦍 Platinum Gorilla", "wins": 23, "level": 8, "team_size": 8, "star_level": 1},
+            {"nickname": "👹 Diamond Beast", "wins": 24, "level": 9, "team_size": 9, "star_level": 1},
+            {"nickname": "💀 Diamond Skull", "wins": 25, "level": 9, "team_size": 9, "star_level": 1},
+            {"nickname": "🦾 Diamond Titan", "wins": 26, "level": 9, "team_size": 9, "star_level": 1},
+            {"nickname": "👽 Alien Overlord", "wins": 27, "level": 10, "team_size": 10, "star_level": 1},
+            {"nickname": "🐉 Dragon Lord", "wins": 28, "level": 10, "team_size": 10, "star_level": 1},
+            {"nickname": "🦸‍♂️ Heroic Bot", "wins": 29, "level": 10, "team_size": 10, "star_level": 1},
+            {"nickname": "🤖 Supreme AI", "wins": 30, "level": 10, "team_size": 10, "star_level": 1},
+
+            # Mocne boty powyżej 30 wygranych (statycznie, wykładniczy wzrost team_size)
+            {"nickname": "💀 MegaBot X", "wins": 31, "level": 10, "team_size": 12, "star_level": 2},
+            {"nickname": "👾 OmegaBot", "wins": 35, "level": 10, "team_size": 14, "star_level": 2},
+            {"nickname": "👑 Kingpin AI", "wins": 40, "level": 10, "team_size": 16, "star_level": 2},
+            {"nickname": "🦾 Iron Colossus", "wins": 45, "level": 10, "team_size": 18, "star_level": 3},
+            {"nickname": "👑 UltraBot Prime", "wins": 50, "level": 10, "team_size": 20, "star_level": 3},
+            {"nickname": "🦾 Omega Colossus", "wins": 60, "level": 10, "team_size": 24, "star_level": 3},
+            {"nickname": "👑 Legendarny AI", "wins": 80, "level": 10, "team_size": 30, "star_level": 3},
         ]
         
         for idx, opp in enumerate(sample_opponents, start=1):
