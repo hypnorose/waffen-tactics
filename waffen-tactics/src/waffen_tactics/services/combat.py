@@ -12,7 +12,7 @@ class CombatSimulator:
     def __init__(self):
         self.shared_sim = SharedCombatSimulator(dt=0.1, timeout=120)
     
-    def simulate(self, team_a: List[Unit], team_b: List[Unit], timeout: int = 120) -> Dict[str, any]:
+    def simulate(self, team_a: List[Unit], team_b: List[Unit], timeout: int = 120, event_callback=None) -> Dict[str, any]:
         """
         Simulate combat using shared logic
         
@@ -26,7 +26,9 @@ class CombatSimulator:
                 hp=u.stats.hp,
                 attack=u.stats.attack,
                 defense=u.stats.defense,
-                attack_speed=u.stats.attack_speed
+                attack_speed=u.stats.attack_speed,
+                max_mana=u.stats.max_mana,
+                skill=u.skill
             )
             for i, u in enumerate(team_a)
         ]
@@ -38,11 +40,13 @@ class CombatSimulator:
                 hp=u.stats.hp,
                 attack=u.stats.attack,
                 defense=u.stats.defense,
-                attack_speed=u.stats.attack_speed
+                attack_speed=u.stats.attack_speed,
+                max_mana=u.stats.max_mana,
+                skill=u.skill
             )
             for i, u in enumerate(team_b)
         ]
         
         # Use shared simulator
         self.shared_sim.timeout = timeout
-        return self.shared_sim.simulate(team_a_combat, team_b_combat)
+        return self.shared_sim.simulate(team_a_combat, team_b_combat, event_callback)

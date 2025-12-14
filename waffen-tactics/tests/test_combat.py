@@ -73,10 +73,11 @@ class TestCombat(unittest.TestCase):
         log = result.get("log", [])
         skill_casts = [l for l in log if "casts" in l]
         
-        # Simulator currently doesn't guarantee explicit "casts" log entries.
-        # If future implementations add skill cast logs, this can be asserted.
-        # For now just ensure we have a log list (checked elsewhere).
-        pass
+        # With the new mana system (+10 per attack, cast at max mana),
+        # units should cast skills during combat
+        # Note: This is probabilistic, so we just check that combat completes
+        self.assertIn(result["winner"], ("A", "B", "team_a", "team_b"))
+        self.assertGreater(len(log), 0)
 
     def test_defender_priority_targeting(self):
         """Test that high defense units are targeted more frequently"""

@@ -33,7 +33,7 @@ def print_combat_result(result):
     print(f"COMBAT RESULT")
     print(f"{'=' * 80}")
     print(f"Winner: Team {result['winner']}")
-    print(f"Time: {result['time']:.2f} seconds")
+    print(f"Time: {result['duration']:.2f} seconds")
     if result.get('timeout'):
         print(f"Status: TIMEOUT (decided by remaining HP)")
     print(f"Total events: {len(result.get('log', []))}")
@@ -76,10 +76,14 @@ def scenario_balanced():
     print_team("Team B", team_b)
     
     sim = CombatSimulator()
-    result = sim.simulate(team_a, team_b)
+    events = []
+    def event_collector(event_type, data):
+        events.append((event_type, data))
+    result = sim.simulate(team_a, team_b, event_callback=event_collector)
     
     print_combat_result(result)
     print_combat_log(result.get('log', []), max_lines=50)
+    print_events(events)
     
     return result
 
@@ -171,6 +175,17 @@ def scenario_custom_units():
     print_combat_log(result.get('log', []))
     
     return result
+
+
+def print_events(events, max_lines=20):
+    """Print collected events"""
+    print(f"\n{'=' * 80}")
+    print(f"EVENTS ({len(events)} total)")
+    print(f"{'=' * 80}")
+    for i, (event_type, data) in enumerate(events[:max_lines], 1):
+        print(f"{i:3d}. [{event_type}] {data}")
+    if len(events) > max_lines:
+        print(f"... ({len(events) - max_lines} more events)")
 
 
 def main():

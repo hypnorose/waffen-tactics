@@ -612,7 +612,13 @@ def start_combat():
                         attack=attack,
                         defense=defense,
                         attack_speed=attack_speed,
-                        effects=effects_for_unit
+                        effects=effects_for_unit,
+                        skill={
+                            'name': unit.skill.name,
+                            'description': unit.skill.description,
+                            'mana_cost': unit.skill.mana_cost,
+                            'effect': unit.skill.effect
+                        } if hasattr(unit, 'skill') and unit.skill else None
                     )
                     player_units.append(combat_unit)
 
@@ -632,7 +638,8 @@ def start_combat():
                             'attack': combat_unit.attack,
                             'defense': combat_unit.defense,
                             'attack_speed': round(attack_speed, 3),
-                            'max_mana': max_mana
+                            'max_mana': max_mana,
+                            'current_mana': 0  # Units start with 0 mana
                         }
                     })
             
@@ -753,7 +760,13 @@ def start_combat():
                             attack=attack,
                             defense=defense,
                             attack_speed=attack_speed,
-                            effects=effects_b_for_unit
+                            effects=effects_b_for_unit,
+                            skill={
+                                'name': unit.skill.name,
+                                'description': unit.skill.description,
+                                'mana_cost': unit.skill.mana_cost,
+                                'effect': unit.skill.effect
+                            } if hasattr(unit, 'skill') and unit.skill else None
                         )
                         opponent_units.append(combat_unit)
 
@@ -772,7 +785,8 @@ def start_combat():
                                 'attack': combat_unit.attack,
                                 'defense': combat_unit.defense,
                                 'attack_speed': round(attack_speed, 3),
-                                'max_mana': max_mana
+                                'max_mana': max_mana,
+                                'current_mana': 0  # Units start with 0 mana
                             }
                         })
             else:
@@ -790,7 +804,13 @@ def start_combat():
                         hp=hp,
                         attack=attack,
                         defense=defense,
-                        attack_speed=attack_speed
+                        attack_speed=attack_speed,
+                        skill={
+                            'name': 'Bot Skill',
+                            'description': 'Basic bot skill',
+                            'mana_cost': 100,
+                            'effect': {'type': 'damage', 'amount': 50}
+                        }
                     )
                     opponent_units.append(combat_unit)
                     
@@ -809,7 +829,8 @@ def start_combat():
                             'attack': combat_unit.attack,
                             'defense': combat_unit.defense,
                             'attack_speed': round(attack_speed, 3),
-                            'max_mana': 100
+                            'max_mana': 100,
+                            'current_mana': 0  # Units start with 0 mana
                         }
                     })
             
@@ -824,25 +845,23 @@ def start_combat():
                 # Add timestamp (seconds since combat start)
                 timestamp = float(event_time)
                 if event_type == 'attack':
-                    side_emoji = "⚔️" if data['side'] == 'team_a' else "🛡️"
-                    msg = f"{side_emoji} {data['attacker_name']} atakuje {data['target_name']} ({data['damage']} dmg)"
                     event_data = {
                         'type': 'unit_attack',
                         'attacker_id': data['attacker_id'],
+                        'attacker_name': data['attacker_name'],
                         'target_id': data['target_id'],
+                        'target_name': data['target_name'],
                         'damage': data['damage'],
                         'target_hp': data['target_hp'],
                         'target_max_hp': data['target_max_hp'],
-                        'message': msg,
                         'timestamp': timestamp
                     }
                     yield f"data: {json.dumps(event_data)}\n\n"
                 elif event_type == 'unit_died':
-                    death_msg = f"💀 {data['unit_name']} zostaje pokonany!"
                     event_data = {
                         'type': 'unit_died',
                         'unit_id': data['unit_id'],
-                        'message': death_msg,
+                        'unit_name': data['unit_name'],
                         'timestamp': timestamp
                     }
                     yield f"data: {json.dumps(event_data)}\n\n"
@@ -854,31 +873,53 @@ def start_combat():
                         'amount_per_sec': data.get('amount_per_sec'),
                         'total_amount': data.get('total_amount'),
                         'duration': data.get('duration'),
-                        'message': f"💚 {data.get('unit_name')} zyskuje +{round(float(data.get('total_amount',0)),1)} HP przez {data.get('duration')}s",
                         'timestamp': timestamp
                     }
                     yield f"data: {json.dumps(event_data)}\n\n"
                 elif event_type == 'heal':
-                    heal_msg = f"💚 {data.get('unit_name')} regeneruje {data.get('amount')} HP"
                     event_data = {
                         'type': 'unit_heal',
                         'unit_id': data.get('unit_id'),
+                        'unit_name': data.get('unit_name'),
                         'amount': data.get('amount'),
                         'unit_hp': data.get('unit_hp'),
                         'unit_max_hp': data.get('unit_max_hp'),
-                        'message': heal_msg,
                         'timestamp': timestamp
                     }
                     yield f"data: {json.dumps(event_data)}\n\n"
                 elif event_type == 'gold_reward':
                     amt = int(data.get('amount', 0) or 0)
-                    msg = f"💰 {data.get('unit_name')} daje +{amt} gold (sojusznik umarł)"
                     event_data = {
                         'type': 'gold_reward',
                         'amount': amt,
                         'unit_id': data.get('unit_id'),
                         'unit_name': data.get('unit_name'),
-                        'message': msg,
+                        'side': data.get('side'),
+                        'timestamp': timestamp
+                    }
+                    yield f"data: {json.dumps(event_data)}\n\n"
+                elif event_type == 'skill_cast':
+                    event_data = {
+                        'type': 'skill_cast',
+                        'caster_id': data.get('caster_id'),
+                        'caster_name': data.get('caster_name'),
+                        'skill_name': data.get('skill_name'),
+                        'target_id': data.get('target_id'),
+                        'target_name': data.get('target_name'),
+                        'damage': data.get('damage'),
+                        'target_hp': data.get('target_hp'),
+                        'target_max_hp': data.get('target_max_hp'),
+                        'side': data.get('side'),
+                        'timestamp': timestamp
+                    }
+                    yield f"data: {json.dumps(event_data)}\n\n"
+                elif event_type == 'mana_update':
+                    event_data = {
+                        'type': 'mana_update',
+                        'unit_id': data.get('unit_id'),
+                        'unit_name': data.get('unit_name'),
+                        'current_mana': data.get('current_mana'),
+                        'max_mana': data.get('max_mana'),
                         'side': data.get('side'),
                         'timestamp': timestamp
                     }
@@ -890,110 +931,9 @@ def start_combat():
             # Collect events with timestamps
             events = []  # (event_type, data, event_time)
             def event_collector(event_type: str, data: dict):
-                # Try to get time from data, fallback to None
-                event_time = data.get('time', None)
+                # Try to get time from data, fallback to current time
+                event_time = data.get('timestamp', data.get('time', time.time()))
                 events.append((event_type, data, event_time))
-
-            # Patch: wrap CombatSimulator to inject time for each event
-            # We'll monkey-patch the simulate method to pass time
-            import types
-            orig_simulate = simulator.simulate
-            def simulate_with_time(self, team_a, team_b, event_callback=None):
-                # Track HP separately to avoid mutating input units
-                a_hp = [u.hp for u in team_a]
-                b_hp = [u.hp for u in team_b]
-                log = []
-                time = 0.0
-                dt = self.dt
-                timeout = self.timeout
-                while time < timeout:
-                    time += dt
-                    # Team A attacks
-                    for i, unit in enumerate(team_a):
-                        if a_hp[i] <= 0:
-                            continue
-                        if random.random() < unit.attack_speed * dt:
-                            targets = [(j, team_b[j].defense) for j in range(len(team_b)) if b_hp[j] > 0]
-                            if not targets:
-                                return self._finish_combat("team_a", time, a_hp, b_hp, log)
-                            if random.random() < 0.6:
-                                target_idx = max(targets, key=lambda x: x[1])[0]
-                            else:
-                                target_idx = random.choice([t[0] for t in targets])
-                            damage = max(1, unit.attack - team_b[target_idx].defense)
-                            b_hp[target_idx] -= damage
-                            b_hp[target_idx] = max(0, b_hp[target_idx])
-                            msg = f"A:{unit.name} hits B:{team_b[target_idx].name} for {damage}, hp={b_hp[target_idx]}"
-                            log.append(msg)
-                            if event_callback:
-                                event_callback('attack', {**{
-                                    'attacker_id': unit.id,
-                                    'attacker_name': unit.name,
-                                    'target_id': team_b[target_idx].id,
-                                    'target_name': team_b[target_idx].name,
-                                    'damage': damage,
-                                    'target_hp': b_hp[target_idx],
-                                    'target_max_hp': team_b[target_idx].max_hp,
-                                    'side': 'team_a',
-                                    'time': time
-                                }})
-                            if b_hp[target_idx] <= 0 and event_callback:
-                                event_callback('unit_died', {
-                                    'unit_id': team_b[target_idx].id,
-                                    'unit_name': team_b[target_idx].name,
-                                    'side': 'team_b',
-                                    'time': time
-                                })
-                    # Team B attacks
-                    for i, unit in enumerate(team_b):
-                        if b_hp[i] <= 0:
-                            continue
-                        if random.random() < unit.attack_speed * dt:
-                            targets = [(j, team_a[j].defense) for j in range(len(team_a)) if a_hp[j] > 0]
-                            if not targets:
-                                return self._finish_combat("team_b", time, a_hp, b_hp, log)
-                            if random.random() < 0.6:
-                                target_idx = max(targets, key=lambda x: x[1])[0]
-                            else:
-                                target_idx = random.choice([t[0] for t in targets])
-                            damage = max(1, unit.attack - team_a[target_idx].defense)
-                            a_hp[target_idx] -= damage
-                            a_hp[target_idx] = max(0, a_hp[target_idx])
-                            msg = f"B:{unit.name} hits A:{team_a[target_idx].name} for {damage}, hp={a_hp[target_idx]}"
-                            log.append(msg)
-                            if event_callback:
-                                event_callback('attack', {**{
-                                    'attacker_id': unit.id,
-                                    'attacker_name': unit.name,
-                                    'target_id': team_a[target_idx].id,
-                                    'target_name': team_a[target_idx].name,
-                                    'damage': damage,
-                                    'target_hp': a_hp[target_idx],
-                                    'target_max_hp': team_a[target_idx].max_hp,
-                                    'side': 'team_b',
-                                    'time': time
-                                }})
-                            if a_hp[target_idx] <= 0 and event_callback:
-                                event_callback('unit_died', {
-                                    'unit_id': team_a[target_idx].id,
-                                    'unit_name': team_a[target_idx].name,
-                                    'side': 'team_a',
-                                    'time': time
-                                })
-                    # Check win conditions
-                    if all(h <= 0 for h in b_hp):
-                        return self._finish_combat("team_a", time, a_hp, b_hp, log)
-                    if all(h <= 0 for h in a_hp):
-                        return self._finish_combat("team_b", time, a_hp, b_hp, log)
-                # Timeout - winner by total HP
-                sum_a = sum(max(0, h) for h in a_hp)
-                sum_b = sum(max(0, h) for h in b_hp)
-                winner = "team_a" if sum_a >= sum_b else "team_b"
-                result = self._finish_combat(winner, time, a_hp, b_hp, log)
-                result['timeout'] = True
-                return result
-            # Patch simulate
-            simulator.simulate = types.MethodType(simulate_with_time, simulator)
 
             result = simulator.simulate(player_units, opponent_units, event_collector)
 

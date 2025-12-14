@@ -145,10 +145,19 @@ class DatabaseManager:
                 await db.execute("DELETE FROM opponent_teams WHERE user_id = ?", (user_id,))
             
             # Insert new team
-            await db.execute("""
-                INSERT INTO opponent_teams (user_id, nickname, team_json, wins, level)
-                VALUES (?, ?, ?, ?, ?)
-            """, (user_id, nickname, team_json, wins, level))
+            await db.execute("INSERT INTO opponent_teams (user_id, nickname, team_json, wins, level) VALUES (?, ?, ?, ?, ?)", (user_id, nickname, team_json, wins, level))
+            await db.commit()
+    
+    async def reset_leaderboard(self):
+        """Reset leaderboard by deleting all entries"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("DELETE FROM leaderboard")
+            await db.commit()
+
+    async def reset_opponent_teams(self):
+        """Reset opponent teams by deleting all entries"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("DELETE FROM opponent_teams")
             await db.commit()
     
     async def get_random_opponent(self, exclude_user_id: Optional[int] = None, player_wins: int = 0) -> Optional[Dict]:

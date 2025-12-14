@@ -1,6 +1,7 @@
 import random
 from typing import List, Dict
 from waffen_tactics.models.unit import Unit
+from waffen_tactics.models.player_state import PlayerState
 
 RARITY_ODDS_BY_LEVEL = {
     1: {1: 100},
@@ -33,3 +34,47 @@ class ShopService:
             if choices:
                 pool.append(random.choice(choices))
         return pool
+
+    def generate_offers(self, player: PlayerState, force_new: bool = False) -> List[str]:
+        """Generate shop offers for player, filtering out units already at 3★"""
+        if player.locked_shop and not force_new and player.last_shop:
+            return player.last_shop
+
+        # Get set of unit_ids that player has at 3★ (bench or board)
+        owned_3star = set()
+        for u in player.bench + player.board:
+            if u.star_level == 3:
+                owned_3star.add(u.unit_id)
+
+        # Roll until we have 5 valid offers (avoid infinite loop by limiting attempts)
+        offers = []
+        attempts = 0
+        while len(offers) < 5 and attempts < 50:
+            unit = self.roll(player.level, count=1)[0]
+            if unit.id not in owned_3star and unit.id not in [u.id for u in offers]:
+                offers.append(unit)
+            attempts += 1
+
+        # If not enough unique offers, fill with empty slots
+        while len(offers) < 5:
+            offers.append(None)
+
+        player.last_shop = [u.id if u else '' for u in offers]
+        player.locked_shop = False
+        return player.last_shop
+
+    def reroll(self, player: PlayerState) -> bool:
+        """Reroll shop for 2 gold, returns True if successful"""
+        if player.locked_shop:
+            return False
+        # Check for reroll-free chance from active synergies (e.g., XN Mod)
+        # Note: This needs synergy data, but for now, assume no free reroll or pass synergies
+        # In GameManager, it was checked, but since we're refactoring, perhaps move to ShopService
+        # For simplicity, assume cost is always 2, no free reroll for now
+        cost = 2
+        if not player.can_afford(cost):
+            return False
+        player.spend_gold(cost)
+        player.shop_rerolls += 1
+        self.generate_offers(player, force_new=True)
+        return True

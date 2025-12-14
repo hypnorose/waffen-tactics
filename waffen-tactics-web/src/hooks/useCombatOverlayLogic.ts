@@ -21,6 +21,7 @@ interface Unit {
     attack_speed?: number
     max_mana?: number
   }
+  current_mana?: number
 }
 
 interface TraitDefinition {
@@ -51,6 +52,13 @@ interface CombatEvent {
   total_amount?: number
   duration?: number
   timestamp?: number
+  // Mana and skill casting events
+  caster_id?: string
+  caster_name?: string
+  skill_name?: string
+  current_mana?: number
+  max_mana?: number
+  side?: string
 }
 
 
@@ -126,9 +134,12 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
         let eventTimestamp = typeof nextEvent.timestamp === 'number' ? nextEvent.timestamp : null;
         if (eventTimestamp !== null) lastTimestampRef.current = eventTimestamp;
 
-        if (nextEvent.type === 'units_init') {
-          if (nextEvent.player_units) setPlayerUnits(nextEvent.player_units);
-          if (nextEvent.opponent_units) setOpponentUnits(nextEvent.opponent_units);
+        if (nextEvent.type === 'start') {
+          const msg = '⚔️ Walka rozpoczyna się!'
+          setCombatLog(prev => [...prev, msg]);
+        } else if (nextEvent.type === 'units_init') {
+          if (nextEvent.player_units) setPlayerUnits(nextEvent.player_units.map(u => ({ ...u, current_mana: u.current_mana ?? 0 })));
+          if (nextEvent.opponent_units) setOpponentUnits(nextEvent.opponent_units.map(u => ({ ...u, current_mana: u.current_mana ?? 0 })));
           if (nextEvent.synergies) setSynergies(nextEvent.synergies);
           if (nextEvent.opponent) setOpponentInfo(nextEvent.opponent);
         } else if (nextEvent.type === 'unit_attack') {
@@ -143,9 +154,31 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
             if (nextEvent.target_id.startsWith('opp_')) setOpponentUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: attackHp } : u));
             else setPlayerUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: attackHp } : u));
           }
+          const msg = `⚔️ ${nextEvent.attacker_name} atakuje ${nextEvent.target_name} (${nextEvent.damage.toFixed(2)} dmg)`
+          setCombatLog(prev => [...prev, msg]);
+        } else if (nextEvent.type === 'unit_died') {
+          // Ensure HP is 0 when unit dies
+          if (nextEvent.unit_id) {
+            if (nextEvent.unit_id.startsWith('opp_')) {
+              setOpponentUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, hp: 0 } : u));
+            } else {
+              setPlayerUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, hp: 0 } : u));
+            }
+          }
+          const msg = `💀 ${nextEvent.unit_name} zostaje pokonany!`
+          setCombatLog(prev => [...prev, msg]);
+        } else if (nextEvent.type === 'gold_reward') {
+          const msg = `💰 ${nextEvent.unit_name} daje +${nextEvent.amount} gold (sojusznik umarł)`
+          setCombatLog(prev => [...prev, msg]);
         } else if (nextEvent.type === 'gold_income') {
           const breakdown = nextEvent as any;
           setStoredGoldBreakdown({ base: breakdown.base || 0, interest: breakdown.interest || 0, milestone: breakdown.milestone || 0, win_bonus: breakdown.win_bonus || 0, total: breakdown.total || 0 });
+        } else if (nextEvent.type === 'victory') {
+          const msg = '🎉 ZWYCIĘSTWO!'
+          setCombatLog(prev => [...prev, msg]);
+        } else if (nextEvent.type === 'defeat') {
+          const msg = nextEvent.message || '💔 PRZEGRANA!'
+          setCombatLog(prev => [...prev, msg]);
         } else if (nextEvent.type === 'end') {
           setIsFinished(true);
           if (nextEvent.state) setFinalState(nextEvent.state);
@@ -160,16 +193,38 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
               setPlayerUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, hp: healedHp } : u));
             }
           }
+          const msg = `💚 ${nextEvent.unit_name} regeneruje ${nextEvent.amount.toFixed(2)} HP`
+          setCombatLog(prev => [...prev, msg]);
         } else if (nextEvent.type === 'regen_gain') {
           if (nextEvent.unit_id) {
             const dur = nextEvent.duration || 5;
             const expiresAt = Date.now() + dur * 1000;
             setRegenMap(prev => ({ ...prev, [nextEvent.unit_id!]: { amount_per_sec: nextEvent.amount_per_sec || 0, total_amount: nextEvent.total_amount || 0, expiresAt } }));
-            const readable = `💚 ${nextEvent.unit_id} gains ${Math.round((nextEvent.total_amount || 0))} HP over ${dur}s`;
-            setCombatLog(prev => [...prev, readable]);
+            const msg = `💚 ${nextEvent.unit_name} zyskuje +${(nextEvent.total_amount || 0).toFixed(2)} HP przez ${dur}s`
+            setCombatLog(prev => [...prev, msg]);
           }
+        } else if (nextEvent.type === 'mana_update') {
+          if (nextEvent.unit_id && nextEvent.current_mana !== undefined) {
+            if (nextEvent.unit_id.startsWith('opp_')) {
+              setOpponentUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, current_mana: nextEvent.current_mana } : u));
+            } else {
+              setPlayerUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, current_mana: nextEvent.current_mana } : u));
+            }
+          }
+          const msg = `🔮 ${nextEvent.unit_name} mana: ${nextEvent.current_mana}/${nextEvent.max_mana}`
+          setCombatLog(prev => [...prev, msg]);
+        } else if (nextEvent.type === 'skill_cast') {
+          // Update target HP if damage was dealt
+          if (nextEvent.target_id && nextEvent.target_hp !== undefined) {
+            if (nextEvent.target_id.startsWith('opp_')) {
+              setOpponentUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: nextEvent.target_hp } : u));
+            } else {
+              setPlayerUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: nextEvent.target_hp } : u));
+            }
+          }
+          const msg = `✨ ${nextEvent.caster_name} używa ${nextEvent.skill_name}!`
+          setCombatLog(prev => [...prev, msg]);
         }
-        if (nextEvent.message) setCombatLog(prev => [...prev, nextEvent.message!]);
         return rest;
       });
     };

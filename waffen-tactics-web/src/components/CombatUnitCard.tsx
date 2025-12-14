@@ -16,6 +16,7 @@ interface Unit {
     attack_speed?: number
     max_mana?: number
   }
+  current_mana?: number
 }
 
 interface Props {
@@ -42,7 +43,7 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnit, target
   const displayAttack = unit.buffed_stats?.attack ?? unit.attack
   const displayAS = unit.buffed_stats?.attack_speed ?? 0
   const displayMaxMana = unit.buffed_stats?.max_mana ?? 100
-  const displayMana = displayMaxMana
+  const displayMana = unit.current_mana ?? 0
 
   return (
     <div
@@ -120,6 +121,16 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnit, target
           style={{
             width: `${displayMaxHp > 0 ? (displayHp / displayMaxHp) * 100 : 0}%`,
             background: `linear-gradient(to right, ${getRarityColor(unit.cost)}, ${getRarityColor(unit.cost)}dd)`,
+          }}
+        />
+      </div>
+
+      <div className="relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600 mt-1">
+        <div
+          className="absolute inset-y-0 left-0 transition-all duration-300"
+          style={{
+            width: `${displayMaxMana > 0 ? (displayMana / displayMaxMana) * 100 : 0}%`,
+            background: 'linear-gradient(to right, #8b5cf6, #a855f7)',
           }}
         />
       </div>

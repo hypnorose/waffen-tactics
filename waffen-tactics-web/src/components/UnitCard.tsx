@@ -98,7 +98,7 @@ export default function UnitCard({
         disabled ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
-      {detailed && (
+      {(
         <div
           className="hidden group-hover:block absolute p-3 rounded-lg z-[100] shadow-2xl text-xs w-[280px] border-2 pointer-events-none"
           ref={tooltipRef}
