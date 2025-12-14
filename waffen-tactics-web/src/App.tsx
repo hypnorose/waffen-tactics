@@ -17,6 +17,8 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const { user, token } = useAuthStore()
+
   return (
     <div className="min-h-screen bg-background">
       <Routes>
@@ -31,7 +33,7 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to={user && token ? "/game" : "/login"} replace />} />
       </Routes>
     </div>
   )

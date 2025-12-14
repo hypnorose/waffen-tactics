@@ -235,8 +235,7 @@ class UnitManager:
 
             # Create upgraded unit
             upgraded = UnitInstance(unit_id=unit_id, star_level=star_level + 1)
-            # Preserve HP stacks and persistent buffs from the first merged unit
-            upgraded.hp_stacks = units_to_merge[0].hp_stacks
+            # Preserve persistent buffs from the first merged unit
             upgraded.persistent_buffs = units_to_merge[0].persistent_buffs.copy()
 
             # Prefer board if any merged unit was on board and there's space

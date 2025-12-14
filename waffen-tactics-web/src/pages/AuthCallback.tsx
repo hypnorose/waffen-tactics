@@ -7,7 +7,7 @@ export default function AuthCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { setUser, setToken } = useAuthStore()
-  const [error, _setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const code = searchParams.get('code')
@@ -26,8 +26,7 @@ export default function AuthCallback() {
       })
       .catch((err) => {
         console.error('Auth error:', err)
-        // Silent redirect on error - no message
-        navigate('/login')
+        setError(err.response?.data?.message || err.message || 'Błąd logowania')
       })
   }, [searchParams, navigate, setUser, setToken])
 

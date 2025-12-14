@@ -58,7 +58,7 @@ export default function UnitCard({
         defense: Math.floor(unit.stats.defense * multiplier),
         attack_speed: unit.stats.attack_speed,
         // support max_mana/current_mana when provided by backend
-        max_mana: (unit as any).stats?.max_mana ? Math.floor((unit as any).stats.max_mana * multiplier) : undefined,
+        max_mana: (unit as any).stats?.max_mana ? (unit as any).stats.max_mana : undefined,
         current_mana: 0,
       }
     : null)
