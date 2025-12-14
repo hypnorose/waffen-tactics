@@ -83,7 +83,14 @@ def enrich_player_state(player: PlayerState) -> dict:
         buffed_board = {}
         # Precompute active trait names for per_trait calculations
         active_trait_names = list(active_synergies.keys())
-        for instance_id, unit, star_level, hp_stacks in player.board:
+        for ui in player.board:
+            instance_id = ui.instance_id
+            unit = next((u for u in GameManager().data.units if u.id == ui.unit_id), None)
+            if not unit:
+                print(f"⚠️ Unit {ui.unit_id} not found in data, skipping stats calculation")
+                continue
+            star_level = ui.star_level
+            hp_stacks = ui.hp_stacks or 0
             # Calculate base stats (before buffs)
             base = deepcopy(unit.stats)
             base_hp = int(base.hp * star_level) + (hp_stacks or 0)

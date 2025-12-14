@@ -203,7 +203,10 @@ export default function UnitCard({
                   <span className="text-base">🔮</span>
                   <span className="font-semibold">Max Mana</span>
                 </span>
-                <span className="font-bold text-white text-sm">{displayStats?.max_mana ?? 100}</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-bold text-white text-sm">{displayStats?.max_mana ?? 100}</span>
+                  {deltas && deltas.max_mana !== 0 && <span className="text-xs font-semibold text-emerald-400">+{deltas.max_mana}</span>}
+                </div>
               </div>
             </div>
           )}
