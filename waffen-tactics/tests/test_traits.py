@@ -166,8 +166,9 @@ class TestTraits(unittest.TestCase):
         expected_gold = [1, 2, 3]
         for i, effect in enumerate(denciak_trait["effects"]):
             self.assertEqual(effect["type"], "on_ally_death")
-            self.assertEqual(effect["reward"], "gold")
-            self.assertEqual(effect["value"], expected_gold[i])
+            self.assertEqual(effect["actions"][0]["type"], "reward")
+            self.assertEqual(effect["actions"][0]["reward"], "gold")
+            self.assertEqual(effect["actions"][0]["value"], expected_gold[i])
 
     def test_trait_streamer_on_kill(self):
         """Test Streamer trait (stats on enemy death)"""
@@ -179,9 +180,10 @@ class TestTraits(unittest.TestCase):
         expected_stats = [2, 4, 6, 12]
         for i, effect in enumerate(streamer_trait["effects"]):
             self.assertEqual(effect["type"], "on_enemy_death")
-            self.assertIn("attack", effect["stats"])
-            self.assertIn("defense", effect["stats"])
-            self.assertEqual(effect["value"], expected_stats[i])
+            self.assertEqual(effect["actions"][0]["type"], "stat_buff")
+            self.assertIn("attack", effect["actions"][0]["stats"])
+            self.assertIn("defense", effect["actions"][0]["stats"])
+            self.assertEqual(effect["actions"][0]["value"], expected_stats[i])
 
     def test_no_synergy_with_single_unit(self):
         """Test that single unit doesn't activate traits requiring 2+"""

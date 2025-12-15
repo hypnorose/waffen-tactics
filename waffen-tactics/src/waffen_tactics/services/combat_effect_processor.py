@@ -1,6 +1,7 @@
 """
 Combat effect processor - handles trait effects, buffs, and death triggers
 """
+import random
 from typing import List, Dict, Any, Callable, Optional
 
 
@@ -32,38 +33,18 @@ class CombatEffectProcessor:
                 'timestamp': time
             })
 
-        # Killer-specific effects for 'hp_regen_on_kill'
-        for eff in getattr(killer, 'effects', []):
-            if eff.get('type') == 'hp_regen_on_kill':
-                is_pct = eff.get('is_percentage', False)
-                val = float(eff.get('value', 0))
-                duration = float(eff.get('duration', 5.0))
-                if duration <= 0:
-                    duration = 5.0
-                if is_pct:
-                    total_amount = killer.max_hp * (val / 100.0)
-                else:
-                    total_amount = float(val)
-                add_per_sec = total_amount / duration
-                if add_per_sec > 0:
-                    killer.hp_regen_per_sec += add_per_sec
-                    log.append(f"[{time:.2f}s] {killer.name} gains +{total_amount:.2f} HP over {duration}s (+{add_per_sec:.2f} HP/s) (on kill)")
-                    if event_callback:
-                        event_callback('regen_gain', {
-                            'unit_id': killer.id,
-                            'timestamp': time,
-                            'unit_name': killer.name,
-                            'amount_per_sec': add_per_sec,
-                            'total_amount': total_amount,
-                            'duration': duration,
-                            'side': side
-                        })
-
         # Trigger on_enemy_death effects for attacking team
         for unit in attacking_team:
             for eff in getattr(unit, 'effects', []):
                 if eff.get('type') == 'on_enemy_death':
-                    self._apply_stat_buff(unit, eff, attacking_hp, attacking_team.index(unit), time, log, event_callback, side)
+                    actions = eff.get('actions', [])
+                    if actions:
+                        self._apply_actions(unit, actions, attacking_hp, attacking_team.index(unit), time, log, event_callback, side, attacking_team, attacking_hp)
+                    else:
+                        # Backward compatibility
+                        if 'reward' in eff:
+                            self._apply_reward(unit, eff, attacking_hp, attacking_team.index(unit), time, log, event_callback, side, attacking_team, attacking_hp)
+                        self._apply_stat_buff(unit, eff, attacking_hp, attacking_team.index(unit), time, log, event_callback, side)
 
         # Trigger on_ally_death effects for surviving allies on defending team
         triggered_rewards = set()  # Track which reward types have been triggered for this death
@@ -72,24 +53,19 @@ class CombatEffectProcessor:
                 continue
             for eff in getattr(unit, 'effects', []):
                 if eff.get('type') == 'on_ally_death':
-                    # Handle reward effects (e.g. Denciak: gold on ally death)
-                    if eff.get('reward') == 'gold':
-                        reward_type = 'gold'
-                        if eff.get('trigger_once', False):
-                            if reward_type in triggered_rewards:
-                                continue
-                            triggered_rewards.add(reward_type)
-                        amount = int(eff.get('value', 0))
-                        log.append(f"{unit.name} triggers reward: +{amount} gold (ally died)")
-                        if event_callback:
-                            event_callback('gold_reward', {
-                                'amount': amount,
-                                'unit_id': getattr(unit, 'id', None),
-                                'unit_name': getattr(unit, 'name', None),
-                                'side': defending_side,
-                                'timestamp': time
-                            })
-                    self._apply_stat_buff(unit, eff, defending_hp, i, time, log, event_callback, defending_side)
+                    actions = eff.get('actions', [])
+                    if actions:
+                        self._apply_actions(unit, actions, defending_hp, i, time, log, event_callback, defending_side, None, None, triggered_rewards, eff)
+                    else:
+                        # Backward compatibility
+                        if 'reward' in eff:
+                            reward_type = eff.get('reward')
+                            if eff.get('trigger_once', False):
+                                if reward_type in triggered_rewards:
+                                    continue
+                                triggered_rewards.add(reward_type)
+                            self._apply_reward(unit, eff, defending_hp, i, time, log, event_callback, defending_side)
+                        self._apply_stat_buff(unit, eff, defending_hp, i, time, log, event_callback, defending_side)
 
         # Stat steal effects for attacking team
         for unit in attacking_team:
@@ -104,6 +80,120 @@ class CombatEffectProcessor:
                             stolen_value = int(target.defense * (value / 100.0))
                             unit.defense += stolen_value
                             log.append(f"{unit.name} steals +{stolen_value} Defense from {target.name}")
+
+    def _apply_reward(
+        self,
+        unit: 'CombatUnit',
+        effect: Dict[str, Any],
+        hp_list: List[int],
+        unit_idx: int,
+        time: float,
+        log: List[str],
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+        side: str,
+        attacking_team: Optional[List['CombatUnit']] = None,
+        attacking_hp: Optional[List[int]] = None
+    ):
+        """Apply reward from an effect."""
+        chance = effect.get('chance', 100)
+        if random.randint(1, 100) > chance:
+            return
+        reward = effect.get('reward')
+        target = effect.get('target', 'self')
+        if reward == 'gold':
+            amount = int(effect.get('value', 0))
+            if target == 'self':
+                log.append(f"{unit.name} gains +{amount} gold")
+                if event_callback:
+                    event_callback('gold_reward', {
+                        'amount': amount,
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'side': side,
+                        'timestamp': time
+                    })
+            elif target == 'team' and attacking_team and attacking_hp:
+                # For team, distribute or just log as team reward
+                log.append(f"Team gains +{amount} gold")
+                if event_callback:
+                    event_callback('gold_reward', {
+                        'amount': amount,
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'side': side,
+                        'timestamp': time,
+                        'target': 'team'
+                    })
+        elif reward == 'hp_regen':
+            is_pct = effect.get('is_percentage', False)
+            val = float(effect.get('value', 0))
+            duration = float(effect.get('duration', 5.0))
+            if duration <= 0:
+                duration = 5.0
+            if is_pct:
+                total_amount = unit.max_hp * (val / 100.0)
+            else:
+                total_amount = float(val)
+            add_per_sec = total_amount / duration
+            if add_per_sec > 0:
+                if target == 'self':
+                    unit.hp_regen_per_sec += add_per_sec
+                    log.append(f"[{time:.2f}s] {unit.name} gains +{total_amount:.2f} HP over {duration}s (+{add_per_sec:.2f} HP/s)")
+                    if event_callback:
+                        event_callback('regen_gain', {
+                            'unit_id': unit.id,
+                            'unit_name': unit.name,
+                            'amount_per_sec': add_per_sec,
+                            'total_amount': total_amount,
+                            'duration': duration,
+                            'side': side
+                        })
+                elif target == 'team' and attacking_team and attacking_hp:
+                    # Apply to all surviving units in attacking team
+                    survivors = [u for u, hp in zip(attacking_team, attacking_hp) if hp > 0]
+                    if survivors:
+                        per_unit = add_per_sec / len(survivors)
+                        for u in survivors:
+                            u.hp_regen_per_sec += per_unit
+                        log.append(f"[{time:.2f}s] Team gains +{total_amount:.2f} HP over {duration}s (+{add_per_sec:.2f} HP/s total)")
+                        if event_callback:
+                            event_callback('regen_gain', {
+                                'unit_id': unit.id,
+                                'unit_name': unit.name,
+                                'amount_per_sec': add_per_sec,
+                                'total_amount': total_amount,
+                                'duration': duration,
+                                'side': side,
+                                'target': 'team'
+                            })
+
+    def _apply_actions(
+        self,
+        unit: 'CombatUnit',
+        actions: List[Dict[str, Any]],
+        hp_list: List[int],
+        unit_idx: int,
+        time: float,
+        log: List[str],
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+        side: str,
+        attacking_team: Optional[List['CombatUnit']] = None,
+        attacking_hp: Optional[List[int]] = None,
+        triggered_rewards: Optional[set] = None,
+        effect: Optional[Dict[str, Any]] = None
+    ):
+        """Apply list of actions from an effect."""
+        for action in actions:
+            action_type = action.get('type')
+            if action_type == 'stat_buff':
+                self._apply_stat_buff(unit, action, hp_list, unit_idx, time, log, event_callback, side)
+            elif action_type == 'reward':
+                if triggered_rewards is not None and effect and effect.get('trigger_once', False):
+                    reward_type = action.get('reward')
+                    if reward_type in triggered_rewards:
+                        continue
+                    triggered_rewards.add(reward_type)
+                self._apply_reward(unit, action, hp_list, unit_idx, time, log, event_callback, side, attacking_team, attacking_hp)
 
     def _apply_stat_buff(
         self,
@@ -184,6 +274,110 @@ class CombatEffectProcessor:
                         'side': side,
                         'unit_hp': hp_list[unit_idx],
                         'unit_max_hp': unit.max_hp,
+                        'timestamp': time
+                    })
+            elif st == 'attack_speed':
+                if is_pct:
+                    add = unit.attack_speed * (val / 100.0)
+                else:
+                    add = float(val)
+                mult = 1.0
+                for beff in getattr(unit, 'effects', []):
+                    if beff.get('type') == 'buff_amplifier':
+                        mult = max(mult, float(beff.get('multiplier', 1)))
+                add = add * mult
+                unit.attack_speed += add
+                log.append(f"{unit.name} gains +{add:.2f} Attack Speed (on death)")
+                if event_callback:
+                    event_callback('stat_buff', {
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'stat': 'attack_speed',
+                        'amount': add,
+                        'side': side,
+                        'timestamp': time
+                    })
+            elif st == 'mana_regen':
+                if is_pct:
+                    add = int(unit.mana_regen * (val / 100.0))
+                else:
+                    add = int(val)
+                mult = 1.0
+                for beff in getattr(unit, 'effects', []):
+                    if beff.get('type') == 'buff_amplifier':
+                        mult = max(mult, float(beff.get('multiplier', 1)))
+                add = int(add * mult)
+                unit.mana_regen += add
+                log.append(f"{unit.name} gains +{add} Mana Regen (on death)")
+                if event_callback:
+                    event_callback('stat_buff', {
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'stat': 'mana_regen',
+                        'amount': add,
+                        'side': side,
+                        'timestamp': time
+                    })
+            elif st == 'lifesteal':
+                if is_pct:
+                    add = val / 100.0
+                else:
+                    add = float(val)
+                mult = 1.0
+                for beff in getattr(unit, 'effects', []):
+                    if beff.get('type') == 'buff_amplifier':
+                        mult = max(mult, float(beff.get('multiplier', 1)))
+                add = add * mult
+                unit.lifesteal += add
+                log.append(f"{unit.name} gains +{add:.1%} Lifesteal (on death)")
+                if event_callback:
+                    event_callback('stat_buff', {
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'stat': 'lifesteal',
+                        'amount': add,
+                        'side': side,
+                        'timestamp': time
+                    })
+            elif st == 'damage_reduction':
+                if is_pct:
+                    add = val / 100.0
+                else:
+                    add = float(val)
+                mult = 1.0
+                for beff in getattr(unit, 'effects', []):
+                    if beff.get('type') == 'buff_amplifier':
+                        mult = max(mult, float(beff.get('multiplier', 1)))
+                add = add * mult
+                unit.damage_reduction += add
+                log.append(f"{unit.name} gains +{add:.1%} Damage Reduction (on death)")
+                if event_callback:
+                    event_callback('stat_buff', {
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'stat': 'damage_reduction',
+                        'amount': add,
+                        'side': side,
+                        'timestamp': time
+                    })
+            elif st == 'hp_regen_per_sec':
+                if is_pct:
+                    add = unit.max_hp * (val / 100.0)
+                else:
+                    add = float(val)
+                mult = 1.0
+                for beff in getattr(unit, 'effects', []):
+                    if beff.get('type') == 'buff_amplifier':
+                        mult = max(mult, float(beff.get('multiplier', 1)))
+                add = add * mult
+                unit.hp_regen_per_sec += add
+                log.append(f"{unit.name} gains +{add:.2f} HP Regen/sec (on death)")
+                if event_callback:
+                    event_callback('regen_gain', {
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'amount_per_sec': add,
+                        'side': side,
                         'timestamp': time
                     })
 

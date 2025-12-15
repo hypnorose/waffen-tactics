@@ -15,13 +15,14 @@ class CombatRegenerationProcessor:
         b_hp: List[int],
         time: float,
         log: List[str],
+        dt: float,
         event_callback: Optional[Callable[[str, Dict[str, Any]], None]]
     ):
         """Apply HP regeneration for both teams."""
         # Team A regen
         for idx_u, u in enumerate(team_a):
             if a_hp[idx_u] > 0 and getattr(u, 'hp_regen_per_sec', 0.0) > 0:
-                heal = u.hp_regen_per_sec * self.dt
+                heal = u.hp_regen_per_sec * dt
                 # accumulate fractional healing
                 u._hp_regen_accumulator += heal
                 int_heal = int(u._hp_regen_accumulator)
@@ -43,7 +44,7 @@ class CombatRegenerationProcessor:
         # Team B regen
         for idx_u, u in enumerate(team_b):
             if b_hp[idx_u] > 0 and getattr(u, 'hp_regen_per_sec', 0.0) > 0:
-                heal_b = u.hp_regen_per_sec * self.dt
+                heal_b = u.hp_regen_per_sec * dt
                 u._hp_regen_accumulator += heal_b
                 int_heal_b = int(u._hp_regen_accumulator)
                 if int_heal_b > 0:

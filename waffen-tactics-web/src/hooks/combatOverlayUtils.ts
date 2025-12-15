@@ -26,19 +26,37 @@ const getTraitDescription = (trait: any, tier: number) => {
   if (!trait.threshold_descriptions || tier < 1 || tier > trait.threshold_descriptions.length) {
     return trait.description || 'Brak opisu'
   }
-  const template = trait.threshold_descriptions[tier - 1]
-  if (!template.includes('<v>')) {
-    return template
-  }
+  let template = trait.threshold_descriptions[tier - 1]
+  
   // Znajdź wartość z effects
   const effect = trait.effects[tier - 1]
-  if (!effect || !effect.value) {
-    return template.replace('<v>', '0')
+  if (!effect) {
+    return template
   }
-  const value = effect.value
-  const isPercentage = effect.is_percentage
-  const formattedValue = isPercentage ? `${value}%` : value.toString()
-  return template.replace('<v>', formattedValue)
+  
+  let params: any = {}
+  
+  if (effect.actions && effect.actions.length > 0) {
+    // Nowy format z actions
+    const action = effect.actions[0]
+    params.value = action.value || 0
+    params.chance = action.chance || 100
+    params.duration = action.duration || 0
+    params.is_percentage = action.is_percentage || false
+  } else {
+    // Stary format
+    params.value = effect.value || 0
+    params.chance = 100
+    params.duration = effect.duration || 0
+    params.is_percentage = effect.is_percentage || false
+  }
+  
+  // Zastąp placeholdery
+  template = template.replace(/<v>/g, params.is_percentage ? `${params.value}%` : params.value.toString())
+  template = template.replace(/<c>/g, params.chance.toString())
+  template = template.replace(/<d>/g, params.duration.toString())
+  
+  return template
 }
 
 export { getRarityColor, getRarityGlow, getTraitColor, getTraitDescription }

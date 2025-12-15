@@ -45,23 +45,43 @@
       "effects": [
         {
           "type": "on_enemy_death",
-          "stats": ["attack", "defense"],
-          "value": 2
+          "actions": [
+            {
+              "type": "stat_buff",
+              "stats": ["attack", "defense"],
+              "value": 2
+            }
+          ]
         },
         {
           "type": "on_enemy_death",
-          "stats": ["attack", "defense"],
-          "value": 4
+          "actions": [
+            {
+              "type": "stat_buff",
+              "stats": ["attack", "defense"],
+              "value": 4
+            }
+          ]
         },
         {
           "type": "on_enemy_death",
-          "stats": ["attack", "defense"],
-          "value": 6
+          "actions": [
+            {
+              "type": "stat_buff",
+              "stats": ["attack", "defense"],
+              "value": 6
+            }
+          ]
         },
         {
           "type": "on_enemy_death",
-          "stats": ["attack", "defense"],
-          "value": 12
+          "actions": [
+            {
+              "type": "stat_buff",
+              "stats": ["attack", "defense"],
+              "value": 12
+            }
+          ]
         }
       ]
     },
@@ -71,10 +91,10 @@
       "description": "Błyskawiczne ataki - zwiększona prędkość ataku",
       "thresholds": [3, 5, 7, 10],
       "threshold_descriptions": [
-        "+<v>% prędkości ataku",
-        "+<v>% prędkości ataku",
-        "+<v>% prędkości ataku",
-        "+<v>% prędkości ataku"
+        "+<v> prędkości ataku",
+        "+<v> prędkości ataku",
+        "+<v> prędkości ataku",
+        "+<v> prędkości ataku"
       ],
       "effects": [
         {
@@ -109,10 +129,10 @@
       "description": "Potęga Rosji - masywny bonus do ataku",
       "thresholds": [3, 5, 7, 9],
       "threshold_descriptions": [
-        "+<v>% ataku",
-        "+<v>% ataku",
-        "+<v>% ataku",
-        "+<v>% ataku"
+        "+<v> ataku",
+        "+<v> ataku",
+        "+<v> ataku",
+        "+<v> ataku"
       ],
       "effects": [
         {
@@ -147,27 +167,45 @@
       "description": "Kiedy sojusznik umiera, zyskujesz złoto",
       "thresholds": [2, 4, 6],
       "threshold_descriptions": [
-        "+<v> złota za śmierć sojusznika",
-        "+<v> złota za śmierć sojusznika",
-        "+<v> złota za śmierć sojusznika"
+        "+<c>% szansy na <v> złota za śmierć sojusznika",
+        "+<c>% szansy na <v> złota za śmierć sojusznika",
+        "<v> złota za śmierć sojusznika"
       ],
       "effects": [
         {
           "type": "on_ally_death",
-          "reward": "gold",
-          "value": 1,
+          "actions": [
+            {
+              "type": "reward",
+              "reward": "gold",
+              "value": 1,
+              "chance": 50
+            }
+          ],
           "trigger_once": true
         },
         {
           "type": "on_ally_death",
-          "reward": "gold",
-          "value": 2,
+          "actions": [
+            {
+              "type": "reward",
+              "reward": "gold",
+              "value": 2,
+              "chance": 50
+            }
+          ],
           "trigger_once": true
         },
         {
           "type": "on_ally_death",
-          "reward": "gold",
-          "value": 3,
+          "actions": [
+            {
+              "type": "reward",
+              "reward": "gold",
+              "value": 2,
+              "chance": 100
+            }
+          ],
           "trigger_once": true
         }
       ]
@@ -178,10 +216,10 @@
       "description": "Z każdą rundą stają się silniejsi - bonus HP co rundę",
       "thresholds": [2, 3, 4, 5],
       "threshold_descriptions": [
-        "+<v>% HP co rundę",
-        "+<v>% HP co rundę",
-        "+<v>% HP co rundę",
-        "+<v>% HP co rundę"
+        "+<v> HP co rundę",
+        "+<v> HP co rundę",
+        "+<v> HP co rundę",
+        "+<v> HP co rundę"
       ],
       "effects": [
         {
@@ -247,35 +285,63 @@
       "description": "Po zabiciu wroga regenerują HP przez 5 sekund",
       "thresholds": [2, 3, 4, 5],
       "threshold_descriptions": [
-        "regeneracja <v>% max HP przez 5s po zabiciu",
-        "regeneracja <v>% max HP przez 5s po zabiciu",
-        "regeneracja <v>% max HP przez 5s po zabiciu",
-        "regeneracja <v>% max HP przez 5s po zabiciu"
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu"
       ],
       "effects": [
         {
-          "type": "hp_regen_on_kill",
-          "value": 5,
-          "is_percentage": true,
-          "duration": 5
+          "type": "on_enemy_death",
+          "actions": [
+            {
+              "type": "reward",
+              "reward": "hp_regen",
+              "target": "self",
+              "value": 5,
+              "is_percentage": true,
+              "duration": 5
+            }
+          ]
         },
         {
-          "type": "hp_regen_on_kill",
-          "value": 8,
-          "is_percentage": true,
-          "duration": 5
+          "type": "on_enemy_death",
+          "actions": [
+            {
+              "type": "reward",
+              "reward": "hp_regen",
+              "target": "self",
+              "value": 8,
+              "is_percentage": true,
+              "duration": 5
+            }
+          ]
         },
         {
-          "type": "hp_regen_on_kill",
-          "value": 12,
-          "is_percentage": true,
-          "duration": 5
+          "type": "on_enemy_death",
+          "actions": [
+            {
+              "type": "reward",
+              "reward": "hp_regen",
+              "target": "self",
+              "value": 12,
+              "is_percentage": true,
+              "duration": 5
+            }
+          ]
         },
         {
-          "type": "hp_regen_on_kill",
-          "value": 20,
-          "is_percentage": true,
-          "duration": 5
+          "type": "on_enemy_death",
+          "actions": [
+            {
+              "type": "reward",
+              "reward": "hp_regen",
+              "target": "self",
+              "value": 16,
+              "is_percentage": true,
+              "duration": 2
+            }
+          ]
         }
       ]
     },
@@ -285,9 +351,9 @@
       "description": "Bonus do ataku i HP za każdą aktywną synergię",
       "thresholds": [2, 3, 4],
       "threshold_descriptions": [
-        "+<v>% ataku i HP za każdą synergię",
-        "+<v>% ataku i HP za każdą synergię",
-        "+<v>% ataku i HP za każdą synergię"
+        "+<v> ataku i HP za każdą synergię",
+        "+<v> ataku i HP za każdą synergię",
+        "+<v> ataku i HP za każdą synergię"
       ],
       "effects": [
         {
@@ -372,9 +438,9 @@
       "description": "Kradną obronę przeciwnikom",
       "thresholds": [3, 5, 7],
       "threshold_descriptions": [
-        "kradną <v>% obrony zabitym wrogom",
-        "kradną <v>% obrony zabitym wrogom",
-        "kradną <v>% obrony zabitym wrogom"
+        "kradną <v> obrony zabitym wrogom",
+        "kradną <v> obrony zabitym wrogom",
+        "kradną <v> obrony zabitym wrogom"
       ],
       "effects": [
         {
@@ -403,10 +469,10 @@
       "description": "Bonus do ataku i prędkości ataku",
       "thresholds": [3, 5, 7, 9],
       "threshold_descriptions": [
-        "+<v>% ataku i prędkości ataku",
-        "+<v>% ataku i prędkości ataku",
-        "+<v>% ataku i prędkości ataku",
-        "+<v>% ataku i prędkości ataku"
+        "+<v> ataku i prędkości ataku",
+        "+<v> ataku i prędkości ataku",
+        "+<v> ataku i prędkości ataku",
+        "+<v> ataku i prędkości ataku"
       ],
       "effects": [
         {
@@ -441,9 +507,9 @@
       "description": "Zwykli ludzie z dodatkowym HP",
       "thresholds": [2, 4, 5],
       "threshold_descriptions": [
-        "+<v>% HP",
-        "+<v>% HP",
-        "+<v>% HP"
+        "+<v> HP",
+        "+<v> HP",
+        "+<v> HP"
       ],
       "effects": [
         {

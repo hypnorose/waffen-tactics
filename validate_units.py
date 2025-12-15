@@ -120,6 +120,114 @@ def validate_units_json():
     print(f"\n📈 Validation complete: {len(units)} units checked")
     return len(errors) == 0
 
+def validate_traits_json():
+    """Validate traits.json file"""
+    project_root = Path(__file__).resolve().parent
+    traits_file = project_root / "waffen-tactics" / "traits.json"
+
+    print("🔍 Validating traits.json...")
+
+    # Load traits.json
+    try:
+        with open(traits_file, 'r', encoding='utf-8') as f:
+            traits_data = json.load(f)
+    except FileNotFoundError:
+        print(f"❌ traits.json not found at {traits_file}")
+        return False
+    except json.JSONDecodeError as e:
+        print(f"❌ Invalid JSON in traits.json: {e}")
+        return False
+
+    traits = traits_data.get("traits", [])
+    if not traits:
+        print("❌ No traits found in traits.json")
+        return False
+
+    print(f"📊 Found {len(traits)} traits to validate")
+
+    errors = []
+    warnings = []
+
+    valid_trait_types = {"faction", "class"}
+
+    for i, trait in enumerate(traits):
+        trait_name = trait.get("name", f"trait_{i}")
+        print(f"  Checking trait: {trait_name}")
+
+        # Required fields
+        required_fields = ["name", "type", "description", "thresholds", "threshold_descriptions", "effects"]
+        for field in required_fields:
+            if field not in trait:
+                errors.append(f"Trait {trait_name}: missing required field '{field}'")
+
+        if "type" in trait and trait["type"] not in valid_trait_types:
+            errors.append(f"Trait {trait_name}: invalid type '{trait['type']}', must be one of {valid_trait_types}")
+
+        # Check data types
+        if "name" in trait and not isinstance(trait["name"], str):
+            errors.append(f"Trait {trait_name}: 'name' must be a string")
+        if "description" in trait and not isinstance(trait["description"], str):
+            errors.append(f"Trait {trait_name}: 'description' must be a string")
+        if "thresholds" in trait and not isinstance(trait["thresholds"], list):
+            errors.append(f"Trait {trait_name}: 'thresholds' must be a list")
+        if "threshold_descriptions" in trait and not isinstance(trait["threshold_descriptions"], list):
+            errors.append(f"Trait {trait_name}: 'threshold_descriptions' must be a list")
+        if "effects" in trait and not isinstance(trait["effects"], list):
+            errors.append(f"Trait {trait_name}: 'effects' must be a list")
+
+        # Check lengths match
+        if "thresholds" in trait and "threshold_descriptions" in trait and "effects" in trait:
+            thresholds_len = len(trait["thresholds"])
+            desc_len = len(trait["threshold_descriptions"])
+            effects_len = len(trait["effects"])
+            if thresholds_len != desc_len or thresholds_len != effects_len:
+                errors.append(f"Trait {trait_name}: thresholds ({thresholds_len}), descriptions ({desc_len}), and effects ({effects_len}) must have the same length")
+
+        # Check thresholds are positive integers
+        if "thresholds" in trait and isinstance(trait["thresholds"], list):
+            for j, thresh in enumerate(trait["thresholds"]):
+                if not isinstance(thresh, int) or thresh <= 0:
+                    errors.append(f"Trait {trait_name}: threshold {j} must be a positive integer")
+
+        # Check descriptions are strings
+        if "threshold_descriptions" in trait and isinstance(trait["threshold_descriptions"], list):
+            for j, desc in enumerate(trait["threshold_descriptions"]):
+                if not isinstance(desc, str):
+                    errors.append(f"Trait {trait_name}: description {j} must be a string")
+
+        # Basic effects validation
+        if "effects" in trait and isinstance(trait["effects"], list):
+            for j, effect in enumerate(trait["effects"]):
+                if not isinstance(effect, dict):
+                    errors.append(f"Trait {trait_name}: effect {j} must be a dict")
+                elif "type" not in effect:
+                    errors.append(f"Trait {trait_name}: effect {j} missing 'type' field")
+
+    # Check for duplicate names
+    names = [t.get("name") for t in traits if "name" in t]
+    duplicates = set([x for x in names if names.count(x) > 1])
+    for dup in duplicates:
+        errors.append(f"Duplicate trait name: {dup}")
+
+    # Summary
+    if errors:
+        print(f"\n❌ Found {len(errors)} errors:")
+        for error in errors:
+            print(f"  {error}")
+    else:
+        print("✅ No errors found!")
+
+    if warnings:
+        print(f"\n⚠️  Found {len(warnings)} warnings:")
+        for warning in warnings:
+            print(f"  {warning}")
+
+    print(f"\n📈 Validation complete: {len(traits)} traits checked")
+    return len(errors) == 0
+
 if __name__ == "__main__":
-    success = validate_units_json()
-    sys.exit(0 if success else 1)
+    success_units = validate_units_json()
+    print("\n" + "="*50 + "\n")
+    success_traits = validate_traits_json()
+    overall_success = success_units and success_traits
+    sys.exit(0 if overall_success else 1)
