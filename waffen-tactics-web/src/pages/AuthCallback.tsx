@@ -17,15 +17,17 @@ export default function AuthCallback() {
       return
     }
 
+    console.log('🔄 Exchanging Discord code...')
     authAPI.exchangeCode(code)
       .then((response) => {
         const { user, token } = response.data
+        console.log('✅ Auth successful, user:', user.username)
         setUser(user)
         setToken(token)
         navigate('/game')
       })
       .catch((err) => {
-        console.error('Auth error:', err)
+        console.error('❌ Auth error:', err)
         setError(err.response?.data?.message || err.message || 'Błąd logowania')
       })
   }, [searchParams, navigate, setUser, setToken])

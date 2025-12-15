@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useCombatOverlayLogic } from '../hooks/useCombatOverlayLogic'
-import { getRarityColor, getRarityGlow, getTraitColor } from '../hooks/combatOverlayUtils'
+import { getRarityColor, getRarityGlow, getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
 import { PlayerState } from '../store/gameStore'
 // ...existing code...
 import GoldNotification from './GoldNotification'
@@ -72,6 +72,7 @@ export default function CombatOverlay({ onClose }: Props) {
     isFinished,
     finalState,
     synergies,
+    traits,
     hoveredTrait,
     setHoveredTrait,
     opponentInfo,
@@ -110,6 +111,12 @@ export default function CombatOverlay({ onClose }: Props) {
                         <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '0.5rem', padding: '0.5rem', backgroundColor: '#1e293b', border: `2px solid ${getTraitColor((data as any).tier)}`, borderRadius: '0.375rem', whiteSpace: 'nowrap', zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', fontSize: '0.7rem', color: '#e2e8f0' }}>
                           <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{name}</div>
                           <div>Tier {(data as any).tier} aktywny ({(data as any).count} jednostek)</div>
+                          <div style={{ marginTop: '0.25rem', fontSize: '0.65rem', color: '#cbd5e1' }}>
+                            {traits.length > 0 ? (() => {
+                              const trait = traits.find(t => t.name === name);
+                              return trait ? getTraitDescription(trait, (data as any).tier) : 'Trait nie znaleziony';
+                            })() : 'Ładowanie opisów...'}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -145,8 +152,8 @@ export default function CombatOverlay({ onClose }: Props) {
             </span>
             <input
               type="range"
-              min="-10"
-              max="20"
+              min="-5"
+              max="10"
               step="1"
               value={Math.log10(combatSpeed) * 10}
               onChange={(e) => {
@@ -172,7 +179,7 @@ export default function CombatOverlay({ onClose }: Props) {
 
           {/* Footer z przyciskiem kontynuacji */}
           <div style={{ marginTop: 24 }}>
-            <CombatFooter isFinished={isFinished} storedGoldBreakdown={storedGoldBreakdown} displayedGoldBreakdown={displayedGoldBreakdown} handleClose={handleClose} handleGoldDismiss={handleGoldDismiss} />
+            <CombatFooter isFinished={isFinished} storedGoldBreakdown={storedGoldBreakdown} displayedGoldBreakdown={displayedGoldBreakdown} handleClose={handleClose} handleGoldDismiss={handleGoldDismiss} setDisplayedGoldBreakdown={setDisplayedGoldBreakdown} />
           </div>
         </div>
       </div>

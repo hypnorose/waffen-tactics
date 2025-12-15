@@ -66,6 +66,7 @@ class CombatEffectProcessor:
                     self._apply_stat_buff(unit, eff, attacking_hp, attacking_team.index(unit), time, log, event_callback, side)
 
         # Trigger on_ally_death effects for surviving allies on defending team
+        triggered_rewards = set()  # Track which reward types have been triggered for this death
         for i, unit in enumerate(defending_team):
             if defending_hp[i] <= 0:
                 continue
@@ -73,6 +74,11 @@ class CombatEffectProcessor:
                 if eff.get('type') == 'on_ally_death':
                     # Handle reward effects (e.g. Denciak: gold on ally death)
                     if eff.get('reward') == 'gold':
+                        reward_type = 'gold'
+                        if eff.get('trigger_once', False):
+                            if reward_type in triggered_rewards:
+                                continue
+                            triggered_rewards.add(reward_type)
                         amount = int(eff.get('value', 0))
                         log.append(f"{unit.name} triggers reward: +{amount} gold (ally died)")
                         if event_callback:
@@ -128,6 +134,36 @@ class CombatEffectProcessor:
                 add = int(add * mult)
                 unit.attack += add
                 log.append(f"{unit.name} gains +{add} Atak (on death)")
+                if event_callback:
+                    event_callback('stat_buff', {
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'stat': 'attack',
+                        'amount': add,
+                        'side': side,
+                        'timestamp': time
+                    })
+            elif st == 'defense':
+                if is_pct:
+                    add = int(unit.defense * (val / 100.0))
+                else:
+                    add = int(val)
+                mult = 1.0
+                for beff in getattr(unit, 'effects', []):
+                    if beff.get('type') == 'buff_amplifier':
+                        mult = max(mult, float(beff.get('multiplier', 1)))
+                add = int(add * mult)
+                unit.defense += add
+                log.append(f"{unit.name} gains +{add} Obrona (on death)")
+                if event_callback:
+                    event_callback('stat_buff', {
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'stat': 'defense',
+                        'amount': add,
+                        'side': side,
+                        'timestamp': time
+                    })
             if st == 'hp':
                 if is_pct:
                     add = int(unit.max_hp * (val / 100.0))
@@ -147,7 +183,8 @@ class CombatEffectProcessor:
                         'amount': add,
                         'side': side,
                         'unit_hp': hp_list[unit_idx],
-                        'unit_max_hp': unit.max_hp
+                        'unit_max_hp': unit.max_hp,
+                        'timestamp': time
                     })
 
     def _process_ally_hp_below_triggers(
@@ -177,7 +214,8 @@ class CombatEffectProcessor:
                                 'amount': heal_amt,
                                 'side': side,
                                 'unit_hp': hp_list[target_idx],
-                                'unit_max_hp': team[target_idx].max_hp
+                                'unit_max_hp': team[target_idx].max_hp,
+                                'timestamp': time
                             })
                         eff['_triggered'] = True
                         break
@@ -196,7 +234,7 @@ class CombatEffectProcessor:
         # Team A buffs
         for idx_u, u in enumerate(team_a):
             for eff in getattr(u, 'effects', []):
-                if eff.get('type') == 'per_round_buff':
+                if eff.get('type') == 'per_second_buff':
                     stat = eff.get('stat')
                     val = eff.get('value', 0)
                     is_pct = eff.get('is_percentage', False)
@@ -214,14 +252,14 @@ class CombatEffectProcessor:
                         else:
                             add = int(val * mult)
                         u.attack += add
-                        log.append(f"{u.name} +{add} Atak (per round)")
+                        log.append(f"{u.name} +{add} Atak (per second)")
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (val / 100.0) * mult)
                         else:
                             add = int(val * mult)
                         a_hp[idx_u] = min(u.max_hp, a_hp[idx_u] + add)
-                        log.append(f"{u.name} +{add} HP (per round)")
+                        log.append(f"{u.name} +{add} HP (per second)")
                         if event_callback and add > 0:
                             event_callback('heal', {
                                 'unit_id': u.id,
@@ -229,13 +267,14 @@ class CombatEffectProcessor:
                                 'amount': add,
                                 'side': 'team_a',
                                 'unit_hp': a_hp[idx_u],
-                                'unit_max_hp': u.max_hp
+                                'unit_max_hp': u.max_hp,
+                                'timestamp': time
                             })
 
         # Team B buffs
         for idx_u, u in enumerate(team_b):
             for eff in getattr(u, 'effects', []):
-                if eff.get('type') == 'per_round_buff':
+                if eff.get('type') == 'per_second_buff':
                     stat = eff.get('stat')
                     val = eff.get('value', 0)
                     is_pct = eff.get('is_percentage', False)
@@ -253,14 +292,14 @@ class CombatEffectProcessor:
                         else:
                             add = int(val * mult_b)
                         u.attack += add
-                        log.append(f"{u.name} +{add} Atak (per round)")
+                        log.append(f"{u.name} +{add} Atak (per second)")
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (val / 100.0) * mult_b)
                         else:
                             add = int(val * mult_b)
                         b_hp[idx_u] = min(u.max_hp, b_hp[idx_u] + add)
-                        log.append(f"{u.name} +{add} HP (per round)")
+                        log.append(f"{u.name} +{add} HP (per second)")
                         if event_callback and add > 0:
                             event_callback('heal', {
                                 'unit_id': u.id,
@@ -268,7 +307,8 @@ class CombatEffectProcessor:
                                 'amount': add,
                                 'side': 'team_b',
                                 'unit_hp': b_hp[idx_u],
-                                'unit_max_hp': u.max_hp
+                                'unit_max_hp': u.max_hp,
+                                'timestamp': time
                             })
 
         # Apply base mana regen for all units

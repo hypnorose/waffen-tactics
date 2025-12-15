@@ -113,4 +113,8 @@ def reset_game_route(user_id):
 @game_bp.route('/surrender', methods=['POST'])
 @require_auth
 def surrender_game_route(user_id):
-    return surrender_game(user_id)
+    # Get payload for username
+    auth_header = request.headers.get('Authorization', '')
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_token(token)
+    return surrender_game(user_id, payload)

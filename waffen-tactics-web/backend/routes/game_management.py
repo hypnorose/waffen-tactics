@@ -57,11 +57,24 @@ def reset_game(user_id):
     return jsonify({'message': 'Gra zresetowana!', 'state': enrich_player_state(player)})
 
 
-def surrender_game(user_id):
+def surrender_game(user_id, payload):
     """Surrender current game (lose streak)"""
     player = run_async(db_manager.load_player(user_id))
     if not player:
         return jsonify({'error': 'No game found'}), 404
+
+    # Save to leaderboard before surrendering
+    username = payload.get('username', f'Player_{user_id}')
+    team_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
+    run_async(db_manager.save_to_leaderboard(
+        user_id=user_id,
+        nickname=username,
+        wins=player.wins,
+        losses=player.losses,
+        level=player.level,
+        round_number=player.round_number,
+        team_units=team_units
+    ))
 
     # Reset player to start over (lose streak)
     player = game_manager.create_new_player(user_id)

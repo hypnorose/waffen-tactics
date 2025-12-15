@@ -71,7 +71,9 @@ def demo_round():
 
 async def main():
     parser = argparse.ArgumentParser(description="Waffen Tactics CLI")
-    parser.add_argument('--db-path', default='waffen_tactics_game.db', help='Path to the database file')
+    # Use the same database path as the backend
+    default_db_path = str(Path(__file__).resolve().parents[3] / 'waffen-tactics' / 'waffen_tactics_game.db')
+    parser.add_argument('--db-path', default=default_db_path, help='Path to the database file')
     parser.add_argument('--reset-leaderboard', action='store_true', help='Reset the leaderboard')
     parser.add_argument('--reset-opponents', action='store_true', help='Reset opponent teams')
     parser.add_argument('--load-bots', action='store_true', help='Load sample bot teams')

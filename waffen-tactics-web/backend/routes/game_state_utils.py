@@ -21,6 +21,8 @@ def run_async(coro):
 
 def enrich_player_state(player: PlayerState) -> dict:
     """Add computed data to player state (synergies, shop odds, etc.)"""
+    print("DEBUG: enrich_player_state START")
+    print(f"DEBUG: enrich_player_state called for user {player.user_id}")
     # Helper to read stat values whether `unit.stats` is a dict or an object
     def stat_val(stats_obj, key, default):
         try:
@@ -76,6 +78,7 @@ def enrich_player_state(player: PlayerState) -> dict:
 
     # Compute buffed stats for units on board for display (apply stat_buff and per_trait_buff)
     try:
+        print("DEBUG: Entering buffed stats calculation")
         active_synergies = active_synergies_dict  # trait_name -> (count, tier)
         # Helper: apply effects only to units that have the trait (in factions or classes)
         from copy import deepcopy
@@ -93,9 +96,9 @@ def enrich_player_state(player: PlayerState) -> dict:
             persistent_buffs = ui.persistent_buffs or {}
             # Calculate base stats (before buffs)
             base = deepcopy(unit.stats)
-            base_hp = int(base.hp * star_level) + int(persistent_buffs.get("hp", 0))
-            base_attack = int(base.attack * star_level)
-            base_defense = int(base.defense * star_level)
+            base_hp = int(base.hp * (1.6 ** (star_level - 1))) + int(persistent_buffs.get("hp", 0))
+            base_attack = int(base.attack * (1.4 ** (star_level - 1)))
+            base_defense = int(base.defense)
             base_attack_speed = float(base.attack_speed)
             # mana should not scale with star level — keep base max_mana as defined
             base_max_mana = int(stat_val(base, 'max_mana', 100))
@@ -221,6 +224,46 @@ def enrich_player_state(player: PlayerState) -> dict:
             if iid in buffed_board:
                 b['base_stats'] = buffed_board[iid]['base_stats']
                 b['buffed_stats'] = buffed_board[iid]['buffed_stats']
+
+        # Also compute base stats for bench units (no synergies on bench)
+        for ui in player.bench:
+            unit = next((u for u in GameManager().data.units if u.id == ui.unit_id), None)
+            if not unit:
+                continue
+            star_level = ui.star_level
+            persistent_buffs = ui.persistent_buffs or {}
+            base = deepcopy(unit.stats)
+            base_hp = int(base.hp * (1.6 ** (star_level - 1))) + int(persistent_buffs.get("hp", 0))
+            base_attack = int(base.attack * (1.4 ** (star_level - 1)))
+            base_defense = int(base.defense)
+            base_attack_speed = float(base.attack_speed)
+            base_max_mana = int(stat_val(base, 'max_mana', 100))
+
+            # For bench, buffed stats are same as base (no synergies)
+            ui.base_stats = {
+                'hp': base_hp,
+                'attack': base_attack,
+                'defense': base_defense,
+                'attack_speed': round(base_attack_speed, 3),
+                'max_mana': base_max_mana,
+                'current_mana': 0
+            }
+            ui.buffed_stats = {
+                'hp': base_hp,
+                'attack': base_attack,
+                'defense': base_defense,
+                'attack_speed': round(base_attack_speed, 3),
+                'max_mana': base_max_mana,
+                'current_mana': 0
+            }
+            print(f"DEBUG: Set attributes on {ui.unit_id}: base_stats={ui.base_stats is not None}, buffed_stats={ui.buffed_stats is not None}")
+
+        # Update bench entries in state dict with the computed stats
+        for i, ui in enumerate(player.bench):
+            if hasattr(ui, 'base_stats') and ui.base_stats is not None:
+                state['bench'][i]['base_stats'] = ui.base_stats
+                state['bench'][i]['buffed_stats'] = ui.buffed_stats
+                print(f"DEBUG: Set bench stats for {ui.unit_id}: {ui.base_stats['hp']} HP")
     except Exception as e:
         print(f"⚠️ Error computing buffed stats: {e}")
 

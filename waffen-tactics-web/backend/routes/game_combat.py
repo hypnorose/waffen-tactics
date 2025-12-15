@@ -38,8 +38,25 @@ def start_combat():
     if not player:
         return jsonify({'error': 'Player not found'}), 404
 
+    # Validate combat can start
+    if player.hp <= 0:
+        return jsonify({'error': 'Player is defeated and cannot fight'}), 400
+
     if not player.board or len(player.board) == 0:
         return jsonify({'error': 'No units on board'}), 400
+
+    # Check board size is valid for player level
+    if len(player.board) > player.max_board_size:
+        return jsonify({'error': f'Too many units on board (max {player.max_board_size})'}), 400
+
+    # Check if player has valid units (not just empty board)
+    valid_units = 0
+    for ui in player.board:
+        unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
+        if unit:
+            valid_units += 1
+    if valid_units == 0:
+        return jsonify({'error': 'No valid units on board'}), 400
 
     def generate_combat_events():
         """Generator for SSE combat events with unit-by-unit combat"""
@@ -84,9 +101,9 @@ def start_combat():
                         attack_speed = 0.8 + (unit.cost * 0.1)
                         base_max_mana = 100
 
-                    hp = int(base_hp * unit_instance.star_level)
-                    attack = int(base_attack * unit_instance.star_level)
-                    defense = int(base_defense * unit_instance.star_level)
+                    hp = int(base_hp * (1.6 ** (unit_instance.star_level - 1)))
+                    attack = int(base_attack * (1.4 ** (unit_instance.star_level - 1)))
+                    defense = int(base_defense)
                     # Keep mana constant across star levels — do not multiply by star_level
                     max_mana = int(base_max_mana)
 
@@ -184,6 +201,7 @@ def start_combat():
                         attack=attack,
                         defense=defense,
                         attack_speed=attack_speed,
+                        star_level=unit_instance.star_level,
                         effects=effects_for_unit,
                         max_mana=max_mana,
                         mana_regen=stat_val(base_stats, 'mana_regen', 5),
@@ -195,6 +213,7 @@ def start_combat():
                             'effect': unit.skill.effect
                         } if hasattr(unit, 'skill') and unit.skill else None
                     )
+                    print(f"DEBUG: Unit {combat_unit.name} has effects: {[e.get('type') for e in effects_for_unit]}")
                     player_units.append(combat_unit)
 
                     # Store for frontend (include buffed stats so UI shows consistent values)
@@ -253,9 +272,9 @@ def start_combat():
                             attack_speed = 0.8 + (unit.cost * 0.1)
                             base_max_mana_b = 100
 
-                        hp = int(base_hp * star_level)
-                        attack = int(base_attack * star_level)
-                        defense = int(base_defense * star_level)
+                        hp = int(base_hp * (1.6 ** (star_level - 1)))
+                        attack = int(base_attack * (1.4 ** (star_level - 1)))
+                        defense = int(base_defense)
                         # Keep mana constant for opponents as well
                         max_mana = int(base_max_mana_b)
 
@@ -336,6 +355,7 @@ def start_combat():
                             attack=attack,
                             defense=defense,
                             attack_speed=attack_speed,
+                            star_level=star_level,
                             effects=effects_b_for_unit,
                             max_mana=max_mana,
                             mana_regen=stat_val(base_stats_b, 'mana_regen', 5),
@@ -416,7 +436,7 @@ def start_combat():
             # Send initial units state with synergies and trait definitions
             # Ensure we don't send synergies with zero units
             synergies_data = {name: {'count': count, 'tier': tier} for name, (count, tier) in player_synergies.items() if count > 0}
-            trait_definitions = [{'name': t['name'], 'type': t['type'], 'thresholds': t['thresholds'], 'effects': t['effects']} for t in game_manager.data.traits]
+            trait_definitions = [{'name': t['name'], 'type': t['type'], 'description': t.get('description', ''), 'thresholds': t['thresholds'], 'threshold_descriptions': t.get('threshold_descriptions', []), 'effects': t['effects']} for t in game_manager.data.traits]
             opponent_info = {'name': opponent_name, 'wins': opponent_wins, 'level': opponent_level}
             yield f"data: {json.dumps({'type': 'units_init', 'player_units': player_unit_info, 'opponent_units': opponent_unit_info, 'synergies': synergies_data, 'traits': trait_definitions, 'opponent': opponent_info})}\n\n"
 
@@ -478,6 +498,17 @@ def start_combat():
                         'timestamp': timestamp
                     }
                     yield f"data: {json.dumps(event_data)}\n\n"
+                elif event_type == 'stat_buff':
+                    event_data = {
+                        'type': 'stat_buff',
+                        'unit_id': data.get('unit_id'),
+                        'unit_name': data.get('unit_name'),
+                        'stat': data.get('stat'),
+                        'amount': data.get('amount'),
+                        'side': data.get('side'),
+                        'timestamp': timestamp
+                    }
+                    yield f"data: {json.dumps(event_data)}\n\n"
                 elif event_type == 'skill_cast':
                     event_data = {
                         'type': 'skill_cast',
@@ -511,8 +542,8 @@ def start_combat():
             # Collect events with timestamps
             events = []  # (event_type, data, event_time)
             def event_collector(event_type: str, data: dict):
-                # Try to get time from data, fallback to current time
-                event_time = data.get('timestamp', data.get('time', time.time()))
+                # Use timestamp from combat simulator (combat-relative time starting from 0)
+                event_time = data.get('timestamp', 0.0)
                 events.append((event_type, data, event_time))
 
             result = simulator.simulate(player_units, opponent_units, event_collector)
@@ -545,8 +576,10 @@ def start_combat():
 
                 yield f"data: {json.dumps({'type': 'victory', 'message': '🎉 ZWYCIĘSTWO!'})}\n\n"
             elif result['winner'] == 'team_b':
-                # Defeat
-                player.hp -= 10
+                # Defeat - lose HP based on surviving enemy star levels
+                hp_loss = result.get('surviving_star_sum', 1) * 2  # 2 HP per surviving enemy star
+                print(f"DEBUG: surviving_star_sum = {result.get('surviving_star_sum', 'NOT_FOUND')}, hp_loss = {hp_loss}")
+                player.hp -= hp_loss
                 player.losses += 1
                 player.streak = 0
 
@@ -565,7 +598,7 @@ def start_combat():
                     ))
                     yield f"data: {json.dumps({'type': 'defeat', 'message': '💀 PRZEGRANA! Koniec gry!', 'game_over': True})}\n\n"
                 else:
-                    yield f"data: {json.dumps({'type': 'defeat', 'message': f'💔 PRZEGRANA! -{10} HP (zostało {player.hp} HP)'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'defeat', 'message': f'💔 PRZEGRANA! -{hp_loss} HP (zostało {player.hp} HP)'})}\n\n"
 
             # Handle XP level ups (use PlayerState's xp_to_next_level property)
             while player.level < 10:

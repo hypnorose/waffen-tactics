@@ -44,6 +44,7 @@ class DatabaseManager:
                     wins INTEGER DEFAULT 0,
                     losses INTEGER DEFAULT 0,
                     level INTEGER DEFAULT 1,
+                    is_active BOOLEAN DEFAULT 1,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -64,6 +65,13 @@ class DatabaseManager:
             # Migration: Add losses column to opponent_teams if it doesn't exist
             try:
                 await db.execute("ALTER TABLE opponent_teams ADD COLUMN losses INTEGER DEFAULT 0")
+            except aiosqlite.OperationalError:
+                # Column already exists
+                pass
+            
+            # Migration: Add is_active column to opponent_teams if it doesn't exist
+            try:
+                await db.execute("ALTER TABLE opponent_teams ADD COLUMN is_active BOOLEAN DEFAULT 1")
             except aiosqlite.OperationalError:
                 # Column already exists
                 pass
@@ -156,6 +164,9 @@ class DatabaseManager:
             # Insert new team
             await db.execute("INSERT INTO opponent_teams (user_id, nickname, team_json, wins, losses, level) VALUES (?, ?, ?, ?, ?, ?)", (user_id, nickname, team_json, wins, losses, level))
             await db.commit()
+            
+            # Deactivate old teams after saving new one
+            await self.deactivate_old_teams()
     
     async def reset_leaderboard(self):
         """Reset leaderboard by deleting all entries"""
@@ -169,6 +180,25 @@ class DatabaseManager:
             await db.execute("DELETE FROM opponent_teams")
             await db.commit()
     
+    async def deactivate_old_teams(self):
+        """Deactivate old teams - for each round count, keep only 10 newest active teams"""
+        async with aiosqlite.connect(self.db_path) as db:
+            # For each distinct round count (wins + losses), keep only 10 newest teams active
+            await db.execute("""
+                WITH ranked_teams AS (
+                    SELECT id, (wins + losses) as total_rounds,
+                           ROW_NUMBER() OVER (PARTITION BY (wins + losses) ORDER BY created_at DESC) as rn
+                    FROM opponent_teams
+                    WHERE is_active = 1
+                )
+                UPDATE opponent_teams
+                SET is_active = 0
+                WHERE id IN (
+                    SELECT id FROM ranked_teams WHERE rn > 10
+                )
+            """)
+            await db.commit()
+    
     async def get_random_opponent(self, exclude_user_id: Optional[int] = None, player_wins: int = 0, player_rounds: int = 0) -> Optional[Dict]:
         """Get opponent team - use bots when no real players within 1 round difference"""
         async with aiosqlite.connect(self.db_path) as db:
@@ -176,7 +206,7 @@ class DatabaseManager:
                 # First check if there are real players within 1 round difference
                 query = """
                     SELECT COUNT(*) FROM opponent_teams
-                    WHERE user_id != ? AND user_id > 100
+                    WHERE user_id != ? AND user_id > 100 AND is_active = 1
                     AND ABS((wins + losses) - ?) <= 1
                 """
                 async with db.execute(query, (exclude_user_id, player_rounds)) as cursor:
@@ -187,7 +217,7 @@ class DatabaseManager:
                     # Use closest real player within 1 round difference
                     query = """
                         SELECT nickname, team_json, wins, losses, level FROM opponent_teams
-                        WHERE user_id != ? AND user_id > 100 AND ABS((wins + losses) - ?) <= 1
+                        WHERE user_id != ? AND user_id > 100 AND is_active = 1 AND ABS((wins + losses) - ?) <= 1
                         ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
                         LIMIT 1
                     """
@@ -197,7 +227,7 @@ class DatabaseManager:
                     # No real players within 1 round difference, use bot
                     query = """
                         SELECT nickname, team_json, wins, losses, level FROM opponent_teams
-                        WHERE user_id != ? AND user_id <= 100
+                        WHERE user_id != ? AND user_id <= 100 AND is_active = 1
                         ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
                         LIMIT 1
                     """
@@ -207,7 +237,7 @@ class DatabaseManager:
                 # Prioritize real players within 1 round difference
                 query = """
                     SELECT COUNT(*) FROM opponent_teams
-                    WHERE user_id > 100 AND ABS((wins + losses) - ?) <= 1
+                    WHERE user_id > 100 AND is_active = 1 AND ABS((wins + losses) - ?) <= 1
                 """
                 async with db.execute(query, (player_rounds,)) as cursor:
                     count_row = await cursor.fetchone()
@@ -216,7 +246,7 @@ class DatabaseManager:
                 if has_close_players:
                     async with db.execute("""
                         SELECT nickname, team_json, wins, losses, level FROM opponent_teams
-                        WHERE user_id > 100 AND ABS((wins + losses) - ?) <= 1
+                        WHERE user_id > 100 AND is_active = 1 AND ABS((wins + losses) - ?) <= 1
                         ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
                         LIMIT 1
                     """, (player_rounds, player_rounds)) as cursor:
@@ -225,7 +255,7 @@ class DatabaseManager:
                     # Fallback to bots
                     async with db.execute("""
                         SELECT nickname, team_json, wins, losses, level FROM opponent_teams
-                        WHERE user_id <= 100
+                        WHERE user_id <= 100 AND is_active = 1
                         ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
                         LIMIT 1
                     """, (player_rounds,)) as cursor:

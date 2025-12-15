@@ -10,6 +10,7 @@ interface Unit {
   hp: number
   max_hp: number
   attack: number
+  defense?: number
   star_level: number
   cost?: number
   factions?: string[]
@@ -58,8 +59,15 @@ interface CombatEvent {
   skill_name?: string
   current_mana?: number
   max_mana?: number
-  side?: string
+  // Additional properties for various events
+  attacker_name?: string
+  target_name?: string
+  unit_name?: string
+  amount?: number
+  stat?: string
+ side?: string
 }
+
 
 
 import { MutableRefObject } from 'react'
@@ -77,6 +85,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   const [isFinished, setIsFinished] = useState(false)
   const [finalState, setFinalState] = useState<PlayerState | null>(null)
   const [synergies, setSynergies] = useState<Record<string, {count: number, tier: number}>>({})
+  const [traits, setTraits] = useState<TraitDefinition[]>([])
   const [hoveredTrait, setHoveredTrait] = useState<string | null>(null)
   const [opponentInfo, setOpponentInfo] = useState<{name: string, wins: number, level: number} | null>(null)
   const [showLog, setShowLog] = useState(false)
@@ -94,7 +103,14 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   // Fix: lastTimestampRef must be at top level, not inside useEffect
   const lastTimestampRef = useRef<number | null>(null)
 
+  const eventSourceRef = useRef<EventSource | null>(null)
+
   useEffect(() => {
+    // Prevent multiple EventSources
+    if (eventSourceRef.current) {
+      return
+    }
+    
     if (!token) {
       console.error('No token found!')
       setCombatLog(['❌ Brak tokenu - zaloguj się ponownie'])
@@ -104,6 +120,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
     const eventSource = new EventSource(`${API_URL}/game/combat?token=${encodeURIComponent(token)}`)
+    eventSourceRef.current = eventSource
 
     eventSource.onopen = () => console.log('EventSource connected')
     eventSource.onmessage = (event) => {
@@ -111,17 +128,26 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
         const data: CombatEvent = JSON.parse(event.data)
         setEventQueue(prev => [...prev, data])
         if (data.type === 'units_init') setIsPlaying(true)
-        if (data.type === 'end') eventSource.close()
+        if (data.type === 'end') {
+          eventSource.close()
+          eventSourceRef.current = null
+        }
       } catch (err) {
         console.error('Error parsing combat event', err)
       }
     }
     eventSource.onerror = (err) => {
       console.error('EventSource error', err)
-      if (eventSource.readyState === EventSource.CLOSED) eventSource.close()
+      if (eventSource.readyState === EventSource.CLOSED) {
+        eventSource.close()
+        eventSourceRef.current = null
+      }
     }
-    return () => eventSource.close()
-  }, [token])
+    return () => {
+      eventSource.close()
+      eventSourceRef.current = null
+    }
+  }, []) // Remove token dependency since it shouldn't change during combat
 
   useEffect(() => {
     if (!isPlaying || eventQueue.length === 0) return;
@@ -141,6 +167,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
           if (nextEvent.player_units) setPlayerUnits(nextEvent.player_units.map(u => ({ ...u, current_mana: u.current_mana ?? 0 })));
           if (nextEvent.opponent_units) setOpponentUnits(nextEvent.opponent_units.map(u => ({ ...u, current_mana: u.current_mana ?? 0 })));
           if (nextEvent.synergies) setSynergies(nextEvent.synergies);
+          if (nextEvent.traits) setTraits(nextEvent.traits);
           if (nextEvent.opponent) setOpponentInfo(nextEvent.opponent);
         } else if (nextEvent.type === 'unit_attack') {
           if (nextEvent.attacker_id && nextEvent.target_id) {
@@ -154,7 +181,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
             if (nextEvent.target_id.startsWith('opp_')) setOpponentUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: attackHp } : u));
             else setPlayerUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: attackHp } : u));
           }
-          const msg = `⚔️ ${nextEvent.attacker_name} atakuje ${nextEvent.target_name} (${nextEvent.damage.toFixed(2)} dmg)`
+          const msg = `⚔️ ${nextEvent.attacker_name} atakuje ${nextEvent.target_name} (${(nextEvent.damage ?? 0).toFixed(2)} dmg)`
           setCombatLog(prev => [...prev, msg]);
         } else if (nextEvent.type === 'unit_died') {
           // Ensure HP is 0 when unit dies
@@ -170,6 +197,29 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
         } else if (nextEvent.type === 'gold_reward') {
           const msg = `💰 ${nextEvent.unit_name} daje +${nextEvent.amount} gold (sojusznik umarł)`
           setCombatLog(prev => [...prev, msg]);
+        } else if (nextEvent.type === 'stat_buff') {
+          console.log('Received stat_buff event:', nextEvent);
+          const statName = nextEvent.stat === 'attack' ? 'Ataku' : nextEvent.stat === 'defense' ? 'Obrony' : nextEvent.stat || 'Statystyki';
+          const msg = `⬆️ ${nextEvent.unit_name} zyskuje +${nextEvent.amount} ${statName} (zabity wróg)`
+          setCombatLog(prev => [...prev, msg]);
+          // Update unit buffed_stats in UI
+          if (nextEvent.unit_id) {
+            const updateUnit = (u: Unit) => {
+              if (nextEvent.stat === 'attack') {
+                const currentAttack = u.buffed_stats?.attack ?? u.attack;
+                return { ...u, buffed_stats: { ...u.buffed_stats, attack: currentAttack + (nextEvent.amount ?? 0) } };
+              } else if (nextEvent.stat === 'defense') {
+                const currentDefense = u.buffed_stats?.defense ?? u.defense ?? 0;
+                return { ...u, buffed_stats: { ...u.buffed_stats, defense: currentDefense + (nextEvent.amount ?? 0) } };
+              }
+              return u;
+            };
+            if (nextEvent.unit_id.startsWith('opp_')) {
+              setOpponentUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? updateUnit(u) : u));
+            } else {
+              setPlayerUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? updateUnit(u) : u));
+            }
+          }
         } else if (nextEvent.type === 'gold_income') {
           const breakdown = nextEvent as any;
           setStoredGoldBreakdown({ base: breakdown.base || 0, interest: breakdown.interest || 0, milestone: breakdown.milestone || 0, win_bonus: breakdown.win_bonus || 0, total: breakdown.total || 0 });
@@ -193,7 +243,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
               setPlayerUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, hp: healedHp } : u));
             }
           }
-          const msg = `💚 ${nextEvent.unit_name} regeneruje ${nextEvent.amount.toFixed(2)} HP`
+          const msg = `💚 ${nextEvent.unit_name} regeneruje ${(nextEvent.amount ?? 0).toFixed(2)} HP`
           setCombatLog(prev => [...prev, msg]);
         } else if (nextEvent.type === 'regen_gain') {
           if (nextEvent.unit_id) {
@@ -217,9 +267,9 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
           // Update target HP if damage was dealt
           if (nextEvent.target_id && nextEvent.target_hp !== undefined) {
             if (nextEvent.target_id.startsWith('opp_')) {
-              setOpponentUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: nextEvent.target_hp } : u));
+              setOpponentUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: nextEvent.target_hp! } : u));
             } else {
-              setPlayerUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: nextEvent.target_hp } : u));
+              setPlayerUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: nextEvent.target_hp! } : u));
             }
           }
           const msg = `✨ ${nextEvent.caster_name} używa ${nextEvent.skill_name}!`
@@ -272,6 +322,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     isFinished,
     finalState,
     synergies,
+    traits,
     hoveredTrait,
     setHoveredTrait,
     opponentInfo,

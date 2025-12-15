@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Callable, Optional
 
 class CombatUnit:
     """Lightweight unit representation for combat"""
-    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float):
+    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, star_level: int = 1):
         self.id = id
         self.name = name
         self.hp = hp
@@ -15,6 +15,7 @@ class CombatUnit:
         self.attack = attack
         self.defense = defense
         self.attack_speed = attack_speed
+        self.star_level = star_level
 
 
 class CombatSimulator:
@@ -67,7 +68,7 @@ class CombatSimulator:
                     targets = [(j, team_b[j].defense) for j in range(len(team_b)) if b_hp[j] > 0]
                     if not targets:
                         # Team A wins
-                        return self._finish_combat("team_a", time, a_hp, b_hp, log)
+                        return self._finish_combat("team_a", time, a_hp, b_hp, log, team_a)
                     
                     # Target selection: 60% highest defense, 40% random
                     if random.random() < 0.6:
@@ -93,14 +94,16 @@ class CombatSimulator:
                             'damage': damage,
                             'target_hp': b_hp[target_idx],
                             'target_max_hp': team_b[target_idx].max_hp,
-                            'side': 'team_a'
+                            'side': 'team_a',
+                            'timestamp': time
                         })
                     
                     if b_hp[target_idx] <= 0 and event_callback:
                         event_callback('unit_died', {
                             'unit_id': team_b[target_idx].id,
                             'unit_name': team_b[target_idx].name,
-                            'side': 'team_b'
+                            'side': 'team_b',
+                            'timestamp': time
                         })
             
             # Team B attacks
@@ -112,7 +115,7 @@ class CombatSimulator:
                     targets = [(j, team_a[j].defense) for j in range(len(team_a)) if a_hp[j] > 0]
                     if not targets:
                         # Team B wins
-                        return self._finish_combat("team_b", time, a_hp, b_hp, log)
+                        return self._finish_combat("team_b", time, a_hp, b_hp, log, team_b)
                     
                     if random.random() < 0.6:
                         target_idx = max(targets, key=lambda x: x[1])[0]
@@ -135,37 +138,51 @@ class CombatSimulator:
                             'damage': damage,
                             'target_hp': a_hp[target_idx],
                             'target_max_hp': team_a[target_idx].max_hp,
-                            'side': 'team_b'
+                            'side': 'team_b',
+                            'timestamp': time
                         })
                     
                     if a_hp[target_idx] <= 0 and event_callback:
                         event_callback('unit_died', {
                             'unit_id': team_a[target_idx].id,
                             'unit_name': team_a[target_idx].name,
-                            'side': 'team_a'
+                            'side': 'team_a',
+                            'timestamp': time
                         })
             
             # Check win conditions
             if all(h <= 0 for h in b_hp):
-                return self._finish_combat("team_a", time, a_hp, b_hp, log)
+                return self._finish_combat("team_a", time, a_hp, b_hp, log, team_a)
             if all(h <= 0 for h in a_hp):
-                return self._finish_combat("team_b", time, a_hp, b_hp, log)
+                return self._finish_combat("team_b", time, a_hp, b_hp, log, team_b)
         
         # Timeout - winner by total HP
         sum_a = sum(max(0, h) for h in a_hp)
         sum_b = sum(max(0, h) for h in b_hp)
         winner = "team_a" if sum_a >= sum_b else "team_b"
         
-        result = self._finish_combat(winner, time, a_hp, b_hp, log)
+        result = self._finish_combat(winner, time, a_hp, b_hp, log, team_a if winner == "team_a" else team_b)
         result['timeout'] = True
         return result
     
-    def _finish_combat(self, winner: str, time: float, a_hp: List[int], b_hp: List[int], log: List[str]) -> Dict[str, Any]:
+    def _finish_combat(self, winner: str, time: float, a_hp: List[int], b_hp: List[int], log: List[str], winning_team: List[CombatUnit]) -> Dict[str, Any]:
         """Helper to create result dict"""
+        # Calculate star sum of surviving units from winning team
+        surviving_star_sum = 0
+        print(f"DEBUG _finish_combat: winner={winner}, winning_team is team_a: {winning_team == team_a}")
+        for i, unit in enumerate(winning_team):
+            hp_check = (winning_team == team_a and a_hp[i] > 0) or (winning_team == team_b and b_hp[i] > 0)
+            star_level = getattr(unit, 'star_level', 1)
+            print(f"DEBUG unit {i}: {unit.name}, star_level={star_level}, hp_check={hp_check}")
+            if hp_check:
+                surviving_star_sum += star_level
+        print(f"DEBUG surviving_star_sum = {surviving_star_sum}")
+        
         return {
             'winner': winner,
             'duration': time,
             'team_a_survivors': sum(1 for h in a_hp if h > 0),
             'team_b_survivors': sum(1 for h in b_hp if h > 0),
+            'surviving_star_sum': surviving_star_sum,
             'log': log
         }

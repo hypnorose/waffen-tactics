@@ -75,6 +75,12 @@ class CombatAttackProcessor:
                         'timestamp': time
                     })
 
+                # Check if target died
+                if defending_hp[target_idx] <= 0:
+                    self._process_unit_death(
+                        unit, defending_team, defending_hp, attacking_team, attacking_hp, target_idx, time, log, event_callback, side
+                    )
+
                 # Post-attack effect processing (lifesteal, mana on attack)
                 # Lifesteal: heal attacker by damage * lifesteal%
                 ls = getattr(unit, 'lifesteal', 0.0)

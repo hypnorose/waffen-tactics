@@ -123,7 +123,7 @@ class CombatManager:
                 # Get active effects
                 effects_a = self.synergy_engine.get_active_effects(unit, active_synergies)
 
-                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a))
+                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats))
 
             # Opponent team
             opponent_units = [u for u in opponent_board]
@@ -149,14 +149,14 @@ class CombatManager:
 
                 effects_b = self.synergy_engine.get_active_effects(u, opponent_active)
 
-                team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b))
+                team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b, max_mana=u.stats.max_mana, stats=u.stats))
 
             shared = SharedCombatSimulator(dt=0.1, timeout=120)
             result = shared.simulate(team_a_combat, team_b_combat)
         except Exception as e:
             bot_logger.error(f"[COMBAT] Error in simulation: {e}")
-            simulator = CombatSimulator()
-            result = simulator.simulate(player_units, opponent_board, timeout=120)
+            shared = SharedCombatSimulator(dt=0.1, timeout=120)
+            result = shared.simulate(team_a_combat, team_b_combat)
 
         bot_logger.info(f"[COMBAT] Result: {result['winner']}, Duration: {result.get('duration', 0):.1f}s, Log lines: {len(result.get('log', []))}")
 

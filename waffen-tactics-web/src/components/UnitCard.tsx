@@ -41,6 +41,16 @@ export default function UnitCard({
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [tooltipTop, setTooltipTop] = useState<number | null>(null)
 
+  const getRoleEmoji = (role?: string) => {
+    switch (role) {
+      case 'defender': return '🛡️'
+      case 'fighter': return '⚔️'
+      case 'mage': return '🔮'
+      case 'duelist': return '🔪'
+      default: return ''
+    }
+  }
+
   if (!unit) {
     return (
       <div className="p-2 bg-red-900/20 border-2 border-red-500 rounded-lg w-32">
@@ -62,11 +72,11 @@ export default function UnitCard({
   const deltas =
     scaledStats && buffedStats
       ? {
-          hp: (buffedStats.hp ?? scaledStats.hp) - scaledStats.hp,
-          attack: (buffedStats.attack ?? scaledStats.attack) - scaledStats.attack,
-          defense: (buffedStats.defense ?? scaledStats.defense) - scaledStats.defense,
-          attack_speed: (buffedStats.attack_speed ?? scaledStats.attack_speed) - scaledStats.attack_speed,
-          max_mana: (buffedStats.max_mana ?? (scaledStats as any).max_mana ?? 0) - ((scaledStats as any).max_mana ?? 0),
+          hp: (buffedStats.hp ?? 0) - (scaledStats.hp ?? 0),
+          attack: (buffedStats.attack ?? 0) - (scaledStats.attack ?? 0),
+          defense: (buffedStats.defense ?? 0) - (scaledStats.defense ?? 0),
+          attack_speed: (buffedStats.attack_speed ?? 0) - (scaledStats.attack_speed ?? 0),
+          max_mana: (buffedStats.max_mana ?? 0) - ((scaledStats as any).max_mana ?? 0),
         }
       : null
 
@@ -130,6 +140,14 @@ export default function UnitCard({
             <div className="text-gray-400 text-xs mb-2">
               {starLevel > 1 && <span className="text-yellow-400">{'⭐'.repeat(starLevel)} </span>}
               Tier {unit.cost}
+              {unit.role && (
+                <span 
+                  className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
+                  style={{ backgroundColor: unit.role_color || '#6b7280' }}
+                >
+                  {unit.role.charAt(0).toUpperCase() + unit.role.slice(1)}
+                </span>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-1 mb-2">
@@ -261,15 +279,15 @@ export default function UnitCard({
           </div>
         )}
 
-        <h3 className="text-center text-xs font-bold mb-1 truncate px-1">{unit.name}</h3>
+        <h3 className="text-center text-xs font-bold mb-1 truncate px-1 flex items-center justify-center gap-1">{unit.name} <span>{getRoleEmoji(unit.role)}</span></h3>
 
         <div className="flex flex-wrap gap-0.5 justify-center mb-2 px-1">
-          {unit.factions.slice(0, 1).map((faction) => (
+          {unit.factions.map((faction) => (
             <span key={faction} className={`px-1 py-0.5 rounded text-[9px] ${getFactionColor(faction)} text-white`}>
               {faction}
             </span>
           ))}
-          {unit.classes.slice(0, 1).map((cls) => (
+          {unit.classes.map((cls) => (
             <span key={cls} className="px-1 py-0.5 rounded text-[9px] bg-purple-600/60 text-white">
               {cls}
             </span>

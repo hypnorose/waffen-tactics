@@ -37,10 +37,12 @@ class Unit:
     classes: List[str]
     stats: Stats
     skill: Skill
+    role: str = ""
+    role_color: str = "#6b7280"
     avatar: str = ""
 
     @staticmethod
-    def from_json(d: Dict[str, Any], default_stats: Stats, default_skill: Skill) -> "Unit":
+    def from_json(d: Dict[str, Any], default_stats: Stats, default_skill: Skill, role_color: str = "#6b7280") -> "Unit":
         return Unit(
             id=d["id"],
             name=d["name"],
@@ -49,5 +51,7 @@ class Unit:
             classes=list(d.get("classes", [])),
             stats=default_stats,
             skill=default_skill,
+            role=d.get("role", ""),
+            role_color=role_color,
             avatar=d.get("avatar", ""),
         )

@@ -1,6 +1,8 @@
 // Discord OAuth - po prostu wklej swoje Application ID
 const DISCORD_CLIENT_ID = '1449028504615256217'  // Waffen Tactics Bot Application ID
-const REDIRECT_URI = 'https://waffentactics.pl/auth/callback'
+const REDIRECT_URI = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000/auth/callback' 
+  : 'https://waffentactics.pl/auth/callback'
 
 export default function Login() {
   const handleDiscordLogin = () => {

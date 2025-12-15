@@ -3,25 +3,30 @@
     {
       "name": "Srebrna Gwardia",
       "type": "faction",
-      "description": "Twarde jak stal - Srebrna Gwardia zyskuje dodatkową obronę",
+      "description": "Twarde jak stal - Srebrna Gwardia zyskuje obronę co sekundę walki",
       "thresholds": [3, 5, 7],
+      "threshold_descriptions": [
+        "+<v> obrony co sekundę walki",
+        "+<v> obrony co sekundę walki",
+        "+<v> obrony co sekundę walki"
+      ],
       "effects": [
         {
-          "type": "stat_buff",
+          "type": "per_second_buff",
+          "stat": "defense",
+          "value": 5,
+          "is_percentage": false
+        },
+        {
+          "type": "per_second_buff",
+          "stat": "defense",
+          "value": 10,
+          "is_percentage": false
+        },
+        {
+          "type": "per_second_buff",
           "stat": "defense",
           "value": 15,
-          "is_percentage": false
-        },
-        {
-          "type": "stat_buff",
-          "stat": "defense",
-          "value": 25,
-          "is_percentage": false
-        },
-        {
-          "type": "stat_buff",
-          "stat": "defense",
-          "value": 40,
           "is_percentage": false
         }
       ]
@@ -31,6 +36,12 @@
       "type": "faction",
       "description": "Za każdego pokonanego wroga Streamerzy zyskują atak i obronę",
       "thresholds": [2, 3, 4, 5],
+      "threshold_descriptions": [
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga"
+      ],
       "effects": [
         {
           "type": "on_enemy_death",
@@ -59,6 +70,12 @@
       "type": "faction",
       "description": "Błyskawiczne ataki - zwiększona prędkość ataku",
       "thresholds": [3, 5, 7, 10],
+      "threshold_descriptions": [
+        "+<v>% prędkości ataku",
+        "+<v>% prędkości ataku",
+        "+<v>% prędkości ataku",
+        "+<v>% prędkości ataku"
+      ],
       "effects": [
         {
           "type": "stat_buff",
@@ -91,6 +108,12 @@
       "type": "faction",
       "description": "Potęga Rosji - masywny bonus do ataku",
       "thresholds": [3, 5, 7, 9],
+      "threshold_descriptions": [
+        "+<v>% ataku",
+        "+<v>% ataku",
+        "+<v>% ataku",
+        "+<v>% ataku"
+      ],
       "effects": [
         {
           "type": "stat_buff",
@@ -123,21 +146,29 @@
       "type": "faction",
       "description": "Kiedy sojusznik umiera, zyskujesz złoto",
       "thresholds": [2, 4, 6],
+      "threshold_descriptions": [
+        "+<v> złota za śmierć sojusznika",
+        "+<v> złota za śmierć sojusznika",
+        "+<v> złota za śmierć sojusznika"
+      ],
       "effects": [
         {
           "type": "on_ally_death",
           "reward": "gold",
-          "value": 1
+          "value": 1,
+          "trigger_once": true
         },
         {
           "type": "on_ally_death",
           "reward": "gold",
-          "value": 2
+          "value": 2,
+          "trigger_once": true
         },
         {
           "type": "on_ally_death",
           "reward": "gold",
-          "value": 3
+          "value": 3,
+          "trigger_once": true
         }
       ]
     },
@@ -146,6 +177,12 @@
       "type": "faction",
       "description": "Z każdą rundą stają się silniejsi - bonus HP co rundę",
       "thresholds": [2, 3, 4, 5],
+      "threshold_descriptions": [
+        "+<v>% HP co rundę",
+        "+<v>% HP co rundę",
+        "+<v>% HP co rundę",
+        "+<v>% HP co rundę"
+      ],
       "effects": [
         {
           "type": "per_round_buff",
@@ -178,6 +215,11 @@
       "type": "class",
       "description": "Osłabiają przeciwników - zmniejszają ich atak",
       "thresholds": [2, 4, 5],
+      "threshold_descriptions": [
+        "-<v> ataku przeciwnikom",
+        "-<v> ataku przeciwnikom",
+        "-<v> ataku przeciwnikom"
+      ],
       "effects": [
         {
           "type": "enemy_debuff",
@@ -204,6 +246,12 @@
       "type": "class",
       "description": "Po zabiciu wroga regenerują HP przez 5 sekund",
       "thresholds": [2, 3, 4, 5],
+      "threshold_descriptions": [
+        "regeneracja <v>% max HP przez 5s po zabiciu",
+        "regeneracja <v>% max HP przez 5s po zabiciu",
+        "regeneracja <v>% max HP przez 5s po zabiciu",
+        "regeneracja <v>% max HP przez 5s po zabiciu"
+      ],
       "effects": [
         {
           "type": "hp_regen_on_kill",
@@ -236,6 +284,11 @@
       "type": "class",
       "description": "Bonus do ataku i HP za każdą aktywną synergię",
       "thresholds": [2, 3, 4],
+      "threshold_descriptions": [
+        "+<v>% ataku i HP za każdą synergię",
+        "+<v>% ataku i HP za każdą synergię",
+        "+<v>% ataku i HP za każdą synergię"
+      ],
       "effects": [
         {
           "type": "per_trait_buff",
@@ -262,6 +315,11 @@
       "type": "class",
       "description": "Szybciej ładują manę do umiejętności",
       "thresholds": [3, 5, 7],
+      "threshold_descriptions": [
+        "+<v> many na sekundę",
+        "+<v> many na sekundę",
+        "+<v> many na sekundę"
+      ],
       "effects": [
         {
           "type": "mana_regen",
@@ -280,23 +338,31 @@
     {
       "name": "Konfident",
       "type": "class",
-      "description": "Sprzedaż jednostek daje dodatkowe złoto i XP",
+      "description": "Konfidenci zyskują dodatkową obronę",
       "thresholds": [2, 4, 6],
+      "threshold_descriptions": [
+        "+<v> obrony",
+        "+<v> obrony",
+        "+<v> obrony"
+      ],
       "effects": [
         {
-          "type": "on_sell_bonus",
-          "gold_per_star": 0,
-          "xp": 1
+          "type": "stat_buff",
+          "stat": "defense",
+          "value": 15,
+          "is_percentage": false
         },
         {
-          "type": "on_sell_bonus",
-          "gold_per_star": 1,
-          "xp": 2
+          "type": "stat_buff",
+          "stat": "defense",
+          "value": 30,
+          "is_percentage": false
         },
         {
-          "type": "on_sell_bonus",
-          "gold_per_star": 2,
-          "xp": 3
+          "type": "stat_buff",
+          "stat": "defense",
+          "value": 50,
+          "is_percentage": false
         }
       ]
     },
@@ -305,6 +371,11 @@
       "type": "class",
       "description": "Kradną obronę przeciwnikom",
       "thresholds": [3, 5, 7],
+      "threshold_descriptions": [
+        "kradną <v>% obrony zabitym wrogom",
+        "kradną <v>% obrony zabitym wrogom",
+        "kradną <v>% obrony zabitym wrogom"
+      ],
       "effects": [
         {
           "type": "stat_steal",
@@ -331,6 +402,12 @@
       "type": "class",
       "description": "Bonus do ataku i prędkości ataku",
       "thresholds": [3, 5, 7, 9],
+      "threshold_descriptions": [
+        "+<v>% ataku i prędkości ataku",
+        "+<v>% ataku i prędkości ataku",
+        "+<v>% ataku i prędkości ataku",
+        "+<v>% ataku i prędkości ataku"
+      ],
       "effects": [
         {
           "type": "stat_buff",
@@ -363,6 +440,11 @@
       "type": "class",
       "description": "Zwykli ludzie z dodatkowym HP",
       "thresholds": [2, 4, 5],
+      "threshold_descriptions": [
+        "+<v>% HP",
+        "+<v>% HP",
+        "+<v>% HP"
+      ],
       "effects": [
         {
           "type": "stat_buff",
@@ -390,6 +472,9 @@
       "type": "class",
       "description": "Zawsze atakuje jednostkę z najmniejszym HP",
       "thresholds": [1],
+      "threshold_descriptions": [
+        "Zawsze atakuje jednostkę z najmniejszym HP"
+      ],
       "effects": [
         { "type": "target_least_hp" }
       ]
@@ -399,6 +484,9 @@
       "type": "class",
       "description": "Leczy pierwszego sojusznika, który spadnie poniżej progu HP",
       "thresholds": [1],
+      "threshold_descriptions": [
+        "Leczy pierwszego sojusznika poniżej 30% HP o 50% jego max HP"
+      ],
       "effects": [
         { "type": "on_ally_hp_below", "threshold_percent": 30, "heal_percent": 50, "once": true }
       ]
@@ -408,6 +496,9 @@
       "type": "class",
       "description": "Wzmacnia wszystkie buffy na tej jednostce (x2)",
       "thresholds": [1],
+      "threshold_descriptions": [
+        "Podwaja wszystkie buffy na tej jednostce"
+      ],
       "effects": [
         { "type": "buff_amplifier", "multiplier": 2 }
       ]
@@ -417,6 +508,9 @@
       "type": "class",
       "description": "30% szans na darmowy reroll gdy aktywne",
       "thresholds": [1],
+      "threshold_descriptions": [
+        "30% szans na darmowy reroll"
+      ],
       "effects": [
         { "type": "reroll_free_chance", "chance_percent": 30 }
       ]
@@ -426,6 +520,9 @@
       "type": "class",
       "description": "Daje procentowy bonus do HP za każdą przegraną rundę",
       "thresholds": [1],
+      "threshold_descriptions": [
+        "Daje 5% bonusu do HP za każdą przegraną rundę"
+      ],
       "effects": [
         { "type": "dynamic_hp_per_loss", "percent_per_loss": 5 }
       ]
@@ -435,6 +532,9 @@
       "type": "class",
       "description": "Za każdą wygraną rundę zyskujesz stałe i procentowe bonusy",
       "thresholds": [1],
+      "threshold_descriptions": [
+        "Za każdą wygraną rundę +1 ataku, +1 obrony, +1% HP, +0.01 prędkości ataku"
+      ],
       "effects": [
         { "type": "win_scaling", "atk_per_win": 1, "def_per_win": 1, "hp_percent_per_win": 1, "as_per_win": 0.01 }
       ]

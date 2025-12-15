@@ -106,9 +106,9 @@ class TestTraits(unittest.TestCase):
         self.assertEqual(len(sg_trait["effects"]), 3)
         
         # Check defense buff values
-        expected_def = [15, 25, 40]
+        expected_def = [5, 10, 15]
         for i, effect in enumerate(sg_trait["effects"]):
-            self.assertEqual(effect["type"], "stat_buff")
+            self.assertEqual(effect["type"], "per_second_buff")
             self.assertEqual(effect["stat"], "defense")
             self.assertEqual(effect["value"], expected_def[i])
             self.assertFalse(effect["is_percentage"])

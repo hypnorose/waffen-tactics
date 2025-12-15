@@ -44,6 +44,10 @@ class CombatSimulator(
         Returns:
             Dict with winner, duration, survivors, log
         """
+        # Store teams for use in _finish_combat
+        self.team_a = team_a
+        self.team_b = team_b
+        
         # Track HP separately to avoid mutating input units
         a_hp = [u.hp for u in team_a]
         b_hp = [u.hp for u in team_b]
@@ -52,17 +56,24 @@ class CombatSimulator(
         time = 0.0
         last_full_second = -1
 
+        # Debug log
+        import logging
+        logger = logging.getLogger('waffen_tactics')
+        logger.info(f"[COMBAT] Starting simulation with team_a: {[u.name for u in team_a]}, team_b: {[u.name for u in team_b]}")
+        logger.info(f"[COMBAT] Team A effects: {[u.effects for u in team_a]}")
+        logger.info(f"[COMBAT] Team B effects: {[u.effects for u in team_b]}")
+
         while time < self.timeout:
             time += self.dt
 
             # Process attacks for both teams
             winner = self._process_team_attacks(team_a, team_b, a_hp, b_hp, time, log, event_callback, 'team_a')
             if winner:
-                return self._finish_combat(winner, time, a_hp, b_hp, log)
+                return self._finish_combat(winner, time, a_hp, b_hp, log, team_a)
 
             winner = self._process_team_attacks(team_b, team_a, b_hp, a_hp, time, log, event_callback, 'team_b')
             if winner:
-                return self._finish_combat(winner, time, a_hp, b_hp, log)
+                return self._finish_combat(winner, time, a_hp, b_hp, log, team_b)
 
             # Apply HP regeneration
             self._process_regeneration(team_a, team_b, a_hp, b_hp, time, log, event_callback)
@@ -70,20 +81,22 @@ class CombatSimulator(
             # Check win conditions
             winner = self._check_win_conditions(a_hp, b_hp)
             if winner:
-                return self._finish_combat(winner, time, a_hp, b_hp, log)
+                logger.info(f"[COMBAT] Win condition met at {time:.2f}s: {winner}, a_hp={a_hp}, b_hp={b_hp}")
+                return self._finish_combat(winner, time, a_hp, b_hp, log, team_a if winner == "team_a" else team_b)
 
-            # Per-round buffs: apply once per full second
+            # Per-second buffs: apply once per full second
             current_second = int(time)
             if current_second != last_full_second:
                 last_full_second = current_second
-                self._process_per_round_buffs(team_a, team_b, a_hp, b_hp, time, log, event_callback)
+                self._process_per_second_buffs(team_a, team_b, a_hp, b_hp, time, log, event_callback)
 
         # Timeout - winner by total HP
         sum_a = sum(max(0, h) for h in a_hp)
         sum_b = sum(max(0, h) for h in b_hp)
         winner = "team_a" if sum_a >= sum_b else "team_b"
 
-        result = self._finish_combat(winner, time, a_hp, b_hp, log)
+        logger.info(f"[COMBAT] Timeout at {time:.2f}s, winner by HP: {winner}, sum_a={sum_a}, sum_b={sum_b}")
+        result = self._finish_combat(winner, time, a_hp, b_hp, log, team_a if winner == "team_a" else team_b)
         result['timeout'] = True
         return result
         """Calculate damage from attacker to defender."""
@@ -95,13 +108,20 @@ class CombatSimulator(
             damage = damage * (1.0 - dr / 100.0)
         return max(1, int(damage))
 
-    def _finish_combat(self, winner: str, time: float, a_hp: List[int], b_hp: List[int], log: List[str]) -> Dict[str, Any]:
+    def _finish_combat(self, winner: str, time: float, a_hp: List[int], b_hp: List[int], log: List[str], winning_team: List['CombatUnit']) -> Dict[str, Any]:
         """Helper to create result dict"""
+        # Calculate star sum of surviving units from winning team
+        surviving_star_sum = 0
+        for i, unit in enumerate(winning_team):
+            if (winning_team == self.team_a and a_hp[i] > 0) or (winning_team == self.team_b and b_hp[i] > 0):
+                surviving_star_sum += getattr(unit, 'star_level', 1)
+        
         return {
             'winner': winner,
             'duration': time,
             'team_a_survivors': sum(1 for h in a_hp if h > 0),
             'team_b_survivors': sum(1 for h in b_hp if h > 0),
+            'surviving_star_sum': surviving_star_sum,
             'log': log
         }
 
@@ -318,6 +338,7 @@ class CombatSimulator(
                     self._apply_stat_buff(unit, eff, attacking_hp, attacking_team.index(unit), time, log, event_callback, side)
 
         # Trigger on_ally_death effects for surviving allies on defending team
+        triggered_rewards = set()  # Track which reward types have been triggered for this death
         for i, unit in enumerate(defending_team):
             if defending_hp[i] <= 0:
                 continue
@@ -325,6 +346,11 @@ class CombatSimulator(
                 if eff.get('type') == 'on_ally_death':
                     # Handle reward effects (e.g. Denciak: gold on ally death)
                     if eff.get('reward') == 'gold':
+                        reward_type = 'gold'
+                        if eff.get('trigger_once', False):
+                            if reward_type in triggered_rewards:
+                                continue
+                            triggered_rewards.add(reward_type)
                         amount = int(eff.get('value', 0))
                         log.append(f"{unit.name} triggers reward: +{amount} gold (ally died)")
                         if event_callback:
@@ -380,6 +406,36 @@ class CombatSimulator(
                 add = int(add * mult)
                 unit.attack += add
                 log.append(f"{unit.name} gains +{add} Atak (on death)")
+                if event_callback:
+                    event_callback('stat_buff', {
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'stat': 'attack',
+                        'amount': add,
+                        'side': side,
+                        'timestamp': time
+                    })
+            elif st == 'defense':
+                if is_pct:
+                    add = int(unit.defense * (val / 100.0))
+                else:
+                    add = int(val)
+                mult = 1.0
+                for beff in getattr(unit, 'effects', []):
+                    if beff.get('type') == 'buff_amplifier':
+                        mult = max(mult, float(beff.get('multiplier', 1)))
+                add = int(add * mult)
+                unit.defense += add
+                log.append(f"{unit.name} gains +{add} Obrona (on death)")
+                if event_callback:
+                    event_callback('stat_buff', {
+                        'unit_id': unit.id,
+                        'unit_name': unit.name,
+                        'stat': 'defense',
+                        'amount': add,
+                        'side': side,
+                        'timestamp': time
+                    })
             if st == 'hp':
                 if is_pct:
                     add = int(unit.max_hp * (val / 100.0))
@@ -399,9 +455,10 @@ class CombatSimulator(
                         'amount': add,
                         'side': side,
                         'unit_hp': hp_list[unit_idx],
-                        'unit_max_hp': unit.max_hp
+                        'unit_max_hp': unit.max_hp,
+                        'timestamp': time
                     })
-
+                    
     def _process_ally_hp_below_triggers(
         self,
         team: List['CombatUnit'],
@@ -429,7 +486,8 @@ class CombatSimulator(
                                 'amount': heal_amt,
                                 'side': side,
                                 'unit_hp': hp_list[target_idx],
-                                'unit_max_hp': team[target_idx].max_hp
+                                'unit_max_hp': team[target_idx].max_hp,
+                                'timestamp': time
                             })
                         eff['_triggered'] = True
                         break
@@ -496,7 +554,7 @@ class CombatSimulator(
             return "team_b"
         return None
 
-    def _process_per_round_buffs(
+    def _process_per_second_buffs(
         self,
         team_a: List['CombatUnit'],
         team_b: List['CombatUnit'],
@@ -506,11 +564,11 @@ class CombatSimulator(
         log: List[str],
         event_callback: Optional[Callable[[str, Dict[str, Any]], None]]
     ):
-        """Apply per-round buffs for both teams."""
+        """Apply per-second buffs for both teams."""
         # Team A buffs
         for idx_u, u in enumerate(team_a):
             for eff in getattr(u, 'effects', []):
-                if eff.get('type') == 'per_round_buff':
+                if eff.get('type') == 'per_second_buff':
                     stat = eff.get('stat')
                     val = eff.get('value', 0)
                     is_pct = eff.get('is_percentage', False)
@@ -528,14 +586,21 @@ class CombatSimulator(
                         else:
                             add = int(val * mult)
                         u.attack += add
-                        log.append(f"{u.name} +{add} Atak (per round)")
+                        log.append(f"{u.name} +{add} Atak (per second)")
+                    if stat == 'defense':
+                        if is_pct:
+                            add = int(u.defense * (val / 100.0) * mult)
+                        else:
+                            add = int(val * mult)
+                        u.defense += add
+                        log.append(f"{u.name} +{add} Defense (per second)")
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (val / 100.0) * mult)
                         else:
                             add = int(val * mult)
                         a_hp[idx_u] = min(u.max_hp, a_hp[idx_u] + add)
-                        log.append(f"{u.name} +{add} HP (per round)")
+                        log.append(f"{u.name} +{add} HP (per second)")
                         if event_callback and add > 0:
                             event_callback('heal', {
                                 'unit_id': u.id,
@@ -543,13 +608,14 @@ class CombatSimulator(
                                 'amount': add,
                                 'side': 'team_a',
                                 'unit_hp': a_hp[idx_u],
-                                'unit_max_hp': u.max_hp
+                                'unit_max_hp': u.max_hp,
+                                'timestamp': time
                             })
 
         # Team B buffs
         for idx_u, u in enumerate(team_b):
             for eff in getattr(u, 'effects', []):
-                if eff.get('type') == 'per_round_buff':
+                if eff.get('type') == 'per_second_buff':
                     stat = eff.get('stat')
                     val = eff.get('value', 0)
                     is_pct = eff.get('is_percentage', False)
@@ -567,14 +633,21 @@ class CombatSimulator(
                         else:
                             add = int(val * mult_b)
                         u.attack += add
-                        log.append(f"{u.name} +{add} Atak (per round)")
+                        log.append(f"{u.name} +{add} Atak (per second)")
+                    if stat == 'defense':
+                        if is_pct:
+                            add = int(u.defense * (val / 100.0) * mult_b)
+                        else:
+                            add = int(val * mult_b)
+                        u.defense += add
+                        log.append(f"{u.name} +{add} Defense (per second)")
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (val / 100.0) * mult_b)
                         else:
                             add = int(val * mult_b)
                         b_hp[idx_u] = min(u.max_hp, b_hp[idx_u] + add)
-                        log.append(f"{u.name} +{add} HP (per round)")
+                        log.append(f"{u.name} +{add} HP (per second)")
                         if event_callback and add > 0:
                             event_callback('heal', {
                                 'unit_id': u.id,
@@ -582,5 +655,6 @@ class CombatSimulator(
                                 'amount': add,
                                 'side': 'team_b',
                                 'unit_hp': b_hp[idx_u],
-                                'unit_max_hp': u.max_hp
+                                'unit_max_hp': u.max_hp,
+                                'timestamp': time
                             })

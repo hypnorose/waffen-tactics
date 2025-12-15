@@ -22,4 +22,23 @@ const getTraitColor = (tier: number) => {
   return tierColors[tier] || '#6b7280'
 }
 
-export { getRarityColor, getRarityGlow, getTraitColor }
+const getTraitDescription = (trait: any, tier: number) => {
+  if (!trait.threshold_descriptions || tier < 1 || tier > trait.threshold_descriptions.length) {
+    return trait.description || 'Brak opisu'
+  }
+  const template = trait.threshold_descriptions[tier - 1]
+  if (!template.includes('<v>')) {
+    return template
+  }
+  // Znajdź wartość z effects
+  const effect = trait.effects[tier - 1]
+  if (!effect || !effect.value) {
+    return template.replace('<v>', '0')
+  }
+  const value = effect.value
+  const isPercentage = effect.is_percentage
+  const formattedValue = isPercentage ? `${value}%` : value.toString()
+  return template.replace('<v>', formattedValue)
+}
+
+export { getRarityColor, getRarityGlow, getTraitColor, getTraitDescription }

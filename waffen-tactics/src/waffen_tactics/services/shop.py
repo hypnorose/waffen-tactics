@@ -51,7 +51,7 @@ class ShopService:
         attempts = 0
         while len(offers) < 5 and attempts < 50:
             unit = self.roll(player.level, count=1)[0]
-            if unit.id not in owned_3star and unit.id not in [u.id for u in offers]:
+            if unit.id not in owned_3star and (not unit.classes or unit.classes[0] not in [u.classes[0] for u in offers if u and u.classes]):
                 offers.append(unit)
             attempts += 1
 

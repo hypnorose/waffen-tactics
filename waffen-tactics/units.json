@@ -66,6 +66,8 @@
         "Konfident"
       ],
       "cost": 4,
+      "role": "duelist",
+      "max_mana": 120,
       "avatar": "/avatars/kubica.png"
     },
     {
@@ -78,6 +80,8 @@
         "Spell"
       ],
       "cost": 5,
+      "role": "mage",
+      "max_mana": 150,
       "avatar": "/avatars/denvii.png"
     },
     {
@@ -88,18 +92,23 @@
       ],
       "classes": [],
       "cost": 3,
+      "role": "duelist",
+      "max_mana": 120,
       "avatar": "/avatars/miki.png"
     },
     {
       "id": "yossarian",
       "name": "Yossarian",
       "factions": [
-        "Randomized"
+        "XN Waffen"
       ],
       "classes": [
+        "Spell",
         "Haker"
       ],
-      "cost": 7,
+      "cost": 5,
+      "role": "mage",
+      "max_mana": 80,
       "avatar": "/avatars/yossarian.png"
     },
     {
@@ -112,6 +121,8 @@
         "Prostaczka"
       ],
       "cost": 1,
+      "role": "defender",
+      "max_mana": 80,
       "avatar": "/avatars/olsak.png"
     },
     {
@@ -124,6 +135,8 @@
         "Haker"
       ],
       "cost": 1,
+      "role": "mage",
+      "max_mana": 150,
       "avatar": "/avatars/pepe.png"
     },
     {
@@ -136,6 +149,8 @@
         "Normik"
       ],
       "cost": 2,
+      "role": "duelist",
+      "max_mana": 120,
       "avatar": "/avatars/hyodo888.png"
     },
     {
@@ -148,6 +163,8 @@
         "Prostaczka"
       ],
       "cost": 3,
+      "role": "mage",
+      "max_mana": 150,
       "avatar": "/avatars/grzalcia.png"
     },
     {
@@ -160,6 +177,8 @@
         "Spell"
       ],
       "cost": 4,
+      "role": "fighter",
+      "max_mana": 100,
       "avatar": "/avatars/adrianski.png"
     },
     {
@@ -173,16 +192,23 @@
         "Femboy"
       ],
       "cost": 5,
+      "role": "mage",
+      "max_mana": 150,
       "avatar": "/avatars/laylo.png"
     },
     {
       "id": "szachowymentor",
       "name": "SzachowyMentor",
-      "factions": ["Srebrna Gwardia"],
-      "classes": [
-        "Randomized"
+      "factions": [
+        "Srebrna Gwardia"
       ],
-      "cost": 7,
+      "classes": [
+        "Konfident",
+        "Normik"
+      ],
+      "cost": 5,
+      "role": "mage",
+      "max_mana": 150,
       "avatar": "/avatars/szachowymentor.png"
     },
     {
@@ -195,6 +221,8 @@
         "Haker"
       ],
       "cost": 1,
+      "role": "defender",
+      "max_mana": 80,
       "avatar": "/avatars/mrvlook.png"
     },
     {
@@ -207,6 +235,8 @@
         "Normik"
       ],
       "cost": 2,
+      "role": "duelist",
+      "max_mana": 120,
       "avatar": "/avatars/wodazlodowca.png"
     },
     {
@@ -219,6 +249,8 @@
         "Konfident"
       ],
       "cost": 3,
+      "role": "mage",
+      "max_mana": 150,
       "avatar": "/avatars/turboglovica.png"
     },
     {
@@ -231,6 +263,8 @@
         "Haker"
       ],
       "cost": 4,
+      "role": "duelist",
+      "max_mana": 150,
       "avatar": "/avatars/operatorkosiarki.png"
     },
     {
@@ -243,6 +277,8 @@
         "Szachista"
       ],
       "cost": 5,
+      "role": "mage",
+      "max_mana": 150,
       "avatar": "/avatars/beligol.png"
     },
     {
@@ -255,6 +291,8 @@
         "Spell"
       ],
       "cost": 1,
+      "role": "defender",
+      "max_mana": 80,
       "avatar": "/avatars/xntentacion.png"
     },
     {
@@ -267,6 +305,8 @@
         "Szachista"
       ],
       "cost": 2,
+      "role": "defender",
+      "max_mana": 80,
       "avatar": "/avatars/dawid_czerw.png"
     },
     {
@@ -279,6 +319,8 @@
         "Gamer"
       ],
       "cost": 2,
+      "role": "duelist",
+      "max_mana": 120,
       "avatar": "/avatars/jaskol95.png"
     },
     {
@@ -291,6 +333,8 @@
         "Szachista"
       ],
       "cost": 3,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/igor_janik.png"
     },
     {
@@ -303,6 +347,8 @@
         "Prostaczka"
       ],
       "cost": 5,
+      "role": "fighter",
+      "max_mana": 100,
       "avatar": "/avatars/olaczka.png"
     },
     {
@@ -315,6 +361,8 @@
         "Femboy"
       ],
       "cost": 4,
+      "role": "defender",
+      "max_mana": 80,
       "avatar": "/avatars/merex.png"
     },
     {
@@ -327,6 +375,8 @@
         "Spell"
       ],
       "cost": 2,
+      "role": "duelist",
+      "max_mana": 120,
       "avatar": "/avatars/socjopata.png"
     },
     {
@@ -339,6 +389,8 @@
         "Szachista"
       ],
       "cost": 4,
+      "role": "defender",
+      "max_mana": 80,
       "avatar": "/avatars/neko.png"
     },
     {
@@ -351,6 +403,8 @@
         "Haker"
       ],
       "cost": 3,
+      "role": "fighter",
+      "max_mana": 100,
       "avatar": "/avatars/noname.png"
     },
     {
@@ -363,6 +417,8 @@
         "Gamer"
       ],
       "cost": 1,
+      "role": "defender",
+      "max_mana": 80,
       "avatar": "/avatars/dumb.png"
     },
     {
@@ -375,6 +431,8 @@
         "Gamer"
       ],
       "cost": 1,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/maxas12.png"
     },
     {
@@ -387,6 +445,8 @@
         "Normik"
       ],
       "cost": 1,
+      "role": "duelist",
+      "max_mana": 120,
       "avatar": "/avatars/mrozu.png"
     },
     {
@@ -399,6 +459,8 @@
         "Haker"
       ],
       "cost": 1,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/v7.png"
     },
     {
@@ -411,6 +473,8 @@
         "Femboy"
       ],
       "cost": 2,
+      "role": "fighter",
+      "max_mana": 100,
       "avatar": "/avatars/wu_hao.png"
     },
     {
@@ -423,6 +487,8 @@
         "Prostaczka"
       ],
       "cost": 3,
+      "role": "fighter",
+      "max_mana": 100,
       "avatar": "/avatars/frajdzia.png"
     },
     {
@@ -435,6 +501,8 @@
         "Spell"
       ],
       "cost": 4,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/wrzechu.png"
     },
     {
@@ -447,6 +515,8 @@
         "Konfident"
       ],
       "cost": 5,
+      "role": "fighter",
+      "max_mana": 100,
       "avatar": "/avatars/galanonim.png"
     },
     {
@@ -459,6 +529,8 @@
         "Femboy"
       ],
       "cost": 5,
+      "role": "duelist",
+      "max_mana": 150,
       "avatar": "/avatars/stalin.png"
     },
     {
@@ -471,6 +543,8 @@
         "Gamer"
       ],
       "cost": 5,
+      "role": "duelist",
+      "max_mana": 120,
       "avatar": "/avatars/krasu.png"
     },
     {
@@ -481,6 +555,8 @@
       ],
       "classes": [],
       "cost": 4,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/atomowy_coggers.png"
     },
     {
@@ -493,6 +569,8 @@
         "Konfident"
       ],
       "cost": 5,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/szalwia.png"
     },
     {
@@ -505,6 +583,8 @@
         "Femboy"
       ],
       "cost": 1,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/bosman.png"
     },
     {
@@ -517,6 +597,8 @@
         "Gamer"
       ],
       "cost": 1,
+      "role": "defender",
+      "max_mana": 80,
       "avatar": "/avatars/un4given.png"
     },
     {
@@ -529,6 +611,8 @@
         "Gamer"
       ],
       "cost": 2,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/beudzik.png"
     },
     {
@@ -541,6 +625,8 @@
         "Spell"
       ],
       "cost": 2,
+      "role": "fighter",
+      "max_mana": 100,
       "avatar": "/avatars/buba.png"
     },
     {
@@ -553,6 +639,8 @@
         "Spell"
       ],
       "cost": 2,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/hikki.png"
     },
     {
@@ -565,6 +653,8 @@
         "Prostaczka"
       ],
       "cost": 3,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/alyson_stark.png"
     },
     {
@@ -577,6 +667,8 @@
         "Gamer"
       ],
       "cost": 3,
+      "role": "fighter",
+      "max_mana": 150,
       "avatar": "/avatars/flaminga.png"
     },
     {
@@ -589,6 +681,8 @@
         "Normik"
       ],
       "cost": 3,
+      "role": "fighter",
+      "max_mana": 100,
       "avatar": "/avatars/vitas.png"
     },
     {
@@ -601,6 +695,8 @@
         "Gamer"
       ],
       "cost": 4,
+      "role": "defender",
+      "max_mana": 80,
       "avatar": "/avatars/fiko.png"
     },
     {
@@ -613,6 +709,8 @@
         "Konfident"
       ],
       "cost": 4,
+      "role": "duelist",
+      "max_mana": 120,
       "avatar": "/avatars/puszmen12.png"
     },
     {
@@ -625,6 +723,8 @@
         "Haker"
       ],
       "cost": 5,
+      "role": "fighter",
+      "max_mana": 100,
       "avatar": "/avatars/pan_yakuza.png"
     }
   ],

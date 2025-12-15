@@ -65,6 +65,8 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnit, target
         transform: attackingUnit === unit.id ? 'scale(1.1)' : 'scale(1)',
         minWidth: 0,
         position: 'relative',
+        width: '120px',
+        flexShrink: 0,
       }}
     >
       {attackingUnit === unit.id && (

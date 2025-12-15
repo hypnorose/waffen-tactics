@@ -6,6 +6,8 @@ export interface Unit {
   cost: number
   factions: string[]
   classes: string[]
+  role?: string
+  role_color?: string
   avatar?: string
   stats?: {
     hp: number

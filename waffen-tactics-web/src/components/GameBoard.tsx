@@ -2,15 +2,7 @@ import { useState, useEffect } from 'react'
 import UnitCard from './UnitCard'
 import { useGameStore } from '../store/gameStore'
 import { gameAPI } from '../services/api'
-
-const getTraitColor = (tier: number) => {
-  if (tier === 0) return '#6b7280' // gray - inactive
-  const tierColors = ['#6b7280', '#10b981', '#3b82f6', '#a855f7', '#f59e0b']
-  if (tier >= tierColors.length - 1) {
-    return tierColors[tierColors.length - 1]
-  }
-  return tierColors[tier] || '#6b7280'
-}
+import { getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
 
 interface GameBoardProps {
   playerState: any
@@ -56,28 +48,38 @@ export default function GameBoard({ playerState, onUpdate }: GameBoardProps) {
 
   return (
     <div className="space-y-4">
-      {/* Board Units - Horizontal scroll */}
-      {!playerState.board || playerState.board.length === 0 ? (
-        <div className="text-center py-8 text-text/60">
-          Plansza jest pusta. Przenieś jednostki z ławki!
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-2 justify-center">
-          {playerState.board.map((unitInstance: any) => (
-            <div key={unitInstance.instance_id} className="relative">
-              <button
-                onClick={() => handleMoveToBench(unitInstance.instance_id)}
-                disabled={loading || playerState.bench.length >= playerState.max_bench_size}
-                className="absolute -top-1 -right-1 z-20 bg-secondary hover:bg-secondary/80 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold disabled:opacity-50 shadow-lg border border-gray-600"
-                title="Przenieś na ławkę"
-              >
-                ↓
-              </button>
-              <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Board Units - Grid with placeholders */}
+      <div className="flex flex-wrap gap-2 justify-center">
+        {Array.from({ length: playerState.max_board_size }).map((_, index) => {
+          const unitInstance = playerState.board?.[index]
+          
+          if (unitInstance) {
+            // Occupied slot
+            return (
+              <div key={unitInstance.instance_id} className="relative">
+                <button
+                  onClick={() => handleMoveToBench(unitInstance.instance_id)}
+                  disabled={loading || playerState.bench.length >= playerState.max_bench_size}
+                  className="absolute -top-1 -right-1 z-20 bg-secondary hover:bg-secondary/80 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold disabled:opacity-50 shadow-lg border border-gray-600"
+                  title="Przenieś na ławkę"
+                >
+                  ↓
+                </button>
+                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
+              </div>
+            )
+          } else {
+            // Empty slot placeholder
+            return (
+              <div key={`empty-${index}`} className="w-full max-w-[14rem]">
+                <div className="rounded-lg bg-surface/30 h-48 flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600">
+                  <span className="text-2xl">∅</span>
+                </div>
+              </div>
+            )
+          }
+        })}
+      </div>
 
       {/* Synergies - Show active synergies */}
       {Object.keys(synergies).length > 0 && (
@@ -149,58 +151,7 @@ export default function GameBoard({ playerState, onUpdate }: GameBoardProps) {
                                 <div className="font-bold">[{threshold}] Tier {tierNum}</div>
                                 {traitData.effects && traitData.effects[idx] && (
                                   <div className="text-xs mt-0.5" style={{ color: isActive ? '#d1d5db' : '#9ca3af' }}>
-                                    {(() => {
-                                      const effect = traitData.effects[idx]
-                                      const translateStat = (stat: string) => {
-                                        const translations: Record<string, string> = {
-                                          'attack_speed': 'Prędkość ataku',
-                                          'defense': 'Obrona',
-                                          'attack': 'Atak',
-                                          'hp': 'HP'
-                                        }
-                                        return translations[stat] || stat
-                                      }
-                                      
-                                      if (effect.type === 'stat_buff') {
-                                        // Handle single stat or multiple stats
-                                        if (effect.stat) {
-                                          return `+${effect.value}${effect.is_percentage ? '%' : ''} ${translateStat(effect.stat)}`
-                                        } else if (effect.stats) {
-                                          const statNames = effect.stats.map(translateStat).join(' i ')
-                                          return `+${effect.value}${effect.is_percentage ? '%' : ''} ${statNames}`
-                                        }
-                                      } else if (effect.type === 'on_enemy_death') {
-                                        const stats = effect.stats.map(translateStat).join(' i ')
-                                        return `+${effect.value} ${stats} za zabójstwo`
-                                      } else if (effect.type === 'on_ally_death') {
-                                        return `+${effect.value} złota gdy sojusznik umiera`
-                                      } else if (effect.type === 'per_round_buff') {
-                                        return `+${effect.value}${effect.is_percentage ? '%' : ''} ${translateStat(effect.stat)} co rundę`
-                                      } else if (effect.type === 'enemy_debuff') {
-                                        return `-${effect.value}${effect.is_percentage ? '%' : ''} ${translateStat(effect.stat)} wrogom`
-                                      } else if (effect.type === 'hp_regen_on_kill') {
-                                        return `+${effect.value}${effect.is_percentage ? '%' : ''} HP za zabójstwo`
-                                      } else if (effect.type === 'per_trait_buff') {
-                                        const stats = effect.stats.map(translateStat).join(' i ')
-                                        return `+${effect.value}${effect.is_percentage ? '%' : ''} ${stats} za aktywną synergię`
-                                      } else if (effect.type === 'mana_regen') {
-                                        return `+${effect.value} Many za atak`
-                                      } else if (effect.type === 'on_sell_bonus') {
-                                        const parts = []
-                                        if (effect.gold_per_star > 0) parts.push(`+${effect.gold_per_star} złota za gwiazdkę`)
-                                        if (effect.xp > 0) parts.push(`+${effect.xp} XP`)
-                                        return parts.join(', ') + ' ze sprzedaży'
-                                      } else if (effect.type === 'stat_steal') {
-                                        return `Kradnie ${effect.value}${effect.is_percentage ? '%' : ''} ${translateStat(effect.stat)} od wrogów`
-                                      } else if (effect.type === 'mana_on_attack') {
-                                        return `+${effect.value} Many za atak`
-                                      } else if (effect.type === 'lifesteal') {
-                                        return `${effect.value}% Kradzież życia`
-                                      } else if (effect.type === 'damage_reduction') {
-                                        return `${effect.value}% Redukcja obrażeń`
-                                      }
-                                      return JSON.stringify(effect)
-                                    })()}
+                                    {getTraitDescription(traitData, tierNum)}
                                   </div>
                                 )}
                               </div>

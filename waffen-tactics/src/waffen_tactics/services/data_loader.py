@@ -31,11 +31,16 @@ def build_stats_for_cost(cost: int) -> Stats:
 def build_stats_for_unit(unit_data: Dict[str, Any], roles: Dict[str, Dict[str, Any]]) -> Stats:
     role = unit_data.get("role", "fighter")
     role_stats = roles.get(role, roles.get("fighter", {}))
+    cost = unit_data.get("cost", 1)
+    
+    # Cost scaling multiplier: base 1.0, +0.2 per cost level above 1
+    cost_mult = 1.0 + (cost - 1) * 0.2
+    
     max_mana = unit_data.get("max_mana", 100)
     return Stats(
-        attack=role_stats.get('attack', 50),
-        hp=role_stats.get('hp', 500),
-        defense=role_stats.get('defense', 20),
+        attack=int(role_stats.get('attack', 50) * cost_mult),
+        hp=int(role_stats.get('hp', 500) * cost_mult),
+        defense=int(role_stats.get('defense', 20) * cost_mult),
         max_mana=max_mana,
         attack_speed=role_stats.get('attack_speed', 1.0),
         mana_on_attack=role_stats.get('mana_on_attack', 10),
@@ -60,10 +65,12 @@ def load_game_data() -> GameData:
     
     units = []
     for u in data["units"]:
+        role = u.get("role", "fighter")
+        role_color = roles.get(role, {}).get("color", "#6b7280")
         stats = build_stats_for_unit(u, roles)
         cost = int(u.get("cost", 1))
         skill = build_skill_for_cost(cost)
-        units.append(Unit.from_json(u, stats, skill))
+        units.append(Unit.from_json(u, stats, skill, role_color))
     
     traits = traits_data.get("traits", [])
     factions = data.get("factions", [])

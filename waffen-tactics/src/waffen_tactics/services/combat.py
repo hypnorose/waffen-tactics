@@ -28,7 +28,8 @@ class CombatSimulator:
                 defense=u.stats.defense,
                 attack_speed=u.stats.attack_speed,
                 max_mana=u.stats.max_mana,
-                skill=u.skill
+                skill=u.skill,
+                stats=u.stats
             )
             for i, u in enumerate(team_a)
         ]
@@ -42,7 +43,8 @@ class CombatSimulator:
                 defense=u.stats.defense,
                 attack_speed=u.stats.attack_speed,
                 max_mana=u.stats.max_mana,
-                skill=u.skill
+                skill=u.skill,
+                stats=u.stats
             )
             for i, u in enumerate(team_b)
         ]

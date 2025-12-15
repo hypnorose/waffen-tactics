@@ -11,6 +11,8 @@ class UnitInstance:
     star_level: int = 1  # 1, 2, or 3 stars
     instance_id: Optional[str] = None  # Unique ID for this specific instance
     persistent_buffs: Dict[str, float] = field(default_factory=dict)  # persistent stat buffs accumulated over rounds
+    base_stats: Optional[Dict[str, float]] = None  # computed base stats (for frontend display)
+    buffed_stats: Optional[Dict[str, float]] = None  # computed buffed stats (for frontend display)
     
     def __post_init__(self):
         if self.instance_id is None:
@@ -130,9 +132,9 @@ class PlayerState:
             'level': self.level,
             'xp': self.xp,
             'hp': self.hp,
-            'bench': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'persistent_buffs': getattr(u, 'persistent_buffs', {})} 
+            'bench': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
                      for u in self.bench],
-            'board': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'persistent_buffs': getattr(u, 'persistent_buffs', {})} 
+            'board': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
                      for u in self.board],
             'round_number': self.round_number,
             'wins': self.wins,

@@ -1,9 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from './store/authStore'
 import Login from './pages/Login'
 import AuthCallback from './pages/AuthCallback'
 import Game from './pages/Game'
 import TermsOfService from './pages/TermsOfService'
+import { useAuthStore } from './store/authStore'
 import './App.css'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -17,8 +17,6 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { user, token } = useAuthStore()
-
   return (
     <div className="min-h-screen bg-background">
       <Routes>
@@ -33,7 +31,7 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/" element={<Navigate to={user && token ? "/game" : "/login"} replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </div>
   )

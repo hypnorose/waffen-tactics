@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from waffen_tactics.models.unit import Unit
 from waffen_tactics.models.player_state import PlayerState
 import copy
@@ -191,3 +191,26 @@ class SynergyEngine:
                 debuffs[unit.id] = unit_debuffs
         
         return debuffs
+
+    def get_active_effects(self, unit: Unit, active_synergies: Dict[str, Tuple[int, int]]) -> List[Dict[str, Any]]:
+        """
+        Get list of active effects for a unit based on synergies
+        """
+        effects = []
+        for trait_name, (count, tier) in active_synergies.items():
+            trait_obj = next((t for t in self.trait_effects if t.get('name') == trait_name), None)
+            if not trait_obj:
+                continue
+            effects_list = trait_obj.get('effects', [])
+            idx = tier - 1
+            if idx < 0 or idx >= len(effects_list):
+                continue
+            effect = effects_list[idx]
+
+            # Only add if this unit has the trait
+            if trait_name not in unit.factions and trait_name not in unit.classes:
+                continue
+
+            # Add the effect to the unit
+            effects.append(effect)
+        return effects

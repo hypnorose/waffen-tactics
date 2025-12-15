@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 
 class CombatUnit:
     """Lightweight unit representation for combat with effect hooks"""
-    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, skill: Optional[Dict[str, Any]] = None, mana_regen: int = 0, stats: Optional['Stats'] = None):
+    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, skill: Optional[Dict[str, Any]] = None, mana_regen: int = 0, stats: Optional['Stats'] = None, star_level: int = 1):
         self.id = id
         self.name = name
         self.hp = hp
@@ -14,6 +14,7 @@ class CombatUnit:
         self.attack = attack
         self.defense = defense
         self.attack_speed = attack_speed
+        self.star_level = star_level
         # Effects collected from active traits (list of effect dicts)
         self.effects = effects or []
         # Mana system (for future skills)

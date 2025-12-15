@@ -40,6 +40,8 @@ def get_units():
             'cost': unit.cost,
             'factions': unit.factions,
             'classes': unit.classes,
+            'role': getattr(unit, 'role', None),
+            'role_color': getattr(unit, 'role_color', '#6b7280'),
             'avatar': getattr(unit, 'avatar', None),
             'stats': base_stats
         })
@@ -53,7 +55,9 @@ def get_traits():
         traits_data.append({
             'name': trait['name'],
             'type': trait['type'],
+            'description': trait.get('description', ''),
             'thresholds': trait['thresholds'],
+            'threshold_descriptions': trait.get('threshold_descriptions', []),
             'effects': trait['effects']
         })
     return jsonify(traits_data)
