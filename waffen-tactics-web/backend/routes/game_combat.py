@@ -444,6 +444,69 @@ def start_combat():
             player.round_number += 1
             player.xp += 2  # Always +2 XP per combat
 
+            # Apply persistent per-round buffs from traits to units on player's board BEFORE checking winner
+            try:
+                player_synergies = game_manager.get_board_synergies(player)
+                # Calculate buff amplifier for each unit
+                unit_amplifiers = {}
+                for ui in player.board:
+                    unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
+                    if not unit:
+                        continue
+                    amplifier = 1.0
+                    for trait_name, (count, tier) in player_synergies.items():
+                        trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
+                        if not trait_obj:
+                            continue
+                        idx = tier - 1
+                        if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+                            continue
+                        effect = trait_obj.get('effects', [])[idx]
+                        if effect.get('type') == 'buff_amplifier':
+                            target = trait_obj.get('target', 'trait')
+                            if target == 'team' or (target == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
+                                amplifier = max(amplifier, float(effect.get('multiplier', 1)))
+                    unit_amplifiers[ui.instance_id] = amplifier
+
+                for trait_name, (count, tier) in player_synergies.items():
+                    trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
+                    if not trait_obj:
+                        continue
+                    idx = tier - 1
+                    if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+                        continue
+                    effect = trait_obj.get('effects', [])[idx]
+                    etype = effect.get('type')
+                    if etype == 'per_round_buff':
+                        target = trait_obj.get('target', 'trait')  # default to 'trait'
+                        stat = effect.get('stat')
+                        value = effect.get('value', 0)
+                        is_percentage = effect.get('is_percentage', False)
+                        if stat:
+                            units_to_buff = []
+                            if target == 'team':
+                                units_to_buff = player.board
+                            elif target == 'trait':
+                                for ui in player.board:
+                                    unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
+                                    if unit and (trait_name in unit.factions or trait_name in unit.classes):
+                                        units_to_buff.append(ui)
+                            for ui in units_to_buff:
+                                unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
+                                if not unit:
+                                    continue
+                                amplifier = unit_amplifiers.get(ui.instance_id, 1.0)
+                                current_buff = ui.persistent_buffs.get(stat, 0)
+                                if is_percentage:
+                                    # For percentage, add based on base stat
+                                    base_stat = getattr(unit.stats, stat, 0) * ui.star_level
+                                    increment = base_stat * (value / 100.0) * amplifier
+                                else:
+                                    increment = value * amplifier
+                                ui.persistent_buffs[stat] = current_buff + increment
+            except Exception as e:
+                print(f"Error applying per-round buffs: {e}")
+
             win_bonus = 0
             if result['winner'] == 'team_a':
                 # Victory
@@ -530,41 +593,6 @@ def start_combat():
                 losses=player.losses,
                 level=player.level
             ))
-            # Apply persistent per-round buffs from traits to units on player's board
-            try:
-                player_synergies = game_manager.get_board_synergies(player)
-                for ui in player.board:
-                    unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-                    if not unit:
-                        continue
-                    for trait_name, (count, tier) in player_synergies.items():
-                        trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
-                        if not trait_obj:
-                            continue
-                        idx = tier - 1
-                        if idx < 0 or idx >= len(trait_obj.get('effects', [])):
-                            continue
-                        # Only apply if this unit has the trait
-                        if trait_name not in unit.factions and trait_name not in unit.classes:
-                            continue
-                        effect = trait_obj.get('effects', [])[idx]
-                        etype = effect.get('type')
-                        if etype == 'per_round_buff':
-                            stat = effect.get('stat')
-                            value = effect.get('value', 0)
-                            is_percentage = effect.get('is_percentage', False)
-                            if stat:
-                                current_buff = ui.persistent_buffs.get(stat, 0)
-                                if is_percentage:
-                                    # For percentage, add based on base stat
-                                    base_stat = getattr(unit.stats, stat, 0) * ui.star_level
-                                    increment = base_stat * (value / 100.0)
-                                else:
-                                    increment = value
-                                ui.persistent_buffs[stat] = current_buff + increment
-            except Exception as e:
-                print(f"Error applying per-round buffs: {e}")
-
 
             # Save state
             run_async(db_manager.save_player(player))

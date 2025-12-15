@@ -7,6 +7,8 @@ import Shop from '../components/Shop'
 import Bench from '../components/Bench'
 import TopDetailedToggle from '../components/TopDetailedToggle'
 import CombatOverlay from '../components/CombatOverlay'
+import TraitsInfoModal from '../components/TraitsInfoModal'
+import NotificationModal from '../components/NotificationModal'
 import { loadUnits } from '../data/units'
 
 export default function Game() {
@@ -15,7 +17,23 @@ export default function Game() {
   const [showCombat, setShowCombat] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [showTraitsInfo, setShowTraitsInfo] = useState(false)
+  const [showNotification, setShowNotification] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState('')
+  const [notificationType, setNotificationType] = useState<'error' | 'success' | 'info'>('error')
   const [leaderboard, setLeaderboard] = useState<any[]>([])
+
+  const showNotificationModal = (message: string, type: 'error' | 'success' | 'info' = 'error') => {
+    setNotificationMessage(message)
+    setNotificationType(type)
+    setShowNotification(true)
+  }
+
+  const closeNotification = () => {
+    setShowNotification(false)
+    setNotificationMessage('')
+    setNotificationType('error')
+  }
 
   useEffect(() => {
     initGame()
@@ -66,7 +84,7 @@ export default function Game() {
 
   const handleStartCombat = () => {
     if (!playerState || playerState.board.length === 0) {
-      alert('Dodaj jednostki na planszę!')
+      showNotificationModal('Dodaj jednostki na planszę!')
       return
     }
     setShowCombat(true)
@@ -93,16 +111,16 @@ export default function Game() {
         const startResp = await gameAPI.startGame()
         setPlayerState(startResp.data)
         setIsGameOver(false)
-        alert((response.data && response.data.message) ? `${response.data.message} Nowa gra rozpoczęta.` : 'Gra zresetowana. Nowa gra rozpoczęta.')
+        showNotificationModal((response.data && response.data.message) ? `${response.data.message} Nowa gra rozpoczęta.` : 'Gra zresetowana. Nowa gra rozpoczęta.', 'success')
       } catch (startErr) {
         // If starting a new game fails, fall back to the state returned by resetGame
         setPlayerState(response.data.state)
         setIsGameOver(false)
         console.error('Failed to call startGame after reset:', startErr)
-        alert((response.data && response.data.message) ? `${response.data.message} Nie udało się automatycznie rozpocząć nowej gry.` : 'Gra zresetowana. Nie udało się rozpocząć nowej gry.')
+        showNotificationModal((response.data && response.data.message) ? `${response.data.message} Nie udało się automatycznie rozpocząć nowej gry.` : 'Gra zresetowana. Nie udało się rozpocząć nowej gry.')
       }
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Nie można zresetować gry')
+      showNotificationModal(err.response?.data?.error || 'Nie można zresetować gry')
     } finally {
       setLoading(false)
     }
@@ -121,16 +139,16 @@ export default function Game() {
         const startResp = await gameAPI.startGame()
         setPlayerState(startResp.data)
         setIsGameOver(false)
-        alert((response.data && response.data.message) ? `${response.data.message} Nowa gra rozpoczęta.` : 'Poddano się. Nowa gra rozpoczęta.')
+        showNotificationModal((response.data && response.data.message) ? `${response.data.message} Nowa gra rozpoczęta.` : 'Poddano się. Nowa gra rozpoczęta.', 'success')
       } catch (startErr) {
         // If starting new game fails, keep surrendered state but notify user
         setPlayerState(response.data.state)
         setIsGameOver(true)
         console.error('Failed to start new game after surrender:', startErr)
-        alert((response.data && response.data.message) ? `${response.data.message} Nie udało się automatycznie rozpocząć nowej gry.` : 'Poddano się. Nie udało się rozpocząć nowej gry.')
+        showNotificationModal((response.data && response.data.message) ? `${response.data.message} Nie udało się automatycznie rozpocząć nowej gry.` : 'Poddano się. Nie udało się rozpocząć nowej gry.')
       }
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Nie można się poddać')
+      showNotificationModal(err.response?.data?.error || 'Nie można się poddać')
     } finally {
       setLoading(false)
     }
@@ -264,6 +282,13 @@ export default function Game() {
                 </>
               )}
               <button
+                onClick={() => setShowTraitsInfo(true)}
+                className="btn bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm"
+                title="Informacje o traitach"
+              >
+                📚 Info
+              </button>
+              <button
                 onClick={handleShowLeaderboard}
                 className="btn bg-yellow-600 hover:bg-yellow-700 px-4 py-2 text-sm"
                 title="Tablica wyników"
@@ -294,7 +319,7 @@ export default function Game() {
             </span>
             {isGameOver && <span className="text-sm text-red-500 font-normal ml-2">(Gra zakończona - tylko podgląd)</span>}
           </h2>
-          <GameBoard playerState={playerState} onUpdate={setPlayerState} />
+          <GameBoard playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />
         </div>
 
         {/* Bench Section */}
@@ -309,7 +334,7 @@ export default function Game() {
               [{playerState.bench.length}/{playerState.max_bench_size}]
             </span>
           </h2>
-          <Bench playerState={playerState} onUpdate={setPlayerState} />
+          <Bench playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />
         </div>
 
         {/* Shop Section */}
@@ -318,7 +343,7 @@ export default function Game() {
             <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
               <span>🛍️</span> Sklep
             </h2>
-            <Shop playerState={playerState} onUpdate={setPlayerState} />
+            <Shop playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />
           </div>
         )}
       </div>
@@ -391,6 +416,17 @@ export default function Game() {
           </div>
         </div>
       )}
+
+      {/* Traits Info Modal */}
+      <TraitsInfoModal isOpen={showTraitsInfo} onClose={() => setShowTraitsInfo(false)} />
+
+      {/* Notification Modal */}
+      <NotificationModal 
+        isOpen={showNotification} 
+        message={notificationMessage} 
+        type={notificationType}
+        onClose={closeNotification} 
+      />
     </div>
   )
 }

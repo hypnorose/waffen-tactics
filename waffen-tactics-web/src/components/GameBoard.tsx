@@ -7,11 +7,14 @@ import { getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
 interface GameBoardProps {
   playerState: any
   onUpdate: (state: any) => void
+  onNotification: (message: string, type?: 'error' | 'success' | 'info') => void
 }
 
-export default function GameBoard({ playerState, onUpdate }: GameBoardProps) {
+export default function GameBoard({ playerState, onUpdate, onNotification }: GameBoardProps) {
   const [loading, setLoading] = useState(false)
   const [traits, setTraits] = useState<any[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
   const { detailedView } = useGameStore()
 
   useEffect(() => {
@@ -28,7 +31,7 @@ export default function GameBoard({ playerState, onUpdate }: GameBoardProps) {
 
   const handleMoveToBench = async (instanceId: string) => {
     if (playerState.bench.length >= playerState.max_bench_size) {
-      alert('Ławka jest pełna!')
+      onNotification('Ławka jest pełna!')
       return
     }
 
@@ -37,7 +40,24 @@ export default function GameBoard({ playerState, onUpdate }: GameBoardProps) {
       const response = await gameAPI.moveToBench(instanceId)
       onUpdate(response.data.state)
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Nie można przenieść jednostki')
+      onNotification(err.response?.data?.error || 'Nie można przenieść jednostki')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleMoveToBoard = async (instanceId: string) => {
+    if (playerState.board.length >= playerState.max_board_size) {
+      onNotification('Plansza jest pełna!')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await gameAPI.moveToBoard(instanceId)
+      onUpdate(response.data.state)
+    } catch (err: any) {
+      onNotification(err.response?.data?.error || 'Nie można przenieść jednostki')
     } finally {
       setLoading(false)
     }
@@ -49,14 +69,42 @@ export default function GameBoard({ playerState, onUpdate }: GameBoardProps) {
   return (
     <div className="space-y-4">
       {/* Board Units - Grid with placeholders */}
-      <div className="flex flex-wrap gap-2 justify-center">
+      <div 
+        className={`flex flex-wrap gap-2 justify-center p-4 rounded-lg transition-all duration-200 ${isDragOver ? 'ring-2 ring-blue-300 ring-opacity-50' : ''}`}
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDragEnd={() => { setIsDragging(false); setIsDragOver(false); }}
+        onDrop={async (e) => {
+          e.preventDefault()
+          setIsDragOver(false)
+          const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+          if (data.type === 'moveToBoard') {
+            // Check if unit is already on board
+            if (playerState.board.some((u: any) => u.instance_id === data.instanceId)) {
+              return // Already on board
+            }
+            await handleMoveToBoard(data.instanceId)
+          }
+        }}
+      >
         {Array.from({ length: playerState.max_board_size }).map((_, index) => {
           const unitInstance = playerState.board?.[index]
           
           if (unitInstance) {
             // Occupied slot
             return (
-              <div key={unitInstance.instance_id} className="relative">
+              <div 
+                key={unitInstance.instance_id} 
+                className="relative"
+                draggable
+                onDragStart={(e) => {
+                  setIsDragging(true)
+                  e.dataTransfer.setData('text/plain', JSON.stringify({
+                    type: 'moveToBench',
+                    instanceId: unitInstance.instance_id
+                  }))
+                }}
+              >
                 <button
                   onClick={() => handleMoveToBench(unitInstance.instance_id)}
                   disabled={loading || playerState.bench.length >= playerState.max_bench_size}
@@ -65,7 +113,7 @@ export default function GameBoard({ playerState, onUpdate }: GameBoardProps) {
                 >
                   ↓
                 </button>
-                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
+                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
               </div>
             )
           } else {

@@ -93,7 +93,7 @@ def enrich_player_state(player: PlayerState) -> dict:
             persistent_buffs = ui.persistent_buffs or {}
             # Calculate base stats (before buffs)
             base = deepcopy(unit.stats)
-            base_hp = int(base.hp * (1.6 ** (star_level - 1))) + int(persistent_buffs.get("hp", 0))
+            base_hp = int(base.hp * (1.6 ** (star_level - 1)))
             base_attack = int(base.attack * (1.4 ** (star_level - 1)))
             base_defense = int(base.defense)
             base_attack_speed = float(base.attack_speed)
@@ -114,6 +114,11 @@ def enrich_player_state(player: PlayerState) -> dict:
             buffed_stats = GameManager().synergy_engine.apply_dynamic_effects(unit, buffed_stats, active_synergies, player)
             if buffed_stats is None:
                 buffed_stats = base_stats.copy()
+
+            # Apply persistent buffs after synergies
+            for stat, value in persistent_buffs.items():
+                if stat in buffed_stats:
+                    buffed_stats[stat] += value
 
             # Add max_mana and current_mana to buffed_stats
             buffed_stats['max_mana'] = base_max_mana
@@ -140,7 +145,7 @@ def enrich_player_state(player: PlayerState) -> dict:
             star_level = ui.star_level
             persistent_buffs = ui.persistent_buffs or {}
             base = deepcopy(unit.stats)
-            base_hp = int(base.hp * (1.6 ** (star_level - 1))) + int(persistent_buffs.get("hp", 0))
+            base_hp = int(base.hp * (1.6 ** (star_level - 1)))
             base_attack = int(base.attack * (1.4 ** (star_level - 1)))
             base_defense = int(base.defense)
             base_attack_speed = float(base.attack_speed)
@@ -163,6 +168,10 @@ def enrich_player_state(player: PlayerState) -> dict:
                 'max_mana': base_max_mana,
                 'current_mana': 0
             }
+            # Apply persistent buffs to bench buffed_stats
+            for stat, value in persistent_buffs.items():
+                if stat in ui.buffed_stats:
+                    ui.buffed_stats[stat] += value
             print(f"DEBUG: Set attributes on {ui.unit_id}: base_stats={ui.base_stats is not None}, buffed_stats={ui.buffed_stats is not None}")
 
         # Update bench entries in state dict with the computed stats

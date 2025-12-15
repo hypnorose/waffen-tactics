@@ -6,15 +6,18 @@ import { gameAPI } from '../services/api'
 interface BenchProps {
   playerState: any
   onUpdate: (state: any) => void
+  onNotification: (message: string, type?: 'error' | 'success' | 'info') => void
 }
 
-export default function Bench({ playerState, onUpdate }: BenchProps) {
+export default function Bench({ playerState, onUpdate, onNotification }: BenchProps) {
   const [loading, setLoading] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
   const { detailedView } = useGameStore()
 
   const handleMoveToBoard = async (instanceId: string) => {
     if (playerState.board.length >= playerState.max_board_size) {
-      alert('Plansza jest pełna!')
+      onNotification('Plansza jest pełna!')
       return
     }
 
@@ -23,7 +26,24 @@ export default function Bench({ playerState, onUpdate }: BenchProps) {
       const response = await gameAPI.moveToBoard(instanceId)
       onUpdate(response.data.state)
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Nie można przenieść jednostki')
+      onNotification(err.response?.data?.error || 'Nie można przenieść jednostki')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleMoveToBench = async (instanceId: string) => {
+    if (playerState.bench.length >= playerState.max_bench_size) {
+      onNotification('Ławka jest pełna!')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await gameAPI.moveToBench(instanceId)
+      onUpdate(response.data.state)
+    } catch (err: any) {
+      onNotification(err.response?.data?.error || 'Nie można przenieść jednostki')
     } finally {
       setLoading(false)
     }
@@ -36,10 +56,10 @@ export default function Bench({ playerState, onUpdate }: BenchProps) {
       onUpdate(response.data.state)
       
       if (response.data.message) {
-        console.log('✅', response.data.message)
+        onNotification(response.data.message, 'success')
       }
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Nie można sprzedać jednostki')
+      onNotification(err.response?.data?.error || 'Nie można sprzedać jednostki')
     } finally {
       setLoading(false)
     }
@@ -52,9 +72,37 @@ export default function Bench({ playerState, onUpdate }: BenchProps) {
           Ławka jest pusta. Kup jednostki w sklepie!
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2 justify-center">
+        <div 
+          className={`flex flex-wrap gap-2 justify-center p-4 rounded-lg transition-all duration-200 ${isDragOver ? 'ring-2 ring-green-300 ring-opacity-50' : ''}`}
+          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDragEnd={() => { setIsDragging(false); setIsDragOver(false); }}
+          onDrop={async (e) => {
+            e.preventDefault()
+            setIsDragOver(false)
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+            if (data.type === 'moveToBench') {
+              // Check if unit is already on bench
+              if (playerState.bench.some((u: any) => u.instance_id === data.instanceId)) {
+                return // Already on bench
+              }
+              await handleMoveToBench(data.instanceId)
+            }
+          }}
+        >
           {playerState.bench.map((unitInstance: any) => (
-            <div key={unitInstance.instance_id} className="flex-shrink-0 relative">
+            <div 
+              key={unitInstance.instance_id} 
+              className="flex-shrink-0 relative"
+              draggable
+              onDragStart={(e) => {
+                setIsDragging(true)
+                e.dataTransfer.setData('text/plain', JSON.stringify({
+                  type: 'moveToBoard',
+                  instanceId: unitInstance.instance_id
+                }))
+              }}
+            >
               <div className="absolute -top-1 -right-1 z-20 flex gap-1">
                 <button
                   onClick={() => handleMoveToBoard(unitInstance.instance_id)}
@@ -73,7 +121,7 @@ export default function Bench({ playerState, onUpdate }: BenchProps) {
                   💰
                 </button>
               </div>
-              <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
+              <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
             </div>
           ))}
         </div>

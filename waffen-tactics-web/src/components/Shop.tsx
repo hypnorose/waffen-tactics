@@ -6,9 +6,10 @@ import { useGameStore } from '../store/gameStore'
 interface ShopProps {
     playerState: any
     onUpdate: (state: any) => void
+    onNotification: (message: string, type?: 'error' | 'success' | 'info') => void
 }
 
-export default function Shop({ playerState, onUpdate }: ShopProps) {
+export default function Shop({ playerState, onUpdate, onNotification }: ShopProps) {
     const [loading, setLoading] = useState(false)
     const { detailedView } = useGameStore()
 
@@ -48,10 +49,10 @@ export default function Shop({ playerState, onUpdate }: ShopProps) {
 
             // Show success message if present
             if (response.data.message) {
-                console.log('✅', response.data.message)
+                onNotification(response.data.message, 'success')
             }
         } catch (err: any) {
-            alert(err.response?.data?.error || 'Nie można kupić jednostki')
+            onNotification(err.response?.data?.error || 'Nie można kupić jednostki')
         } finally {
             setLoading(false)
         }
@@ -59,7 +60,7 @@ export default function Shop({ playerState, onUpdate }: ShopProps) {
 
     const handleReroll = async () => {
         if (playerState.gold < 2) {
-            alert('Potrzebujesz 2 złota na odświeżenie!')
+            onNotification('Potrzebujesz 2 złota na odświeżenie!')
             return
         }
 
@@ -68,7 +69,7 @@ export default function Shop({ playerState, onUpdate }: ShopProps) {
             const response = await gameAPI.rerollShop()
             onUpdate(response.data.state)
         } catch (err: any) {
-            alert(err.response?.data?.error || 'Nie można odświeżyć sklepu')
+            onNotification(err.response?.data?.error || 'Nie można odświeżyć sklepu')
         } finally {
             setLoading(false)
         }
@@ -76,7 +77,7 @@ export default function Shop({ playerState, onUpdate }: ShopProps) {
 
     const handleBuyXP = async () => {
         if (playerState.gold < 4) {
-            alert('Potrzebujesz 4 złota na XP!')
+            onNotification('Potrzebujesz 4 złota na XP!')
             return
         }
 
@@ -86,10 +87,10 @@ export default function Shop({ playerState, onUpdate }: ShopProps) {
             onUpdate(response.data.state)
 
             if (response.data.message) {
-                console.log('✅', response.data.message)
+                onNotification(response.data.message, 'success')
             }
         } catch (err: any) {
-            alert(err.response?.data?.error || 'Nie można kupić XP')
+            onNotification(err.response?.data?.error || 'Nie można kupić XP')
         } finally {
             setLoading(false)
         }
@@ -102,10 +103,10 @@ export default function Shop({ playerState, onUpdate }: ShopProps) {
             onUpdate(response.data.state)
 
             if (response.data.message) {
-                console.log(playerState.locked_shop ? '🔓' : '🔒', response.data.message)
+                onNotification(response.data.message, 'success')
             }
         } catch (err: any) {
-            alert(err.response?.data?.error || 'Nie można zmienić blokady sklepu')
+            onNotification(err.response?.data?.error || 'Nie można zmienić blokady sklepu')
         } finally {
             setLoading(false)
         }

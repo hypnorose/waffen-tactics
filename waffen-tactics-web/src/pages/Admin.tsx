@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
+import NotificationModal from '../components/NotificationModal';
 
 interface Game {
   user_id: number;
@@ -97,6 +98,8 @@ const Admin: React.FC = () => {
   const [gamesTotalPages, setGamesTotalPages] = useState(1);
   const [teamsTotalPages, setTeamsTotalPages] = useState(1);
   const [currentTab, setCurrentTab] = useState<'games' | 'teams' | 'metrics' | 'traits' | 'units'>('games');
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
 
   useEffect(() => {
     loadUnits();
@@ -113,6 +116,16 @@ const Admin: React.FC = () => {
     const initial = new Set(sorted.slice(0, 6));
     setSelectedTraits(initial);
   }, [traitPopularity]);
+
+  const showNotificationModal = (message: string) => {
+    setNotificationMessage(message);
+    setShowNotification(true);
+  };
+
+  const closeNotification = () => {
+    setShowNotification(false);
+    setNotificationMessage('');
+  };
 
   useEffect(() => {
     // default: select top 6 units by total count
@@ -194,7 +207,7 @@ const Admin: React.FC = () => {
 
   const showPlayerTeam = (game: Game) => {
     if (!unitsLoaded) {
-      alert('Units not loaded yet, please wait...');
+      showNotificationModal('Units not loaded yet, please wait...');
       return;
     }
 
@@ -896,6 +909,11 @@ const Admin: React.FC = () => {
           </div>
         </div>
       )}
+      <NotificationModal
+        isOpen={showNotification}
+        message={notificationMessage}
+        onClose={closeNotification}
+      />
     </div>
   );
 };

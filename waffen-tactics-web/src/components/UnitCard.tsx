@@ -8,6 +8,7 @@ interface UnitCardProps {
   disabled?: boolean
   showCost?: boolean
   detailed?: boolean
+  isDragging?: boolean
   baseStats?: {
     hp?: number
     attack?: number
@@ -33,6 +34,7 @@ export default function UnitCard({
   disabled,
   showCost = true,
   detailed = false,
+  isDragging = false,
   baseStats,
   buffedStats,
 }: UnitCardProps) {
@@ -95,6 +97,7 @@ export default function UnitCard({
     <div
       ref={containerRef}
       onMouseEnter={() => {
+        if (isDragging) return;
         setTimeout(() => {
           const cont = containerRef.current
           const tip = tooltipRef.current
@@ -118,7 +121,7 @@ export default function UnitCard({
       }}
       onMouseLeave={() => setTooltipTop(null)}
       onClick={!disabled ? onClick : undefined}
-      className={`relative group w-56 ${onClick && !disabled ? 'cursor-pointer' : ''} ${
+      className={`relative group w-56 select-none ${onClick && !disabled ? 'cursor-pointer' : ''} ${
         disabled ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
@@ -173,7 +176,7 @@ export default function UnitCard({
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="font-bold text-white text-sm">{displayStats?.hp}</span>
-                  {deltas && deltas.hp !== 0 && <span className="text-xs font-semibold text-emerald-400">+{deltas.hp}</span>}
+                  {deltas && deltas.hp !== 0 && <span className="text-xs font-semibold text-emerald-400">+{Math.round(deltas.hp)}</span>}
                 </div>
               </div>
 
@@ -184,7 +187,7 @@ export default function UnitCard({
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="font-bold text-white text-sm">{displayStats?.attack}</span>
-                  {deltas && deltas.attack !== 0 && <span className="text-xs font-semibold text-emerald-400">+{deltas.attack}</span>}
+                  {deltas && deltas.attack !== 0 && <span className="text-xs font-semibold text-emerald-400">+{Math.round(deltas.attack)}</span>}
                 </div>
               </div>
 
@@ -195,7 +198,7 @@ export default function UnitCard({
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="font-bold text-white text-sm">{displayStats?.defense}</span>
-                  {deltas && deltas.defense !== 0 && <span className="text-xs font-semibold text-emerald-400">+{deltas.defense}</span>}
+                  {deltas && deltas.defense !== 0 && <span className="text-xs font-semibold text-emerald-400">+{Math.round(deltas.defense)}</span>}
                 </div>
               </div>
 
@@ -207,7 +210,7 @@ export default function UnitCard({
                 <div className="flex items-baseline gap-2">
                   <span className="font-bold text-white text-sm">{(displayStats?.attack_speed ?? 0).toFixed(2)}</span>
                   {deltas && Math.abs(deltas.attack_speed) > 0.0001 && (
-                    <span className="text-xs font-semibold text-emerald-400">+{deltas.attack_speed.toFixed(2)}</span>
+                    <span className="text-xs font-semibold text-emerald-400">+{(Math.round(deltas.attack_speed * 100) / 100).toFixed(2)}</span>
                   )}
                 </div>
               </div>
@@ -219,7 +222,7 @@ export default function UnitCard({
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="font-bold text-white text-sm">{displayStats?.max_mana ?? 100}</span>
-                  {deltas && deltas.max_mana !== 0 && <span className="text-xs font-semibold text-emerald-400">+{deltas.max_mana}</span>}
+                  {deltas && deltas.max_mana !== 0 && <span className="text-xs font-semibold text-emerald-400">+{Math.round(deltas.max_mana)}</span>}
                 </div>
               </div>
             </div>

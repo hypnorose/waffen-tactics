@@ -83,6 +83,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   const [opponentUnits, setOpponentUnits] = useState<Unit[]>([])
   const [combatLog, setCombatLog] = useState<string[]>([])
   const [isFinished, setIsFinished] = useState(false)
+  const [victory, setVictory] = useState<boolean | null>(null) // null = ongoing, true = win, false = lose
   const [finalState, setFinalState] = useState<PlayerState | null>(null)
   const [synergies, setSynergies] = useState<Record<string, {count: number, tier: number}>>({})
   const [traits, setTraits] = useState<TraitDefinition[]>([])
@@ -97,6 +98,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     return saved ? parseFloat(saved) : 1
   })
   const [eventQueue, setEventQueue] = useState<CombatEvent[]>([])
+  const [animatingUnits, setAnimatingUnits] = useState<string[]>([])
   // Make animations slightly slower by default but scale with combatSpeed
   // animationScale > 1 slows animations; follow-up divides by combatSpeed
   const animationScale = 1.25
@@ -180,9 +182,11 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
             // add attacker/target to active lists so animations can overlap
             setAttackingUnits(prev => [...prev, attacker])
             setTargetUnits(prev => [...prev, target])
+            setAnimatingUnits(prev => [...prev, attacker, target])
             const duration = Math.round(1500 * animationScale / combatSpeed)
             setTimeout(() => { setAttackingUnits(prev => prev.filter(id => id !== attacker)) }, duration)
             setTimeout(() => { setTargetUnits(prev => prev.filter(id => id !== target)) }, duration)
+            setTimeout(() => { setAnimatingUnits(prev => prev.filter(id => id !== attacker && id !== target)) }, duration)
           }
           // Accept both unit_hp (preferred) and target_hp (legacy/backend)
           const attackHp = nextEvent.unit_hp !== undefined ? nextEvent.unit_hp : nextEvent.target_hp;
@@ -235,9 +239,11 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
         } else if (nextEvent.type === 'victory') {
           const msg = '🎉 ZWYCIĘSTWO!'
           setCombatLog(prev => [...prev, msg]);
+          setVictory(true);
         } else if (nextEvent.type === 'defeat') {
           const msg = nextEvent.message || '💔 PRZEGRANA!'
           setCombatLog(prev => [...prev, msg]);
+          setVictory(false);
         } else if (nextEvent.type === 'end') {
           setIsFinished(true);
           if (nextEvent.state) setFinalState(nextEvent.state);
@@ -332,6 +338,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     opponentUnits,
     combatLog,
     isFinished,
+    victory,
     finalState,
     synergies,
     traits,
@@ -342,6 +349,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     setShowLog,
     attackingUnits,
     targetUnits,
+    animatingUnits,
     combatSpeed,
     setCombatSpeed,
     regenMap,
