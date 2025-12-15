@@ -89,13 +89,17 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   const [hoveredTrait, setHoveredTrait] = useState<string | null>(null)
   const [opponentInfo, setOpponentInfo] = useState<{name: string, wins: number, level: number} | null>(null)
   const [showLog, setShowLog] = useState(false)
-  const [attackingUnit, setAttackingUnit] = useState<string | null>(null)
-  const [targetUnit, setTargetUnit] = useState<string | null>(null)
+  // Support multiple concurrent attack/target highlights so events don't cancel each other
+  const [attackingUnits, setAttackingUnits] = useState<string[]>([])
+  const [targetUnits, setTargetUnits] = useState<string[]>([])
   const [combatSpeed, setCombatSpeed] = useState(() => {
     const saved = localStorage.getItem('combatSpeed')
     return saved ? parseFloat(saved) : 1
   })
   const [eventQueue, setEventQueue] = useState<CombatEvent[]>([])
+  // Make animations slightly slower by default but scale with combatSpeed
+  // animationScale > 1 slows animations; follow-up divides by combatSpeed
+  const animationScale = 1.25
   const [regenMap, setRegenMap] = useState<Record<string, { amount_per_sec: number; total_amount: number; expiresAt: number }>>({})
   const [isPlaying, setIsPlaying] = useState(false)
   const [storedGoldBreakdown, setStoredGoldBreakdown] = useState<{base: number, interest: number, milestone: number, win_bonus: number, total: number} | null>(null)
@@ -171,9 +175,14 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
           if (nextEvent.opponent) setOpponentInfo(nextEvent.opponent);
         } else if (nextEvent.type === 'unit_attack') {
           if (nextEvent.attacker_id && nextEvent.target_id) {
-            setAttackingUnit(nextEvent.attacker_id);
-            setTargetUnit(nextEvent.target_id);
-            setTimeout(() => { setAttackingUnit(null); setTargetUnit(null); }, 1500 / combatSpeed);
+            const attacker = nextEvent.attacker_id
+            const target = nextEvent.target_id
+            // add attacker/target to active lists so animations can overlap
+            setAttackingUnits(prev => [...prev, attacker])
+            setTargetUnits(prev => [...prev, target])
+            const duration = Math.round(1500 * animationScale / combatSpeed)
+            setTimeout(() => { setAttackingUnits(prev => prev.filter(id => id !== attacker)) }, duration)
+            setTimeout(() => { setTargetUnits(prev => prev.filter(id => id !== target)) }, duration)
           }
           // Accept both unit_hp (preferred) and target_hp (legacy/backend)
           const attackHp = nextEvent.unit_hp !== undefined ? nextEvent.unit_hp : nextEvent.target_hp;
@@ -279,8 +288,11 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
       });
     };
 
-    // Calculate delay based on timestamp difference
-    let delay = 100 / combatSpeed; // fallback minimal delay
+    // Calculate delay based on timestamp difference. Use fallback slightly slower
+    // than before but scale with combatSpeed and animationScale so the UI feels
+    // a bit more readable at normal speeds and still speeds up when user
+    // increases combatSpeed.
+    let delay = (120 * animationScale) / combatSpeed; // fallback minimal delay (ms)
     if (eventQueue.length > 1) {
       const curr = typeof eventQueue[0].timestamp === 'number' ? eventQueue[0].timestamp : null;
       const next = typeof eventQueue[1].timestamp === 'number' ? eventQueue[1].timestamp : null;
@@ -328,8 +340,8 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     opponentInfo,
     showLog,
     setShowLog,
-    attackingUnit,
-    targetUnit,
+    attackingUnits,
+    targetUnits,
     combatSpeed,
     setCombatSpeed,
     regenMap,

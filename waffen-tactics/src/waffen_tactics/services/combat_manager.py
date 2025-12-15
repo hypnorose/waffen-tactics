@@ -111,19 +111,25 @@ class CombatManager:
                 if not unit:
                     continue
 
-                # Apply buffs using SynergyEngine
-                buffed_stats = self.synergy_engine.apply_stat_buffs(unit, ui.star_level, active_synergies)
-                buffed_stats = self.synergy_engine.apply_dynamic_effects(unit, buffed_stats, active_synergies, player)
+            # Apply buffs using SynergyEngine
+            # Calculate base stats with star scaling
+            base_hp = int(unit.stats.hp * (1.6 ** (ui.star_level - 1)))
+            base_attack = int(unit.stats.attack * (1.4 ** (ui.star_level - 1)))
+            base_defense = int(unit.stats.defense)
+            base_attack_speed = float(unit.stats.attack_speed)
+            base_stats = {'hp': base_hp, 'attack': base_attack, 'defense': base_defense, 'attack_speed': base_attack_speed}
+            buffed_stats = self.synergy_engine.apply_stat_buffs(base_stats, unit, active_synergies)
+            buffed_stats = self.synergy_engine.apply_dynamic_effects(unit, buffed_stats, active_synergies, player)
 
-                hp = buffed_stats['hp']
-                attack = buffed_stats['attack']
-                defense = buffed_stats['defense']
-                attack_speed = buffed_stats['attack_speed']
+            hp = buffed_stats['hp']
+            attack = buffed_stats['attack']
+            defense = buffed_stats['defense']
+            attack_speed = buffed_stats['attack_speed']
 
-                # Get active effects
-                effects_a = self.synergy_engine.get_active_effects(unit, active_synergies)
+            # Get active effects
+            effects_a = self.synergy_engine.get_active_effects(unit, active_synergies)
 
-                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats))
+            team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats))
 
             # Opponent team
             opponent_units = [u for u in opponent_board]

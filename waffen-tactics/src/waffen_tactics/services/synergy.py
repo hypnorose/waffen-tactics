@@ -7,11 +7,13 @@ import copy
 class SynergyEngine:
     def __init__(self, traits: List[Dict]):
         self.thresholds: Dict[str, List[int]] = {}
-        self.trait_effects: Dict[str, List[Dict]] = {}
+        # Store full trait definitions keyed by name so we can access trait-level
+        # metadata (like trait['target']) when applying effects.
+        self.trait_effects: Dict[str, Dict] = {}
         for t in traits:
             name = t["name"]
             self.thresholds[name] = list(t.get("thresholds", []))
-            self.trait_effects[name] = t.get("effects", [])
+            self.trait_effects[name] = t
 
     def compute(self, units: List[Unit]) -> Dict[str, Tuple[int, int]]:
         # Count unique units only (by unit.id)
@@ -44,18 +46,19 @@ class SynergyEngine:
                 active[trait] = (n, achieved)
         return active
 
-    def apply_stat_buffs(self, unit: Unit, star_level: int, active_synergies: Dict[str, Tuple[int, int]]) -> Dict[str, float]:
+    def apply_stat_buffs(self, base_stats: Dict[str, float], unit: Unit, active_synergies: Dict[str, Tuple[int, int]]) -> Dict[str, float]:
         """
         Apply static stat buffs from synergies
+        base_stats should already include star-level scaling
         Returns dict with buffed stats: hp, attack, defense, attack_speed
         """
-        hp = int(unit.stats.hp * star_level)
-        attack = int(unit.stats.attack * star_level)
-        defense = int(unit.stats.defense * star_level)
-        attack_speed = float(unit.stats.attack_speed)
+        hp = base_stats['hp']
+        attack = base_stats['attack']
+        defense = base_stats['defense']
+        attack_speed = base_stats['attack_speed']
 
         for trait_name, (count, tier) in active_synergies.items():
-            trait_obj = next((t for t in self.trait_effects if t.get('name') == trait_name), None)
+            trait_obj = self.trait_effects.get(trait_name)
             if not trait_obj:
                 continue
             effects = trait_obj.get('effects', [])
@@ -64,9 +67,16 @@ class SynergyEngine:
                 continue
             effect = effects[idx]
 
-            # Only apply if this unit has the trait
-            if trait_name not in unit.factions and trait_name not in unit.classes:
-                continue
+            # Determine whether this effect should apply to all units on the team
+            # or only to units that have the trait. New optional key on effects:
+            #   "target": "trait" | "team"
+            # Trait may also declare a default target via trait_obj['target'].
+            # Default behavior: 'trait' (only units that have the trait)
+            trait_level_target = trait_obj.get('target') if trait_obj else None
+            target_scope = effect.get('target', trait_level_target or 'trait')
+            if target_scope == 'trait':
+                if trait_name not in unit.factions and trait_name not in unit.classes:
+                    continue
 
             etype = effect.get('type')
             if etype == 'stat_buff':
@@ -78,6 +88,11 @@ class SynergyEngine:
                 for st in stats:
                     val = effect.get('value', 0)
                     is_percentage = effect.get('is_percentage', False)
+                    # Apply buff amplifier if unit has XN Jugend trait
+                    amplifier = 1.0
+                    if 'XN Jugend' in unit.factions or 'XN Jugend' in unit.classes:
+                        amplifier = 2.0
+                    val *= amplifier
                     if st == 'hp':
                         if is_percentage:
                             hp = int(hp * (1 + val / 100.0))
@@ -103,10 +118,16 @@ class SynergyEngine:
                 per_val = effect.get('value', 0)
                 multiplier = len(active_synergies)
                 for st in stats:
+                    val = per_val * multiplier
+                    # Apply buff amplifier if unit has XN Jugend trait
+                    amplifier = 1.0
+                    if 'XN Jugend' in unit.factions or 'XN Jugend' in unit.classes:
+                        amplifier = 2.0
+                    val *= amplifier
                     if st == 'hp':
-                        hp = int(hp * (1 + (per_val * multiplier) / 100.0))
+                        hp = int(hp * (1 + val / 100.0))
                     elif st == 'attack':
-                        attack = int(attack * (1 + (per_val * multiplier) / 100.0))
+                        attack = int(attack * (1 + val / 100.0))
 
         return {
             'hp': hp,
@@ -122,7 +143,7 @@ class SynergyEngine:
         stats = copy.deepcopy(base_stats)
 
         for trait_name, (count, tier) in active_synergies.items():
-            trait_obj = next((t for t in self.trait_effects if t.get('name') == trait_name), None)
+            trait_obj = self.trait_effects.get(trait_name)
             if not trait_obj:
                 continue
             effects = trait_obj.get('effects', [])
@@ -131,8 +152,12 @@ class SynergyEngine:
                 continue
             effect = effects[idx]
 
-            if trait_name not in unit.factions and trait_name not in unit.classes:
-                continue
+            # Respect trait-level target if effect doesn't specify one
+            trait_level_target = trait_obj.get('target')
+            target_scope = effect.get('target', trait_level_target or 'trait')
+            if target_scope == 'trait':
+                if trait_name not in unit.factions and trait_name not in unit.classes:
+                    continue
 
             etype = effect.get('type')
             if etype == 'dynamic_hp_per_loss':
@@ -149,7 +174,7 @@ class SynergyEngine:
                 if hp_percent_per_win:
                     stats['hp'] = int(stats['hp'] * (1 + (hp_percent_per_win * player.wins) / 100.0))
                 stats['attack_speed'] += as_per_win * player.wins
-
+            return stats
     def apply_enemy_debuffs(self, enemy_units: List[Unit], active_synergies: Dict[str, Tuple[int, int]]) -> Dict[str, Dict[str, float]]:
         """
         Apply enemy debuffs from synergies
@@ -160,7 +185,7 @@ class SynergyEngine:
             unit_debuffs = {'hp': 0, 'attack': 0, 'defense': 0, 'attack_speed': 0.0}
             
             for trait_name, (count, tier) in active_synergies.items():
-                trait_obj = next((t for t in self.trait_effects if t.get('name') == trait_name), None)
+                trait_obj = self.trait_effects.get(trait_name)
                 if not trait_obj:
                     continue
                 effects = trait_obj.get('effects', [])
@@ -198,7 +223,7 @@ class SynergyEngine:
         """
         effects = []
         for trait_name, (count, tier) in active_synergies.items():
-            trait_obj = next((t for t in self.trait_effects if t.get('name') == trait_name), None)
+            trait_obj = self.trait_effects.get(trait_name)
             if not trait_obj:
                 continue
             effects_list = trait_obj.get('effects', [])
@@ -207,10 +232,22 @@ class SynergyEngine:
                 continue
             effect = effects_list[idx]
 
-            # Only add if this unit has the trait
-            if trait_name not in unit.factions and trait_name not in unit.classes:
-                continue
-
-            # Add the effect to the unit
-            effects.append(effect)
+            # Effects can optionally target the whole team instead of only units
+            # with the trait. Use effect.target == 'team' to indicate team-wide.
+            # Respect trait-level default target if effect doesn't specify one.
+            trait_level_target = trait_obj.get('target')
+            target_scope = effect.get('target', trait_level_target or 'trait')
+            if target_scope == 'trait':
+                if trait_name not in unit.factions and trait_name not in unit.classes:
+                    continue
+                effects.append(effect)
+            elif target_scope == 'team':
+                # Add effect to all units on the team regardless of whether
+                # they have the trait themselves (useful for team-wide buffs)
+                effects.append(effect)
+            else:
+                # Fallback: only add if unit has trait
+                if trait_name not in unit.factions and trait_name not in unit.classes:
+                    continue
+                effects.append(effect)
         return effects

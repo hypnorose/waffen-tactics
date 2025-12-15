@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 
 interface Game {
@@ -46,7 +46,14 @@ interface TeamDetails {
   id: number;
   user_id: number;
   nickname: string;
-  units: Array<{
+  board_units: Array<{
+    id: string;
+    name: string;
+    cost: number;
+    level: number;
+    stars: number;
+  }>;
+  bench_units: Array<{
     id: string;
     name: string;
     cost: number;
@@ -74,24 +81,49 @@ const Admin: React.FC = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [traitPopularity, setTraitPopularity] = useState<Record<number, Record<string, number>>>({});
+  const [unitPopularity, setUnitPopularity] = useState<Record<number, Record<string, number>>>({});
   const [selectedTraits, setSelectedTraits] = useState<Set<string>>(new Set());
+  const [selectedUnits, setSelectedUnits] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<TeamDetails | null>(null);
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [unitsMap, setUnitsMap] = useState<Record<string, any>>({});
+  const [unitsByName, setUnitsByName] = useState<Record<string, any>>({});
   const [unitsLoaded, setUnitsLoaded] = useState(false);
   const [gamesPage, setGamesPage] = useState(1);
   const [teamsPage, setTeamsPage] = useState(1);
   const [gamesTotalPages, setGamesTotalPages] = useState(1);
   const [teamsTotalPages, setTeamsTotalPages] = useState(1);
-  const [currentTab, setCurrentTab] = useState<'games' | 'teams' | 'metrics' | 'traits'>('games');
+  const [currentTab, setCurrentTab] = useState<'games' | 'teams' | 'metrics' | 'traits' | 'units'>('games');
 
   useEffect(() => {
     loadUnits();
     loadData();
   }, [activeFilter, gamesPage, teamsPage]);
+
+  useEffect(() => {
+    // default: select top 6 traits by total count
+    const totals: Record<string, number> = {};
+    Object.values(traitPopularity).forEach(map => {
+      Object.entries(map).forEach(([t, v]) => { totals[t] = (totals[t] || 0) + v; });
+    });
+    const sorted = Object.keys(totals).sort((a,b) => (totals[b]||0) - (totals[a]||0));
+    const initial = new Set(sorted.slice(0, 6));
+    setSelectedTraits(initial);
+  }, [traitPopularity]);
+
+  useEffect(() => {
+    // default: select top 6 units by total count
+    const totals: Record<string, number> = {};
+    Object.values(unitPopularity).forEach(map => {
+      Object.entries(map).forEach(([u, v]) => { totals[u] = (totals[u] || 0) + v; });
+    });
+    const sorted = Object.keys(totals).sort((a,b) => (totals[b]||0) - (totals[a]||0));
+    const initial = new Set(sorted.slice(0, 6));
+    setSelectedUnits(initial);
+  }, [unitPopularity]);
 
   // Initialize selected traits when popularity data changes
   
@@ -101,10 +133,13 @@ const Admin: React.FC = () => {
       const res = await api.get('/game/units');
       const units = res.data;  // res.data is already the array
       const map: Record<string, any> = {};
+      const nameMap: Record<string, any> = {};
       units.forEach((unit: any) => {
         map[unit.id] = unit;
+        nameMap[unit.name] = unit;
       });
       setUnitsMap(map);
+      setUnitsByName(nameMap);
       setUnitsLoaded(true);
       console.log('Units loaded:', Object.keys(map).length);
     } catch (err) {
@@ -117,11 +152,12 @@ const Admin: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [gamesRes, teamsRes, metricsRes, traitsRes] = await Promise.all([
+      const [gamesRes, teamsRes, metricsRes, traitsRes, unitsRes] = await Promise.all([
         api.get('/api/admin/games', { params: { page: gamesPage, limit: 20 } }),
         api.get('/api/admin/teams', { params: { active: activeFilter, page: teamsPage, limit: 20 } }),
         api.get('/api/admin/metrics'),
-        api.get('/api/admin/traits-popularity')
+        api.get('/api/admin/traits-popularity'),
+        api.get('/api/admin/units-popularity')
       ]);
 
       setGames(gamesRes.data.games);
@@ -133,6 +169,11 @@ const Admin: React.FC = () => {
         setTraitPopularity(traitsRes.data.popularity);
       } else {
         setTraitPopularity({});
+      }
+      if (unitsRes?.data?.popularity) {
+        setUnitPopularity(unitsRes.data.popularity);
+      } else {
+        setUnitPopularity({});
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load admin data');
@@ -216,21 +257,25 @@ const Admin: React.FC = () => {
   });
   const traitNames = Array.from(traitNamesSet).sort();
 
-  useEffect(() => {
-    // default: select top 6 traits by total count
-    const totals: Record<string, number> = {};
-    Object.values(traitPopularity).forEach(map => {
-      Object.entries(map).forEach(([t, v]) => { totals[t] = (totals[t] || 0) + v; });
-    });
-    const sorted = Object.keys(totals).sort((a,b) => (totals[b]||0) - (totals[a]||0));
-    const initial = new Set(sorted.slice(0, 6));
-    setSelectedTraits(initial);
-  }, [traitPopularity]);
+  const unitNamesSet = new Set<string>();
+  rounds.forEach(r => {
+    const m = unitPopularity[r];
+    if (m) Object.keys(m).forEach(u => unitNamesSet.add(u));
+  });
+  const unitNames = Array.from(unitNamesSet).sort();
 
   const toggleTrait = (trait: string) => {
     setSelectedTraits(prev => {
       const copy = new Set(prev);
       if (copy.has(trait)) copy.delete(trait); else copy.add(trait);
+      return copy;
+    });
+  };
+
+  const toggleUnit = (unit: string) => {
+    setSelectedUnits(prev => {
+      const copy = new Set(prev);
+      if (copy.has(unit)) copy.delete(unit); else copy.add(unit);
       return copy;
     });
   };
@@ -267,6 +312,208 @@ const Admin: React.FC = () => {
     );
   };
 
+  const CombinedTraitChart: React.FC<{ traits: string[]; rounds: number[]; data: Record<number, Record<string, number>> }> = ({ traits, rounds, data }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [containerWidth, setContainerWidth] = useState(1200);
+
+    useEffect(() => {
+      const updateWidth = () => {
+        if (containerRef.current) {
+          setContainerWidth(containerRef.current.offsetWidth);
+        }
+      };
+
+      updateWidth();
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }, []);
+
+    const width = containerWidth;
+    const height = 500;
+    const padding = 60;
+    const colors = ['#60a5fa', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'];
+
+    // Find global max across all traits
+    const allValues = traits.flatMap(trait => rounds.map(r => data[r]?.[trait] || 0));
+    const max = Math.max(...allValues, 1);
+
+    return (
+      <div ref={containerRef} className="bg-gray-700 p-4 rounded w-full">
+        <h3 className="text-lg font-bold mb-4">Trait Popularity Over Rounds</h3>
+        <svg width={width} height={height}>
+          {/* Grid lines */}
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#374151" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width={width} height={height} fill="url(#grid)" />
+
+          {/* X and Y axes */}
+          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#9ca3af" strokeWidth={1} />
+          <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#9ca3af" strokeWidth={1} />
+
+          {/* Round labels */}
+          {rounds.map((r, i) => {
+            const x = padding + (i / Math.max(1, rounds.length - 1)) * (width - padding * 2);
+            return (
+              <text key={r} x={x} y={height - padding + 15} textAnchor="middle" fill="#9ca3af" fontSize="10">
+                R{r}
+              </text>
+            );
+          })}
+
+          {/* Value labels */}
+          {[0, 0.25, 0.5, 0.75, 1].map(ratio => {
+            const y = height - padding - ratio * (height - padding * 2);
+            const value = Math.round(max * ratio);
+            return (
+              <text key={ratio} x={padding - 10} y={y + 3} textAnchor="end" fill="#9ca3af" fontSize="10">
+                {value}
+              </text>
+            );
+          })}
+
+          {/* Lines for each trait */}
+          {traits.map((trait, traitIndex) => {
+            const values = rounds.map(r => data[r]?.[trait] || 0);
+            const points = values.map((v, i) => {
+              const x = padding + (i / Math.max(1, values.length - 1)) * (width - padding * 2);
+              const y = height - padding - (v / max) * (height - padding * 2);
+              return `${x},${y}`;
+            }).join(' ');
+            const color = colors[traitIndex % colors.length];
+
+            return (
+              <g key={trait}>
+                <polyline fill="none" stroke={color} strokeWidth={2} points={points} />
+                {values.map((v, i) => {
+                  const x = padding + (i / Math.max(1, values.length - 1)) * (width - padding * 2);
+                  const y = height - padding - (v / max) * (height - padding * 2);
+                  return <circle key={i} cx={x} cy={y} r={3} fill={color} />;
+                })}
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Legend */}
+        <div className="flex flex-wrap gap-4 mt-4">
+          {traits.map((trait, traitIndex) => {
+            const color = colors[traitIndex % colors.length];
+            return (
+              <div key={trait} className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: color }}></div>
+                <span className="text-sm">{trait}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const CombinedUnitChart: React.FC<{ units: string[]; rounds: number[]; data: Record<number, Record<string, number>> }> = ({ units, rounds, data }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [containerWidth, setContainerWidth] = useState(1200);
+
+    useEffect(() => {
+      const updateWidth = () => {
+        if (containerRef.current) {
+          setContainerWidth(containerRef.current.offsetWidth);
+        }
+      };
+
+      updateWidth();
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }, []);
+
+    const width = containerWidth;
+    const height = 500;
+    const padding = 60;
+    const colors = ['#60a5fa', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'];
+
+    // Find global max across all units
+    const allValues = units.flatMap(unit => rounds.map(r => data[r]?.[unit] || 0));
+    const max = Math.max(...allValues, 1);
+
+    return (
+      <div ref={containerRef} className="bg-gray-700 p-4 rounded w-full">
+        <h3 className="text-lg font-bold mb-4">Unit Popularity Over Rounds</h3>
+        <svg width={width} height={height}>
+          {/* Grid lines */}
+          <defs>
+            <pattern id="grid-units" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#374151" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width={width} height={height} fill="url(#grid-units)" />
+
+          {/* X and Y axes */}
+          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#9ca3af" strokeWidth={1} />
+          <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#9ca3af" strokeWidth={1} />
+
+          {/* Round labels */}
+          {rounds.map((r, i) => {
+            const x = padding + (i / Math.max(1, rounds.length - 1)) * (width - padding * 2);
+            return (
+              <text key={r} x={x} y={height - padding + 15} textAnchor="middle" fill="#9ca3af" fontSize="10">
+                R{r}
+              </text>
+            );
+          })}
+
+          {/* Value labels */}
+          {[0, 0.25, 0.5, 0.75, 1].map(ratio => {
+            const y = height - padding - ratio * (height - padding * 2);
+            const value = Math.round(max * ratio);
+            return (
+              <text key={ratio} x={padding - 10} y={y + 3} textAnchor="end" fill="#9ca3af" fontSize="10">
+                {value}
+              </text>
+            );
+          })}
+
+          {/* Lines for each unit */}
+          {units.map((unit, unitIndex) => {
+            const values = rounds.map(r => data[r]?.[unit] || 0);
+            const points = values.map((v, i) => {
+              const x = padding + (i / Math.max(1, values.length - 1)) * (width - padding * 2);
+              const y = height - padding - (v / max) * (height - padding * 2);
+              return `${x},${y}`;
+            }).join(' ');
+            const color = colors[unitIndex % colors.length];
+
+            return (
+              <g key={unit}>
+                <polyline fill="none" stroke={color} strokeWidth={2} points={points} />
+                {values.map((v, i) => {
+                  const x = padding + (i / Math.max(1, values.length - 1)) * (width - padding * 2);
+                  const y = height - padding - (v / max) * (height - padding * 2);
+                  return <circle key={i} cx={x} cy={y} r={3} fill={color} />;
+                })}
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Legend */}
+        <div className="flex flex-wrap gap-4 mt-4">
+          {units.map((unit, unitIndex) => {
+            const color = colors[unitIndex % colors.length];
+            return (
+              <div key={unit} className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: color }}></div>
+                <span className="text-sm">{unit}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-3xl font-bold mb-8">Admin Panel</h1>
@@ -279,6 +526,7 @@ const Admin: React.FC = () => {
           <button onClick={() => setCurrentTab('teams')} className={`px-4 py-2 rounded ${currentTab === 'teams' ? 'bg-blue-600' : 'bg-gray-700'}`}>Teams</button>
           <button onClick={() => setCurrentTab('metrics')} className={`px-4 py-2 rounded ${currentTab === 'metrics' ? 'bg-blue-600' : 'bg-gray-700'}`}>Metrics</button>
           <button onClick={() => setCurrentTab('traits')} className={`px-4 py-2 rounded ${currentTab === 'traits' ? 'bg-blue-600' : 'bg-gray-700'}`}>Traits</button>
+          <button onClick={() => setCurrentTab('units')} className={`px-4 py-2 rounded ${currentTab === 'units' ? 'bg-blue-600' : 'bg-gray-700'}`}>Units</button>
         </div>
       </div>
 
@@ -359,12 +607,80 @@ const Admin: React.FC = () => {
                 </div>
               </div>
 
-              {/* Charts grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from(selectedTraits).map(trait => (
-                  <TraitChart key={trait} trait={trait} rounds={rounds} data={traitPopularity} />
-                ))}
+              {/* Combined Chart */}
+              {selectedTraits.size > 0 && (
+                <CombinedTraitChart traits={Array.from(selectedTraits)} rounds={rounds} data={traitPopularity} />
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Units Tab */}
+      {currentTab === 'units' && (
+        <div className="bg-gray-800 p-6 rounded-lg mb-8">
+          <h2 className="text-2xl font-bold mb-4">Unit Popularity by Round</h2>
+          {rounds.length === 0 ? (
+            <div className="text-gray-300">No data available</div>
+          ) : (
+            <>
+              <div className="overflow-x-auto mb-4">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-700">
+                      <th className="text-left p-2">Unit</th>
+                      {rounds.map((r) => (
+                        <th key={r} className="text-left p-2">R{r}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unitNames.map((unit) => (
+                      <tr key={unit} className="border-b border-gray-700">
+                        <td className="p-2">{unit}</td>
+                        {rounds.map((r) => (
+                          <td key={`${unit}-${r}`} className="p-2">{unitPopularity[r]?.[unit] || 0}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
+
+              {/* Unit selector */}
+              <div className="mb-4">
+                <div className="font-semibold mb-2">Toggle units to show charts</div>
+                <div className="space-y-4">
+                  {[1, 2, 3, 4, 5].map(cost => {
+                    const unitsInCost = unitNames.filter(u => {
+                      const unitData = unitsByName[u];
+                      return unitData?.cost === cost;
+                    });
+                    if (unitsInCost.length === 0) return null;
+
+                    return (
+                      <div key={cost}>
+                        <div className="text-sm font-medium text-gray-300 mb-2">
+                          {cost} Gold Units ({unitsInCost.length})
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {unitsInCost.map(u => (
+                            <label key={u} className={`px-3 py-1 rounded cursor-pointer ${selectedUnits.has(u) ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                              <input type="checkbox" checked={selectedUnits.has(u)} onChange={() => toggleUnit(u)} className="mr-2" />
+                              {u}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Combined Chart */}
+              {selectedUnits.size > 0 && (
+                <CombinedUnitChart units={Array.from(selectedUnits)} rounds={rounds} data={unitPopularity} />
+              )}
             </>
           )}
         </div>

@@ -15,6 +15,7 @@ interface Unit {
     defense?: number
     attack_speed?: number
     max_mana?: number
+    hp_regen_per_sec?: number
   }
   current_mana?: number
 }
@@ -22,8 +23,8 @@ interface Unit {
 interface Props {
   unit: Unit
   isOpponent?: boolean
-  attackingUnit?: string | null
-  targetUnit?: string | null
+  attackingUnits?: string[]
+  targetUnits?: string[]
   regen?: { amount_per_sec: number } | undefined
 }
 
@@ -37,13 +38,15 @@ const getRarityColor = (cost?: number) => {
   return '#6b7280'
 }
 
-export default function CombatUnitCard({ unit, isOpponent, attackingUnit, targetUnit, regen }: Props) {
+export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], targetUnits = [], regen }: Props) {
   const displayMaxHp = unit.buffed_stats?.hp ?? unit.max_hp
   const displayHp = Math.min(unit.hp, displayMaxHp)
   const displayAttack = unit.buffed_stats?.attack ?? unit.attack
+  const displayDefense = unit.buffed_stats?.defense ?? unit.defense ?? 0
   const displayAS = unit.buffed_stats?.attack_speed ?? 0
   const displayMaxMana = unit.buffed_stats?.max_mana ?? 100
   const displayMana = unit.current_mana ?? 0
+  const displayHpRegen = unit.buffed_stats?.hp_regen_per_sec ?? 0
 
   return (
     <div
@@ -55,26 +58,26 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnit, target
         opacity: unit.hp > 0 ? 1 : 0.4,
         transition: 'all 0.3s',
         boxShadow:
-          attackingUnit === unit.id
+          attackingUnits.includes(unit.id)
             ? '0 0 20px #ff0000, 0 0 30px #ff0000'
-            : targetUnit === unit.id
+            : targetUnits.includes(unit.id)
             ? '0 0 20px #ffff00, 0 0 30px #ffff00'
             : unit.hp > 0
             ? `0 0 10px ${getRarityColor(unit.cost)}40`
             : 'none',
-        transform: attackingUnit === unit.id ? 'scale(1.1)' : 'scale(1)',
+        transform: attackingUnits.includes(unit.id) ? 'scale(1.1)' : 'scale(1)',
         minWidth: 0,
         position: 'relative',
         width: '120px',
         flexShrink: 0,
       }}
     >
-      {attackingUnit === unit.id && (
+      {attackingUnits.includes(unit.id) && (
         <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '1.5rem', animation: 'pulse 0.6s ease-in-out' }}>
           ⚔️
         </div>
       )}
-      {targetUnit === unit.id && (
+      {targetUnits.includes(unit.id) && (
         <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '1.5rem', animation: 'pulse 0.6s ease-in-out' }}>
           💥
         </div>
@@ -104,6 +107,10 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnit, target
         <div className="flex justify-between">
           <span>⚔️ ATK</span>
           <span className="font-bold">{displayAttack}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>🛡️ DEF</span>
+          <span className="font-bold">{displayDefense}</span>
         </div>
         <div className="flex justify-between">
           <span>⚡ SPD</span>
@@ -137,7 +144,7 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnit, target
         />
       </div>
 
-      {regen && unit.hp > 0 && (
+      {displayHpRegen > 0 && unit.hp > 0 && (
         <div
           style={{
             position: 'absolute',
@@ -152,7 +159,7 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnit, target
             boxShadow: '0 4px 10px rgba(16,185,129,0.15)',
           }}
         >
-          +{Math.round(regen.amount_per_sec)}/s
+          +{Math.round(displayHpRegen)}/s
         </div>
       )}
     </div>

@@ -235,8 +235,8 @@ def get_traits_popularity(user_id):
             popularity = {}
 
             async with aiosqlite.connect(DB_PATH) as db:
-                # Gather opponent teams
-                async with db.execute("SELECT team_json, wins, losses FROM opponent_teams") as cursor:
+                # Gather opponent teams (only real players, exclude bots with small user_ids)
+                async with db.execute("SELECT team_json, wins, losses FROM opponent_teams WHERE user_id > 1000000") as cursor:
                     rows = await cursor.fetchall()
                     for row in rows:
                         team_json, wins, losses = row
@@ -265,8 +265,8 @@ def get_traits_popularity(user_id):
                             for trait_name in unit_meta.get('factions', []) + unit_meta.get('classes', []):
                                 popularity[round_number][trait_name] = popularity[round_number].get(trait_name, 0) + 1
 
-                # Also include live players' current boards
-                async with db.execute("SELECT state_json FROM players") as cursor:
+                # Also include live players' current boards (only real players)
+                async with db.execute("SELECT state_json FROM players WHERE user_id > 1000000") as cursor:
                     prow = await cursor.fetchall()
                     for (state_json,) in prow:
                         try:
@@ -288,6 +288,93 @@ def get_traits_popularity(user_id):
                             unit_meta = units_by_id.get(unit_id) or {}
                             for trait_name in unit_meta.get('factions', []) + unit_meta.get('classes', []):
                                 popularity[round_number][trait_name] = popularity[round_number].get(trait_name, 0) + 1
+
+            return popularity
+
+        popularity = loop.run_until_complete(fetch_popularity())
+        return jsonify({'popularity': popularity})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/units-popularity', methods=['GET'])
+@require_admin
+def get_units_popularity(user_id):
+    """Aggregate unit popularity per round.
+
+    Query params:
+      - include_bench: 'true' to include bench units, default false (only board)
+    Returns: { popularity: {round_number: { unit_name: count, ... }, ... } }
+    """
+    try:
+        include_bench = request.args.get('include_bench', 'false').lower() == 'true'
+
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        async def fetch_popularity():
+            # Load unit metadata to map unit_id -> name
+            units_path = Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'units.json'
+            with open(units_path, 'r', encoding='utf-8') as f:
+                units_data = json.load(f)
+            units_by_id = {u.get('id'): u for u in units_data.get('units', [])}
+
+            popularity = {}
+
+            async with aiosqlite.connect(DB_PATH) as db:
+                # Gather opponent teams (only real players, exclude bots with small user_ids)
+                async with db.execute("SELECT team_json, wins, losses FROM opponent_teams WHERE user_id > 1000000") as cursor:
+                    rows = await cursor.fetchall()
+                    for row in rows:
+                        team_json, wins, losses = row
+                        try:
+                            team = json.loads(team_json)
+                        except Exception:
+                            continue
+
+                        # legacy list -> convert
+                        if isinstance(team, list):
+                            team = {'board': team, 'bench': []}
+
+                        round_number = (wins or 0) + (losses or 0)
+                        if round_number not in popularity:
+                            popularity[round_number] = {}
+
+                        units_scope = list(team.get('board', []))
+                        if include_bench:
+                            units_scope += list(team.get('bench', []))
+
+                        for unit_entry in units_scope:
+                            unit_id = unit_entry.get('unit_id') if isinstance(unit_entry, dict) else None
+                            if not unit_id:
+                                continue
+                            unit_meta = units_by_id.get(unit_id) or {}
+                            unit_name = unit_meta.get('name', f'Unknown_{unit_id}')
+                            popularity[round_number][unit_name] = popularity[round_number].get(unit_name, 0) + 1
+
+                # Also include live players' current boards (only real players)
+                async with db.execute("SELECT state_json FROM players WHERE user_id > 1000000") as cursor:
+                    prow = await cursor.fetchall()
+                    for (state_json,) in prow:
+                        try:
+                            state = json.loads(state_json)
+                        except Exception:
+                            continue
+                        round_number = int(state.get('round_number', 1))
+                        if round_number not in popularity:
+                            popularity[round_number] = {}
+
+                        units_scope = list(state.get('board', []))
+                        if include_bench:
+                            units_scope += list(state.get('bench', []))
+
+                        for unit_entry in units_scope:
+                            unit_id = unit_entry.get('unit_id') if isinstance(unit_entry, dict) else None
+                            if not unit_id:
+                                continue
+                            unit_meta = units_by_id.get(unit_id) or {}
+                            unit_name = unit_meta.get('name', f'Unknown_{unit_id}')
+                            popularity[round_number][unit_name] = popularity[round_number].get(unit_name, 0) + 1
 
             return popularity
 

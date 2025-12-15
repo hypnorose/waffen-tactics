@@ -40,6 +40,15 @@ class CombatPerSecondBuffProcessor:
                             add = int(val * mult)
                         u.attack += add
                         log.append(f"{u.name} +{add} Atak (per second)")
+                        if event_callback and add != 0:
+                            event_callback('stat_buff', {
+                                'unit_id': u.id,
+                                'unit_name': u.name,
+                                'stat': 'attack',
+                                'amount': add,
+                                'side': 'team_a',
+                                'timestamp': time
+                            })
                     if stat == 'defense':
                         if is_pct:
                             add = int(u.defense * (val / 100.0) * mult)
@@ -47,6 +56,15 @@ class CombatPerSecondBuffProcessor:
                             add = int(val * mult)
                         u.defense += add
                         log.append(f"{u.name} +{add} Defense (per second)")
+                        if event_callback and add != 0:
+                            event_callback('stat_buff', {
+                                'unit_id': u.id,
+                                'unit_name': u.name,
+                                'stat': 'defense',
+                                'amount': add,
+                                'side': 'team_a',
+                                'timestamp': time
+                            })
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (val / 100.0) * mult)
@@ -87,6 +105,15 @@ class CombatPerSecondBuffProcessor:
                             add = int(val * mult_b)
                         u.attack += add
                         log.append(f"{u.name} +{add} Atak (per second)")
+                        if event_callback and add != 0:
+                            event_callback('stat_buff', {
+                                'unit_id': u.id,
+                                'unit_name': u.name,
+                                'stat': 'attack',
+                                'amount': add,
+                                'side': 'team_b',
+                                'timestamp': time
+                            })
                     if stat == 'defense':
                         if is_pct:
                             add = int(u.defense * (val / 100.0) * mult_b)
@@ -94,11 +121,54 @@ class CombatPerSecondBuffProcessor:
                             add = int(val * mult_b)
                         u.defense += add
                         log.append(f"{u.name} +{add} Defense (per second)")
+                        if event_callback and add != 0:
+                            event_callback('stat_buff', {
+                                'unit_id': u.id,
+                                'unit_name': u.name,
+                                'stat': 'defense',
+                                'amount': add,
+                                'side': 'team_b',
+                                'timestamp': time
+                            })
+                    if stat == 'attack_speed':
+                        if is_pct:
+                            add = u.attack_speed * (val / 100.0) * mult_b
+                        else:
+                            add = float(val)
+                        # apply any buff amplifier present
+                        amp = 1.0
+                        for beff in getattr(u, 'effects', []):
+                            if beff.get('type') == 'buff_amplifier':
+                                try:
+                                    amp = max(amp, float(beff.get('multiplier', 1)))
+                                except Exception:
+                                    pass
+                        add = add * amp
+                        u.attack_speed += add
+                        log.append(f"{u.name} gains +{add:.2f} Attack Speed (per second)")
+                        if event_callback and add != 0:
+                            event_callback('stat_buff', {
+                                'unit_id': u.id,
+                                'unit_name': u.name,
+                                'stat': 'attack_speed',
+                                'amount': add,
+                                'side': 'team_b',
+                                'timestamp': time
+                            })
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (val / 100.0) * mult_b)
                         else:
                             add = int(val * mult_b)
+                        if event_callback and add != 0:
+                            event_callback('stat_buff', {
+                                'unit_id': u.id,
+                                'unit_name': u.name,
+                                'stat': 'hp',
+                                'amount': add,
+                                'side': 'team_b',
+                                'timestamp': time
+                            })
                         b_hp[idx_u] = min(u.max_hp, b_hp[idx_u] + add)
                         log.append(f"{u.name} +{add} HP (per second)")
                         if event_callback and add > 0:

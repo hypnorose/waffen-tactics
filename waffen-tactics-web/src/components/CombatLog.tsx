@@ -25,22 +25,40 @@ export default function CombatLog({ combatLog, logEndRef }: Omit<Props, 'showLog
         gap: 0
       }}
     >
-      {combatLog.map((msg, idx) => (
-        <div
-          key={idx}
-          style={{
-            marginBottom: 0,
-            padding: '2.5px 8px',
-            borderRadius: 4,
-            background: lineColors[idx % lineColors.length],
-            transition: 'background 0.2s',
-            whiteSpace: 'pre-wrap',
-            fontWeight: 500
-          }}
-        >
-          {msg}
-        </div>
-      ))}
+      {combatLog.map((msg, idx) => {
+        // Detect damage messages like: "⚔️ Attacker atakuje Target (12.34 dmg)"
+        const dmgMatch = msg.match(/\(([-+0-9.]+)\s*dmg\)/i)
+        const isDamage = !!dmgMatch && msg.trim().startsWith('⚔️')
+        const amount = isDamage ? dmgMatch![1] : null
+        const textWithoutDmg = isDamage ? msg.replace(/\s*\([^)]+dmg\)/i, '') : msg
+        return (
+          <div
+            key={idx}
+            style={{
+              marginBottom: 0,
+              padding: '2.5px 8px',
+              borderRadius: 4,
+              background: lineColors[idx % lineColors.length],
+              transition: 'background 0.2s',
+              whiteSpace: 'pre-wrap',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            {isDamage ? (
+              <>
+                <span style={{ marginRight: 6 }}>{textWithoutDmg.split(' ')[0]}</span>
+                <span style={{ background: 'rgba(220,38,38,0.95)', color: 'white', padding: '2px 6px', borderRadius: 6, fontWeight: 800 }}>{amount}</span>
+                <span style={{ opacity: 0.9 }}>{' ' + textWithoutDmg.split(' ').slice(1).join(' ')}</span>
+              </>
+            ) : (
+              <span>{msg}</span>
+            )}
+          </div>
+        )
+      })}
       <div ref={logEndRef} />
     </div>
   )

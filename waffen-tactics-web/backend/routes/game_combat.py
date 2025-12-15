@@ -107,92 +107,25 @@ def start_combat():
                     # Keep mana constant across star levels — do not multiply by star_level
                     max_mana = int(base_max_mana)
 
-                    # Build effects list for this unit (deepcopy) and apply static buffs
-                    from copy import deepcopy
-                    effects_for_unit = []
-                    for trait_name, (count, tier) in player_active.items():
-                        trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
-                        if not trait_obj:
-                            continue
-                        idx = tier - 1
-                        if idx < 0 or idx >= len(trait_obj.get('effects', [])):
-                            continue
-                        # Only attach/apply if this unit has the trait
-                        if trait_name not in unit.factions and trait_name not in unit.classes:
-                            continue
-                        effect = deepcopy(trait_obj.get('effects', [])[idx])
-                        effects_for_unit.append(effect)
+                    base_stats_dict = {'hp': hp, 'attack': attack, 'defense': defense, 'attack_speed': attack_speed}
 
-                    # Determine buff amplifier multiplier for this unit
-                    buff_mult = 1.0
-                    for eff_check in effects_for_unit:
-                        if eff_check.get('type') == 'buff_amplifier':
-                            try:
-                                buff_mult = max(buff_mult, float(eff_check.get('multiplier', 1)))
-                            except Exception:
-                                pass
+                    # Apply synergies using SynergyEngine
+                    buffed_stats = game_manager.synergy_engine.apply_stat_buffs(base_stats_dict, unit, player_active)
+                    buffed_stats = game_manager.synergy_engine.apply_dynamic_effects(unit, buffed_stats, player_active, player)
+                    if buffed_stats is None:
+                        buffed_stats = base_stats_dict.copy()
 
-                    # Apply static effects (stat_buff, per_trait_buff) using effects_for_unit
-                    for effect in effects_for_unit:
-                        etype = effect.get('type')
-                        if etype == 'stat_buff':
-                            stats = []
-                            if 'stat' in effect:
-                                stats = [effect['stat']]
-                            elif 'stats' in effect:
-                                stats = effect['stats']
-                            for st in stats:
-                                val = effect.get('value', 0)
-                                try:
-                                    val = float(val) * buff_mult
-                                except Exception:
-                                    pass
-                                if st == 'hp':
-                                    if effect.get('is_percentage'):
-                                        hp = int(hp * (1 + val / 100.0))
-                                    else:
-                                        hp = int(hp + val)
-                                elif st == 'attack':
-                                    if effect.get('is_percentage'):
-                                        attack = int(attack * (1 + val / 100.0))
-                                    else:
-                                        attack = int(attack + val)
-                                elif st == 'defense':
-                                    if effect.get('is_percentage'):
-                                        defense = int(defense * (1 + val / 100.0))
-                                    else:
-                                        defense = int(defense + val)
-                                elif st == 'attack_speed':
-                                    if effect.get('is_percentage'):
-                                        attack_speed = attack_speed * (1 + val / 100.0)
-                                    else:
-                                        attack_speed = attack_speed + val
-                        elif etype == 'per_trait_buff':
-                            stats = effect.get('stats', [])
-                            per_val = float(effect.get('value', 0)) * buff_mult
-                            multiplier = len(player_active)
-                            for st in stats:
-                                if st == 'hp':
-                                    hp = int(hp * (1 + (per_val * multiplier) / 100.0))
-                                elif st == 'attack':
-                                    attack = int(attack * (1 + (per_val * multiplier) / 100.0))
+                    hp = buffed_stats['hp']
+                    attack = buffed_stats['attack']
+                    defense = buffed_stats['defense']
+                    attack_speed = buffed_stats['attack_speed']
 
-                    # Apply dynamic effects (display & runtime) before creating CombatUnit
-                    for eff in effects_for_unit:
-                        etype = eff.get('type')
-                        if etype == 'dynamic_hp_per_loss':
-                            percent_per_loss = float(eff.get('percent_per_loss', 0))
-                            hp = int(hp * (1 + (percent_per_loss * getattr(player, 'losses', 0)) / 100.0))
-                        if etype == 'win_scaling':
-                            atk_per_win = float(eff.get('atk_per_win', 0))
-                            def_per_win = float(eff.get('def_per_win', 0))
-                            hp_percent_per_win = float(eff.get('hp_percent_per_win', 0))
-                            as_per_win = float(eff.get('as_per_win', 0))
-                            attack += int(atk_per_win * getattr(player, 'wins', 0))
-                            defense += int(def_per_win * getattr(player, 'wins', 0))
-                            if hp_percent_per_win:
-                                hp = int(hp * (1 + (hp_percent_per_win * getattr(player, 'wins', 0)) / 100.0))
-                            attack_speed += as_per_win * getattr(player, 'wins', 0)
+                    # Get active effects
+                    effects_for_unit = game_manager.synergy_engine.get_active_effects(unit, player_active)
+
+                    # Add max_mana and current_mana to buffed_stats
+                    buffed_stats['max_mana'] = max_mana
+                    buffed_stats['current_mana'] = 0
 
                     combat_unit = CombatUnit(
                         id=unit_instance.instance_id,
@@ -227,14 +160,7 @@ def start_combat():
                         'cost': unit.cost,
                         'factions': unit.factions,
                         'classes': unit.classes,
-                        'buffed_stats': {
-                            'hp': combat_unit.hp,
-                            'attack': combat_unit.attack,
-                            'defense': combat_unit.defense,
-                            'attack_speed': round(attack_speed, 3),
-                            'max_mana': max_mana,
-                            'current_mana': 0  # Units start with 0 mana
-                        }
+                        'buffed_stats': buffed_stats
                     })
 
             # Find opponent using matchmaking from opponent_teams table
@@ -252,6 +178,10 @@ def start_combat():
                 opponent_wins = opponent_data['wins']
                 opponent_level = opponent_data['level']
                 opponent_team = opponent_data['board']
+
+                # Compute opponent synergies
+                opponent_units_raw = [next((u for u in game_manager.data.units if u.id == ud['unit_id']), None) for ud in opponent_team]
+                opponent_active = game_manager.synergy_engine.compute([u for u in opponent_units_raw if u])
 
                 # Build opponent units from team data
                 for i, unit_data in enumerate(opponent_team):
@@ -278,75 +208,21 @@ def start_combat():
                         # Keep mana constant for opponents as well
                         max_mana = int(base_max_mana_b)
 
-                        # Compute opponent synergies and apply static buffs
-                        try:
-                            opponent_units_raw = [next((u for u in game_manager.data.units if u.id == ud['unit_id']), None) for ud in opponent_team]
-                            opponent_active = game_manager.synergy_engine.compute([u for u in opponent_units_raw if u])
-                        except Exception:
-                            opponent_active = {}
+                        base_stats_dict_b = {'hp': hp, 'attack': attack, 'defense': defense, 'attack_speed': attack_speed}
 
-                        for trait_name, (count_b, tier_b) in opponent_active.items():
-                            trait_obj_b = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
-                            if not trait_obj_b:
-                                continue
-                            idx_b = tier_b - 1
-                            if idx_b < 0 or idx_b >= len(trait_obj_b.get('effects', [])):
-                                continue
-                            effect_b = trait_obj_b.get('effects', [])[idx_b]
-                            if trait_name not in unit.factions and trait_name not in unit.classes:
-                                continue
-                            etype_b = effect_b.get('type')
-                            if etype_b == 'stat_buff':
-                                stats_b = []
-                                if 'stat' in effect_b:
-                                    stats_b = [effect_b['stat']]
-                                elif 'stats' in effect_b:
-                                    stats_b = effect_b['stats']
-                                for st in stats_b:
-                                    val = effect_b.get('value', 0)
-                                    if st == 'hp':
-                                        if effect_b.get('is_percentage'):
-                                            hp = int(hp * (1 + val / 100.0))
-                                        else:
-                                            hp = int(hp + val)
-                                    elif st == 'attack':
-                                        if effect_b.get('is_percentage'):
-                                            attack = int(attack * (1 + val / 100.0))
-                                        else:
-                                            attack = int(attack + val)
-                                    elif st == 'defense':
-                                        if effect_b.get('is_percentage'):
-                                            defense = int(defense * (1 + val / 100.0))
-                                        else:
-                                            defense = int(defense + val)
-                                    elif st == 'attack_speed':
-                                        if effect_b.get('is_percentage'):
-                                            attack_speed = attack_speed * (1 + val / 100.0)
-                                        else:
-                                            attack_speed = attack_speed + val
-                            elif etype_b == 'per_trait_buff':
-                                stats_b = effect_b.get('stats', [])
-                                per_val = effect_b.get('value', 0)
-                                multiplier_b = len(opponent_active)
-                                for st in stats_b:
-                                    if st == 'hp':
-                                        hp = int(hp * (1 + (per_val * multiplier_b) / 100.0))
-                                    elif st == 'attack':
-                                        attack = int(attack * (1 + (per_val * multiplier_b) / 100.0))
+                        # Apply synergies using SynergyEngine
+                        buffed_stats_b = game_manager.synergy_engine.apply_stat_buffs(base_stats_dict_b, unit, opponent_active)
+                        buffed_stats_b = game_manager.synergy_engine.apply_dynamic_effects(unit, buffed_stats_b, opponent_active, None)  # No player for opponent
+                        if buffed_stats_b is None:
+                            buffed_stats_b = base_stats_dict_b.copy()
 
-                        # Attach effects for opponent unit as well
-                        from copy import deepcopy
-                        effects_b_for_unit = []
-                        for trait_name_b, (count_b2, tier_b2) in opponent_active.items():
-                            trait_obj_bb = next((t for t in game_manager.data.traits if t.get('name') == trait_name_b), None)
-                            if not trait_obj_bb:
-                                continue
-                            idx_bb = tier_b2 - 1
-                            if idx_bb < 0 or idx_bb >= len(trait_obj_bb.get('effects', [])):
-                                continue
-                            effect_bb = trait_obj_bb.get('effects', [])[idx_bb]
-                            if trait_name_b in unit.factions or trait_name_b in unit.classes:
-                                effects_b_for_unit.append(deepcopy(effect_bb))
+                        hp = buffed_stats_b['hp']
+                        attack = buffed_stats_b['attack']
+                        defense = buffed_stats_b['defense']
+                        attack_speed = buffed_stats_b['attack_speed']
+
+                        # Get active effects
+                        effects_b_for_unit = game_manager.synergy_engine.get_active_effects(unit, opponent_active)
 
                         combat_unit = CombatUnit(
                             id=f'opp_{i}',
@@ -385,7 +261,8 @@ def start_combat():
                                 'defense': combat_unit.defense,
                                 'attack_speed': round(attack_speed, 3),
                                 'max_mana': max_mana,
-                                'current_mana': 0  # Units start with 0 mana
+                                'current_mana': 0,  # Units start with 0 mana
+                                'hp_regen_per_sec': round(combat_unit.hp_regen_per_sec, 1)
                             }
                         })
             else:
@@ -429,7 +306,8 @@ def start_combat():
                             'defense': combat_unit.defense,
                             'attack_speed': round(attack_speed, 3),
                             'max_mana': 100,
-                            'current_mana': 0  # Units start with 0 mana
+                            'current_mana': 0,  # Units start with 0 mana
+                            'hp_regen_per_sec': round(combat_unit.hp_regen_per_sec, 1)
                         }
                     })
 
