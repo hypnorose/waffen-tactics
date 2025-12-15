@@ -3,6 +3,7 @@ import Login from './pages/Login'
 import AuthCallback from './pages/AuthCallback'
 import Game from './pages/Game'
 import TermsOfService from './pages/TermsOfService'
+import Admin from './pages/Admin'
 import { useAuthStore } from './store/authStore'
 import './App.css'
 
@@ -28,6 +29,14 @@ function App() {
           element={
             <PrivateRoute>
               <Game />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute>
+              <Admin />
             </PrivateRoute>
           }
         />

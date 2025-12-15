@@ -100,11 +100,13 @@ class OpponentPreviewView(View):
         result = await self.bot.run_combat_with_animation(combat_msg, player, self.opponent_units, self.opponent_data)
         
         # Save player's team and update
-        player_team = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
+        board_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
+        bench_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.bench]
         await self.bot.db.save_opponent_team(
             user_id=interaction.user.id,
             nickname=interaction.user.display_name,
-            team_units=player_team,
+            board_units=board_units,
+            bench_units=bench_units,
             wins=player.wins,
             losses=player.losses,
             level=player.level
@@ -938,7 +940,7 @@ class WaffenTacticsBot:
         
         # Build opponent units
         opponent_units = []
-        for unit_data in opponent_data['team']:
+        for unit_data in opponent_data['board']:
             unit = next((u for u in self.game_data.units if u.id == unit_data['unit_id']), None)
             if unit:
                 opponent_units.append(unit)
@@ -963,11 +965,13 @@ class WaffenTacticsBot:
         result = await self.run_combat_with_animation(combat_msg, player, opponent_units, opponent_data)
         
         # Save player's team and update
-        player_team = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
+        board_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
+        bench_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.bench]
         await self.db.save_opponent_team(
             user_id=interaction.user.id,
             nickname=interaction.user.display_name,
-            team_units=player_team,
+            board_units=board_units,
+            bench_units=bench_units,
             wins=player.wins,
             losses=player.losses,
             level=player.level

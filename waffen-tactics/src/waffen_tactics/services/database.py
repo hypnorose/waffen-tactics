@@ -13,9 +13,14 @@ class DatabaseManager:
             async with db.execute("SELECT nickname, team_json, wins, level FROM opponent_teams WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,)) as cursor:
                 row = await cursor.fetchone()
                 if row:
+                    team_data = json.loads(row[1])
+                    # Handle legacy format
+                    if isinstance(team_data, list):
+                        team_data = {'board': team_data, 'bench': []}
                     return {
                         'nickname': row[0],
-                        'team': json.loads(row[1]),
+                        'board': team_data['board'],
+                        'bench': team_data['bench'],
                         'wins': row[2],
                         'level': row[3]
                     }
@@ -151,9 +156,9 @@ class DatabaseManager:
                 row = await cursor.fetchone()
                 return row[0] >= 15 if row else False
     
-    async def save_opponent_team(self, user_id: int, nickname: str, team_units: list, wins: int, losses: int, level: int):
+    async def save_opponent_team(self, user_id: int, nickname: str, board_units: list, bench_units: list, wins: int, losses: int, level: int):
         """Save team snapshot - keeps history of all teams"""
-        team_json = json.dumps(team_units)
+        team_json = json.dumps({'board': board_units, 'bench': bench_units})
         
         async with aiosqlite.connect(self.db_path) as db:
             # Don't delete - just insert new entry for history
@@ -262,9 +267,14 @@ class DatabaseManager:
                         row = await cursor.fetchone()
             
             if row:
+                team_data = json.loads(row[1])
+                # Handle legacy format
+                if isinstance(team_data, list):
+                    team_data = {'board': team_data, 'bench': []}
                 return {
                     'nickname': row[0],
-                    'team': json.loads(row[1]),
+                    'board': team_data['board'],
+                    'bench': team_data['bench'],
                     'wins': row[2],
                     'losses': row[3],
                     'level': row[4]

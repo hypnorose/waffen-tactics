@@ -251,7 +251,7 @@ def start_combat():
                 opponent_name = opponent_data['nickname']
                 opponent_wins = opponent_data['wins']
                 opponent_level = opponent_data['level']
-                opponent_team = opponent_data['team']
+                opponent_team = opponent_data['board']
 
                 # Build opponent units from team data
                 for i, unit_data in enumerate(opponent_team):
@@ -640,12 +640,14 @@ def start_combat():
                 player.locked_shop = False
 
             # Save player's team to opponent pool (like Discord bot)
-            player_team = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
+            board_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
+            bench_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.bench]
             username = payload.get('username', f'Player_{user_id}')
             run_async(db_manager.save_opponent_team(
                 user_id=user_id,
                 nickname=username,
-                team_units=player_team,
+                board_units=board_units,
+                bench_units=bench_units,
                 wins=player.wins,
                 losses=player.losses,
                 level=player.level

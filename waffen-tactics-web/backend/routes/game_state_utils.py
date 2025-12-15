@@ -267,6 +267,55 @@ def enrich_player_state(player: PlayerState) -> dict:
     except Exception as e:
         print(f"⚠️ Error computing buffed stats: {e}")
 
+    # Compute detailed shop offers for frontend display (base + buffed stats per offer)
+    try:
+        print(f"DEBUG: player.last_shop = {getattr(player, 'last_shop', 'NOT_SET')}")
+        last_shop_detailed = []
+        for uid in getattr(player, 'last_shop', []):
+            if not uid:
+                last_shop_detailed.append(None)
+                continue
+            unit = next((u for u in GameManager().data.units if u.id == uid), None)
+            if not unit:
+                last_shop_detailed.append({'unit_id': uid})
+                continue
+
+            # Shop offers are always fresh units at star_level=1 with no synergies applied
+            from copy import deepcopy
+            base = deepcopy(unit.stats)
+            star_level = 1
+            base_hp = int(base.hp * (1.6 ** (star_level - 1)))
+            base_attack = int(base.attack * (1.4 ** (star_level - 1)))
+            base_defense = int(base.defense)
+            base_attack_speed = float(base.attack_speed)
+            base_max_mana = int(base.max_mana) if hasattr(base, 'max_mana') else int(getattr(base, 'max_mana', 100))
+
+            base_stats = {
+                'hp': base_hp,
+                'attack': base_attack,
+                'defense': base_defense,
+                'attack_speed': round(base_attack_speed, 3),
+                'max_mana': base_max_mana,
+                'current_mana': 0,
+            }
+
+            # No synergies applied in shop preview, so buffed == base
+            buffed_stats = dict(base_stats)
+
+            last_shop_detailed.append({
+                'unit_id': uid,
+                'name': unit.name,
+                'cost': unit.cost,
+                'avatar': getattr(unit, 'avatar', None),
+                'base_stats': base_stats,
+                'buffed_stats': buffed_stats,
+            })
+
+        state['last_shop_detailed'] = last_shop_detailed
+        print(f"DEBUG: last_shop_detailed computed with {len(last_shop_detailed)} entries: {[ (e.get('unit_id') if isinstance(e, dict) else e) for e in last_shop_detailed ]}")
+    except Exception as e:
+        print(f"⚠️ Error computing shop preview stats: {e}")
+
     # Add shop odds for current level
     level = min(player.level, 10)
     odds_dict = RARITY_ODDS_BY_LEVEL.get(level, RARITY_ODDS_BY_LEVEL[10])

@@ -41,6 +41,8 @@ from routes.auth import auth_bp, require_auth, verify_token
 app.register_blueprint(auth_bp, url_prefix='/auth')
 from routes.game_routes import game_bp
 app.register_blueprint(game_bp, url_prefix='/game')
+from routes.admin import admin_bp
+app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
 # Database path - use the same DB as Discord bot
 DB_PATH = str(Path(__file__).parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')

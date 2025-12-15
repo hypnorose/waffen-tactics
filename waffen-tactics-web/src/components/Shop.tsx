@@ -196,9 +196,12 @@ export default function Shop({ playerState, onUpdate }: ShopProps) {
                                 className="grid gap-3 justify-center"
                                 style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(14rem, 1fr))' }}
                             >
-                                {playerState.last_shop.map((unitId: string, index: number) => {
+                                {(playerState.last_shop_detailed ?? playerState.last_shop).map((entry: any, index: number) => {
+                // entry can be either an object from last_shop_detailed or a plain unitId string (legacy)
+                const unitObj = typeof entry === 'string' ? (entry || null) : entry
+
                 // Empty slot
-                if (!unitId) {
+                if (!unitObj) {
                     return (
                         <div key={`empty-${index}`} className="w-full max-w-[14rem]">
                             <div className="rounded-lg bg-surface/30 h-48 flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600">
@@ -207,6 +210,8 @@ export default function Shop({ playerState, onUpdate }: ShopProps) {
                         </div>
                     )
                 }
+
+                const unitId = typeof unitObj === 'string' ? unitObj : unitObj.unit_id
 
                 // Highlight if unit is on board
                 const isOnBoard = playerState.board?.some((u: any) => u.unit_id === unitId)
@@ -221,6 +226,8 @@ export default function Shop({ playerState, onUpdate }: ShopProps) {
                             onClick={() => handleBuyUnit(unitId)}
                             disabled={loading}
                             detailed={true}
+                            baseStats={typeof unitObj === 'object' ? unitObj.base_stats : undefined}
+                            buffedStats={typeof unitObj === 'object' ? unitObj.buffed_stats : undefined}
                         />
                         {isOnBoard && (
                             <span
@@ -233,32 +240,35 @@ export default function Shop({ playerState, onUpdate }: ShopProps) {
                         )}
                     </div>
                 )
-            // Add animation for shop highlight
-            const style = document.createElement('style');
-            style.innerHTML = `
-            @keyframes shop-pulse {
-                0% {
-                    box-shadow: 0 0 0 6px #22d3ee33, 0 0 24px 6px #22d3ee66;
-                    opacity: 1;
-                }
-                50% {
-                    box-shadow: 0 0 0 12px #22d3ee55, 0 0 48px 12px #22d3ee99;
-                    opacity: 0.7;
-                }
-                100% {
-                    box-shadow: 0 0 0 6px #22d3ee33, 0 0 24px 6px #22d3ee66;
-                    opacity: 1;
-                }
-            }
-            .animate-pulse-shop-highlight {
-                animation: shop-pulse 1.2s infinite;
-            }
-            `;
-            if (typeof window !== 'undefined' && !document.getElementById('shop-pulse-style')) {
-                style.id = 'shop-pulse-style';
-                document.head.appendChild(style);
-            }
             })}
+            {/* Add animation for shop highlight */}
+            {(() => {
+                const style = document.createElement('style');
+                style.innerHTML = `
+                @keyframes shop-pulse {
+                    0% {
+                        box-shadow: 0 0 0 6px #22d3ee33, 0 0 24px 6px #22d3ee66;
+                        opacity: 1;
+                    }
+                    50% {
+                        box-shadow: 0 0 0 12px #22d3ee55, 0 0 48px 12px #22d3ee99;
+                        opacity: 0.7;
+                    }
+                    100% {
+                        box-shadow: 0 0 0 6px #22d3ee33, 0 0 24px 6px #22d3ee66;
+                        opacity: 1;
+                    }
+                }
+                .animate-pulse-shop-highlight {
+                    animation: shop-pulse 1.2s infinite;
+                }
+                `;
+                if (typeof window !== 'undefined' && !document.getElementById('shop-pulse-style')) {
+                    style.id = 'shop-pulse-style';
+                    document.head.appendChild(style);
+                }
+                return null
+            })()}
                             </div>
                         </div>
 

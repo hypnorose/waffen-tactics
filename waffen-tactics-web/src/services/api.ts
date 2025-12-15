@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/authStore'
 
 const API_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:8000' 
-  : (import.meta.env.VITE_API_URL || 'https://waffentactics.pl/api')
+  : (import.meta.env.VITE_API_URL || 'https://waffentactics.pl')
 
 const api = axios.create({
   baseURL: API_URL,
