@@ -1,5 +1,5 @@
 import random
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from waffen_tactics.models.unit import Unit
 from waffen_tactics.models.player_state import PlayerState
 
@@ -17,10 +17,11 @@ RARITY_ODDS_BY_LEVEL = {
 }
 
 class ShopService:
-    def __init__(self, units: List[Unit]):
+    def __init__(self, units: List[Unit], traits: List[Dict] = None):
         self.units_by_cost: Dict[int, List[Unit]] = {}
         for u in units:
             self.units_by_cost.setdefault(u.cost, []).append(u)
+        self.traits = traits or []
 
     def roll(self, level: int, count: int = 5) -> List[Unit]:
         odds = RARITY_ODDS_BY_LEVEL.get(level, RARITY_ODDS_BY_LEVEL[max(RARITY_ODDS_BY_LEVEL)])
@@ -51,7 +52,7 @@ class ShopService:
         attempts = 0
         while len(offers) < 5 and attempts < 50:
             unit = self.roll(player.level, count=1)[0]
-            if unit.id not in owned_3star and (not unit.classes or unit.classes[0] not in [u.classes[0] for u in offers if u and u.classes]):
+            if unit.id not in owned_3star:
                 offers.append(unit)
             attempts += 1
 
@@ -63,18 +64,56 @@ class ShopService:
         player.locked_shop = False
         return player.last_shop
 
-    def reroll(self, player: PlayerState) -> bool:
-        """Reroll shop for 2 gold, returns True if successful"""
+    def reroll_shop(self, player: PlayerState, active_synergies: Dict[str, Tuple[int, int]]) -> Tuple[bool, str]:
+        """Reroll shop for 2 gold, checking for free reroll synergies"""
         if player.locked_shop:
-            return False
+            return False, "Sklep jest zablokowany! Odblokuj go przed odświeżeniem."
+        
         # Check for reroll-free chance from active synergies (e.g., XN Mod)
-        # Note: This needs synergy data, but for now, assume no free reroll or pass synergies
-        # In GameManager, it was checked, but since we're refactoring, perhaps move to ShopService
-        # For simplicity, assume cost is always 2, no free reroll for now
+        free_reroll = False
+        free_reason = None
+        for trait_name, (count, tier) in active_synergies.items():
+            trait_obj = next((t for t in self.traits if t.get('name') == trait_name), None)
+            if not trait_obj:
+                continue
+            idx = tier - 1
+            if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+                continue
+            effect = trait_obj.get('effects', [])[idx]
+            if effect.get('type') == 'reroll_free_chance':
+                chance = float(effect.get('chance_percent', 0))
+                if random.random() * 100.0 < chance:
+                    free_reroll = True
+                    free_reason = f"{trait_name} darmowy reroll ({chance}%)"
+                    break
+
         cost = 2
-        if not player.can_afford(cost):
-            return False
-        player.spend_gold(cost)
+        if not free_reroll:
+            if not player.can_afford(cost):
+                return False, f"Brak golda! Reroll kosztuje {cost}g."
+            player.spend_gold(cost)
+
         player.shop_rerolls += 1
         self.generate_offers(player, force_new=True)
-        return True
+
+        if free_reroll:
+            return True, f"Darmowy reroll dzięki {free_reason}!"
+
+        return True, f"Reroll za {cost}g!"
+    
+    def buy_xp(self, player: PlayerState) -> Tuple[bool, str]:
+        """Buy 4 XP for 4 gold"""
+        cost = 4
+        if not player.can_afford(cost):
+            return False, f"Brak golda! XP kosztuje {cost}g."
+        
+        if player.level >= 10:
+            return False, "Już masz max poziom (10)!"
+        
+        player.spend_gold(cost)
+        leveled_up = player.add_xp(4)
+        
+        if leveled_up:
+            return True, f"Poziom {player.level}! Max jednostek: {player.max_board_size}"
+        
+        return True, f"Kupiono 4 XP ({player.xp}/{player.xp_to_next_level})"
