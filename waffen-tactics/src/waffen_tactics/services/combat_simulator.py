@@ -26,6 +26,7 @@ class CombatSimulator(
             dt: Time step in seconds (0.1 = 100ms ticks)
             timeout: Max combat duration in seconds
         """
+        super().__init__()
         self.dt = dt
         self.timeout = timeout
 

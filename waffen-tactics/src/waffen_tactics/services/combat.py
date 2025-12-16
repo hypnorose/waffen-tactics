@@ -27,7 +27,7 @@ class CombatSimulator:
                 attack=u.stats.attack,
                 defense=u.stats.defense,
                 attack_speed=u.stats.attack_speed,
-                position=u.position,
+                position='front',
                 max_mana=u.stats.max_mana,
                 skill=u.skill,
                 stats=u.stats
@@ -43,7 +43,7 @@ class CombatSimulator:
                 attack=u.stats.attack,
                 defense=u.stats.defense,
                 attack_speed=u.stats.attack_speed,
-                position=u.position,
+                position='front',
                 max_mana=u.stats.max_mana,
                 skill=u.skill,
                 stats=u.stats

@@ -63,6 +63,19 @@
                 "attack",
                 "defense"
               ],
+              "value": 3
+            }
+          ]
+        },
+        {
+          "type": "on_enemy_death",
+          "actions": [
+            {
+              "type": "stat_buff",
+              "stats": [
+                "attack",
+                "defense"
+              ],
               "value": 5
             }
           ]
@@ -76,7 +89,7 @@
                 "attack",
                 "defense"
               ],
-              "value": 10
+              "value": 7
             }
           ]
         },
@@ -89,20 +102,7 @@
                 "attack",
                 "defense"
               ],
-              "value": 15
-            }
-          ]
-        },
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "stat_buff",
-              "stats": [
-                "attack",
-                "defense"
-              ],
-              "value": 25
+              "value": 12
             }
           ]
         }
@@ -515,35 +515,53 @@
       "name": "Haker",
       "type": "class",
       "target": "trait",
-      "description": "Kradną obronę przeciwnikom",
+      "description": "Po zabiciu wroga permanentnie zyskują obronę",
       "thresholds": [
         3,
         5,
         7
       ],
       "threshold_descriptions": [
-        "kradną <v> obrony zabitym wrogom",
-        "kradną <v> obrony zabitym wrogom",
-        "kradną <v> obrony zabitym wrogom"
+        "+<v>% obrony zabitego wroga permanentnie",
+        "+<v>% obrony zabitego wroga permanentnie",
+        "+<v>% obrony zabitego wroga permanentnie"
       ],
       "effects": [
         {
-          "type": "stat_steal",
-          "stat": "defense",
-          "value": 3,
-          "is_percentage": true
+          "type": "on_enemy_death",
+          "actions": [
+            {
+              "type": "kill_buff",
+              "stat": "defense",
+              "value": 3,
+              "is_percentage": true,
+              "collect_stat": "defense"
+            }
+          ]
         },
         {
-          "type": "stat_steal",
-          "stat": "defense",
-          "value": 6,
-          "is_percentage": true
+          "type": "on_enemy_death",
+          "actions": [
+            {
+              "type": "kill_buff",
+              "stat": "defense",
+              "value": 6,
+              "is_percentage": true,
+              "collect_stat": "defense"
+            }
+          ]
         },
         {
-          "type": "stat_steal",
-          "stat": "defense",
-          "value": 15,
-          "is_percentage": true
+          "type": "on_enemy_death",
+          "actions": [
+            {
+              "type": "kill_buff",
+              "stat": "defense",
+              "value": 15,
+              "is_percentage": true,
+              "collect_stat": "defense"
+            }
+          ]
         }
       ]
     },

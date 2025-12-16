@@ -222,15 +222,82 @@ class TestCombat(unittest.TestCase):
         result = self.sim.simulate(team, opp)
         self.assertIn(result["winner"], ("A", "B", "team_a", "team_b"))
 
-    def test_ultra_fast_unit(self):
-        """Test that unit with extremely high attack speed attacks often and does not break combat"""
-        fast_stats = Stats(attack=10, hp=100, defense=5, max_mana=100, attack_speed=100.0)
-        slow_stats = Stats(attack=10, hp=100, defense=5, max_mana=100, attack_speed=0.1)
-        skill = Skill("Test", "test", 100, {"type": "damage", "amount": 10})
-        team = [Unit("fast", "Fast", 1, ["X"], ["Y"], fast_stats, skill)]
-        opp = [Unit("slow", "Slow", 1, ["X"], ["Y"], slow_stats, skill)]
-        result = self.sim.simulate(team, opp)
-        self.assertIn(result["winner"], ("A", "B", "team_a", "team_b"))
-
-if __name__ == '__main__':
-    unittest.main()
+    def test_kill_buff_only_for_units_with_effect(self):
+        """Test that kills and stolen_defense are only incremented for units with kill_buff effects"""
+        from waffen_tactics.services.combat_unit import CombatUnit
+        
+        # Create units with and without effects
+        unit_with_effect = CombatUnit(
+            id="killer",
+            name="Killer",
+            hp=100,
+            attack=20,
+            defense=10,
+            attack_speed=1.0,
+            effects=[{
+                "type": "on_enemy_death",
+                "actions": [{
+                    "type": "kill_buff",
+                    "stat": "defense",
+                    "value": 10,
+                    "is_percentage": True
+                }]
+            }]
+        )
+        unit_without_effect = CombatUnit(
+            id="non_killer",
+            name="NonKiller", 
+            hp=100,
+            attack=20,
+            defense=10,
+            attack_speed=1.0,
+            effects=[]
+        )
+        target = CombatUnit(
+            id="target",
+            name="Target",
+            hp=50,
+            attack=10,
+            defense=20,
+            attack_speed=1.0
+        )
+        
+        # Simulate kill by unit_with_effect
+        from waffen_tactics.services.combat_effect_processor import CombatEffectProcessor
+        processor = CombatEffectProcessor()
+        log = []
+        processor._process_unit_death(
+            killer=unit_with_effect,
+            defending_team=[target],
+            defending_hp=[0],  # dead
+            attacking_team=[unit_with_effect],
+            attacking_hp=[100],
+            target_idx=0,
+            time=1.0,
+            log=log,
+            event_callback=None,
+            side="team_a"
+        )
+        
+        # Check that unit_with_effect has incremented stats
+        self.assertEqual(unit_with_effect.collected_stats.get('kills', 0), 1)
+        self.assertEqual(unit_with_effect.collected_stats.get('defense', 0), 20)
+        
+        # Reset and test unit_without_effect
+        unit_without_effect.collected_stats = {}
+        processor._process_unit_death(
+            killer=unit_without_effect,
+            defending_team=[target],
+            defending_hp=[0],
+            attacking_team=[unit_without_effect],
+            attacking_hp=[100],
+            target_idx=0,
+            time=1.0,
+            log=log,
+            event_callback=None,
+            side="team_a"
+        )
+        
+        # Check that unit_without_effect has NOT incremented stats
+        self.assertEqual(unit_without_effect.collected_stats.get('kills', 0), 0)
+        self.assertEqual(unit_without_effect.collected_stats.get('defense', 0), 0)

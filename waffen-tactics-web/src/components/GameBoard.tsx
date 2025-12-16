@@ -46,6 +46,39 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
     }
   }
 
+  const handleSell = async (instanceId: string) => {
+    setLoading(true)
+    try {
+      const response = await gameAPI.sellUnit(instanceId)
+      onUpdate(response.data.state)
+      
+      if (response.data.message) {
+        onNotification(response.data.message, 'success')
+      }
+    } catch (err: any) {
+      onNotification(err.response?.data?.error || 'Nie można sprzedać jednostki')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBuyUnit = async (unitId: string) => {
+    setLoading(true)
+    try {
+      const response = await gameAPI.buyUnit(unitId)
+      onUpdate(response.data.state)
+
+      // Show success message if present
+      if (response.data.message) {
+        onNotification(response.data.message, 'success')
+      }
+    } catch (err: any) {
+      onNotification(err.response?.data?.error || 'Nie można kupić jednostki')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleMoveToBoard = async (instanceId: string, position: 'front' | 'back' = 'front') => {
     const maxPerLine = Math.ceil(playerState.max_board_size * 0.75)
     const frontCount = playerState.board.filter((u: any) => u.position === 'front').length
@@ -103,7 +136,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
     <div className="space-y-2">
       <div className="flex items-center justify-center gap-2">
         <h3 className={`text-sm font-bold ${lineType === 'front' ? 'text-red-400' : 'text-blue-400'}`}>
-          {lineType === 'front' ? '⚔️' : '🛡️'} {lineName}
+          {lineType === 'front' ? '⚔️' : '🏹'} {lineName}
         </h3>
         <span className="text-xs text-text/60">({units.length}/{maxPerLine})</span>
       </div>
@@ -121,17 +154,24 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
           e.preventDefault()
           setIsDragOver(false)
           const data = JSON.parse(e.dataTransfer.getData('text/plain'))
-          if (data.type === 'moveToBoard') {
-            // Check if unit is already on board
-            if (playerState.board.some((u: any) => u.instance_id === data.instanceId)) {
-              // Unit is already on board, check if it's in a different line
-              const existingUnit = playerState.board.find((u: any) => u.instance_id === data.instanceId)
-              if (existingUnit.position !== lineType) {
-                await handleSwitchLine(data.instanceId, existingUnit.position)
+          if (data.type === 'unitAction') {
+            if (data.action === 'sell') {
+              // If dragging from bench to board, move to board instead of sell
+              await handleMoveToBoard(data.instanceId, lineType)
+            } else if (data.action === 'moveToBoard') {
+              // Check if unit is already on board
+              if (playerState.board.some((u: any) => u.instance_id === data.instanceId)) {
+                // Unit is already on board, check if it's in a different line
+                const existingUnit = playerState.board.find((u: any) => u.instance_id === data.instanceId)
+                if (existingUnit.position !== lineType) {
+                  await handleSwitchLine(data.instanceId, existingUnit.position)
+                }
+                return
               }
-              return
+              await handleMoveToBoard(data.instanceId, lineType)
+            } else if (data.action === 'buy') {
+              await handleBuyUnit(data.unitId)
             }
-            await handleMoveToBoard(data.instanceId, lineType)
           }
         }}
       >
@@ -148,7 +188,8 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
                 onDragStart={(e) => {
                   setIsDragging(true)
                   e.dataTransfer.setData('text/plain', JSON.stringify({
-                    type: 'moveToBoard',
+                    type: 'unitAction',
+                    action: 'moveToBoard',
                     instanceId: unitInstance.instance_id
                   }))
                 }}
@@ -160,6 +201,14 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
                   title="Przenieś na ławkę"
                 >
                   ↓
+                </button>
+                <button
+                  onClick={() => handleSell(unitInstance.instance_id)}
+                  disabled={loading}
+                  className="absolute -bottom-1 -right-1 z-20 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold disabled:opacity-50 shadow-lg border border-red-700"
+                  title="Sprzedaj jednostkę"
+                >
+                  💰
                 </button>
                 <button
                   onClick={() => handleSwitchLine(unitInstance.instance_id, unitInstance.position)}

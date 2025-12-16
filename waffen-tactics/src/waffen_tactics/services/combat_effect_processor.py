@@ -3,10 +3,14 @@ Combat effect processor - handles trait effects, buffs, and death triggers
 """
 import random
 from typing import List, Dict, Any, Callable, Optional
+from .effect_processor import EffectProcessor
 
 
 class CombatEffectProcessor:
     """Handles combat effects, buffs, and death triggers"""
+
+    def __init__(self):
+        self.effect_processor = EffectProcessor()
 
     def _process_unit_death(
         self,
@@ -24,6 +28,31 @@ class CombatEffectProcessor:
         """Process effects when a unit dies."""
         target = defending_team[target_idx]
         defending_side = 'team_a' if side == 'team_b' else 'team_b'
+
+        # Increment collected stats for the killer if they have relevant effects
+        if killer:
+            # Find all collect_stat values from kill_buff effects
+            collect_stats = set()
+            for eff in getattr(killer, 'effects', []):
+                if eff.get('type') == 'on_enemy_death':
+                    for action in eff.get('actions', []):
+                        if action.get('type') == 'kill_buff':
+                            collect_stat = action.get('collect_stat', 'defense')
+                            collect_stats.add(collect_stat)
+            
+            if collect_stats:
+                # Initialize collected_stats if needed
+                if not hasattr(killer, 'collected_stats'):
+                    killer.collected_stats = {}
+                
+                # Always collect kills
+                killer.collected_stats['kills'] = killer.collected_stats.get('kills', 0) + 1
+                
+                # Collect specified stats from target
+                for stat in collect_stats:
+                    if stat != 'kills':  # kills is handled separately
+                        value = getattr(target, stat, 0)
+                        killer.collected_stats[stat] = killer.collected_stats.get(stat, 0) + value
 
         if event_callback:
             event_callback('unit_died', {
@@ -67,19 +96,7 @@ class CombatEffectProcessor:
                             self._apply_reward(unit, eff, defending_hp, i, time, log, event_callback, defending_side)
                         self._apply_stat_buff(unit, eff, defending_hp, i, time, log, event_callback, defending_side, attacking_team, defending_team, attacking_hp, defending_hp)
 
-        # Stat steal effects for attacking team
-        for unit in attacking_team:
-            for eff in getattr(unit, 'effects', []):
-                if eff.get('type') == 'stat_steal':
-                    stat = eff.get('stat')
-                    value = eff.get('value', 0)  # percentage
-                    is_pct = eff.get('is_percentage', True)
-                    if stat and is_pct:
-                        stolen_value = 0
-                        if stat == 'defense':
-                            stolen_value = int(target.defense * (value / 100.0))
-                            unit.defense += stolen_value
-                            log.append(f"{unit.name} steals +{stolen_value} Defense from {target.name}")
+        # Note: stat_steal effects have been replaced with on_enemy_death + permanent_stat_buff
 
     def _apply_reward(
         self,
@@ -191,6 +208,20 @@ class CombatEffectProcessor:
             action_type = action.get('type')
             if action_type == 'stat_buff':
                 self._apply_stat_buff(unit, action, hp_list, unit_idx, time, log, event_callback, side, attacking_team, defending_team, attacking_hp, defending_hp)
+            elif action_type in ('kill_buff', 'collect_stat'):
+                # Use new EffectProcessor for kill_buff and collect_stat actions
+                result = self.effect_processor.process_effect(
+                    action, unit, attacking_team, defending_team,
+                    attacking_hp, defending_hp, side
+                )
+                if result.get('errors'):
+                    for error in result['errors']:
+                        log.append(f"Effect processing error: {error}")
+                if result.get('processed') and result.get('changes'):
+                    # Log successful processing
+                    if 'buffs_applied' in result['changes']:
+                        for buff_info in result['changes']['buffs_applied']:
+                            log.append(f"{unit.name} applied {buff_info['stat_type']} buff (+{buff_info['increment']})")
             elif action_type == 'reward':
                 if triggered_rewards is not None and effect and effect.get('trigger_once', False):
                     reward_type = action.get('reward')
@@ -198,6 +229,102 @@ class CombatEffectProcessor:
                         continue
                     triggered_rewards.add(reward_type)
                 self._apply_reward(unit, action, hp_list, unit_idx, time, log, event_callback, side, attacking_team, attacking_hp)
+
+    def _apply_stat_buff_with_handlers(
+        self,
+        unit: 'CombatUnit',
+        effect: Dict[str, Any],
+        hp_list: List[int],
+        unit_idx: int,
+        time: float,
+        log: List[str],
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+        side: str,
+        attacking_team: Optional[List['CombatUnit']] = None,
+        defending_team: Optional[List['CombatUnit']] = None,
+        attacking_hp: Optional[List[int]] = None,
+        defending_hp: Optional[List[int]] = None
+    ):
+        """Apply stat buff using the new StatBuffHandlers."""
+        stats = effect.get('stats', [])
+        val = effect.get('value', 0)
+        buff_type = 'percentage' if effect.get('is_percentage', False) else 'flat'
+        target = effect.get('target', 'self')
+        only_same_trait = effect.get('only_same_trait', False)
+
+        # Find recipients
+        recipients = self.effect_processor.recipient_resolver.find_recipients(
+            unit, target, only_same_trait, attacking_team, defending_team, side
+        )
+
+        if not recipients:
+            return
+
+        for stat_type in stats:
+            if stat_type not in self.effect_processor.buff_handlers:
+                log.append(f"Unknown stat type: {stat_type}")
+                continue
+
+            handler = self.effect_processor.buff_handlers[stat_type]
+
+            for recipient in recipients:
+                # Calculate buff increment with amplifiers
+                base_increment = self.effect_processor.stat_calculator.calculate_buff_increment(
+                    0, val, buff_type, getattr(unit, stat_type, 0) if buff_type == 'percentage' else None
+                )
+
+                # Apply buff amplifier from source
+                mult = 1.0
+                for beff in getattr(unit, 'effects', []):
+                    if beff.get('type') == 'buff_amplifier':
+                        mult = max(mult, float(beff.get('multiplier', 1)))
+
+                # Apply recipient-specific amplifier
+                recipient_mult = 1.0
+                for beff in getattr(recipient, 'effects', []):
+                    if beff.get('type') == 'buff_amplifier':
+                        recipient_mult = max(recipient_mult, float(beff.get('multiplier', 1)))
+
+                final_increment = base_increment * mult * recipient_mult
+
+                # Find recipient index in appropriate team
+                recipient_idx = -1
+                if side == 'team_a' and attacking_team:
+                    try:
+                        recipient_idx = attacking_team.index(recipient)
+                    except ValueError:
+                        pass
+                elif side == 'team_b' and defending_team:
+                    try:
+                        recipient_idx = defending_team.index(recipient)
+                    except ValueError:
+                        pass
+
+                # Apply buff using handler
+                handler.apply_buff(
+                    recipient, 
+                    final_increment, 
+                    buff_type == 'percentage', 
+                    1.0,  # amplifier already applied to final_increment
+                    hp_list, 
+                    recipient_idx, 
+                    time, 
+                    log, 
+                    event_callback, 
+                    side
+                )
+
+                # Log and event
+                log.append(f"{recipient.name} gains +{final_increment} {stat_type} (stat_buff)")
+                if event_callback:
+                    event_callback('stat_buff', {
+                        'unit_id': recipient.id,
+                        'unit_name': recipient.name,
+                        'stat': stat_type,
+                        'amount': final_increment,
+                        'side': side,
+                        'timestamp': time
+                    })
 
     def _apply_stat_buff(
         self,
@@ -215,6 +342,22 @@ class CombatEffectProcessor:
         defending_hp: Optional[List[int]] = None
     ):
         """Apply stat buff from an effect."""
+        # Try to use new handlers first for supported stats
+        supported_stats = {'attack', 'defense', 'hp', 'attack_speed', 'mana_regen'}
+        effect_stats = set(effect.get('stats', []))
+
+        if effect_stats.issubset(supported_stats):
+            # Use new handlers
+            self._apply_stat_buff_with_handlers(
+                unit, effect, hp_list, unit_idx, time, log, event_callback,
+                side, attacking_team, defending_team, attacking_hp, defending_hp
+            )
+            return
+
+        # Fallback to old implementation for unsupported stats
+        stats = effect.get('stats', [])
+        val = effect.get('value', 0)
+        is_pct = effect.get('is_percentage', False)
         stats = effect.get('stats', [])
         val = effect.get('value', 0)
         is_pct = effect.get('is_percentage', False)

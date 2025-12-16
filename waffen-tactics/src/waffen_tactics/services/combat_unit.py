@@ -49,6 +49,12 @@ class CombatUnit:
         self.hp_regen_per_sec = 0.0
         # Accumulator for fractional healing per tick
         self._hp_regen_accumulator = 0.0
+        # Kill counter for permanent buffs
+        self.kills = 0
+        # Sum of defense from killed enemies for permanent buffs
+        self.stolen_defense = 0
+        # General collected stats for various effects
+        self.collected_stats: Dict[str, float] = {}
         # Populate caches from effects
         for eff in self.effects:
             etype = eff.get('type')

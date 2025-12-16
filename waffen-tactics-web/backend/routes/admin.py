@@ -216,17 +216,20 @@ def get_traits_popularity(user_id):
 
     Query params:
       - include_bench: 'true' to include bench units, default false (only board)
+      - time_filter: '1h', '6h', '24h', or 'all' (default 'all')
     Returns: { popularity: {round_number: { trait_name: count, ... }, ... } }
     """
     try:
         include_bench = request.args.get('include_bench', 'false').lower() == 'true'
+        time_filter = request.args.get('time_filter', 'all')
+        time_filter = request.args.get('time_filter', 'all')
 
         import asyncio
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         async def fetch_popularity():
-            # Load unit metadata to map unit_id -> factions/classes
+            # Load unit metadata to map unit_id -> name
             units_path = Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'units.json'
             with open(units_path, 'r', encoding='utf-8') as f:
                 units_data = json.load(f)
@@ -235,8 +238,15 @@ def get_traits_popularity(user_id):
             popularity = {}
 
             async with aiosqlite.connect(DB_PATH) as db:
+                # Build WHERE clause for time filter
+                where_clause = "user_id > 1000000"
+                if time_filter != 'all':
+                    hours = {'1h': 1, '6h': 6, '24h': 24}[time_filter]
+                    where_clause += f" AND created_at >= datetime('now', '-{hours} hours')"
+                
                 # Gather opponent teams (only real players, exclude bots with small user_ids)
-                async with db.execute("SELECT team_json, wins, losses FROM opponent_teams WHERE user_id > 1000000") as cursor:
+                query = f"SELECT team_json, wins, losses FROM opponent_teams WHERE {where_clause}"
+                async with db.execute(query) as cursor:
                     rows = await cursor.fetchall()
                     for row in rows:
                         team_json, wins, losses = row
@@ -266,7 +276,10 @@ def get_traits_popularity(user_id):
                                 popularity[round_number][trait_name] = popularity[round_number].get(trait_name, 0) + 1
 
                 # Also include live players' current boards (only real players)
-                async with db.execute("SELECT state_json FROM players WHERE user_id > 1000000") as cursor:
+                player_query = "SELECT state_json FROM players WHERE user_id > 1000000"
+                if time_filter != 'all':
+                    player_query += f" AND updated_at >= datetime('now', '-{hours} hours')"
+                async with db.execute(player_query) as cursor:
                     prow = await cursor.fetchall()
                     for (state_json,) in prow:
                         try:
@@ -303,10 +316,12 @@ def get_units_popularity(user_id):
 
     Query params:
       - include_bench: 'true' to include bench units, default false (only board)
+      - time_filter: '1h', '6h', '24h', or 'all' (default 'all')
     Returns: { popularity: {round_number: { unit_name: count, ... }, ... } }
     """
     try:
         include_bench = request.args.get('include_bench', 'false').lower() == 'true'
+        time_filter = request.args.get('time_filter', 'all')
 
         import asyncio
         loop = asyncio.new_event_loop()
@@ -322,8 +337,15 @@ def get_units_popularity(user_id):
             popularity = {}
 
             async with aiosqlite.connect(DB_PATH) as db:
+                # Build WHERE clause for time filter
+                where_clause = "user_id > 1000000"
+                if time_filter != 'all':
+                    hours = {'1h': 1, '6h': 6, '24h': 24}[time_filter]
+                    where_clause += f" AND created_at >= datetime('now', '-{hours} hours')"
+                
                 # Gather opponent teams (only real players, exclude bots with small user_ids)
-                async with db.execute("SELECT team_json, wins, losses FROM opponent_teams WHERE user_id > 1000000") as cursor:
+                query = f"SELECT team_json, wins, losses FROM opponent_teams WHERE {where_clause}"
+                async with db.execute(query) as cursor:
                     rows = await cursor.fetchall()
                     for row in rows:
                         team_json, wins, losses = row
@@ -353,7 +375,10 @@ def get_units_popularity(user_id):
                             popularity[round_number][unit_name] = popularity[round_number].get(unit_name, 0) + 1
 
                 # Also include live players' current boards (only real players)
-                async with db.execute("SELECT state_json FROM players WHERE user_id > 1000000") as cursor:
+                player_query = "SELECT state_json FROM players WHERE user_id > 1000000"
+                if time_filter != 'all':
+                    player_query += f" AND updated_at >= datetime('now', '-{hours} hours')"
+                async with db.execute(player_query) as cursor:
                     prow = await cursor.fetchall()
                     for (state_json,) in prow:
                         try:

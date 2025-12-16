@@ -158,7 +158,24 @@ export default function Game() {
     setShowLeaderboard(true)
     try {
       const response = await gameAPI.getLeaderboard()
-      setLeaderboard(response.data)
+      // Filter to show only the best result per player (highest wins, latest date if tie)
+      const filteredLeaderboard = response.data.reduce((acc: any[], entry: any[]) => {
+        const nickname = entry[0]
+        const wins = entry[1]
+        const existing = acc.find(e => e[0] === nickname)
+        if (!existing || wins > existing[1] || (wins === existing[1] && new Date(entry[5]) > new Date(existing[5]))) {
+          if (existing) {
+            const index = acc.indexOf(existing)
+            acc[index] = entry
+          } else {
+            acc.push(entry)
+          }
+        }
+        return acc
+      }, [])
+      // Sort by wins descending
+      filteredLeaderboard.sort((a: any[], b: any[]) => b[1] - a[1])
+      setLeaderboard(filteredLeaderboard)
     } catch (err) {
       console.error('Failed to load leaderboard:', err)
       setLeaderboard([])

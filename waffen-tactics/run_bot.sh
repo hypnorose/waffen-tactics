@@ -11,4 +11,4 @@ if [ ! -f .env ]; then
 fi
 
 echo "🚀 Starting Waffen Tactics Bot..."
-bot_venv/bin/python discord_bot.py
+bot_venv/bin/python discord_bot_simple.py

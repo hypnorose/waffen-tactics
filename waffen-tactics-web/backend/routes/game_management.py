@@ -3,9 +3,20 @@ Game management - handlers for game lifecycle management
 """
 from flask import request, jsonify
 from pathlib import Path
+import sys
+
+# Add src to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'src'))
+
 from waffen_tactics.services.database import DatabaseManager
 from waffen_tactics.services.game_manager import GameManager
 from .game_state_utils import run_async, enrich_player_state
+from services.game_management_service import (
+    get_player_state_data,
+    create_new_game_data,
+    reset_player_game_data,
+    surrender_player_game_data
+)
 
 # Initialize services
 DB_PATH = str(Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')
@@ -15,73 +26,52 @@ game_manager = GameManager()
 
 def get_state(user_id):
     """Get current game state"""
-    player = run_async(db_manager.load_player(user_id))
+    player_data = get_player_state_data(user_id)
 
-    if not player:
+    if not player_data:
         return jsonify({'error': 'No game found', 'needs_start': True}), 404
 
+    # Enrich the data with computed fields
+    player = run_async(db_manager.load_player(int(user_id)))
     return jsonify(enrich_player_state(player))
 
 
 def start_game(user_id):
     """Start new game or load existing"""
-    player = run_async(db_manager.load_player(user_id))
-
-    if not player:
-        # Create new player
-        player = game_manager.create_new_player(user_id)
-        game_manager.generate_shop(player)
-        run_async(db_manager.save_player(player))
-        print(f"✨ Created new player: {user_id}")
-    else:
-        # Generate shop if empty (e.g., after combat without lock)
-        if not player.last_shop:
-            game_manager.generate_shop(player)
-            run_async(db_manager.save_player(player))
-            print(f"🛒 Generated shop for existing player: {user_id}")
-
-    return jsonify(enrich_player_state(player))
+    try:
+        player_data = create_new_game_data(user_id)
+        # Enrich the data with computed fields
+        player = run_async(db_manager.load_player(int(user_id)))
+        return jsonify(enrich_player_state(player))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 def reset_game(user_id):
     """Reset game to start over"""
-    player = run_async(db_manager.load_player(user_id))
-    if not player:
-        return jsonify({'error': 'No game found'}), 404
-
-    # Create fresh player
-    player = game_manager.create_new_player(user_id)
-    game_manager.generate_shop(player)
-    run_async(db_manager.save_player(player))
-
-    return jsonify({'message': 'Gra zresetowana!', 'state': enrich_player_state(player)})
+    try:
+        player_data = reset_player_game_data(user_id)
+        # Enrich the data with computed fields
+        player = run_async(db_manager.load_player(int(user_id)))
+        return jsonify({'message': 'Gra zresetowana!', 'state': enrich_player_state(player)})
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 def surrender_game(user_id, payload):
     """Surrender current game (lose streak)"""
-    player = run_async(db_manager.load_player(user_id))
-    if not player:
-        return jsonify({'error': 'No game found'}), 404
-
-    # Save to leaderboard before surrendering
-    username = payload.get('username', f'Player_{user_id}')
-    team_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
-    run_async(db_manager.save_to_leaderboard(
-        user_id=user_id,
-        nickname=username,
-        wins=player.wins,
-        losses=player.losses,
-        level=player.level,
-        round_number=player.round_number,
-        team_units=team_units
-    ))
-
-    # Reset player to start over (lose streak)
-    player = game_manager.create_new_player(user_id)
-    game_manager.generate_shop(player)
-    run_async(db_manager.save_player(player))
-
-    return jsonify({'message': 'Poddano grę!', 'state': enrich_player_state(player)})
+    try:
+        username = payload.get('username', f'Player_{user_id}')
+        player_data = surrender_player_game_data(user_id, username)
+        # Enrich the data with computed fields
+        player = run_async(db_manager.load_player(int(user_id)))
+        return jsonify({'message': 'Poddano grę!', 'state': enrich_player_state(player)})
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 async def init_sample_bots():

@@ -100,11 +100,14 @@ const Admin: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<'games' | 'teams' | 'metrics' | 'traits' | 'units'>('games');
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+  const [timeFilter, setTimeFilter] = useState<'1h' | '6h' | '24h' | 'all'>('all');
+  const [traitsTableCollapsed, setTraitsTableCollapsed] = useState(true);
+  const [unitsTableCollapsed, setUnitsTableCollapsed] = useState(true);
 
   useEffect(() => {
     loadUnits();
     loadData();
-  }, [activeFilter, gamesPage, teamsPage]);
+  }, [activeFilter, gamesPage, teamsPage, timeFilter]);
 
   useEffect(() => {
     // default: select top 6 traits by total count
@@ -169,8 +172,8 @@ const Admin: React.FC = () => {
         api.get('/api/admin/games', { params: { page: gamesPage, limit: 20 } }),
         api.get('/api/admin/teams', { params: { active: activeFilter, page: teamsPage, limit: 20 } }),
         api.get('/api/admin/metrics'),
-        api.get('/api/admin/traits-popularity'),
-        api.get('/api/admin/units-popularity')
+        api.get('/api/admin/traits-popularity', { params: { time_filter: timeFilter } }),
+        api.get('/api/admin/units-popularity', { params: { time_filter: timeFilter } })
       ]);
 
       setGames(gamesRes.data.games);
@@ -179,11 +182,13 @@ const Admin: React.FC = () => {
       setTeamsTotalPages(teamsRes.data.total_pages);
       setMetrics(metricsRes.data);
       if (traitsRes?.data?.popularity) {
+        console.log('Trait popularity data:', traitsRes.data.popularity);
         setTraitPopularity(traitsRes.data.popularity);
       } else {
         setTraitPopularity({});
       }
       if (unitsRes?.data?.popularity) {
+        console.log('Unit popularity data:', unitsRes.data.popularity);
         setUnitPopularity(unitsRes.data.popularity);
       } else {
         setUnitPopularity({});
@@ -326,6 +331,7 @@ const Admin: React.FC = () => {
   };
 
   const CombinedTraitChart: React.FC<{ traits: string[]; rounds: number[]; data: Record<number, Record<string, number>> }> = ({ traits, rounds, data }) => {
+    console.log('CombinedTraitChart:', { traits, rounds, data });
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
 
@@ -580,9 +586,59 @@ const Admin: React.FC = () => {
       {currentTab === 'traits' && (
         <div className="bg-gray-800 p-6 rounded-lg mb-8">
           <h2 className="text-2xl font-bold mb-4">Trait Popularity by Round</h2>
-          {rounds.length === 0 ? (
+          
+          {/* Time filter */}
+          <div className="mb-4">
+            <div className="font-semibold mb-2">Time Filter</div>
+            <div className="flex gap-2">
+              {[
+                { key: '1h', label: 'Last Hour' },
+                { key: '6h', label: 'Last 6 Hours' },
+                { key: '24h', label: 'Last 24 Hours' },
+                { key: 'all', label: 'All Time' }
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setTimeFilter(key as any)}
+                  className={`px-3 py-1 rounded ${timeFilter === key ? 'bg-blue-600' : 'bg-gray-700'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Trait selector */}
+          <div className="mb-4">
+            <div className="font-semibold mb-2">Toggle traits to show charts</div>
+            <div className="flex flex-wrap gap-2">
+              {traitNames.map(t => (
+                <label key={t} className={`px-3 py-1 rounded cursor-pointer ${selectedTraits.has(t) ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                  <input type="checkbox" checked={selectedTraits.has(t)} onChange={() => toggleTrait(t)} className="mr-2" />
+                  {t}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Combined Chart */}
+          {selectedTraits.size > 0 && (
+            <CombinedTraitChart traits={Array.from(selectedTraits)} rounds={rounds} data={traitPopularity} />
+          )}
+          
+          {/* Table toggle */}
+          <div className="mb-4">
+            <button
+              onClick={() => setTraitsTableCollapsed(!traitsTableCollapsed)}
+              className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded"
+            >
+              {traitsTableCollapsed ? 'Show' : 'Hide'} Trait Popularity Table
+            </button>
+          </div>
+          
+          {!traitsTableCollapsed && rounds.length === 0 ? (
             <div className="text-gray-300">No data available</div>
-          ) : (
+          ) : !traitsTableCollapsed && (
             <>
               <div className="overflow-x-auto mb-4">
                 <table className="w-full text-sm">
@@ -606,24 +662,6 @@ const Admin: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-
-              {/* Trait selector */}
-              <div className="mb-4">
-                <div className="font-semibold mb-2">Toggle traits to show charts</div>
-                <div className="flex flex-wrap gap-2">
-                  {traitNames.map(t => (
-                    <label key={t} className={`px-3 py-1 rounded cursor-pointer ${selectedTraits.has(t) ? 'bg-blue-600' : 'bg-gray-700'}`}>
-                      <input type="checkbox" checked={selectedTraits.has(t)} onChange={() => toggleTrait(t)} className="mr-2" />
-                      {t}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Combined Chart */}
-              {selectedTraits.size > 0 && (
-                <CombinedTraitChart traits={Array.from(selectedTraits)} rounds={rounds} data={traitPopularity} />
-              )}
             </>
           )}
         </div>
@@ -633,9 +671,76 @@ const Admin: React.FC = () => {
       {currentTab === 'units' && (
         <div className="bg-gray-800 p-6 rounded-lg mb-8">
           <h2 className="text-2xl font-bold mb-4">Unit Popularity by Round</h2>
-          {rounds.length === 0 ? (
+          
+          {/* Time filter */}
+          <div className="mb-4">
+            <div className="font-semibold mb-2">Time Filter</div>
+            <div className="flex gap-2">
+              {[
+                { key: '1h', label: 'Last Hour' },
+                { key: '6h', label: 'Last 6 Hours' },
+                { key: '24h', label: 'Last 24 Hours' },
+                { key: 'all', label: 'All Time' }
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setTimeFilter(key as any)}
+                  className={`px-3 py-1 rounded ${timeFilter === key ? 'bg-blue-600' : 'bg-gray-700'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Unit selector */}
+          <div className="mb-4">
+            <div className="font-semibold mb-2">Toggle units to show charts</div>
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map(cost => {
+                const unitsInCost = unitNames.filter(u => {
+                  const unitData = unitsByName[u];
+                  return unitData?.cost === cost;
+                });
+                if (unitsInCost.length === 0) return null;
+
+                return (
+                  <div key={cost}>
+                    <div className="text-sm font-medium text-gray-300 mb-2">
+                      {cost} Gold Units ({unitsInCost.length})
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {unitsInCost.map(u => (
+                        <label key={u} className={`px-3 py-1 rounded cursor-pointer ${selectedUnits.has(u) ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                          <input type="checkbox" checked={selectedUnits.has(u)} onChange={() => toggleUnit(u)} className="mr-2" />
+                          {u}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Combined Chart */}
+          {selectedUnits.size > 0 && (
+            <CombinedUnitChart units={Array.from(selectedUnits)} rounds={rounds} data={unitPopularity} />
+          )}
+          
+          {/* Table toggle */}
+          <div className="mb-4">
+            <button
+              onClick={() => setUnitsTableCollapsed(!unitsTableCollapsed)}
+              className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded"
+            >
+              {unitsTableCollapsed ? 'Show' : 'Hide'} Unit Popularity Table
+            </button>
+          </div>
+          
+          {!unitsTableCollapsed && rounds.length === 0 ? (
             <div className="text-gray-300">No data available</div>
-          ) : (
+          ) : !unitsTableCollapsed && (
             <>
               <div className="overflow-x-auto mb-4">
                 <table className="w-full text-sm">
@@ -659,41 +764,6 @@ const Admin: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-
-              {/* Unit selector */}
-              <div className="mb-4">
-                <div className="font-semibold mb-2">Toggle units to show charts</div>
-                <div className="space-y-4">
-                  {[1, 2, 3, 4, 5].map(cost => {
-                    const unitsInCost = unitNames.filter(u => {
-                      const unitData = unitsByName[u];
-                      return unitData?.cost === cost;
-                    });
-                    if (unitsInCost.length === 0) return null;
-
-                    return (
-                      <div key={cost}>
-                        <div className="text-sm font-medium text-gray-300 mb-2">
-                          {cost} Gold Units ({unitsInCost.length})
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {unitsInCost.map(u => (
-                            <label key={u} className={`px-3 py-1 rounded cursor-pointer ${selectedUnits.has(u) ? 'bg-blue-600' : 'bg-gray-700'}`}>
-                              <input type="checkbox" checked={selectedUnits.has(u)} onChange={() => toggleUnit(u)} className="mr-2" />
-                              {u}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Combined Chart */}
-              {selectedUnits.size > 0 && (
-                <CombinedUnitChart units={Array.from(selectedUnits)} rounds={rounds} data={unitPopularity} />
-              )}
             </>
           )}
         </div>

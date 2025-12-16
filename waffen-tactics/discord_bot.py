@@ -67,69 +67,7 @@ from waffen_tactics.services.game_manager import GameManager
 from waffen_tactics.services.data_loader import load_game_data
 
 
-class OpponentPreviewView(View):
-    """View for opponent preview with start combat button"""
-    
-    def __init__(self, bot_instance, user_id: int, opponent_data: dict, opponent_units: list):
-        super().__init__(timeout=60)
-        self.bot = bot_instance
-        self.user_id = user_id
-        self.opponent_data = opponent_data
-        self.opponent_units = opponent_units
-    
-    @discord.ui.button(label="⚔️ ROZPOCZNIJ WALKĘ", style=discord.ButtonStyle.danger, row=0)
-    async def start_combat_button(self, interaction: discord.Interaction, button: Button):
-        if interaction.user.id != self.user_id:
-            await interaction.response.defer()
-            return
-        
-        # Disable button and update message
-        button.disabled = True
-        await interaction.response.edit_message(view=self)
-        
-        # Start combat animation in new message
-        player = await self.bot.db.load_player(interaction.user.id)
-        combat_embed = discord.Embed(
-            title="⚔️ WALKA W TOKU...",
-            description="🎬 Obserwuj przebieg walki!",
-            color=discord.Color.orange()
-        )
-        combat_msg = await interaction.followup.send(embed=combat_embed, ephemeral=True, wait=True)
-        
-        # Run combat with animation
-        result = await self.bot.run_combat_with_animation(combat_msg, player, self.opponent_units, self.opponent_data)
-        
-        # Save player's team and update
-        board_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
-        bench_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.bench]
-        await self.bot.db.save_opponent_team(
-            user_id=interaction.user.id,
-            nickname=interaction.user.display_name,
-            board_units=board_units,
-            bench_units=bench_units,
-            wins=player.wins,
-            losses=player.losses,
-            level=player.level
-        )
-        
-        player.round_number += 1
-        
-        # Calculate interest: 1g per 10g, max 5g
-        interest = min(5, player.gold // 10)
-        base_income = 5
-        total_income = base_income + interest
-        player.gold += total_income
-        
-        self.bot.game_manager.generate_shop(player, force_new=True)
-        await self.bot.db.save_player(player)
-        
-        # Show final result with game menu
-        embed = self.bot.create_combat_result_embed(player, result, self.opponent_data, interest=interest)
-        view = GameView(self.bot, interaction.user.id)
-        await combat_msg.edit(embed=embed, view=view)
 
-
-class GameView(View):
     """Main game UI with buttons"""
     
     def __init__(self, bot_instance, user_id: int):
@@ -529,36 +467,6 @@ class WaffenTacticsBot:
             await self.on_ready_handler()
     
     def setup_commands(self):
-        @self.tree.command(name="graj", description="Rozpocznij grę w Waffen Tactics!")
-        async def play_command(interaction: discord.Interaction):
-            # Send game to DM
-            await interaction.response.send_message(
-                "✅ Wysyłam grę na prywatną wiadomość...", 
-                ephemeral=True
-            )
-            try:
-                await self.start_game_dm(interaction.user)
-            except discord.Forbidden:
-                await interaction.followup.send(
-                    "❌ Nie mogę wysłać DM! Upewnij się, że masz włączone prywatne wiadomości od członków serwera.",
-                    ephemeral=True
-                )
-        
-        @self.tree.command(name="reset", description="Zresetuj swoją grę")
-        async def reset_command(interaction: discord.Interaction):
-            await self.db.delete_player(interaction.user.id)
-            await interaction.response.send_message("✅ Twoja gra została zresetowana!", ephemeral=True)
-        
-        @self.tree.command(name="profil", description="Zobacz swój profil")
-        async def profile_command(interaction: discord.Interaction):
-            player = await self.db.load_player(interaction.user.id)
-            if not player:
-                await interaction.response.send_message("Nie masz jeszcze profilu! Użyj `/graj`", ephemeral=True)
-                return
-            
-            embed = self.create_profile_embed(player)
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-        
         @self.tree.command(name="ranking", description="Zobacz topkę graczy")
         async def ranking_command(interaction: discord.Interaction):
             leaderboard = await self.db.get_leaderboard(10)
@@ -585,19 +493,8 @@ class WaffenTacticsBot:
                         inline=True
                     )
             
-            embed.set_footer(text="🎮 Zagraj /graj aby dostać się na listę!")
+            embed.set_footer(text="🎮 Gra dostępna na stronie internetowej!")
             await interaction.response.send_message(embed=embed, ephemeral=False)
-        
-        @self.tree.command(name="readme", description="Kompletny przewodnik po grze")
-        async def readme_command(interaction: discord.Interaction):
-            await interaction.response.defer(ephemeral=True)
-            
-            # Read README.md file
-            readme_path = Path(__file__).parent / "README.md"
-            try:
-                with open(readme_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-            except FileNotFoundError:
                 await interaction.followup.send("❌ README nie znaleziony!", ephemeral=True)
                 return
             

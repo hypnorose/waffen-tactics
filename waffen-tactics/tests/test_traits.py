@@ -114,20 +114,25 @@ class TestTraits(unittest.TestCase):
             self.assertFalse(effect["is_percentage"])
 
     def test_class_trait_haker(self):
-        """Test Haker trait structure (stat steal)"""
+        """Test Haker trait structure (permanent defense buff on kill)"""
         haker_trait = next((t for t in self.data.traits if t["name"] == "Haker"), None)
         self.assertIsNotNone(haker_trait, "Haker trait should exist")
         
         self.assertEqual(haker_trait["type"], "class")
         self.assertEqual(haker_trait["thresholds"], [3, 5, 7])
         
-        # Check stat steal values
-        expected_steal = [3, 6, 15]
+        # Check permanent stat buff on enemy death
+        expected_values = [3, 6, 15]
         for i, effect in enumerate(haker_trait["effects"]):
-            self.assertEqual(effect["type"], "stat_steal")
-            self.assertEqual(effect["stat"], "defense")
-            self.assertEqual(effect["value"], expected_steal[i])
-            self.assertTrue(effect["is_percentage"])
+            self.assertEqual(effect["type"], "on_enemy_death")
+            actions = effect.get("actions", [])
+            self.assertEqual(len(actions), 1)
+            action = actions[0]
+            self.assertEqual(action["type"], "kill_buff")
+            self.assertEqual(action["stat"], "defense")
+            self.assertEqual(action["value"], expected_values[i])
+            self.assertTrue(action["is_percentage"])
+            self.assertEqual(action["collect_stat"], "defense")
 
     def test_trait_gamer_buff(self):
         """Test Gamer trait (multi-stat buff)"""

@@ -294,6 +294,7 @@ class UnitManager:
 
             # Prefer board if any merged unit was on board and there's space
             if merged_on_board and len(player.board) < player.max_board_size:
+                upgraded.position = units_to_merge[0].position
                 player.board.append(upgraded)
             elif len(player.bench) < player.max_bench_size:
                 player.bench.append(upgraded)

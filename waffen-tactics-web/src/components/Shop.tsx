@@ -11,6 +11,7 @@ interface ShopProps {
 
 export default function Shop({ playerState, onUpdate, onNotification }: ShopProps) {
     const [loading, setLoading] = useState(false)
+    const [isDragOver, setIsDragOver] = useState(false)
     const { detailedView } = useGameStore()
 
     // Keyboard shortcuts: D = reroll, F = buy XP
@@ -91,6 +92,22 @@ export default function Shop({ playerState, onUpdate, onNotification }: ShopProp
             }
         } catch (err: any) {
             onNotification(err.response?.data?.error || 'Nie można kupić XP')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSell = async (instanceId: string) => {
+        setLoading(true)
+        try {
+            const response = await gameAPI.sellUnit(instanceId)
+            onUpdate(response.data.state)
+            
+            if (response.data.message) {
+                onNotification(response.data.message, 'success')
+            }
+        } catch (err: any) {
+            onNotification(err.response?.data?.error || 'Nie można sprzedać jednostki')
         } finally {
             setLoading(false)
         }
@@ -194,8 +211,18 @@ export default function Shop({ playerState, onUpdate, onNotification }: ShopProp
                         {/* Shop Units - responsive grid so expanded cards wrap without overlap */}
                         <div className="pb-2" style={{ overflow: 'visible' }}>
                             <div
-                                className="grid gap-3 justify-center"
+                                className={`grid gap-3 justify-center transition-all duration-200 ${isDragOver ? 'ring-2 ring-red-300 ring-opacity-50 rounded-lg p-2' : ''}`}
                                 style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(14rem, 1fr))' }}
+                                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                                onDragLeave={() => setIsDragOver(false)}
+                                onDrop={async (e) => {
+                                    e.preventDefault()
+                                    setIsDragOver(false)
+                                    const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+                                    if (data.type === 'unitAction' && (data.action === 'sell' || data.action === 'moveToBoard')) {
+                                        await handleSell(data.instanceId)
+                                    }
+                                }}
                             >
                                 {(playerState.last_shop_detailed ?? playerState.last_shop).map((entry: any, index: number) => {
                 // entry can be either an object from last_shop_detailed or a plain unitId string (legacy)
@@ -221,6 +248,14 @@ export default function Shop({ playerState, onUpdate, onNotification }: ShopProp
                     <div
                         key={`${unitId}-${index}`}
                         className={`w-full max-w-[14rem] flex justify-center relative`}
+                        draggable
+                        onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', JSON.stringify({
+                                type: 'unitAction',
+                                action: 'buy',
+                                unitId: unitId
+                            }))
+                        }}
                     >
                         <UnitCard
                             unitId={unitId}
