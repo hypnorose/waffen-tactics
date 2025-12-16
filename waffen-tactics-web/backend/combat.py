@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Callable, Optional
 
 class CombatUnit:
     """Lightweight unit representation for combat"""
-    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, star_level: int = 1):
+    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, star_level: int = 1, position: str = 'front', effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, mana_regen: int = 0, stats: Optional[Dict[str, Any]] = None, skill: Optional[Dict[str, Any]] = None):
         self.id = id
         self.name = name
         self.hp = hp
@@ -16,6 +16,13 @@ class CombatUnit:
         self.defense = defense
         self.attack_speed = attack_speed
         self.star_level = star_level
+        self.position = position  # 'front' or 'back'
+        self.effects = effects or []
+        self.max_mana = max_mana
+        self.mana = 0
+        self.mana_regen = mana_regen
+        self.stats = stats
+        self.skill = skill
 
 
 class CombatSimulator:
@@ -62,19 +69,37 @@ class CombatSimulator:
                 if a_hp[i] <= 0:
                     continue
                 
-                # Attack chance per tick based on attack speed
-                if random.random() < unit.attack_speed * self.dt:
-                    # Find alive targets
-                    targets = [(j, team_b[j].defense) for j in range(len(team_b)) if b_hp[j] > 0]
+                    # Check if unit has target_least_hp effect
+                    has_least_hp_targeting = any(effect.get('type') == 'target_least_hp' for effect in unit.effects or [])
+                    
+                    # Find alive targets - prioritize front line units
+                    if has_least_hp_targeting:
+                        front_targets = [(j, b_hp[j]) for j in range(len(team_b)) if b_hp[j] > 0 and team_b[j].position == 'front']
+                        back_targets = [(j, b_hp[j]) for j in range(len(team_b)) if b_hp[j] > 0 and team_b[j].position == 'back']
+                    else:
+                        front_targets = [(j, team_b[j].defense) for j in range(len(team_b)) if b_hp[j] > 0 and team_b[j].position == 'front']
+                        back_targets = [(j, team_b[j].defense) for j in range(len(team_b)) if b_hp[j] > 0 and team_b[j].position == 'back']
+                    
+                    # Target front line first, then back line
+                    if front_targets:
+                        targets = front_targets
+                    else:
+                        targets = back_targets
+                    
                     if not targets:
                         # Team A wins
                         return self._finish_combat("team_a", time, a_hp, b_hp, log, team_a)
                     
-                    # Target selection: 60% highest defense, 40% random
-                    if random.random() < 0.6:
-                        target_idx = max(targets, key=lambda x: x[1])[0]
+                    # Target selection
+                    if has_least_hp_targeting:
+                        # Always target lowest HP
+                        target_idx = min(targets, key=lambda x: x[1])[0]
                     else:
-                        target_idx = random.choice([t[0] for t in targets])
+                        # 60% highest defense, 40% random
+                        if random.random() < 0.6:
+                            target_idx = max(targets, key=lambda x: x[1])[0]
+                        else:
+                            target_idx = random.choice([t[0] for t in targets])
                     
                     # Calculate damage: attack - defense, min 1
                     damage = max(1, unit.attack - team_b[target_idx].defense)
@@ -112,15 +137,37 @@ class CombatSimulator:
                     continue
                 
                 if random.random() < unit.attack_speed * self.dt:
-                    targets = [(j, team_a[j].defense) for j in range(len(team_a)) if a_hp[j] > 0]
+                    # Check if unit has target_least_hp effect
+                    has_least_hp_targeting = any(effect.get('type') == 'target_least_hp' for effect in unit.effects or [])
+                    
+                    # Find alive targets - prioritize front line units
+                    if has_least_hp_targeting:
+                        front_targets = [(j, a_hp[j]) for j in range(len(team_a)) if a_hp[j] > 0 and team_a[j].position == 'front']
+                        back_targets = [(j, a_hp[j]) for j in range(len(team_a)) if a_hp[j] > 0 and team_a[j].position == 'back']
+                    else:
+                        front_targets = [(j, team_a[j].defense) for j in range(len(team_a)) if a_hp[j] > 0 and team_a[j].position == 'front']
+                        back_targets = [(j, team_a[j].defense) for j in range(len(team_a)) if a_hp[j] > 0 and team_a[j].position == 'back']
+                    
+                    # Target front line first, then back line
+                    if front_targets:
+                        targets = front_targets
+                    else:
+                        targets = back_targets
+                    
                     if not targets:
                         # Team B wins
                         return self._finish_combat("team_b", time, a_hp, b_hp, log, team_b)
                     
-                    if random.random() < 0.6:
-                        target_idx = max(targets, key=lambda x: x[1])[0]
+                    # Target selection
+                    if has_least_hp_targeting:
+                        # Always target lowest HP
+                        target_idx = min(targets, key=lambda x: x[1])[0]
                     else:
-                        target_idx = random.choice([t[0] for t in targets])
+                        # 60% highest defense, 40% random
+                        if random.random() < 0.6:
+                            target_idx = max(targets, key=lambda x: x[1])[0]
+                        else:
+                            target_idx = random.choice([t[0] for t in targets])
                     
                     damage = max(1, unit.attack - team_a[target_idx].defense)
                     a_hp[target_idx] -= damage

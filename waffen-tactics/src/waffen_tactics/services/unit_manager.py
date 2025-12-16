@@ -4,6 +4,7 @@ from ..models.player_state import PlayerState, UnitInstance
 from ..models.unit import Unit
 from ..services.data_loader import GameData
 import logging
+import math
 
 bot_logger = logging.getLogger('waffen_tactics')
 
@@ -140,9 +141,9 @@ class UnitManager:
         
         return True, f"Sprzedano {unit.name} {stars} za {sell_value}g{bonus_msg}!"
     
-    def move_to_board(self, player: PlayerState, instance_id: str) -> Tuple[bool, str]:
+    def move_to_board(self, player: PlayerState, instance_id: str, position: str = 'front') -> Tuple[bool, str]:
         """Move unit from bench to board"""
-        bot_logger.info(f"[GM_MOVE_TO_BOARD] Request to move {instance_id} to board")
+        bot_logger.info(f"[GM_MOVE_TO_BOARD] Request to move {instance_id} to board position {position}")
         bot_logger.info(f"[GM_MOVE_TO_BOARD] Current state - Board: {len(player.board)}/{player.max_board_size}, Bench: {len(player.bench)}/{player.max_bench_size}")
         bot_logger.info(f"[GM_MOVE_TO_BOARD] Bench instance_ids: {[u.instance_id for u in player.bench]}")
 
@@ -150,6 +151,19 @@ class UnitManager:
         if len(player.board) >= player.max_board_size:
             bot_logger.warning(f"[GM_MOVE_TO_BOARD] Board full! {len(player.board)}/{player.max_board_size}")
             return False, f"Plansza pełna! Max {player.max_board_size} jednostek (poziom {player.level})."
+
+        # Check per line limit
+        max_per_line = math.ceil(player.max_board_size * 0.75)
+        front_count = sum(1 for u in player.board if u.position == 'front')
+        back_count = sum(1 for u in player.board if u.position == 'back')
+
+        if position == 'front' and front_count >= max_per_line:
+            bot_logger.warning(f"[GM_MOVE_TO_BOARD] Front line full! {front_count}/{max_per_line}")
+            return False, f"Linia frontowa pełna! Max {max_per_line} jednostek."
+
+        if position == 'back' and back_count >= max_per_line:
+            bot_logger.warning(f"[GM_MOVE_TO_BOARD] Back line full! {back_count}/{max_per_line}")
+            return False, f"Linia tylna pełna! Max {max_per_line} jednostek."
 
         # Find unit on bench
         unit_instance = None
@@ -165,14 +179,15 @@ class UnitManager:
 
         bot_logger.info(f"[GM_MOVE_TO_BOARD] Found unit: {unit_instance.unit_id} (star {unit_instance.star_level})")
 
-        # Move to board
+        # Set position and move to board
+        unit_instance.position = position
         player.bench.remove(unit_instance)
         player.board.append(unit_instance)
-        bot_logger.info(f"[GM_MOVE_TO_BOARD] Moved successfully! New state - Board: {len(player.board)}, Bench: {len(player.bench)}")
+        bot_logger.info(f"[GM_MOVE_TO_BOARD] Moved successfully to {position}! New state - Board: {len(player.board)}, Bench: {len(player.bench)}")
 
         unit = next((u for u in self.data.units if u.id == unit_instance.unit_id), None)
         stars = '⭐' * unit_instance.star_level
-        return True, f"{unit.name} {stars} na planszy!"
+        return True, f"{unit.name} {stars} na planszy ({position})!"
 
     def move_to_bench(self, player: PlayerState, instance_id: str) -> Tuple[bool, str]:
         """Move unit from board to bench"""
@@ -207,6 +222,45 @@ class UnitManager:
         unit = next((u for u in self.data.units if u.id == unit_instance.unit_id), None)
         stars = '⭐' * unit_instance.star_level
         return True, f"{unit.name} {stars} na ławce!"
+
+    def switch_line(self, player: PlayerState, instance_id: str, position: str) -> Tuple[bool, str]:
+        """Switch unit position on board between front/back"""
+        bot_logger.info(f"[GM_SWITCH_LINE] Request to switch {instance_id} to {position}")
+        bot_logger.info(f"[GM_SWITCH_LINE] Board instance_ids: {[u.instance_id for u in player.board]}")
+
+        # Check per line limit
+        max_per_line = math.ceil(player.max_board_size * 0.75)
+        front_count = sum(1 for u in player.board if u.position == 'front')
+        back_count = sum(1 for u in player.board if u.position == 'back')
+
+        if position == 'front' and front_count >= max_per_line:
+            bot_logger.warning(f"[GM_SWITCH_LINE] Front line full! {front_count}/{max_per_line}")
+            return False, f"Linia frontowa pełna! Max {max_per_line} jednostek."
+
+        if position == 'back' and back_count >= max_per_line:
+            bot_logger.warning(f"[GM_SWITCH_LINE] Back line full! {back_count}/{max_per_line}")
+            return False, f"Linia tylna pełna! Max {max_per_line} jednostek."
+
+        # Find unit on board
+        unit_instance = None
+        for u in player.board:
+            if u.instance_id == instance_id:
+                unit_instance = u
+                break
+
+        if not unit_instance:
+            bot_logger.error(f"[GM_SWITCH_LINE] Unit {instance_id} not found on board!")
+            bot_logger.error(f"[GM_SWITCH_LINE] Available board units: {[(u.instance_id, u.unit_id) for u in player.board]}")
+            return False, "Jednostka nie jest na planszy!"
+
+        # Change position
+        old_position = unit_instance.position
+        unit_instance.position = position
+        bot_logger.info(f"[GM_SWITCH_LINE] Switched {unit_instance.unit_id} from {old_position} to {position}")
+
+        unit = next((u for u in self.data.units if u.id == unit_instance.unit_id), None)
+        stars = '⭐' * unit_instance.star_level
+        return True, f"{unit.name} {stars} przeniesiony do linii {position}!"
 
     def try_auto_upgrade(self, player: PlayerState, unit_id: str, star_level: int) -> Optional[int]:
         """

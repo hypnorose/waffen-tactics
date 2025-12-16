@@ -59,6 +59,7 @@ def move_to_board(user_id):
     """Move unit from bench to board"""
     data = request.json
     instance_id = data.get('instance_id')
+    position = data.get('position', 'front')
 
     if not instance_id:
         return jsonify({'error': 'Missing instance_id'}), 400
@@ -67,7 +68,29 @@ def move_to_board(user_id):
     if not player:
         return jsonify({'error': 'No game found'}), 404
 
-    success, message = game_manager.move_to_board(player, instance_id)
+    success, message = game_manager.move_to_board(player, instance_id, position)
+
+    if not success:
+        return jsonify({'error': message}), 400
+
+    run_async(db_manager.save_player(player))
+    return jsonify({'message': message, 'state': enrich_player_state(player)})
+
+
+def switch_line(user_id):
+    """Switch unit position on board"""
+    data = request.json
+    instance_id = data.get('instance_id')
+    position = data.get('position')
+
+    if not instance_id or not position:
+        return jsonify({'error': 'Missing instance_id or position'}), 400
+
+    player = run_async(db_manager.load_player(user_id))
+    if not player:
+        return jsonify({'error': 'No game found'}), 404
+
+    success, message = game_manager.switch_line(player, instance_id, position)
 
     if not success:
         return jsonify({'error': message}), 400

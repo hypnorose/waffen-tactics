@@ -16,6 +16,14 @@ export default function Bench({ playerState, onUpdate, onNotification }: BenchPr
   const { detailedView } = useGameStore()
 
   const handleMoveToBoard = async (instanceId: string) => {
+    const maxPerLine = Math.ceil(playerState.max_board_size * 0.75)
+    const frontCount = playerState.board.filter((u: any) => u.position === 'front').length
+
+    if (frontCount >= maxPerLine) {
+      onNotification(`Linia frontowa jest pełna! (max ${maxPerLine})`)
+      return
+    }
+
     if (playerState.board.length >= playerState.max_board_size) {
       onNotification('Plansza jest pełna!')
       return
@@ -23,7 +31,7 @@ export default function Bench({ playerState, onUpdate, onNotification }: BenchPr
 
     setLoading(true)
     try {
-      const response = await gameAPI.moveToBoard(instanceId)
+      const response = await gameAPI.moveToBoard(instanceId, 'front')
       onUpdate(response.data.state)
     } catch (err: any) {
       onNotification(err.response?.data?.error || 'Nie można przenieść jednostki')
@@ -73,7 +81,7 @@ export default function Bench({ playerState, onUpdate, onNotification }: BenchPr
         </div>
       ) : (
         <div 
-          className={`flex flex-wrap gap-2 justify-center p-4 rounded-lg transition-all duration-200 ${isDragOver ? 'ring-2 ring-green-300 ring-opacity-50' : ''}`}
+          className={`flex flex-wrap ${detailedView ? 'gap-2' : 'gap-0.5'} justify-center items-center ${detailedView ? 'p-4' : 'p-2'} rounded-lg transition-all duration-200 mx-auto ${isDragOver ? 'ring-2 ring-green-300 ring-opacity-50' : ''}`}
           onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
           onDragLeave={() => setIsDragOver(false)}
           onDragEnd={() => { setIsDragging(false); setIsDragOver(false); }}
@@ -81,7 +89,7 @@ export default function Bench({ playerState, onUpdate, onNotification }: BenchPr
             e.preventDefault()
             setIsDragOver(false)
             const data = JSON.parse(e.dataTransfer.getData('text/plain'))
-            if (data.type === 'moveToBench') {
+            if (data.type === 'moveToBench' || data.type === 'moveToBoard') {
               // Check if unit is already on bench
               if (playerState.bench.some((u: any) => u.instance_id === data.instanceId)) {
                 return // Already on bench
@@ -93,7 +101,7 @@ export default function Bench({ playerState, onUpdate, onNotification }: BenchPr
           {playerState.bench.map((unitInstance: any) => (
             <div 
               key={unitInstance.instance_id} 
-              className="flex-shrink-0 relative"
+              className={`flex-shrink-0 relative ${detailedView ? '' : 'max-w-[9rem]'}`}
               draggable
               onDragStart={(e) => {
                 setIsDragging(true)

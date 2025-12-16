@@ -57,6 +57,23 @@ class SynergyEngine:
         defense = base_stats['defense']
         attack_speed = base_stats['attack_speed']
 
+        # Calculate buff amplifier
+        amplifier = 1.0
+        for trait_name, (count, tier) in active_synergies.items():
+            trait_obj = self.trait_effects.get(trait_name)
+            if not trait_obj:
+                continue
+            effects = trait_obj.get('effects', [])
+            idx = tier - 1
+            if idx < 0 or idx >= len(effects):
+                continue
+            effect = effects[idx]
+            if effect.get('type') == 'buff_amplifier':
+                trait_level_target = trait_obj.get('target') if trait_obj else None
+                target_scope = effect.get('target', trait_level_target or 'trait')
+                if target_scope == 'team' or (target_scope == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
+                    amplifier = max(amplifier, float(effect.get('multiplier', 1)))
+
         for trait_name, (count, tier) in active_synergies.items():
             trait_obj = self.trait_effects.get(trait_name)
             if not trait_obj:
@@ -88,10 +105,6 @@ class SynergyEngine:
                 for st in stats:
                     val = effect.get('value', 0)
                     is_percentage = effect.get('is_percentage', False)
-                    # Apply buff amplifier if unit has XN Jugend trait
-                    amplifier = 1.0
-                    if 'XN Jugend' in unit.factions or 'XN Jugend' in unit.classes:
-                        amplifier = 2.0
                     val *= amplifier
                     if st == 'hp':
                         if is_percentage:
@@ -119,10 +132,6 @@ class SynergyEngine:
                 multiplier = len(active_synergies)
                 for st in stats:
                     val = per_val * multiplier
-                    # Apply buff amplifier if unit has XN Jugend trait
-                    amplifier = 1.0
-                    if 'XN Jugend' in unit.factions or 'XN Jugend' in unit.classes:
-                        amplifier = 2.0
                     val *= amplifier
                     if st == 'hp':
                         hp = int(hp * (1 + val / 100.0))

@@ -4,6 +4,7 @@
       "name": "Srebrna Gwardia",
       "type": "faction",
       "description": "Zespół zyskuje obronę co sekundę walki",
+      "target": "team",
       "thresholds": [
         3,
         5,
@@ -570,7 +571,7 @@
             "attack",
             "attack_speed"
           ],
-          "value": 3,
+          "value": 8,
           "is_percentage": true
         },
         {
@@ -579,7 +580,7 @@
             "attack",
             "attack_speed"
           ],
-          "value": 6,
+          "value": 14,
           "is_percentage": true
         },
         {
@@ -588,7 +589,7 @@
             "attack",
             "attack_speed"
           ],
-          "value": 9,
+          "value": 22,
           "is_percentage": true
         },
         {
@@ -597,7 +598,7 @@
             "attack",
             "attack_speed"
           ],
-          "value": 16,
+          "value": 30,
           "is_percentage": true
         }
       ]

@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 interface Unit {
   id: string
   name: string
@@ -9,6 +11,8 @@ interface Unit {
   cost?: number
   factions?: string[]
   classes?: string[]
+  position?: string
+  avatar?: string
   buffed_stats?: {
     hp?: number
     attack?: number
@@ -39,6 +43,7 @@ const getRarityColor = (cost?: number) => {
 }
 
 export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], targetUnits = [], regen }: Props) {
+  const [showTooltip, setShowTooltip] = useState(false)
   const displayMaxHp = unit.buffed_stats?.hp ?? unit.max_hp
   const displayHp = Math.min(unit.hp, displayMaxHp)
   const displayAttack = unit.buffed_stats?.attack ?? unit.attack
@@ -50,6 +55,9 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
 
   return (
     <div
+      className="group"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
       style={{
         backgroundColor: '#0f172a',
         borderRadius: isOpponent ? '0.25rem' : '0.5rem',
@@ -83,6 +91,10 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
         </div>
       )}
 
+      {unit.avatar && (
+        <img src={unit.avatar} alt={unit.name} style={{ width: '100%', height: '60px', objectFit: 'cover', borderRadius: '0.25rem', marginBottom: '0.25rem' }} />
+      )}
+
       <div className="text-xs font-bold text-white mb-1 text-center truncate">
         {unit.name} ⭐{unit.star_level}
       </div>
@@ -96,33 +108,6 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
           ))}
         </div>
       )}
-
-      <div className="space-y-0.5 text-[9px] text-gray-300 mb-1">
-        <div className="flex justify-between">
-          <span>❤️ HP</span>
-          <span className="font-bold">
-            {Math.floor(displayHp)}/{Math.floor(displayMaxHp)}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>⚔️ ATK</span>
-          <span className="font-bold">{displayAttack}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>🛡️ DEF</span>
-          <span className="font-bold">{displayDefense}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>⚡ SPD</span>
-          <span className="font-bold">{displayAS.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>🔮 Mana</span>
-          <span className="font-bold">
-            {Math.floor(displayMana)}/{Math.floor(displayMaxMana)}
-          </span>
-        </div>
-      </div>
 
       <div className="relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600">
         <div
@@ -143,6 +128,50 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
           }}
         />
       </div>
+
+      {/* Tooltip */}
+      {showTooltip && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-800 border border-gray-600 text-white text-sm rounded-lg p-4 shadow-xl z-[100] min-w-[300px]">
+          <div className="flex items-center mb-3">
+            {unit.avatar && (
+              <img src={unit.avatar} alt={unit.name} className="w-10 h-10 rounded mr-3 object-cover" />
+            )}
+            <div>
+              <div className="font-bold text-base">{unit.name}</div>
+              <div className="text-yellow-400">⭐ {unit.star_level} • Koszt: {unit.cost}</div>
+            </div>
+          </div>
+          {(unit.factions && unit.factions.length > 0) && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {unit.factions.map((f) => (
+                <span key={f} className="bg-blue-500/30 px-2 py-1 rounded text-sm">{f}</span>
+              ))}
+            </div>
+          )}
+          {(unit.classes && unit.classes.length > 0) && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {unit.classes.map((c) => (
+                <span key={c} className="bg-green-500/30 px-2 py-1 rounded text-sm">{c}</span>
+              ))}
+            </div>
+          )}
+          {unit.position && (
+            <div className="mb-2">
+              <span className="bg-purple-500/30 px-2 py-1 rounded text-sm">{unit.position === 'front' ? 'Front' : 'Tył'}</span>
+            </div>
+          )}
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            <div>❤️ HP: {Math.floor(displayHp)}/{Math.floor(displayMaxHp)}</div>
+            <div>⚔️ ATK: {displayAttack}</div>
+            <div>🛡️ DEF: {displayDefense}</div>
+            <div>⚡ SPD: {displayAS.toFixed(2)}</div>
+            <div>🔮 Mana: {Math.floor(displayMana)}/{Math.floor(displayMaxMana)}</div>
+            {displayHpRegen > 0 && <div>💚 Regen: +{Math.round(displayHpRegen)}/s</div>}
+          </div>
+          {/* Arrow */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+        </div>
+      )}
 
       {displayHpRegen > 0 && unit.hp > 0 && (
         <div

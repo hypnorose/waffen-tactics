@@ -2,7 +2,7 @@ import { CombatSpeedSliderProps } from './CombatOverlayTypes'
 
 export default function CombatSpeedSlider({ combatSpeed, setCombatSpeed }: CombatSpeedSliderProps) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, margin: '32px 0 0 0' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '16px 0', margin: '0' }}>
       <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 20 }}>⏩</span> Prędkość walki
       </span>
@@ -18,9 +18,9 @@ export default function CombatSpeedSlider({ combatSpeed, setCombatSpeed }: Comba
           setCombatSpeed(newSpeed);
           localStorage.setItem('combatSpeed', newSpeed.toString());
         }}
-        style={{ width: 140, accentColor: '#fbbf24', background: '#1e293b', borderRadius: 6, height: 4 }}
+        style={{ width: 120, accentColor: '#fbbf24', background: '#1e293b', borderRadius: 6, height: 4 }}
       />
-      <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: 16, minWidth: 42, textAlign: 'right' }}>{combatSpeed.toFixed(1)}x</span>
+      <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: 16, minWidth: 45, textAlign: 'right' }}>{combatSpeed.toFixed(1)}x</span>
     </div>
   )
 }

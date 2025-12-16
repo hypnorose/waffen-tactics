@@ -6,7 +6,16 @@ from typing import List, Dict, Any, Optional
 
 class CombatUnit:
     """Lightweight unit representation for combat with effect hooks"""
-    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, skill: Optional[Dict[str, Any]] = None, mana_regen: int = 0, stats: Optional['Stats'] = None, star_level: int = 1):
+    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, skill: Optional[Dict[str, Any]] = None, mana_regen: int = 0, stats: Optional['Stats'] = None, star_level: int = 1, position: str = 'front'):
+        self.id = id
+        self.name = name
+        self.hp = hp
+        self.max_hp = hp
+        self.attack = attack
+        self.defense = defense
+        self.attack_speed = attack_speed
+        self.star_level = star_level
+        self.position = position  # 'front' or 'back'
         self.id = id
         self.name = name
         self.hp = hp

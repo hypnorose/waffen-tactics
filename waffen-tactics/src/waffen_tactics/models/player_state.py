@@ -10,6 +10,7 @@ class UnitInstance:
     unit_id: str  # Reference to unit from units.json
     star_level: int = 1  # 1, 2, or 3 stars
     instance_id: Optional[str] = None  # Unique ID for this specific instance
+    position: str = 'front'  # 'front' or 'back' position on board
     persistent_buffs: Dict[str, float] = field(default_factory=dict)  # persistent stat buffs accumulated over rounds
     base_stats: Optional[Dict[str, float]] = None  # computed base stats (for frontend display)
     buffed_stats: Optional[Dict[str, float]] = None  # computed buffed stats (for frontend display)
@@ -60,7 +61,7 @@ class PlayerState:
     @property
     def max_board_size(self) -> int:
         """Maximum units allowed on board based on level"""
-        return min(1 + self.level, 10)  # Level 1 = 2 units, max 10
+        return min(self.level, 10)  # Level 1 = 1 unit, level 2 = 2, etc., max 10
     
     @property
     def max_bench_size(self) -> int:
@@ -134,7 +135,7 @@ class PlayerState:
             'hp': self.hp,
             'bench': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
                      for u in self.bench],
-            'board': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
+            'board': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'position': u.position, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
                      for u in self.board],
             'round_number': self.round_number,
             'wins': self.wins,
@@ -167,6 +168,7 @@ class PlayerState:
                 unit_id=u['unit_id'],
                 star_level=u['star_level'],
                 instance_id=u.get('instance_id'),
+                position=u.get('position', 'front'),
                 persistent_buffs=u.get('persistent_buffs', {})
             )
             for u in data.get('board', [])

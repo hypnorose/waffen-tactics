@@ -135,6 +135,7 @@ def start_combat():
                         defense=defense,
                         attack_speed=attack_speed,
                         star_level=unit_instance.star_level,
+                        position=unit_instance.position,
                         effects=effects_for_unit,
                         max_mana=max_mana,
                         mana_regen=stat_val(base_stats, 'mana_regen', 5),
@@ -160,6 +161,8 @@ def start_combat():
                         'cost': unit.cost,
                         'factions': unit.factions,
                         'classes': unit.classes,
+                        'position': combat_unit.position,
+                        'avatar': getattr(unit, 'avatar', None),
                         'buffed_stats': buffed_stats
                     })
 
@@ -232,6 +235,7 @@ def start_combat():
                             defense=defense,
                             attack_speed=attack_speed,
                             star_level=star_level,
+                            position='front',
                             effects=effects_b_for_unit,
                             max_mana=max_mana,
                             mana_regen=stat_val(base_stats_b, 'mana_regen', 5),
@@ -255,6 +259,8 @@ def start_combat():
                             'cost': unit.cost,
                             'factions': unit.factions,
                             'classes': unit.classes,
+                            'position': combat_unit.position,
+                            'avatar': getattr(unit, 'avatar', None),
                             'buffed_stats': {
                                 'hp': combat_unit.hp,
                                 'attack': combat_unit.attack,
@@ -281,6 +287,7 @@ def start_combat():
                         attack=attack,
                         defense=defense,
                         attack_speed=attack_speed,
+                        position='front',
                         skill={
                             'name': 'Bot Skill',
                             'description': 'Basic bot skill',
@@ -300,6 +307,8 @@ def start_combat():
                         'cost': base.cost if hasattr(base, 'cost') else 1,
                         'factions': [],
                         'classes': [],
+                        'position': combat_unit.position,
+                        'avatar': None,
                         'buffed_stats': {
                             'hp': combat_unit.hp,
                             'attack': combat_unit.attack,

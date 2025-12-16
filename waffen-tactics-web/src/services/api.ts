@@ -56,8 +56,11 @@ export const gameAPI = {
   sellUnit: (instanceId: string) => 
     api.post('/game/sell', { instance_id: instanceId }),
   
-  moveToBoard: (instanceId: string) => 
-    api.post('/game/move-to-board', { instance_id: instanceId }),
+  moveToBoard: (instanceId: string, position: 'front' | 'back' = 'front') => 
+    api.post('/game/move-to-board', { instance_id: instanceId, position }),
+  
+  switchLine: (instanceId: string, position: 'front' | 'back') => 
+    api.post('/game/switch-line', { instance_id: instanceId, position }),
   
   moveToBench: (instanceId: string) => 
     api.post('/game/move-to-bench', { instance_id: instanceId }),

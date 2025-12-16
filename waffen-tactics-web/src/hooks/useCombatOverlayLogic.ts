@@ -15,6 +15,7 @@ interface Unit {
   cost?: number
   factions?: string[]
   classes?: string[]
+  position?: string
   buffed_stats?: {
     hp?: number
     attack?: number

@@ -72,23 +72,45 @@ export default function CombatOverlay({ onClose }: CombatOverlayProps) {
             <CombatHeader opponentInfo={opponentInfo} />
             <SynergiesPanel synergies={synergies} traits={traits} hoveredTrait={hoveredTrait} setHoveredTrait={setHoveredTrait} />
             {isFinished && (
-              <button onClick={() => { if (storedGoldBreakdown && !displayedGoldBreakdown) { setDisplayedGoldBreakdown(storedGoldBreakdown); return } handleClose() }} style={{ width: '100%', background: 'linear-gradient(to right, #2563eb, #3b82f6)', color: 'white', fontWeight: 'bold', padding: '12px 24px', borderRadius: 8, border: 'none', cursor: 'pointer', marginTop: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+              <button
+                onClick={() => {
+                  if (storedGoldBreakdown && !displayedGoldBreakdown) {
+                    setDisplayedGoldBreakdown(storedGoldBreakdown);
+                    return;
+                  }
+                  handleClose();
+                }}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(to right, #2563eb, #3b82f6)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  padding: '12px 24px',
+                  borderRadius: 8,
+                  border: 'none',
+                  cursor: 'pointer',
+                  marginTop: 12,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
                 Kontynuuj
               </button>
             )}
           </div>
+          <CombatSpeedSlider combatSpeed={combatSpeed} setCombatSpeed={setCombatSpeed} />
         </div>
 
         {/* Prawa szeroka kolumna */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1.5rem', position: 'relative' }}>
           {/* Jednostki przeciwnika */}
           <div style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
-            <div className="text-xs text-gray-400 mb-1">Jednostki przeciwnika</div>
             <OpponentUnits units={opponentUnits} attackingUnits={attackingUnits} targetUnits={targetUnits} regenMap={regenMap} />
           </div>
           {/* Jednostki gracza */}
           <div style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <div className="text-xs text-gray-400 mb-1">Twoje jednostki</div>
             <PlayerUnits units={playerUnits} attackingUnits={attackingUnits} targetUnits={targetUnits} regenMap={regenMap} />
           </div>
 
@@ -96,9 +118,6 @@ export default function CombatOverlay({ onClose }: CombatOverlayProps) {
           <button onClick={() => setShowLog(!showLog)} style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
             {showLog ? 'Ukryj log walki' : 'Pokaż log walki'}
           </button>
-
-          {/* Slider prędkości walki pod planszą */}
-          <CombatSpeedSlider combatSpeed={combatSpeed} setCombatSpeed={setCombatSpeed} />
 
           {/* Log walki jako modal */}
           <CombatLogModal showLog={showLog} setShowLog={setShowLog} combatLog={combatLog} logEndRef={logEndRef} />

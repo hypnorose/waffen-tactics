@@ -10,23 +10,54 @@ interface Props {
 }
 
 const PlayerUnits = memo(function PlayerUnits({ units, attackingUnits, targetUnits, regenMap }: Props) {
+  const frontUnits = units.filter(u => u.position === 'front')
+  const backUnits = units.filter(u => u.position === 'back')
+
   return (
-    <div className="bg-gray-800 rounded-lg p-3 border border-gray-700" style={{ flexShrink: 0 }}>
+    <div className="bg-gray-800 rounded-lg p-3 border border-gray-700" style={{ flexShrink: 0, width: '100%' }}>
       <h3 className="text-sm font-bold text-green-400 mb-2 text-center">🛡️ Twoje Jednostki</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto' }}>
-        {units.map((u: any) => (
-          <motion.div
-            key={u.id}
-          >
-            <CombatUnitCard
-              unit={u}
-              attackingUnits={attackingUnits}
-              targetUnits={targetUnits}
-              regen={regenMap[u.id]}
-            />
-          </motion.div>
-        ))}
-      </div>
+      
+      {/* Front Line */}
+      {frontUnits.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs text-gray-400 mb-1">Linia Frontowa</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', maxHeight: '150px', overflow: 'visible' }}>
+            {frontUnits.map((u: any) => (
+              <motion.div
+                key={u.id}
+              >
+                <CombatUnitCard
+                  unit={u}
+                  attackingUnits={attackingUnits}
+                  targetUnits={targetUnits}
+                  regen={regenMap[u.id]}
+                />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Back Line */}
+      {backUnits.length > 0 && (
+        <div>
+          <div className="text-xs text-gray-400 mb-1">Linia Tylna</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', maxHeight: '150px', overflow: 'visible' }}>
+            {backUnits.map((u: any) => (
+              <motion.div
+                key={u.id}
+              >
+                <CombatUnitCard
+                  unit={u}
+                  attackingUnits={attackingUnits}
+                  targetUnits={targetUnits}
+                  regen={regenMap[u.id]}
+                />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 })

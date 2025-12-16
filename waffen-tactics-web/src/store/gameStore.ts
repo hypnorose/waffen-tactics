@@ -18,6 +18,7 @@ export interface UnitInstance {
   instance_id: string
   unit_id: string
   star_level: number
+  position: 'front' | 'back'
 }
 
 export interface Synergy {

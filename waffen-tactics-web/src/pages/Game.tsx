@@ -244,7 +244,7 @@ export default function Game() {
                   
                   {/* Gold */}
                   <div className="flex items-center gap-1 bg-yellow-500/20 px-2 py-1 rounded">
-                    <span>🪙</span>
+                    <span>💰</span>
                     <span className="font-bold">{playerState.gold}</span>
                   </div>
                   

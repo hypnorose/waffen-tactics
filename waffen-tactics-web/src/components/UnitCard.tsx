@@ -9,6 +9,7 @@ interface UnitCardProps {
   showCost?: boolean
   detailed?: boolean
   isDragging?: boolean
+  position?: 'front' | 'back'
   baseStats?: {
     hp?: number
     attack?: number
@@ -35,6 +36,7 @@ export default function UnitCard({
   showCost = true,
   detailed = false,
   isDragging = false,
+  position,
   baseStats,
   buffedStats,
 }: UnitCardProps) {
@@ -42,6 +44,7 @@ export default function UnitCard({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [tooltipTop, setTooltipTop] = useState<number | null>(null)
+  const [tooltipSide, setTooltipSide] = useState<'left' | 'right'>('right')
 
   const getRoleEmoji = (role?: string) => {
     switch (role) {
@@ -104,8 +107,17 @@ export default function UnitCard({
           if (!cont || !tip) return
           const contRect = cont.getBoundingClientRect()
           const tipHeight = tip.offsetHeight
+          const tipWidth = tip.offsetWidth
           const viewportHeight = window.innerHeight
+          const viewportWidth = window.innerWidth
           const margin = 8
+
+          // Determine side
+          if (contRect.left + contRect.width + tipWidth + margin > viewportWidth) {
+            setTooltipSide('left')
+          } else {
+            setTooltipSide('right')
+          }
 
           let offset = 0
           const tipBottom = contRect.top + offset + tipHeight
@@ -121,18 +133,18 @@ export default function UnitCard({
       }}
       onMouseLeave={() => setTooltipTop(null)}
       onClick={!disabled ? onClick : undefined}
-      className={`relative group w-56 select-none ${onClick && !disabled ? 'cursor-pointer' : ''} ${
+      className={`relative group ${detailed ? 'w-56' : 'w-36'} select-none ${onClick && !disabled ? 'cursor-pointer' : ''} ${
         disabled ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
       {(
         <div
-          className="hidden group-hover:block absolute p-3 rounded-lg z-[100] shadow-2xl text-xs w-[280px] border-2 pointer-events-none"
+          className="hidden group-hover:block absolute p-3 rounded-lg z-[100] shadow-2xl text-xs w-[240px] border-2 pointer-events-none"
           ref={tooltipRef}
           style={{
             backgroundColor: '#0f172a',
             borderColor: getCostBorderColor(unit.cost),
-            left: 'calc(100% + 0.5rem)',
+            [tooltipSide]: 'calc(100% + 0.5rem)',
             top: tooltipTop !== null ? `${tooltipTop}px` : '0',
             maxHeight: '90vh',
             overflowY: 'auto',
@@ -140,6 +152,13 @@ export default function UnitCard({
         >
           <div className="mb-2">
             <div className="font-bold text-sm text-white mb-1">{unit.name}</div>
+            {position && (
+              <div className="text-xs text-gray-300 mb-1">
+                Pozycja: <span className={position === 'front' ? 'text-red-400' : 'text-blue-400'}>
+                  {position === 'front' ? '⚔️ Frontowa' : '🛡️ Tylna'}
+                </span>
+              </div>
+            )}
             <div className="text-gray-400 text-xs mb-2">
               {starLevel > 1 && <span className="text-yellow-400">{'⭐'.repeat(starLevel)} </span>}
               Tier {unit.cost}
@@ -175,8 +194,13 @@ export default function UnitCard({
                   <span className="font-semibold">Życie</span>
                 </span>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-bold text-white text-sm">{displayStats?.hp}</span>
-                  {deltas && deltas.hp !== 0 && <span className="text-xs font-semibold text-emerald-400">+{Math.round(deltas.hp)}</span>}
+                  {deltas && deltas.hp !== 0 ? (
+                    <span className="font-bold text-white text-sm">
+                      {scaledStats?.hp} + <span className="text-green-400">{Math.round(deltas.hp)}</span> = <span className="text-green-400">{displayStats?.hp}</span>
+                    </span>
+                  ) : (
+                    <span className="font-bold text-white text-sm">{displayStats?.hp}</span>
+                  )}
                 </div>
               </div>
 
@@ -186,8 +210,13 @@ export default function UnitCard({
                   <span className="font-semibold">Atak</span>
                 </span>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-bold text-white text-sm">{displayStats?.attack}</span>
-                  {deltas && deltas.attack !== 0 && <span className="text-xs font-semibold text-emerald-400">+{Math.round(deltas.attack)}</span>}
+                  {deltas && deltas.attack !== 0 ? (
+                    <span className="font-bold text-white text-sm">
+                      {scaledStats?.attack} + <span className="text-green-400">{Math.round(deltas.attack)}</span> = <span className="text-green-400">{displayStats?.attack}</span>
+                    </span>
+                  ) : (
+                    <span className="font-bold text-white text-sm">{displayStats?.attack}</span>
+                  )}
                 </div>
               </div>
 
@@ -197,8 +226,13 @@ export default function UnitCard({
                   <span className="font-semibold">Obrona</span>
                 </span>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-bold text-white text-sm">{displayStats?.defense}</span>
-                  {deltas && deltas.defense !== 0 && <span className="text-xs font-semibold text-emerald-400">+{Math.round(deltas.defense)}</span>}
+                  {deltas && deltas.defense !== 0 ? (
+                    <span className="font-bold text-white text-sm">
+                      {scaledStats?.defense} + <span className="text-green-400">{Math.round(deltas.defense)}</span> = <span className="text-green-400">{displayStats?.defense}</span>
+                    </span>
+                  ) : (
+                    <span className="font-bold text-white text-sm">{displayStats?.defense}</span>
+                  )}
                 </div>
               </div>
 
@@ -208,9 +242,12 @@ export default function UnitCard({
                   <span className="font-semibold">Prędkość ataku</span>
                 </span>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-bold text-white text-sm">{(displayStats?.attack_speed ?? 0).toFixed(2)}</span>
-                  {deltas && Math.abs(deltas.attack_speed) > 0.0001 && (
-                    <span className="text-xs font-semibold text-emerald-400">+{(Math.round(deltas.attack_speed * 100) / 100).toFixed(2)}</span>
+                  {deltas && Math.abs(deltas.attack_speed) > 0.0001 ? (
+                    <span className="font-bold text-white text-sm">
+                      {(scaledStats?.attack_speed ?? 0).toFixed(2)} + <span className="text-green-400">{(Math.round(deltas.attack_speed * 100) / 100).toFixed(2)}</span> = <span className="text-green-400">{(displayStats?.attack_speed ?? 0).toFixed(2)}</span>
+                    </span>
+                  ) : (
+                    <span className="font-bold text-white text-sm">{(displayStats?.attack_speed ?? 0).toFixed(2)}</span>
                   )}
                 </div>
               </div>
@@ -221,8 +258,13 @@ export default function UnitCard({
                   <span className="font-semibold">Max Mana</span>
                 </span>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-bold text-white text-sm">{displayStats?.max_mana ?? 100}</span>
-                  {deltas && deltas.max_mana !== 0 && <span className="text-xs font-semibold text-emerald-400">+{Math.round(deltas.max_mana)}</span>}
+                  {deltas && deltas.max_mana !== 0 ? (
+                    <span className="font-bold text-white text-sm">
+                      {(scaledStats as any)?.max_mana ?? 100} + <span className="text-green-400">{Math.round(deltas.max_mana)}</span> = <span className="text-green-400">{displayStats?.max_mana ?? 100}</span>
+                    </span>
+                  ) : (
+                    <span className="font-bold text-white text-sm">{displayStats?.max_mana ?? 100}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -231,7 +273,7 @@ export default function UnitCard({
       )}
 
       <div
-        className={`rounded-lg p-2 transition-all duration-150 border-2 bg-gray-800/90 hover:bg-gray-800 ${detailed ? 'h-64' : 'h-48'} flex flex-col`}
+        className={`w-full rounded-lg ${detailed ? 'p-2' : 'p-1'} transition-all duration-150 border-2 bg-gray-800/90 hover:bg-gray-800 ${detailed ? 'h-64' : 'h-32'} flex flex-col`}
         style={{
           borderColor: getCostBorderColor(unit.cost),
           boxShadow: `0 0 10px ${getCostBorderColor(unit.cost)}40`,
@@ -239,7 +281,7 @@ export default function UnitCard({
       >
         <div className="flex justify-center mb-2">
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl border-2 relative overflow-hidden"
+            className={`${detailed ? 'w-16 h-16' : 'w-10 h-10'} rounded-full flex items-center justify-center font-bold text-2xl border-2 relative overflow-hidden`}
             style={{ borderColor: getCostBorderColor(unit.cost), backgroundColor: '#1e293b' }}
           >
             {unit.avatar ? (
@@ -256,12 +298,12 @@ export default function UnitCard({
                 }}
               />
             ) : (
-              <span className="text-3xl">👤</span>
+              <span className={detailed ? 'text-3xl' : 'text-xl'}>👤</span>
             )}
 
             {showCost && (
               <div
-                className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border"
+                className={`absolute bottom-0 right-0 ${detailed ? 'w-6 h-6' : 'w-4 h-4'} rounded-full flex items-center justify-center text-[10px] font-bold border`}
                 style={{ backgroundColor: getCostBorderColor(unit.cost), borderColor: '#1e293b', color: '#000' }}
               >
                 {unit.cost}
@@ -282,7 +324,7 @@ export default function UnitCard({
           </div>
         )}
 
-        <h3 className="text-center text-xs font-bold mb-1 truncate px-1 flex items-center justify-center gap-1">{unit.name} <span>{getRoleEmoji(unit.role)}</span></h3>
+        <h3 className={`text-center text-xs font-bold ${detailed ? 'mb-1' : 'mb-0.5'} truncate px-1 flex items-center justify-center gap-1 ${detailed ? '' : 'text-[9px]'}`}>{unit.name} <span>{getRoleEmoji(unit.role)}</span></h3>
 
         <div className="flex flex-wrap gap-0.5 justify-center mb-2 px-1">
           {unit.factions.map((faction) => (

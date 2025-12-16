@@ -50,15 +50,19 @@ class GameManager:
         active_synergies = self.get_board_synergies(player)
         return self.unit_manager.sell_unit(player, instance_id, active_synergies)
     
-    def move_to_board(self, player: PlayerState, instance_id: str) -> Tuple[bool, str]:
+    def move_to_board(self, player: PlayerState, instance_id: str, position: str = 'front') -> Tuple[bool, str]:
         """Move unit from bench to board"""
-        return self.unit_manager.move_to_board(player, instance_id)
+        return self.unit_manager.move_to_board(player, instance_id, position)
     
     def move_to_bench(self, player: PlayerState, instance_id: str) -> Tuple[bool, str]:
         """Move unit from board to bench"""
         return self.unit_manager.move_to_bench(player, instance_id)
     
-    def try_auto_upgrade(self, player: PlayerState, unit_id: str, star_level: int) -> Optional[int]:
+    def switch_line(self, player: PlayerState, instance_id: str, position: str) -> Tuple[bool, str]:
+        """Switch unit position on board"""
+        return self.unit_manager.switch_line(player, instance_id, position)
+    
+    def try_auto_upgrade(self, player: PlayerState, unit_id: str, star_level: int):
         """
         Check if player has 3 copies and auto-upgrade
         Returns new star level if upgraded, None otherwise

@@ -145,8 +145,13 @@ class CombatSimulator(
 
             # Attack chance per tick based on attack speed
             if random.random() < unit.attack_speed * self.dt:
-                # Find alive targets
-                targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0]
+                # Find alive targets - prioritize front line units
+                front_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'front']
+                back_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'back']
+                
+                # Target front line first, then back line
+                targets = front_targets + back_targets
+                
                 if not targets:
                     # Attacking team wins
                     return "team_a" if side == "team_a" else "team_b"

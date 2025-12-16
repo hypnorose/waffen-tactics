@@ -30,7 +30,7 @@ from routes.auth import auth_bp, require_auth, verify_token
 # Import refactored modules
 from .game_state_utils import run_async, enrich_player_state
 from .game_management import get_state, start_game, reset_game, surrender_game, init_sample_bots
-from .game_actions import buy_unit, sell_unit, move_to_board, move_to_bench, reroll_shop, buy_xp, toggle_shop_lock
+from .game_actions import buy_unit, sell_unit, move_to_board, switch_line, move_to_bench, reroll_shop, buy_xp, toggle_shop_lock
 from .game_data import get_leaderboard, get_units, get_traits
 from .game_combat import start_combat
 
@@ -68,6 +68,11 @@ def sell_unit_route(user_id):
 @require_auth
 def move_to_board_route(user_id):
     return move_to_board(user_id)
+
+@game_bp.route('/switch-line', methods=['POST'])
+@require_auth
+def switch_line_route(user_id):
+    return switch_line(user_id)
 
 @game_bp.route('/move-to-bench', methods=['POST'])
 @require_auth

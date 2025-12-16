@@ -46,7 +46,20 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
     }
   }
 
-  const handleMoveToBoard = async (instanceId: string) => {
+  const handleMoveToBoard = async (instanceId: string, position: 'front' | 'back' = 'front') => {
+    const maxPerLine = Math.ceil(playerState.max_board_size * 0.75)
+    const frontCount = playerState.board.filter((u: any) => u.position === 'front').length
+    const backCount = playerState.board.filter((u: any) => u.position === 'back').length
+
+    if (position === 'front' && frontCount >= maxPerLine) {
+      onNotification(`Linia frontowa jest pełna! (max ${maxPerLine})`)
+      return
+    }
+    if (position === 'back' && backCount >= maxPerLine) {
+      onNotification(`Linia tylna jest pełna! (max ${maxPerLine})`)
+      return
+    }
+
     if (playerState.board.length >= playerState.max_board_size) {
       onNotification('Plansza jest pełna!')
       return
@@ -54,7 +67,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
 
     setLoading(true)
     try {
-      const response = await gameAPI.moveToBoard(instanceId)
+      const response = await gameAPI.moveToBoard(instanceId, position)
       onUpdate(response.data.state)
     } catch (err: any) {
       onNotification(err.response?.data?.error || 'Nie można przenieść jednostki')
@@ -63,14 +76,44 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
     }
   }
 
+  const handleSwitchLine = async (instanceId: string, currentPosition: 'front' | 'back') => {
+    const newPosition = currentPosition === 'front' ? 'back' : 'front'
+
+    setLoading(true)
+    try {
+      const response = await gameAPI.switchLine(instanceId, newPosition)
+      onUpdate(response.data.state)
+    } catch (err: any) {
+      onNotification(err.response?.data?.error || 'Nie można zmienić linii')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Backend returns synergies as object {traitName: {count, tier}}
   const synergies = playerState.synergies || {}
 
-  return (
-    <div className="space-y-4">
-      {/* Board Units - Grid with placeholders */}
+  // Separate units by position
+  const frontLineUnits = playerState.board?.filter((unit: any) => unit.position === 'front') || []
+  const backLineUnits = playerState.board?.filter((unit: any) => unit.position === 'back') || []
+
+  const renderUnitGrid = (units: any[], lineName: string, lineType: 'front' | 'back') => {
+    const maxPerLine = Math.ceil(playerState.max_board_size * 0.75)
+    return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-center gap-2">
+        <h3 className={`text-sm font-bold ${lineType === 'front' ? 'text-red-400' : 'text-blue-400'}`}>
+          {lineType === 'front' ? '⚔️' : '🛡️'} {lineName}
+        </h3>
+        <span className="text-xs text-text/60">({units.length}/{maxPerLine})</span>
+      </div>
+      
       <div 
-        className={`flex flex-wrap gap-2 justify-center p-4 rounded-lg transition-all duration-200 ${isDragOver ? 'ring-2 ring-blue-300 ring-opacity-50' : ''}`}
+        className={`flex flex-wrap ${detailedView ? 'gap-2' : 'gap-0.5'} justify-center items-center ${detailedView ? 'p-4' : 'p-2'} rounded-lg transition-all duration-200 border-2 mx-auto ${
+          lineType === 'front' 
+            ? 'border-red-500/30 bg-red-500/5' 
+            : 'border-blue-500/30 bg-blue-500/5'
+        } ${isDragOver ? 'ring-2 ring-blue-300 ring-opacity-50' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
         onDragLeave={() => setIsDragOver(false)}
         onDragEnd={() => { setIsDragging(false); setIsDragOver(false); }}
@@ -81,26 +124,31 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
           if (data.type === 'moveToBoard') {
             // Check if unit is already on board
             if (playerState.board.some((u: any) => u.instance_id === data.instanceId)) {
-              return // Already on board
+              // Unit is already on board, check if it's in a different line
+              const existingUnit = playerState.board.find((u: any) => u.instance_id === data.instanceId)
+              if (existingUnit.position !== lineType) {
+                await handleSwitchLine(data.instanceId, existingUnit.position)
+              }
+              return
             }
-            await handleMoveToBoard(data.instanceId)
+            await handleMoveToBoard(data.instanceId, lineType)
           }
         }}
       >
-        {Array.from({ length: playerState.max_board_size }).map((_, index) => {
-          const unitInstance = playerState.board?.[index]
+        {Array.from({ length: maxPerLine }).map((_, index) => {
+          const unitInstance = units[index]
           
           if (unitInstance) {
             // Occupied slot
             return (
               <div 
                 key={unitInstance.instance_id} 
-                className="relative"
+                className={`relative ${detailedView ? 'max-w-[14rem]' : 'max-w-[9rem]'}`}
                 draggable
                 onDragStart={(e) => {
                   setIsDragging(true)
                   e.dataTransfer.setData('text/plain', JSON.stringify({
-                    type: 'moveToBench',
+                    type: 'moveToBoard',
                     instanceId: unitInstance.instance_id
                   }))
                 }}
@@ -113,14 +161,26 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
                 >
                   ↓
                 </button>
-                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
+                <button
+                  onClick={() => handleSwitchLine(unitInstance.instance_id, unitInstance.position)}
+                  disabled={loading}
+                  className={`absolute -top-1 -left-1 z-20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold disabled:opacity-50 shadow-lg border border-gray-600 ${
+                    lineType === 'front' 
+                      ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                      : 'bg-red-500 hover:bg-red-600 text-white'
+                  }`}
+                  title={`Przenieś do ${lineType === 'front' ? 'tylnej' : 'frontowej'} linii`}
+                >
+                  {lineType === 'front' ? '⬇' : '⬆'}
+                </button>
+                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} />
               </div>
             )
           } else {
             // Empty slot placeholder
             return (
-              <div key={`empty-${index}`} className="w-full max-w-[14rem]">
-                <div className="rounded-lg bg-surface/30 h-48 flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600">
+              <div key={`empty-${lineType}-${index}`} className={`w-full ${detailedView ? 'max-w-[14rem]' : 'max-w-[9rem]'}`}>
+                <div className={`rounded-lg bg-surface/30 ${detailedView ? 'h-64' : 'h-32'} flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600`}>
                   <span className="text-2xl">∅</span>
                 </div>
               </div>
@@ -128,6 +188,16 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
           }
         })}
       </div>
+    </div>
+  )
+}
+  return (
+    <div className="space-y-6">
+      {/* Front Line */}
+      {renderUnitGrid(frontLineUnits, 'Linia Frontowa', 'front')}
+      
+      {/* Back Line */}
+      {renderUnitGrid(backLineUnits, 'Linia Tylna', 'back')}
 
       {/* Synergies - Show active synergies */}
       {Object.keys(synergies).length > 0 && (
