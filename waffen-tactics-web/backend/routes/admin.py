@@ -130,10 +130,6 @@ def get_teams(user_id):
                         team_id, user_id_db, nickname, team_json, wins, losses, level, is_active_db, created_at = row
                         team = json.loads(team_json)
                         
-                        # Handle legacy format (list) vs new format (dict)
-                        if isinstance(team, list):
-                            team = {'board': team, 'bench': []}
-                        
                         teams.append({
                             'id': team_id,
                             'user_id': user_id_db,
@@ -255,10 +251,6 @@ def get_traits_popularity(user_id):
                         except Exception:
                             continue
 
-                        # legacy list -> convert
-                        if isinstance(team, list):
-                            team = {'board': team, 'bench': []}
-
                         round_number = (wins or 0) + (losses or 0)
                         if round_number not in popularity:
                             popularity[round_number] = {}
@@ -354,10 +346,6 @@ def get_units_popularity(user_id):
                         except Exception:
                             continue
 
-                        # legacy list -> convert
-                        if isinstance(team, list):
-                            team = {'board': team, 'bench': []}
-
                         round_number = (wins or 0) + (losses or 0)
                         if round_number not in popularity:
                             popularity[round_number] = {}
@@ -430,10 +418,6 @@ def get_team_details(user_id, team_id):
                     
                     team_id_db, user_id_db, nickname, team_json, wins, losses, level, is_active_db, created_at = row
                     team = json.loads(team_json)
-                    
-                    # Handle legacy format (list) vs new format (dict)
-                    if isinstance(team, list):
-                        team = {'board': team, 'bench': []}
                     
                     # Get unit details for board and bench
                     def get_units_details(units_list):

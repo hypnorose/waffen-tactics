@@ -69,7 +69,7 @@ class ShopService:
         if player.locked_shop:
             return False, "Sklep jest zablokowany! Odblokuj go przed odświeżeniem."
         
-        # Check for reroll-free chance from active synergies (e.g., XN Mod)
+        # Check for reroll-free chance from active synergies
         free_reroll = False
         free_reason = None
         for trait_name, (count, tier) in active_synergies.items():

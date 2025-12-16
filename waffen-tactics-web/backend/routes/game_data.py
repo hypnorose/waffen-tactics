@@ -26,14 +26,9 @@ def get_units_data():
         # Prefer authoritative stats from game data when available so frontend
         # displays the same base values the backend uses for buff calculations.
         base_stats = getattr(unit, 'stats', None)
-        if not base_stats or not isinstance(base_stats, dict):
-            # Fallback formula (legacy)
-            base_stats = {
-                'hp': 80 + (unit.cost * 40),
-                'attack': 20 + (unit.cost * 10),
-                'defense': 10 + (unit.cost * 5),
-                'attack_speed': 1.0
-            }
+        if not base_stats:
+            # All units should have authoritative stats - this should not happen
+            raise ValueError(f"Unit {unit.id} missing authoritative stats")
         units_data.append({
             'id': unit.id,
             'name': unit.name,
@@ -43,7 +38,15 @@ def get_units_data():
             'role': getattr(unit, 'role', None),
             'role_color': getattr(unit, 'role_color', '#6b7280'),
             'avatar': getattr(unit, 'avatar', None),
-            'stats': base_stats
+            'stats': {
+                'hp': base_stats.hp,
+                'attack': base_stats.attack,
+                'defense': base_stats.defense,
+                'attack_speed': base_stats.attack_speed,
+                'max_mana': base_stats.max_mana,
+                'mana_on_attack': base_stats.mana_on_attack,
+                'mana_regen': base_stats.mana_regen
+            }
         })
     return units_data
 
