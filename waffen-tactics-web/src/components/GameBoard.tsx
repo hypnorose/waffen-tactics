@@ -3,6 +3,7 @@ import UnitCard from './UnitCard'
 import { useGameStore } from '../store/gameStore'
 import { gameAPI } from '../services/api'
 import { getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
+import { getAllUnits, getCostBorderColor } from '../data/units'
 
 interface GameBoardProps {
   playerState: any
@@ -242,6 +243,17 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
 }
   return (
     <div className="space-y-6">
+      {/* Construction Notice */}
+      <div className="bg-yellow-500/20 border-2 border-yellow-500/50 rounded-lg p-4 text-center">
+        <div className="text-xl font-bold text-yellow-600 mb-2">
+          {/* 🚧 MENTOR CWEL MIŁEGO GRANIA 🚧 */}
+          👨‍✈️  👨‍✈️
+        </div>
+        {/* <div className="text-sm text-yellow-700">
+          Funkcjonalności są w trakcie rozwoju. Przepraszamy za niedogodności!
+        </div> */}
+      </div>
+
       {/* Front Line */}
       {renderUnitGrid(frontLineUnits, 'Linia Frontowa', 'front')}
       
@@ -255,7 +267,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
           <div className="flex flex-wrap gap-2">
             {Object.entries(synergies)
               .filter(([traitName, data]: [string, any]) => data.count > 0)
-              .sort(([, a]: [string, any], [, b]: [string, any]) => b.tier - a.tier)
+              .sort(([, a]: [string, any], [, b]: [string, any]) => b.count - a.count)
               .map(([traitName, data]: [string, any]) => {
               const isActive = data.tier > 0
               const color = isActive ? getTraitColor(data.tier) : '#6b7280'
@@ -335,6 +347,26 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
                             : `✗ Nieaktywny (${data.count}/${traitData?.thresholds[0] || 0} jednostek)`
                           }
                         </span>
+                      </div>
+                      {/* Avatar row for units in this trait (cost-colored border) */}
+                      <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {(() => {
+                          try {
+                            const all = getAllUnits()
+                            const unitsForTrait = all.filter(u => (u.factions || []).includes(traitName) || (u.classes || []).includes(traitName))
+                            return unitsForTrait.slice(0, 12).map(u => (
+                              <img
+                                key={u.id}
+                                src={u.avatar || '/avatars/default.png'}
+                                title={u.name}
+                                alt={u.name}
+                                style={{ width: 34, height: 34, borderRadius: '9999px', objectFit: 'cover', border: `2px solid ${getCostBorderColor(u.cost || 1)}` }}
+                              />
+                            ))
+                          } catch (e) {
+                            return null
+                          }
+                        })()}
                       </div>
                     </div>
                   )}

@@ -170,10 +170,16 @@ class SynergyEngine:
 
             etype = effect.get('type')
             if etype == 'dynamic_hp_per_loss':
+                # Requires player state (losses). If no player provided, skip.
+                if player is None:
+                    continue
                 percent_per_loss = float(effect.get('percent_per_loss', 0))
                 extra_multiplier = 1.0 + (percent_per_loss * float(player.losses) / 100.0)
                 stats['hp'] = int(stats['hp'] * extra_multiplier)
             elif etype == 'win_scaling':
+                # Requires player state (wins). If no player provided, skip.
+                if player is None:
+                    continue
                 atk_per_win = float(effect.get('atk_per_win', 0))
                 def_per_win = float(effect.get('def_per_win', 0))
                 hp_percent_per_win = float(effect.get('hp_percent_per_win', 0))
@@ -183,7 +189,9 @@ class SynergyEngine:
                 if hp_percent_per_win:
                     stats['hp'] = int(stats['hp'] * (1 + (hp_percent_per_win * player.wins) / 100.0))
                 stats['attack_speed'] += as_per_win * player.wins
-            return stats
+
+        # Return computed dynamic stats after processing all active traits
+        return stats
     def apply_enemy_debuffs(self, enemy_units: List[Unit], active_synergies: Dict[str, Tuple[int, int]]) -> Dict[str, Dict[str, float]]:
         """
         Apply enemy debuffs from synergies

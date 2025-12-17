@@ -9,6 +9,37 @@ from waffen_tactics.services.database import DatabaseManager
 from waffen_tactics.services.game_manager import GameManager
 from waffen_tactics.services.combat_shared import CombatSimulator, CombatUnit
 from waffen_tactics.models.player_state import PlayerState
+import json
+
+# Load game configuration from JSON (allows easy tuning without code changes)
+CONFIG_PATH = Path(__file__).parent.parent / 'game_config.json'
+
+def _load_game_config():
+    # Defaults used when config is not enabled or fails to load
+    defaults = {
+        # By default do not force bot opponents unless explicitly enabled
+        'initial_bot_rounds': 0,
+        'deterministic_targeting_default': False,
+        'max_bot_team_size': 5
+    }
+    # Only load external JSON config when explicitly enabled via env var.
+    # This prevents test suites from being affected by a present config file
+    # unless the runtime enables it.
+    import os
+    if os.getenv('USE_GAME_CONFIG', '0') not in ('1', 'true', 'True'):
+        return defaults
+    try:
+        if CONFIG_PATH.exists():
+            with open(CONFIG_PATH, 'r') as fh:
+                cfg = json.load(fh)
+                merged = defaults.copy()
+                merged.update(cfg or {})
+                return merged
+    except Exception:
+        pass
+    return defaults
+
+GAME_CONFIG = _load_game_config()
 
 # Initialize services (these would be injected in a proper DI setup)
 DB_PATH = str(Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')
@@ -139,7 +170,7 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     skill={
                         'name': unit.skill.name,
                         'description': unit.skill.description,
-                        'mana_cost': unit.skill.mana_cost,
+                        'mana_cost': (unit.skill.mana_cost if getattr(unit.skill, 'mana_cost', None) is not None else max_mana),
                         'effect': unit.skill.effect
                     } if hasattr(unit, 'skill') and unit.skill else None
                 )
@@ -148,6 +179,8 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                 # Store for frontend (include buffed stats so UI shows consistent values)
                 player_unit_info.append({
                     'id': combat_unit.id,
+                    # template_id references the canonical unit template from game data
+                    'template_id': getattr(unit, 'id', None),
                     'name': combat_unit.name,
                     'hp': combat_unit.hp,
                     'max_hp': combat_unit.max_hp,
@@ -196,12 +229,23 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
             return default
 
     try:
-        # Get opponent from database
-        opponent_data = _run_async(db_manager.get_random_opponent(
-            exclude_user_id=player.user_id,
-            player_wins=player.wins,
-            player_rounds=player.wins + player.losses
-        ))
+        # Get opponent from database unless we're in the configured initial bot rounds
+        opponent_data = None
+        # Prefer a real player opponent (closest by round), fall back to system bots.
+        try:
+            opponent_data = _run_async(db_manager.get_random_opponent(
+                exclude_user_id=player.user_id,
+                player_wins=player.wins,
+                player_rounds=player.wins + player.losses
+            ))
+        except Exception:
+            opponent_data = None
+
+        if not opponent_data:
+            try:
+                opponent_data = _run_async(db_manager.get_random_system_opponent(player.wins + player.losses))
+            except Exception:
+                opponent_data = None
 
         if opponent_data:
             opponent_name = opponent_data['nickname']
@@ -254,6 +298,11 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                     # Get active effects
                     effects_b_for_unit = game_manager.synergy_engine.get_active_effects(unit, opponent_active)
 
+                    # Determine position: prefer explicit position from saved team data,
+                    # otherwise place first 3 units in front and remaining in back to
+                    # allow backline-targeting (target_backline) to work in matches.
+                    pos = unit_data.get('position') if isinstance(unit_data, dict) and unit_data.get('position') else ('front' if i < 3 else 'back')
+
                     combat_unit = CombatUnit(
                         id=f'opp_{i}',
                         name=unit.name,
@@ -262,7 +311,7 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                         defense=defense,
                         attack_speed=attack_speed,
                         star_level=star_level,
-                        position='front',
+                        position=pos,
                         effects=effects_b_for_unit,
                         max_mana=max_mana,
                         mana_regen=stat_val(base_stats_b, 'mana_regen', 5),
@@ -270,7 +319,7 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                         skill={
                             'name': unit.skill.name,
                             'description': unit.skill.description,
-                            'mana_cost': unit.skill.mana_cost,
+                            'mana_cost': (unit.skill.mana_cost if getattr(unit.skill, 'mana_cost', None) is not None else max_mana),
                             'effect': unit.skill.effect
                         } if hasattr(unit, 'skill') and unit.skill else None
                     )
@@ -278,6 +327,7 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
 
                     opponent_unit_info.append({
                         'id': combat_unit.id,
+                        'template_id': getattr(unit, 'id', None),
                         'name': combat_unit.name,
                         'hp': combat_unit.hp,
                         'max_hp': combat_unit.max_hp,
@@ -298,92 +348,41 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                             'hp_regen_per_sec': round(combat_unit.hp_regen_per_sec, 1)
                         }
                     })
-        else:
-            # Fallback: create simplified bot team - need player_units for reference
-            # This is a simplified version - in practice we'd need to pass player_units
-            for i in range(5):
-                combat_unit = CombatUnit(
-                    id=f'opp_{i}',
-                    name=f'Bot {i+1}',
-                    hp=100,
-                    attack=20,
-                    defense=5,
-                    attack_speed=0.8,
-                    position='front',
-                    skill={
-                        'name': 'Bot Skill',
-                        'description': 'Basic bot skill',
-                        'mana_cost': 100,
-                        'effect': {'type': 'damage', 'amount': 50}
-                    }
-                )
-                opponent_units.append(combat_unit)
+        # If no opponent data found from DB (real player or system bot), do not generate local fallbacks.
+        # This enforces using only DB-sourced opponents (real players or system bots).
+        if not opponent_data:
+            raise RuntimeError('No DB opponent available for this match')
 
-                opponent_unit_info.append({
-                    'id': combat_unit.id,
-                    'name': combat_unit.name,
-                    'hp': combat_unit.hp,
-                    'max_hp': combat_unit.max_hp,
-                    'attack': combat_unit.attack,
-                    'star_level': 1,
-                    'cost': 1,
-                    'factions': [],
-                    'classes': [],
-                    'position': combat_unit.position,
-                    'avatar': None,
-                    'buffed_stats': {
-                        'hp': combat_unit.hp,
-                        'attack': combat_unit.attack,
-                        'defense': combat_unit.defense,
-                        'attack_speed': round(combat_unit.attack_speed, 3),
-                        'max_mana': 100,
-                        'current_mana': 0,
-                        'hp_regen_per_sec': round(combat_unit.hp_regen_per_sec, 1)
-                    }
-                })
-
-        opponent_info = {'name': opponent_name, 'wins': opponent_wins, 'level': opponent_level}
+        # Include avatar URL (prefer local cached /avatars/players/{user_id}.png, else fallback to Discord CDN if hash present)
+        opponent_info = {
+            'name': opponent_name,
+            'wins': opponent_wins,
+            'level': opponent_level,
+            'avatar': None
+        }
+        try:
+            if opponent_data and isinstance(opponent_data, dict):
+                # Prefer DB-backed local filename (avatar_local) to avoid filesystem checks
+                avatar_local = opponent_data.get('avatar_local')
+                uid = opponent_data.get('user_id')
+                avatar_hash = opponent_data.get('avatar')
+                if avatar_local:
+                    # avatar_local expected to be like 'players/{filename}.png'
+                    opponent_info['avatar'] = f"/avatars/{avatar_local.lstrip('/')}"
+                elif uid and avatar_hash:
+                    opponent_info['avatar'] = f"https://cdn.discordapp.com/avatars/{uid}/{avatar_hash}.png?size=256"
+                elif uid and not avatar_hash:
+                    # No hash, but local may not be present — leave None
+                    opponent_info['avatar'] = None
+        except Exception:
+            # Ignore avatar resolution errors and leave avatar as None
+            pass
         return opponent_units, opponent_unit_info, opponent_info
 
     except Exception as e:
-        # Return fallback opponent
-        fallback_units = []
-        fallback_info = []
-        for i in range(5):
-            combat_unit = CombatUnit(
-                id=f'opp_{i}',
-                name=f'Bot {i+1}',
-                hp=100,
-                attack=20,
-                defense=5,
-                attack_speed=0.8,
-                position='front'
-            )
-            fallback_units.append(combat_unit)
-            fallback_info.append({
-                'id': combat_unit.id,
-                'name': combat_unit.name,
-                'hp': combat_unit.hp,
-                'max_hp': combat_unit.max_hp,
-                'attack': combat_unit.attack,
-                'star_level': 1,
-                'cost': 1,
-                'factions': [],
-                'classes': [],
-                'position': combat_unit.position,
-                'avatar': None,
-                'buffed_stats': {
-                    'hp': combat_unit.hp,
-                    'attack': combat_unit.attack,
-                    'defense': combat_unit.defense,
-                    'attack_speed': round(combat_unit.attack_speed, 3),
-                    'max_mana': 100,
-                    'current_mana': 0,
-                    'hp_regen_per_sec': round(combat_unit.hp_regen_per_sec, 1)
-                }
-            })
-
-        return fallback_units, fallback_info, {'name': 'Bot', 'wins': 0, 'level': 1}
+        # Do not generate ad-hoc fallback bots. Propagate the error so the caller
+        # can decide how to handle absence of a DB-provided opponent.
+        raise
 
 
 def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[CombatUnit], event_callback: Optional[Callable] = None):
@@ -405,6 +404,7 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
         # Collect events regardless of callback
         events = []
         def event_collector(event_type: str, data: dict):
+            print(f"Collected event: {event_type} - {data}")
             events.append((event_type, data))
             # Also call the callback if provided
             if event_callback:
@@ -415,6 +415,7 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
         return result
 
     except Exception as e:
+        print(f"Combat simulation error: {e}")
         return {
             'winner': 'error',
             'duration': 0,

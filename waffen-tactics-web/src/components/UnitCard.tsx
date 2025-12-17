@@ -196,10 +196,10 @@ export default function UnitCard({
                 <div className="flex items-baseline gap-2">
                   {deltas && deltas.hp !== 0 ? (
                     <span className="font-bold text-white text-sm">
-                      {scaledStats?.hp} + <span className="text-green-400">{Math.round(deltas.hp)}</span> = <span className="text-green-400">{displayStats?.hp}</span>
+                      {Math.round(scaledStats?.hp ?? 0)} + <span className="text-green-400">{Math.round(deltas.hp)}</span> = <span className="text-green-400">{Math.round(displayStats?.hp ?? 0)}</span>
                     </span>
                   ) : (
-                    <span className="font-bold text-white text-sm">{displayStats?.hp}</span>
+                    <span className="font-bold text-white text-sm">{Math.round(displayStats?.hp ?? 0)}</span>
                   )}
                 </div>
               </div>
@@ -212,10 +212,10 @@ export default function UnitCard({
                 <div className="flex items-baseline gap-2">
                   {deltas && deltas.attack !== 0 ? (
                     <span className="font-bold text-white text-sm">
-                      {scaledStats?.attack} + <span className="text-green-400">{Math.round(deltas.attack)}</span> = <span className="text-green-400">{displayStats?.attack}</span>
+                      {Math.round(scaledStats?.attack ?? 0)} + <span className="text-green-400">{Math.round(deltas.attack)}</span> = <span className="text-green-400">{Math.round(displayStats?.attack ?? 0)}</span>
                     </span>
                   ) : (
-                    <span className="font-bold text-white text-sm">{displayStats?.attack}</span>
+                    <span className="font-bold text-white text-sm">{Math.round(displayStats?.attack ?? 0)}</span>
                   )}
                 </div>
               </div>
@@ -228,10 +228,10 @@ export default function UnitCard({
                 <div className="flex items-baseline gap-2">
                   {deltas && deltas.defense !== 0 ? (
                     <span className="font-bold text-white text-sm">
-                      {scaledStats?.defense} + <span className="text-green-400">{Math.round(deltas.defense)}</span> = <span className="text-green-400">{displayStats?.defense}</span>
+                      {Math.round(scaledStats?.defense ?? 0)} + <span className="text-green-400">{Math.round(deltas.defense)}</span> = <span className="text-green-400">{Math.round(displayStats?.defense ?? 0)}</span>
                     </span>
                   ) : (
-                    <span className="font-bold text-white text-sm">{displayStats?.defense}</span>
+                    <span className="font-bold text-white text-sm">{Math.round(displayStats?.defense ?? 0)}</span>
                   )}
                 </div>
               </div>
@@ -260,13 +260,39 @@ export default function UnitCard({
                 <div className="flex items-baseline gap-2">
                   {deltas && deltas.max_mana !== 0 ? (
                     <span className="font-bold text-white text-sm">
-                      {(scaledStats as any)?.max_mana ?? 100} + <span className="text-green-400">{Math.round(deltas.max_mana)}</span> = <span className="text-green-400">{displayStats?.max_mana ?? 100}</span>
+                      {Math.round((scaledStats as any)?.max_mana ?? 100)} + <span className="text-green-400">{Math.round(deltas.max_mana)}</span> = <span className="text-green-400">{Math.round(displayStats?.max_mana ?? 100)}</span>
                     </span>
                   ) : (
-                    <span className="font-bold text-white text-sm">{displayStats?.max_mana ?? 100}</span>
+                    <span className="font-bold text-white text-sm">{Math.round(displayStats?.max_mana ?? 100)}</span>
                   )}
                 </div>
               </div>
+            </div>
+          )}
+          
+          {/* Skill Information */}
+          {unit.skill && (
+            <div className="mt-3 pt-2 border-t border-gray-600">
+              <div className="font-semibold text-blue-400 mb-1 text-sm">🎯 {unit.skill.name}</div>
+              <div className="text-xs text-gray-300 mb-2">{unit.skill.description}</div>
+              <div className="text-xs text-purple-400 mb-1">Mana Cost: {(unit.skill?.mana_cost ?? displayStats?.max_mana ?? 100)}</div>
+              {unit.skill.effects && unit.skill.effects.length > 0 && (
+                <div>
+                  <div className="text-xs text-gray-400 mb-1">Effects:</div>
+                  <div className="space-y-1">
+                    {unit.skill.effects.map((effect: any, index: number) => (
+                      <div key={index} className="text-xs bg-gray-700/50 rounded px-2 py-1">
+                        <span className="capitalize text-yellow-400">{effect.type.replace('_', ' ')}</span>
+                        {effect.target && <span className="text-gray-300"> → {effect.target.replace('_', ' ')}</span>}
+                        {effect.amount && <span className="text-green-400"> ({effect.amount})</span>}
+                        {effect.duration && <span className="text-blue-400"> for {effect.duration}s</span>}
+                        {effect.damage && <span className="text-red-400"> {effect.damage}/tick</span>}
+                        {effect.interval && <span className="text-orange-400"> every {effect.interval}s</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -312,18 +338,6 @@ export default function UnitCard({
           </div>
         </div>
 
-        {starLevel > 1 && (
-          <div className="flex justify-center mb-1">
-            <div className="flex items-center gap-0.5">
-              {Array.from({ length: starLevel }).map((_, i) => (
-                <span key={i} className="text-yellow-400 text-sm">
-                  ⭐
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
         <h3 className={`text-center text-xs font-bold ${detailed ? 'mb-1' : 'mb-0.5'} truncate px-1 flex items-center justify-center gap-1 ${detailed ? '' : 'text-[9px]'}`}>{unit.name} <span>{getRoleEmoji(unit.role)}</span></h3>
 
         <div className="flex flex-wrap gap-0.5 justify-center mb-2 px-1">
@@ -340,45 +354,57 @@ export default function UnitCard({
         </div>
 
         {scaledStats && detailed && (
-          <div className="text-[12px] space-y-1 flex-1 flex flex-col justify-end">
+          <div className="text-[10px] space-y-0.5 flex-1 flex flex-col justify-end">
             <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <span className="text-red-400">❤️</span>
-                <span className="text-sm font-semibold">Życie</span>
+              <div className="flex items-center gap-1">
+                <span className="text-red-400 text-xs">❤️</span>
+                <span className="text-xs font-semibold">Życie</span>
               </div>
-              <span className="font-bold text-sm">{displayStats?.hp}</span>
+              <span className="font-bold text-xs">{displayStats?.hp}</span>
             </div>
 
             <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <span className="text-orange-400">⚔️</span>
-                <span className="text-sm font-semibold">Atak</span>
+              <div className="flex items-center gap-1">
+                <span className="text-orange-400 text-xs">⚔️</span>
+                <span className="text-xs font-semibold">Atak</span>
               </div>
-              <span className="font-bold text-sm">{displayStats?.attack}</span>
+              <span className="font-bold text-xs">{displayStats?.attack}</span>
             </div>
 
             <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <span className="text-blue-400">🛡️</span>
-                <span className="text-sm font-semibold">Obrona</span>
+              <div className="flex items-center gap-1">
+                <span className="text-blue-400 text-xs">🛡️</span>
+                <span className="text-xs font-semibold">Obrona</span>
               </div>
-              <span className="font-bold text-sm">{displayStats?.defense}</span>
+              <span className="font-bold text-xs">{displayStats?.defense}</span>
             </div>
 
             <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <span className="text-green-400">⚡</span>
-                <span className="text-sm font-semibold">Prędkość ataku</span>
+              <div className="flex items-center gap-1">
+                <span className="text-green-400 text-xs">⚡</span>
+                <span className="text-xs font-semibold">Prędkość ataku</span>
               </div>
-              <span className="font-bold text-sm">{(displayStats?.attack_speed ?? 0).toFixed(2)}</span>
+              <span className="font-bold text-xs">{(displayStats?.attack_speed ?? 0).toFixed(2)}</span>
             </div>
 
             <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <span className="text-purple-400">🔮</span>
-                <span className="text-sm font-semibold">Mana</span>
+              <div className="flex items-center gap-1">
+                <span className="text-purple-400 text-xs">🔮</span>
+                <span className="text-xs font-semibold">Mana</span>
               </div>
-              <span className="font-bold text-sm">{displayStats?.current_mana ?? 0}/{displayStats?.max_mana ?? 100}</span>
+              <span className="font-bold text-xs">{displayStats?.current_mana ?? 0}/{displayStats?.max_mana ?? 100}</span>
+            </div>
+          </div>
+        )}
+
+        {starLevel > 1 && (
+          <div className="flex justify-center mt-auto">
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: starLevel }).map((_, i) => (
+                <span key={i} className="text-yellow-400 text-sm">
+                  ⭐
+                </span>
+              ))}
             </div>
           </div>
         )}

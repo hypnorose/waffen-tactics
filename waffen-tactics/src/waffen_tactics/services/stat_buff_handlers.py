@@ -83,7 +83,8 @@ class AttackBuffHandler(StatBuffHandler):
                 'stat': 'attack',
                 'amount': buffed_value,
                 'side': side,
-                'timestamp': time
+                'timestamp': time,
+                'cause': 'effect'
             })
 
 
@@ -126,7 +127,8 @@ class DefenseBuffHandler(StatBuffHandler):
                 'stat': self.stat_name,
                 'amount': buffed_value,
                 'side': side,
-                'timestamp': time
+                'timestamp': time,
+                'cause': 'effect'
             })
 
 
@@ -169,7 +171,8 @@ class HpBuffHandler(StatBuffHandler):
                 'stat': 'hp',
                 'amount': buffed_value,
                 'side': side,
-                'timestamp': time
+                'timestamp': time,
+                'cause': 'effect'
             })
 
 
@@ -212,7 +215,8 @@ class AttackSpeedBuffHandler(StatBuffHandler):
                 'stat': 'attack_speed',
                 'amount': buffed_value,
                 'side': side,
-                'timestamp': time
+                'timestamp': time,
+                'cause': 'effect'
             })
 
 
@@ -255,7 +259,8 @@ class ManaRegenBuffHandler(StatBuffHandler):
                 'stat': self.stat_name,
                 'amount': buffed_value,
                 'side': side,
-                'timestamp': time
+                'timestamp': time,
+                'cause': 'effect'
             })
 
 
@@ -298,7 +303,8 @@ class LifestealBuffHandler(StatBuffHandler):
                 'stat': 'lifesteal',
                 'amount': lifesteal_gain,
                 'side': side,
-                'timestamp': time
+                'timestamp': time,
+                'cause': 'effect'
             })
 
 
@@ -341,7 +347,8 @@ class DamageReductionBuffHandler(StatBuffHandler):
                 'stat': 'damage_reduction',
                 'amount': reduction_gain,
                 'side': side,
-                'timestamp': time
+                'timestamp': time,
+                'cause': 'effect'
             })
 
 

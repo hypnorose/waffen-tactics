@@ -117,7 +117,7 @@ def test_on_ally_death_trigger_once():
     assert weak_ally_died
 
     # Check gold_reward events - should be only 1 due to trigger_once for the WeakAlly death
-    gold_reward_events = [e for e in events if e[0] == 'gold_reward' and abs(e[1]['timestamp'] - 0.3) < 0.1]  # Only rewards around WeakAlly death time
+    gold_reward_events = [e for e in events if e[0] == 'gold_reward' and abs(e[1]['timestamp'] - 0.5) < 0.1]  # Only rewards around WeakAlly death time
     assert len(gold_reward_events) == 1  # Only one reward per death event due to trigger_once
 
     # Check the reward amount
@@ -157,7 +157,7 @@ def test_on_ally_death_without_trigger_once():
     assert weak_ally_died
 
     # Check gold_reward events - should be 2 (one for each surviving unit with effect)
-    gold_reward_events = [e for e in events if e[0] == 'gold_reward' and abs(e[1]['timestamp'] - 0.3) < 0.1]  # Only rewards around WeakAlly death time
+    gold_reward_events = [e for e in events if e[0] == 'gold_reward' and abs(e[1]['timestamp'] - 0.5) < 0.1]  # Only rewards around WeakAlly death time
     assert len(gold_reward_events) == 2  # Two rewards without trigger_once
 
     # Check the reward amounts

@@ -9,6 +9,7 @@ interface Unit {
   name: string
   hp: number
   max_hp: number
+  shield?: number
   attack: number
   defense?: number
   star_level: number
@@ -24,6 +25,10 @@ interface Unit {
     max_mana?: number
   }
   current_mana?: number
+  effects?: EffectSummary[]
+  persistent_buffs?: Record<string, number>
+  avatar?: string
+  skill?: any
 }
 
 interface TraitDefinition {
@@ -40,7 +45,7 @@ interface CombatEvent {
   opponent_units?: Unit[]
   synergies?: Record<string, {count: number, tier: number}>
   traits?: TraitDefinition[]
-  opponent?: {name: string, wins: number, level: number}
+  opponent?: {name: string, wins: number, level: number, avatar?: string}
   attacker_id?: string
   target_id?: string
   damage?: number
@@ -52,8 +57,8 @@ interface CombatEvent {
   state?: PlayerState
   amount_per_sec?: number
   total_amount?: number
-  duration?: number
   timestamp?: number
+  seq?: number
   // Mana and skill casting events
   caster_id?: string
   caster_name?: string
@@ -66,7 +71,27 @@ interface CombatEvent {
   unit_name?: string
   amount?: number
   stat?: string
- side?: string
+  side?: string
+  is_skill?: boolean
+  buff_type?: string
+  duration?: number
+  shield_absorbed?: number
+  cause?: string
+  ticks?: number
+  interval?: number
+}
+
+interface EffectSummary {
+  id?: string
+  type: string
+  amount?: number
+  stat?: string
+  duration?: number
+  expiresAt?: number
+  ticks?: number
+  interval?: number
+  damage?: number
+  caster_name?: string
 }
 
 
@@ -100,10 +125,12 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   })
   const [eventQueue, setEventQueue] = useState<CombatEvent[]>([])
   const [animatingUnits, setAnimatingUnits] = useState<string[]>([])
+  const [attackDurations, setAttackDurations] = useState<Record<string, number>>({})
   // Make animations slightly slower by default but scale with combatSpeed
   // animationScale > 1 slows animations; follow-up divides by combatSpeed
   const animationScale = 1.25
   const [regenMap, setRegenMap] = useState<Record<string, { amount_per_sec: number; total_amount: number; expiresAt: number }>>({})
+  // Effects will be attached to unit objects as `effects: EffectSummary[]`
   const [isPlaying, setIsPlaying] = useState(false)
   const [storedGoldBreakdown, setStoredGoldBreakdown] = useState<{base: number, interest: number, milestone: number, win_bonus: number, total: number} | null>(null)
   const [displayedGoldBreakdown, setDisplayedGoldBreakdown] = useState<{base: number, interest: number, milestone: number, win_bonus: number, total: number} | null>(null)
@@ -163,6 +190,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
       setEventQueue(prev => {
         if (prev.length === 0) return prev;
         const [nextEvent, ...rest] = prev;
+        // DEBUG: console.log('Processing event:', nextEvent);
         // Update lastTimestampRef for delay calculation
         let eventTimestamp = typeof nextEvent.timestamp === 'number' ? nextEvent.timestamp : null;
         if (eventTimestamp !== null) lastTimestampRef.current = eventTimestamp;
@@ -171,31 +199,185 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
           const msg = '⚔️ Walka rozpoczyna się!'
           setCombatLog(prev => [...prev, msg]);
         } else if (nextEvent.type === 'units_init') {
-          if (nextEvent.player_units) setPlayerUnits(nextEvent.player_units.map(u => ({ ...u, current_mana: u.current_mana ?? 0 })));
-          if (nextEvent.opponent_units) setOpponentUnits(nextEvent.opponent_units.map(u => ({ ...u, current_mana: u.current_mana ?? 0 })));
+          if (nextEvent.player_units) {
+            const players = nextEvent.player_units;
+            const normalizedPlayers = players.map((u, idx) => ({
+              ...u,
+              hp: u.hp ?? 0,
+              current_mana: u.current_mana ?? 0,
+              shield: u.shield ?? 0,
+              position: u.position ?? (idx < Math.ceil(players.length / 2) ? 'front' : 'back')
+            }));
+            setPlayerUnits(normalizedPlayers);
+          }
+          if (nextEvent.opponent_units) {
+            const opponents = nextEvent.opponent_units;
+            const normalizedOpps = opponents.map((u, idx) => ({
+              ...u,
+              hp: u.hp ?? 0,
+              current_mana: u.current_mana ?? 0,
+              shield: u.shield ?? 0,
+              position: u.position ?? (idx < Math.ceil(opponents.length / 2) ? 'front' : 'back')
+            }));
+            setOpponentUnits(normalizedOpps);
+          }
           if (nextEvent.synergies) setSynergies(nextEvent.synergies);
           if (nextEvent.traits) setTraits(nextEvent.traits);
           if (nextEvent.opponent) setOpponentInfo(nextEvent.opponent);
+        } else if (nextEvent.type === 'state_snapshot') {
+          // Authoritative periodic snapshot from server. Merge into local state
+          const snapTs = typeof nextEvent.timestamp === 'number' ? nextEvent.timestamp : null
+          const snapSeq = (nextEvent as any).seq ?? null
+          console.log(`[STATE_UPDATE] Received state snapshot at seq ${snapSeq}, timestamp ${snapTs}`)
+
+          if (nextEvent.player_units) {
+            const players = nextEvent.player_units as any[]
+            const normalizedPlayers = players.map((u, idx) => ({ ...u, hp: u.hp ?? 0, current_mana: u.current_mana ?? 0, shield: u.shield ?? 0 }))
+            setPlayerUnits(prev => {
+              // Log desync in stats, effects, etc.
+              normalizedPlayers.forEach(u => {
+                const prevU = prev.find(p => p.id === u.id)
+                if (prevU) {
+                  if (prevU.hp !== u.hp) {
+                    console.log(`[DESYNC] Player unit ${u.id} (${u.name}) HP: UI=${prevU.hp}, Server=${u.hp}`)
+                  }
+                  if (prevU.shield !== u.shield) {
+                    console.log(`[DESYNC] Player unit ${u.id} (${u.name}) Shield: UI=${prevU.shield}, Server=${u.shield}`)
+                  }
+                  if (prevU.current_mana !== u.current_mana) {
+                    console.log(`[DESYNC] Player unit ${u.id} (${u.name}) Mana: UI=${prevU.current_mana}, Server=${u.current_mana}`)
+                  }
+                  const prevEffects = prevU.effects || []
+                  const serverEffects = u.effects || []
+                  if (JSON.stringify(prevEffects.sort()) !== JSON.stringify(serverEffects.sort())) {
+                    console.log(`[DESYNC] Player unit ${u.id} (${u.name}) effects: UI=${JSON.stringify(prevEffects)}, Server=${JSON.stringify(serverEffects)}`)
+                  }
+                }
+              })
+              const prevMap = new Map(prev.map(p => [p.id, p]))
+              return normalizedPlayers.map(u => {
+                const prevU = prevMap.get(u.id)
+                // Preserve client-side persistent buffs when merging
+                const mergedPersistent = { ...(u.persistent_buffs || {}), ...(prevU?.persistent_buffs || {}) }
+                // Prefer keeping client-side active effects to avoid losing UI badges/animations
+                const mergedEffects = u.effects || []
+                return { ...u, persistent_buffs: mergedPersistent, effects: mergedEffects, avatar: prevU?.avatar || u.avatar, factions: prevU?.factions || u.factions, classes: prevU?.classes || u.classes, skill: prevU?.skill || u.skill }
+              })
+            })
+          }
+          if (nextEvent.opponent_units) {
+            const opponents = nextEvent.opponent_units as any[]
+            const normalizedOpps = opponents.map((u, idx) => ({ ...u, hp: u.hp ?? 0, current_mana: u.current_mana ?? 0, shield: u.shield ?? 0 }))
+            setOpponentUnits(prev => {
+              // Log desync
+              normalizedOpps.forEach(u => {
+                const prevU = prev.find(p => p.id === u.id)
+                if (prevU) {
+                  if (prevU.hp !== u.hp) {
+                    console.log(`[DESYNC] Opponent unit ${u.id} (${u.name}) HP: UI=${prevU.hp}, Server=${u.hp}`)
+                  }
+                  if (prevU.shield !== u.shield) {
+                    console.log(`[DESYNC] Opponent unit ${u.id} (${u.name}) Shield: UI=${prevU.shield}, Server=${u.shield}`)
+                  }
+                  if (prevU.current_mana !== u.current_mana) {
+                    console.log(`[DESYNC] Opponent unit ${u.id} (${u.name}) Mana: UI=${prevU.current_mana}, Server=${u.current_mana}`)
+                  }
+                  const prevEffects = prevU.effects || []
+                  const serverEffects = u.effects || []
+                  if (JSON.stringify(prevEffects.sort()) !== JSON.stringify(serverEffects.sort())) {
+                    console.log(`[DESYNC] Opponent unit ${u.id} (${u.name}) effects: UI=${JSON.stringify(prevEffects)}, Server=${JSON.stringify(serverEffects)}`)
+                  }
+                }
+              })
+              const prevMap = new Map(prev.map(p => [p.id, p]))
+              return normalizedOpps.map(u => {
+                const prevU = prevMap.get(u.id)
+                const mergedPersistent = { ...(u.persistent_buffs || {}), ...(prevU?.persistent_buffs || {}) }
+                const mergedEffects = u.effects || []
+                return { ...u, persistent_buffs: mergedPersistent, effects: mergedEffects, avatar: prevU?.avatar || u.avatar, factions: prevU?.factions || u.factions, classes: prevU?.classes || u.classes, skill: prevU?.skill || u.skill }
+              })
+            })
+          }
+          if (nextEvent.synergies) setSynergies(nextEvent.synergies)
+          if (nextEvent.traits) setTraits(nextEvent.traits)
+          if (nextEvent.opponent) setOpponentInfo(nextEvent.opponent)
+
+          // Drop queued events that are older than snapshot (by seq if present, else by timestamp)
+          if (snapSeq !== null) {
+            setEventQueue(prev => prev.filter(e => {
+              const es = (e as any).seq
+              if (typeof es === 'number') return es > snapSeq
+              if (typeof e.timestamp === 'number' && snapTs !== null) return e.timestamp > snapTs
+              return true
+            }))
+          } else if (snapTs !== null) {
+            setEventQueue(prev => prev.filter(e => (typeof e.timestamp === 'number' ? e.timestamp > snapTs : true)))
+          }
+
+          if (snapTs !== null) lastTimestampRef.current = snapTs
+        } else if (nextEvent.type === 'attack') {
+          // Update HP and shield immediately on attack
+          const targetId = nextEvent.target_id
+          const targetHp = nextEvent.target_hp
+          const shieldAbsorbed = nextEvent.shield_absorbed || 0
+          const side = nextEvent.side
+          if (targetId && typeof targetHp === 'number' && side) {
+            if (side === 'team_a') {
+              setPlayerUnits(prev => prev.map(u => 
+                u.id === targetId ? { ...u, hp: targetHp, shield: Math.max(0, (u.shield || 0) - shieldAbsorbed) } : u
+              ))
+            } else {
+              setOpponentUnits(prev => prev.map(u => 
+                u.id === targetId ? { ...u, hp: targetHp, shield: Math.max(0, (u.shield || 0) - shieldAbsorbed) } : u
+              ))
+            }
+          }
         } else if (nextEvent.type === 'unit_attack') {
           if (nextEvent.attacker_id && nextEvent.target_id) {
-            const attacker = nextEvent.attacker_id
-            const target = nextEvent.target_id
+            const attacker = nextEvent.attacker_id as string
+            const target = nextEvent.target_id as string
             // add attacker/target to active lists so animations can overlap
             setAttackingUnits(prev => [...prev, attacker])
             setTargetUnits(prev => [...prev, target])
             setAnimatingUnits(prev => [...prev, attacker, target])
-            const duration = Math.round(1500 * animationScale / combatSpeed)
-            setTimeout(() => { setAttackingUnits(prev => prev.filter(id => id !== attacker)) }, duration)
-            setTimeout(() => { setTargetUnits(prev => prev.filter(id => id !== target)) }, duration)
+            // compute animation duration based on attacker's attack_speed (attacks per second)
+            const allUnits = [...playerUnits, ...opponentUnits]
+            const attackerUnit = allUnits.find(u => u.id === attacker)
+            const attackerAS = (attackerUnit && attackerUnit.buffed_stats?.attack_speed) || 1
+            // avoid division by zero and clamp reasonable values
+            const normalizedAS = Math.max(0.1, parseFloat(String(attackerAS)))
+            // base interval between attacks in ms = 1000 / attack_speed
+            const baseInterval = 1000 / normalizedAS
+            const duration = Math.round(Math.max(150, Math.min(3000, baseInterval * animationScale / combatSpeed)))
+
+            // set per-unit durations for UI components to use for CSS animation timings
+            setAttackDurations(prev => ({ ...prev, [attacker]: duration, [target]: duration }))
+
+            setTimeout(() => { setAttackingUnits(prev => prev.filter(id => id !== attacker)); setAttackDurations(prev => { const copy = { ...prev }; delete copy[attacker]; return copy }) }, duration)
+            setTimeout(() => { setTargetUnits(prev => prev.filter(id => id !== target)); setAttackDurations(prev => { const copy = { ...prev }; delete copy[target]; return copy }) }, duration)
             setTimeout(() => { setAnimatingUnits(prev => prev.filter(id => id !== attacker && id !== target)) }, duration)
           }
           // Accept both unit_hp (preferred) and target_hp (legacy/backend)
-          const attackHp = nextEvent.unit_hp !== undefined ? nextEvent.unit_hp : nextEvent.target_hp;
-          if (nextEvent.target_id && attackHp !== undefined) {
-            if (nextEvent.target_id.startsWith('opp_')) setOpponentUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: attackHp } : u));
-            else setPlayerUnits(prev => prev.map(u => u.id === nextEvent.target_id ? { ...u, hp: attackHp } : u));
-          }
-          const msg = `⚔️ ${nextEvent.attacker_name} atakuje ${nextEvent.target_name} (${(nextEvent.damage ?? 0).toFixed(2)} dmg)`
+            // Accept both unit_hp (preferred) and target_hp (legacy/backend)
+            const attackHp = nextEvent.unit_hp !== undefined ? nextEvent.unit_hp : nextEvent.target_hp;
+            if (nextEvent.target_id && attackHp !== undefined) {
+              if (nextEvent.target_id.startsWith('opp_')) {
+                setOpponentUnits(prev => prev.map(u => {
+                  if (u.id !== nextEvent.target_id) return u
+                  const newShield = Math.max(0, (u.shield || 0) - (nextEvent.shield_absorbed || 0))
+                  return { ...u, hp: attackHp, shield: Math.round(newShield) }
+                }))
+              } else {
+                setPlayerUnits(prev => prev.map(u => {
+                  if (u.id !== nextEvent.target_id) return u
+                  const newShield = Math.max(0, (u.shield || 0) - (nextEvent.shield_absorbed || 0))
+                  return { ...u, hp: attackHp, shield: Math.round(newShield) }
+                }))
+              }
+            }
+          const msg = nextEvent.is_skill 
+            ? `🔥 ${nextEvent.attacker_name} zadaje ${nextEvent.damage?.toFixed(2)} obrażeń ${nextEvent.target_name} (umiejętność)`
+            : `⚔️ ${nextEvent.attacker_name} atakuje ${nextEvent.target_name} (${(nextEvent.damage ?? 0).toFixed(2)} dmg)`
           setCombatLog(prev => [...prev, msg]);
         } else if (nextEvent.type === 'unit_died') {
           // Ensure HP is 0 when unit dies
@@ -212,9 +394,16 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
           const msg = `💰 ${nextEvent.unit_name} daje +${nextEvent.amount} gold (sojusznik umarł)`
           setCombatLog(prev => [...prev, msg]);
         } else if (nextEvent.type === 'stat_buff') {
-          console.log('Received stat_buff event:', nextEvent);
+          //console.log('Received stat_buff event:', nextEvent);
           const statName = nextEvent.stat === 'attack' ? 'Ataku' : nextEvent.stat === 'defense' ? 'Obrony' : nextEvent.stat || 'Statystyki';
-          const msg = `⬆️ ${nextEvent.unit_name} zyskuje +${nextEvent.amount} ${statName} (zabity wróg)`
+          const buffType = nextEvent.buff_type === 'debuff' ? '⬇️' : '⬆️';
+          let reason = '';
+          if (nextEvent.buff_type === 'debuff') {
+            reason = '(umiejętność)';
+          } else if (nextEvent.cause === 'kill') {
+            reason = '(zabity wróg)';
+          }
+          const msg = `${buffType} ${nextEvent.unit_name} ${nextEvent.buff_type === 'debuff' ? 'traci' : 'zyskuje'} ${nextEvent.amount} ${statName} ${reason}`
           setCombatLog(prev => [...prev, msg]);
           // Update unit buffed_stats in UI
           if (nextEvent.unit_id) {
@@ -249,6 +438,21 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
           setIsFinished(true);
           if (nextEvent.state) setFinalState(nextEvent.state);
           setIsPlaying(false);
+        } else if (nextEvent.type === 'heal') {
+          // Update HP immediately on heal
+          const unitId = nextEvent.unit_id
+          const amount = nextEvent.amount
+          const side = nextEvent.side
+          if (unitId && typeof amount === 'number' && side) {
+            const updateFn = (prev: Unit[]) => prev.map(u => 
+              u.id === unitId ? { ...u, hp: Math.min(u.max_hp, u.hp + amount) } : u
+            )
+            if (side === 'team_a') {
+              setPlayerUnits(updateFn)
+            } else {
+              setOpponentUnits(updateFn)
+            }
+          }
         } else if (nextEvent.type === 'unit_heal') {
           // Accept both unit_hp (preferred) and target_hp (legacy/backend)
           const healedHp = nextEvent.unit_hp !== undefined ? nextEvent.unit_hp : nextEvent.target_hp;
@@ -261,6 +465,26 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
           }
           const msg = `💚 ${nextEvent.unit_name} regeneruje ${(nextEvent.amount ?? 0).toFixed(2)} HP`
           setCombatLog(prev => [...prev, msg]);
+        } else if (nextEvent.type === 'damage_over_time_tick') {
+          // Update unit HP and log DoT tick
+          const tickHp = nextEvent.unit_hp !== undefined ? nextEvent.unit_hp : undefined
+          if (nextEvent.unit_id && tickHp !== undefined) {
+            if (nextEvent.unit_id.startsWith('opp_')) {
+              setOpponentUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, hp: tickHp } : u));
+            } else {
+              setPlayerUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, hp: tickHp } : u));
+            }
+          }
+          const dmg = nextEvent.damage ?? 0
+          const msg = `🔥 ${nextEvent.unit_name} otrzymuje ${dmg} obrażeń (DoT)`
+          setCombatLog(prev => [...prev, msg]);
+          // small visual flash on target
+          if (nextEvent.unit_id) {
+            const unitId = nextEvent.unit_id as string
+            setTargetUnits(prev => [...prev, unitId])
+            const dur = Math.round(600 * animationScale / combatSpeed)
+            setTimeout(() => setTargetUnits(prev => prev.filter(id => id !== unitId)), dur)
+          }
         } else if (nextEvent.type === 'regen_gain') {
           if (nextEvent.unit_id) {
             const dur = nextEvent.duration || 5;
@@ -280,6 +504,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
           const msg = `🔮 ${nextEvent.unit_name} mana: ${nextEvent.current_mana}/${nextEvent.max_mana}`
           setCombatLog(prev => [...prev, msg]);
         } else if (nextEvent.type === 'skill_cast') {
+          console.log('Processing skill_cast event:', nextEvent);
           // Update target HP if damage was dealt
           if (nextEvent.target_id && nextEvent.target_hp !== undefined) {
             if (nextEvent.target_id.startsWith('opp_')) {
@@ -290,6 +515,74 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
           }
           const msg = `✨ ${nextEvent.caster_name} używa ${nextEvent.skill_name}!`
           setCombatLog(prev => [...prev, msg]);
+        } else if (nextEvent.type === 'shield_applied') {
+          // Update shield immediately
+          const unitId = nextEvent.unit_id
+          const amount = nextEvent.amount
+          if (unitId && typeof amount === 'number') {
+            const updateFn = (prev: Unit[]) => prev.map(u => 
+              u.id === unitId ? { ...u, shield: (u.shield || 0) + amount } : u
+            )
+            if (unitId.startsWith('opp_')) {
+              setOpponentUnits(updateFn)
+            } else {
+              setPlayerUnits(updateFn)
+            }
+          }
+          const msg = `🛡️ ${nextEvent.unit_name} zyskuje ${nextEvent.amount} tarczy na ${nextEvent.duration}s`
+          setCombatLog(prev => [...prev, msg]);
+          if (nextEvent.unit_id) {
+            const effect: EffectSummary = {
+              type: 'shield',
+              amount: nextEvent.amount,
+              duration: nextEvent.duration,
+              caster_name: nextEvent.caster_name,
+              expiresAt: nextEvent.duration ? Date.now() + (nextEvent.duration * 1000) : undefined
+            }
+            if (nextEvent.unit_id.startsWith('opp_')) {
+              setOpponentUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, effects: [...(u.effects || []), effect], shield: Math.max(0, (u.shield || 0) + (nextEvent.amount || 0)) } : u));
+            } else {
+              setPlayerUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, effects: [...(u.effects || []), effect], shield: Math.max(0, (u.shield || 0) + (nextEvent.amount || 0)) } : u));
+            }
+          }
+        } else if (nextEvent.type === 'unit_stunned') {
+          const msg = `😵 ${nextEvent.unit_name} jest ogłuszony na ${nextEvent.duration}s`
+          setCombatLog(prev => [...prev, msg]);
+          if (nextEvent.unit_id) {
+            const effect: EffectSummary = {
+              type: 'stun',
+              duration: nextEvent.duration,
+              caster_name: nextEvent.caster_name,
+              expiresAt: nextEvent.duration ? Date.now() + (nextEvent.duration * 1000) : undefined
+            }
+            if (nextEvent.unit_id.startsWith('opp_')) {
+              setOpponentUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, effects: [...(u.effects || []), effect] } : u));
+            } else {
+              setPlayerUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, effects: [...(u.effects || []), effect] } : u));
+            }
+          }
+        }
+
+        else if (nextEvent.type === 'damage_over_time_applied') {
+          // DoT applied: attach effect summary so UI shows burn/DoT badge
+          const msg = `🔥 ${nextEvent.unit_name} otrzymuje DoT (${nextEvent.ticks || '?'} ticks)`
+          setCombatLog(prev => [...prev, msg]);
+          if (nextEvent.unit_id) {
+            const effect: EffectSummary = {
+              type: 'damage_over_time',
+              damage: nextEvent.damage || nextEvent.amount,
+              duration: nextEvent.duration,
+              ticks: nextEvent.ticks,
+              interval: nextEvent.interval,
+              caster_name: nextEvent.caster_name,
+              expiresAt: nextEvent.duration ? Date.now() + (nextEvent.duration * 1000) : undefined
+            }
+            if (nextEvent.unit_id.startsWith('opp_')) {
+              setOpponentUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, effects: [...(u.effects || []), effect] } : u));
+            } else {
+              setPlayerUnits(prev => prev.map(u => u.id === nextEvent.unit_id ? { ...u, effects: [...(u.effects || []), effect] } : u));
+            }
+          }
         }
         return rest;
       });
@@ -325,6 +618,50 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
         }
         return changed ? copy : prev
       })
+      
+      // Cleanup expired effects on units
+      setPlayerUnits(prev => {
+        let changed = false
+        const next = prev.map(u => {
+          if (!u.effects || u.effects.length === 0) return u
+          const remaining = u.effects.filter((e: EffectSummary) => !e.expiresAt || e.expiresAt > now)
+          if (remaining.length !== u.effects.length) {
+            changed = true
+            // Compute removed effects to adjust numeric shields if needed
+            const removed = u.effects.filter((e: EffectSummary) => !(remaining.includes(e)))
+            let newShield = u.shield || 0
+            for (const r of removed) {
+              if (r.type === 'shield' && r.amount) {
+                newShield = Math.max(0, newShield - r.amount)
+              }
+            }
+            return { ...u, effects: remaining, shield: Math.round(newShield) }
+          }
+          return u
+        })
+        return changed ? next : prev
+      })
+
+      setOpponentUnits(prev => {
+        let changed = false
+        const next = prev.map(u => {
+          if (!u.effects || u.effects.length === 0) return u
+          const remaining = u.effects.filter((e: EffectSummary) => !e.expiresAt || e.expiresAt > now)
+          if (remaining.length !== u.effects.length) {
+            changed = true
+            const removed = u.effects.filter((e: EffectSummary) => !(remaining.includes(e)))
+            let newShield = u.shield || 0
+            for (const r of removed) {
+              if (r.type === 'shield' && r.amount) {
+                newShield = Math.max(0, newShield - r.amount)
+              }
+            }
+            return { ...u, effects: remaining, shield: Math.round(newShield) }
+          }
+          return u
+        })
+        return changed ? next : prev
+      })
     }, 500)
     return () => clearInterval(t)
   }, [])
@@ -350,6 +687,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     setShowLog,
     attackingUnits,
     targetUnits,
+    attackDurations,
     animatingUnits,
     combatSpeed,
     setCombatSpeed,

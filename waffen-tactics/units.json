@@ -11,8 +11,53 @@
       ],
       "cost": 1,
       "role": "defender",
-      "max_mana": 80,
-      "avatar": "/avatars/rafcikd.png"
+      "max_mana": 40,
+      "avatar": "/avatars/rafcikd.png",
+      "skill": {
+        "name": "Postawa Defensywna",
+        "description": "Otrzymuje tarczę i buff do DEF. Wiecej poniżej progu HP",
+        "effects": [
+          {
+            "type": "conditional",
+            "condition": {
+              "type": "health_percentage",
+              "threshold": 60
+            },
+            "effects": [
+              {
+                "type": "shield",
+                "target": "self",
+                "amount": 60,
+                "duration": 3
+              },
+              {
+                "type": "buff",
+                "target": "self",
+                "stat": "defense",
+                "value": 15,
+                "value_type": "flat",
+                "duration": 3
+              }
+            ],
+            "else_effects": [
+              {
+                "type": "shield",
+                "target": "self",
+                "amount": 100,
+                "duration": 3
+              },
+              {
+                "type": "buff",
+                "target": "self",
+                "stat": "defense",
+                "value": 30,
+                "value_type": "flat",
+                "duration": 2
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "falconbalkon",
@@ -25,8 +70,28 @@
       ],
       "cost": 2,
       "role": "fighter",
-      "max_mana": 100,
-      "avatar": "/avatars/falconbalkon.png"
+      "max_mana": 50,
+      "avatar": "/avatars/falconbalkon.png",
+      "skill": {
+        "name": "Combo",
+        "description": "Dwa szybkie uderzenia",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 60
+          },
+          {
+            "type": "delay",
+            "duration": 0.3
+          },
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 60
+          }
+        ]
+      }
     },
     {
       "id": "piwniczak",
@@ -39,8 +104,27 @@
       ],
       "cost": 2,
       "role": "mage",
-      "max_mana": 150,
-      "avatar": "/avatars/piwniczak.png"
+      "max_mana": 60,
+      "avatar": "/avatars/piwniczak.png",
+      "skill": {
+        "name": "Hakowanie bani",
+        "description": "Ogłusz przeciwnika i zadaj mu obrażenia w czasie",
+        "effects": [
+          {
+            "type": "stun",
+            "target": "single_enemy_persistent",
+            "duration": 1.5
+          },
+          {
+            "type": "damage_over_time",
+            "target": "single_enemy_persistent",
+            "damage": 20,
+            "duration": 6,
+            "interval": 2,
+            "damage_type": "hacking"
+          }
+        ]
+      }
     },
     {
       "id": "capybara",
@@ -54,7 +138,24 @@
       "cost": 3,
       "role": "duelist",
       "max_mana": 120,
-      "avatar": "/avatars/capybara.png"
+      "avatar": "/avatars/capybara.png",
+      "skill": {
+        "name": "Capybara Splash",
+        "description": "Zalewa wrogów falą, zadając obrażenia wszystkim przeciwnikom i leczy siebie.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_team",
+            "amount": 60,
+            "damage_type": "physical"
+          },
+          {
+            "type": "heal",
+            "target": "self",
+            "amount": 40
+          }
+        ]
+      }
     },
     {
       "id": "kubica",
@@ -68,7 +169,27 @@
       "cost": 4,
       "role": "duelist",
       "max_mana": 120,
-      "avatar": "/avatars/kubica.png"
+      "avatar": "/avatars/kubica.png",
+      "skill": {
+        "name": "Wyścigowy Manewr",
+        "description": "Szybki atak na jednego wroga i zwiększenie własnej szybkości.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 90,
+            "damage_type": "physical"
+          },
+          {
+            "type": "buff",
+            "target": "self",
+            "stat": "speed",
+            "value": 20,
+            "value_type": "percentage",
+            "duration": 3
+          }
+        ]
+      }
     },
     {
       "id": "denvii",
@@ -82,7 +203,27 @@
       "cost": 5,
       "role": "mage",
       "max_mana": 150,
-      "avatar": "/avatars/denvii.png"
+      "avatar": "/avatars/denvii.png",
+      "skill": {
+        "name": "Magiczny Impuls",
+        "description": "Zadaje obrażenia magiczne wszystkim wrogom i nakłada krótki debuff na obronę.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_team",
+            "amount": 110,
+            "damage_type": "magical"
+          },
+          {
+            "type": "debuff",
+            "target": "enemy_team",
+            "stat": "defense",
+            "value": 15,
+            "value_type": "percentage",
+            "duration": 4
+          }
+        ]
+      }
     },
     {
       "id": "miki",
@@ -94,7 +235,24 @@
       "cost": 3,
       "role": "duelist",
       "max_mana": 120,
-      "avatar": "/avatars/miki.png"
+      "avatar": "/avatars/miki.png",
+      "skill": {
+        "name": "Cichy Eliminator",
+        "description": "Wykonuje cichy atak na jednego wroga, zadając duże obrażenia i chwilowo go ogłuszając.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 120,
+            "damage_type": "physical"
+          },
+          {
+            "type": "stun",
+            "target": "single_enemy_persistent",
+            "duration": 1.5
+          }
+        ]
+      }
     },
     {
       "id": "yossarian",
@@ -109,7 +267,27 @@
       "cost": 5,
       "role": "mage",
       "max_mana": 80,
-      "avatar": "/avatars/yossarian.png"
+      "avatar": "/avatars/yossarian.png",
+      "skill": {
+        "name": "Kodowy Wir",
+        "description": "Zadaje obrażenia magiczne wszystkim wrogom i nakłada losowy debuff.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_team",
+            "amount": 100,
+            "damage_type": "magical"
+          },
+          {
+            "type": "debuff",
+            "target": "enemy_team",
+            "stat": "random",
+            "value": 15,
+            "value_type": "percentage",
+            "duration": 4
+          }
+        ]
+      }
     },
     {
       "id": "olsak",
@@ -122,8 +300,20 @@
       ],
       "cost": 1,
       "role": "defender",
-      "max_mana": 80,
-      "avatar": "/avatars/olsak.png"
+      "max_mana": 35,
+      "avatar": "/avatars/olsak.png",
+      "skill": {
+        "name": "Tarcza Wiary",
+        "description": "Osłania się tarczą",
+        "effects": [
+          {
+            "type": "shield",
+            "target": "self",
+            "amount": 40,
+            "duration": 4
+          }
+        ]
+      }
     },
     {
       "id": "pepe",
@@ -136,8 +326,26 @@
       ],
       "cost": 1,
       "role": "mage",
-      "max_mana": 150,
-      "avatar": "/avatars/pepe.png"
+      "max_mana": 40,
+      "avatar": "/avatars/pepe.png",
+      "skill": {
+        "name": "Viral Infection",
+        "description": "Debuff enemy attack and heal self",
+        "effects": [
+          {
+            "type": "debuff",
+            "target": "single_enemy",
+            "stat": "attack",
+            "value": -15,
+            "duration": 4
+          },
+          {
+            "type": "heal",
+            "target": "self",
+            "amount": 30
+          }
+        ]
+      }
     },
     {
       "id": "hyodo888",
@@ -149,9 +357,28 @@
         "Normik"
       ],
       "cost": 2,
-      "role": "duelist",
-      "max_mana": 120,
-      "avatar": "/avatars/hyodo888.png"
+      "role": "defender",
+      "max_mana": 50,
+      "avatar": "/avatars/hyodo888.png",
+      "skill": {
+        "name": "Precision Strike",
+        "description": "Buff attack and deal damage",
+        "effects": [
+          {
+            "type": "buff",
+            "target": "self",
+            "stat": "attack",
+            "value": 20,
+            "duration": 3
+          },
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 45,
+            "damage_type": "physical"
+          }
+        ]
+      }
     },
     {
       "id": "grzalcia",
@@ -164,8 +391,26 @@
       ],
       "cost": 3,
       "role": "mage",
-      "max_mana": 150,
-      "avatar": "/avatars/grzalcia.png"
+      "max_mana": 70,
+      "avatar": "/avatars/grzalcia.png",
+      "skill": {
+        "name": "Healing Aura",
+        "description": "Heal all allies and buff their defense",
+        "effects": [
+          {
+            "type": "heal",
+            "target": "ally_team",
+            "amount": 40
+          },
+          {
+            "type": "buff",
+            "target": "ally_team",
+            "stat": "defense",
+            "value": 15,
+            "duration": 4
+          }
+        ]
+      }
     },
     {
       "id": "adrianski",
@@ -178,8 +423,25 @@
       ],
       "cost": 4,
       "role": "fighter",
-      "max_mana": 100,
-      "avatar": "/avatars/adrianski.png"
+      "max_mana": 60,
+      "avatar": "/avatars/adrianski.png",
+      "skill": {
+        "name": "Thunder Strike",
+        "description": "Deal damage and stun enemy",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 60,
+            "damage_type": "magical"
+          },
+          {
+            "type": "stun",
+            "target": "single_enemy",
+            "duration": 2
+          }
+        ]
+      }
     },
     {
       "id": "laylo",
@@ -193,8 +455,31 @@
       ],
       "cost": 5,
       "role": "mage",
-      "max_mana": 150,
-      "avatar": "/avatars/laylo.png"
+      "max_mana": 80,
+      "avatar": "/avatars/laylo.png",
+      "skill": {
+        "name": "Finishing Touch",
+        "description": "Deal massive damage if enemy is below 30% health",
+        "effects": [
+          {
+            "type": "conditional",
+            "condition": {
+              "type": "health_percentage",
+              "target": "single_enemy",
+              "operator": "less_than",
+              "value": 30
+            },
+            "effects": [
+              {
+                "type": "damage",
+                "target": "single_enemy",
+                "amount": 120,
+                "damage_type": "magical"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "szachowymentor",
@@ -208,8 +493,28 @@
       ],
       "cost": 5,
       "role": "mage",
-      "max_mana": 150,
-      "avatar": "/avatars/szachowymentor.png"
+      "max_mana": 90,
+      "avatar": "/avatars/szachowymentor.png",
+      "skill": {
+        "name": "Szachowa Intryga",
+        "description": "Zadaje obrażenia wszystkim wrogom i nakłada debuff na atak.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_team",
+            "amount": 90,
+            "damage_type": "magical"
+          },
+          {
+            "type": "debuff",
+            "target": "enemy_team",
+            "stat": "attack",
+            "value": 18,
+            "value_type": "percentage",
+            "duration": 5
+          }
+        ]
+      }
     },
     {
       "id": "mrvlook",
@@ -222,8 +527,22 @@
       ],
       "cost": 1,
       "role": "defender",
-      "max_mana": 80,
-      "avatar": "/avatars/mrvlook.png"
+      "max_mana": 30,
+      "avatar": "/avatars/mrvlook.png",
+      "skill": {
+        "name": "Wirtualna Bariera",
+        "description": "Tworzy cyfrową barierę, zwiększając obronę",
+        "effects": [
+          {
+            "type": "buff",
+            "target": "self",
+            "stat": "defense",
+            "value": 20,
+            "value_type": "percentage",
+            "duration": 3
+          }
+        ]
+      }
     },
     {
       "id": "wodazlodowca",
@@ -235,8 +554,28 @@
         "Normik"
       ],
       "cost": 2,
-      "role": "duelist",
+      "role": "defender",
       "max_mana": 120,
+      "skill": {
+        "name": "Lodowa Bariera",
+        "description": "Tworzy tarczę i zwiększa obronę sojuszników.",
+        "effects": [
+          {
+            "type": "shield",
+            "target": "self",
+            "amount": 120,
+            "duration": 6
+          },
+          {
+            "type": "buff",
+            "target": "self",
+            "stat": "defense",
+            "value": 15,
+            "value_type": "percentage",
+            "duration": 3
+          }
+        ]
+      },
       "avatar": "/avatars/wodazlodowca.png"
     },
     {
@@ -251,6 +590,26 @@
       "cost": 3,
       "role": "mage",
       "max_mana": 150,
+      "skill": {
+        "name": "Turbofala",
+        "description": "Wysyła falę magicznej energii, zadając obrażenia wszystkim wrogom i spowalniając ich.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_team",
+            "amount": 140,
+            "damage_type": "magical"
+          },
+          {
+            "type": "debuff",
+            "target": "enemy_team",
+            "stat": "speed",
+            "value": 20,
+            "value_type": "percentage",
+            "duration": 3
+          }
+        ]
+      },
       "avatar": "/avatars/turboglovica.png"
     },
     {
@@ -265,6 +624,26 @@
       "cost": 4,
       "role": "duelist",
       "max_mana": 150,
+      "skill": {
+        "name": "Przeprogramowanie",
+        "description": "Zakłóca systemy wroga: obniża obronę przedniej linii i zadaje obrażenia.",
+        "effects": [
+          {
+            "type": "debuff",
+            "target": "enemy_front",
+            "stat": "defense",
+            "value": 30,
+            "value_type": "percentage",
+            "duration": 8
+          },
+          {
+            "type": "damage",
+            "target": "enemy_front",
+            "amount": 110,
+            "damage_type": "magical"
+          }
+        ]
+      },
       "avatar": "/avatars/operatorkosiarki.png"
     },
     {
@@ -279,6 +658,23 @@
       "cost": 5,
       "role": "mage",
       "max_mana": 150,
+      "skill": {
+        "name": "Arcymagia Beligola",
+        "description": "Skupiona potęga magiczna: potężny cios w jednego przeciwnika i krótkie oszołomienie.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 280,
+            "damage_type": "magical"
+          },
+          {
+            "type": "stun",
+            "target": "single_enemy_persistent",
+            "duration": 1
+          }
+        ]
+      },
       "avatar": "/avatars/beligol.png"
     },
     {
@@ -292,8 +688,19 @@
       ],
       "cost": 1,
       "role": "defender",
-      "max_mana": 80,
-      "avatar": "/avatars/xntentacion.png"
+      "max_mana": 40,
+      "avatar": "/avatars/xntentacion.png",
+      "skill": {
+        "name": "Melodia Ochrony",
+        "description": "Śpiewa magiczną melodię, lecząc rany",
+        "effects": [
+          {
+            "type": "heal",
+            "target": "self",
+            "amount": 50
+          }
+        ]
+      }
     },
     {
       "id": "dawid_czerw",
@@ -307,7 +714,27 @@
       "cost": 2,
       "role": "defender",
       "max_mana": 80,
-      "avatar": "/avatars/dawid_czerw.png"
+      "avatar": "/avatars/dawid_czerw.png",
+      "skill": {
+        "name": "Gra pozycyjna",
+        "description": "Umacnia pozycję — tarcza i wzrost obrony dla siebie",
+        "effects": [
+          {
+            "type": "shield",
+            "target": "self",
+            "amount": 50,
+            "duration": 4
+          },
+          {
+            "type": "buff",
+            "target": "self",
+            "stat": "defense",
+            "value": 15,
+            "value_type": "flat",
+            "duration": 3
+          }
+        ]
+      }
     },
     {
       "id": "jaskol95",
@@ -321,6 +748,24 @@
       "cost": 2,
       "role": "duelist",
       "max_mana": 120,
+      "skill": {
+        "name": "Miniaturka",
+        "description": "Szybki atak na jednego wroga z krótkim ogłuszeniem",
+        "mana_cost": 45,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 90,
+            "damage_type": "physical"
+          },
+          {
+            "type": "stun",
+            "target": "single_enemy_persistent",
+            "duration": 1.5
+          }
+        ]
+      },
       "avatar": "/avatars/jaskol95.png"
     },
     {
@@ -335,6 +780,27 @@
       "cost": 3,
       "role": "fighter",
       "max_mana": 150,
+      "skill": {
+        "name": "Wykalkulowana wymiana",
+        "description": "Osłabia obronę wroga, a następnie zadaje precyzyjne obrażenia",
+        "mana_cost": 70,
+        "effects": [
+          {
+            "type": "debuff",
+            "target": "single_enemy_persistent",
+            "stat": "defense",
+            "value": 30,
+            "value_type": "percentage",
+            "duration": 8
+          },
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 130,
+            "damage_type": "magical"
+          }
+        ]
+      },
       "avatar": "/avatars/igor_janik.png"
     },
     {
@@ -349,6 +815,24 @@
       "cost": 5,
       "role": "fighter",
       "max_mana": 100,
+      "skill": {
+        "name": "Totalna Napierdalanka",
+        "description": "Niszczy przednią linię i ogłusza wrogów",
+        "mana_cost": 120,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_front",
+            "amount": 200,
+            "damage_type": "physical"
+          },
+          {
+            "type": "stun",
+            "target": "enemy_front",
+            "duration": 3
+          }
+        ]
+      },
       "avatar": "/avatars/olaczka.png"
     },
     {
@@ -362,7 +846,25 @@
       ],
       "cost": 4,
       "role": "defender",
-      "max_mana": 80,
+      "max_mana": 90,
+      "skill": {
+        "name": "Wytrzymałość Wygnanego",
+        "description": "Tworzy tarczę i kontratakuje przednią linię wroga",
+        "effects": [
+          {
+            "type": "shield",
+            "target": "self",
+            "amount": 300,
+            "duration": 10
+          },
+          {
+            "type": "damage",
+            "target": "enemy_front",
+            "amount": 140,
+            "damage_type": "magical"
+          }
+        ]
+      },
       "avatar": "/avatars/merex.png"
     },
     {
@@ -377,6 +879,34 @@
       "cost": 2,
       "role": "duelist",
       "max_mana": 120,
+      "skill": {
+        "name": "Psychiczny Wstrząs",
+        "description": "Zadaje obrażenia magiczne i ma szansę na ogłuszenie wroga",
+        "mana_cost": 50,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 110,
+            "damage_type": "magical"
+          },
+          {
+            "type": "conditional",
+            "target": "self",
+            "condition": {
+              "type": "random",
+              "chance": 40
+            },
+            "effects": [
+              {
+                "type": "stun",
+                "target": "single_enemy_persistent",
+                "duration": 2
+              }
+            ]
+          }
+        ]
+      },
       "avatar": "/avatars/socjopata.png"
     },
     {
@@ -391,6 +921,26 @@
       "cost": 4,
       "role": "defender",
       "max_mana": 80,
+      "skill": {
+        "name": "Kocia Furia",
+        "description": "Wzmacnia wytrzymałość: tarcza i duży buff do obrony.",
+        "effects": [
+          {
+            "type": "shield",
+            "target": "self",
+            "amount": 150,
+            "duration": 6
+          },
+          {
+            "type": "buff",
+            "target": "self",
+            "stat": "defense",
+            "value": 35,
+            "value_type": "percentage",
+            "duration": 6
+          }
+        ]
+      },
       "avatar": "/avatars/neko.png"
     },
     {
@@ -405,6 +955,29 @@
       "cost": 3,
       "role": "fighter",
       "max_mana": 100,
+      "skill": {
+        "name": "Forteca Strategii",
+        "description": "Wzmacnia obronę sojuszników i osłabia atak wrogów",
+        "mana_cost": 95,
+        "effects": [
+          {
+            "type": "buff",
+            "target": "ally_front",
+            "stat": "defense",
+            "value": 40,
+            "value_type": "percentage",
+            "duration": 12
+          },
+          {
+            "type": "debuff",
+            "target": "enemy_front",
+            "stat": "attack",
+            "value": 25,
+            "value_type": "percentage",
+            "duration": 10
+          }
+        ]
+      },
       "avatar": "/avatars/noname.png"
     },
     {
@@ -417,9 +990,20 @@
         "Gamer"
       ],
       "cost": 1,
-      "role": "defender",
-      "max_mana": 80,
-      "avatar": "/avatars/dumb.png"
+      "role": "duelist",
+      "max_mana": 30,
+      "avatar": "/avatars/dumb.png",
+      "skill": {
+        "name": "Szybki Cios",
+        "description": "Szybki, prosty cios na jednego przeciwnika",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 35
+          }
+        ]
+      }
     },
     {
       "id": "maxas12",
@@ -432,8 +1016,19 @@
       ],
       "cost": 1,
       "role": "fighter",
-      "max_mana": 150,
-      "avatar": "/avatars/maxas12.png"
+      "max_mana": 40,
+      "avatar": "/avatars/maxas12.png",
+      "skill": {
+        "name": "Młot Szczęścia",
+        "description": "Silny cios skupiony na jednym celu",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 60
+          }
+        ]
+      }
     },
     {
       "id": "mrozu",
@@ -445,9 +1040,28 @@
         "Normik"
       ],
       "cost": 1,
-      "role": "duelist",
+      "role": "fighter",
       "max_mana": 120,
-      "avatar": "/avatars/mrozu.png"
+      "avatar": "/avatars/mrozu.png",
+      "skill": {
+        "name": "Błyskawiczny Cios",
+        "description": "Szybki atak, który zadaje lekkie obrażenia i przyspiesza atak na krótko",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 30
+          },
+          {
+            "type": "buff",
+            "target": "self",
+            "stat": "attack_speed",
+            "value": 20,
+            "value_type": "percentage",
+            "duration": 3
+          }
+        ]
+      }
     },
     {
       "id": "v7",
@@ -461,7 +1075,26 @@
       "cost": 1,
       "role": "fighter",
       "max_mana": 150,
-      "avatar": "/avatars/v7.png"
+      "avatar": "/avatars/v7.png",
+      "skill": {
+        "name": "Bajtowy Atak",
+        "description": "Zadaje obrażenia i aplikuje efekt osłabienia na przeciwnika",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 25
+          },
+          {
+            "type": "debuff",
+            "target": "single_enemy",
+            "stat": "attack",
+            "value": 15,
+            "value_type": "percentage",
+            "duration": 4
+          }
+        ]
+      }
     },
     {
       "id": "wu_hao",
@@ -475,6 +1108,18 @@
       "cost": 2,
       "role": "fighter",
       "max_mana": 100,
+      "skill": {
+        "name": "Wirujący Ostrz",
+        "description": "Szybki obrotowy atak zadający obrażenia kilku celom.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_team",
+            "amount": 75,
+            "damage_type": "physical"
+          }
+        ]
+      },
       "avatar": "/avatars/wu_hao.png"
     },
     {
@@ -487,8 +1132,25 @@
         "Prostaczka"
       ],
       "cost": 3,
-      "role": "fighter",
+      "role": "duelist",
       "max_mana": 100,
+      "skill": {
+        "name": "Bezpośrednie Starcie",
+        "description": "Mocne uderzenie i chwilowe ogłuszenie przeciwnika",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 150,
+            "damage_type": "physical"
+          },
+          {
+            "type": "stun",
+            "target": "single_enemy_persistent",
+            "duration": 2
+          }
+        ]
+      },
       "avatar": "/avatars/frajdzia.png"
     },
     {
@@ -501,8 +1163,28 @@
         "Spell"
       ],
       "cost": 4,
-      "role": "fighter",
+      "role": "duelist",
       "max_mana": 150,
+      "skill": {
+        "name": "Czystka Ideologiczna",
+        "description": "Nakłada klątwę i eksploduje magicznymi obrażeniami",
+        "effects": [
+          {
+            "type": "damage_over_time",
+            "target": "single_enemy_persistent",
+            "damage": 35,
+            "duration": 6,
+            "interval": 1.5,
+            "damage_type": "magical"
+          },
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 140,
+            "damage_type": "magical"
+          }
+        ]
+      },
       "avatar": "/avatars/wrzechu.png"
     },
     {
@@ -517,6 +1199,34 @@
       "cost": 5,
       "role": "fighter",
       "max_mana": 100,
+      "skill": {
+        "name": "Donos Systemowy",
+        "description": "Osłabia atak i obronę wrogiej drużyny, a następnie uderza",
+        "effects": [
+          {
+            "type": "debuff",
+            "target": "enemy_team",
+            "stat": "attack",
+            "value": 30,
+            "value_type": "percentage",
+            "duration": 10
+          },
+          {
+            "type": "debuff",
+            "target": "enemy_team",
+            "stat": "defense",
+            "value": 30,
+            "value_type": "percentage",
+            "duration": 10
+          },
+          {
+            "type": "damage",
+            "target": "enemy_front",
+            "amount": 160,
+            "damage_type": "physical"
+          }
+        ]
+      },
       "avatar": "/avatars/galanonim.png"
     },
     {
@@ -531,6 +1241,26 @@
       "cost": 5,
       "role": "duelist",
       "max_mana": 150,
+      "skill": {
+        "name": "Czerwona Determinacja",
+        "description": "Wyzwala potężny cios na przednią linię oraz wzmacnia atak sojuszników.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_front",
+            "amount": 170,
+            "damage_type": "physical"
+          },
+          {
+            "type": "buff",
+            "target": "ally_front",
+            "stat": "attack",
+            "value": 20,
+            "value_type": "percentage",
+            "duration": 6
+          }
+        ]
+      },
       "avatar": "/avatars/stalin.png"
     },
     {
@@ -545,6 +1275,26 @@
       "cost": 5,
       "role": "duelist",
       "max_mana": 120,
+      "skill": {
+        "name": "Krasowy Strumień",
+        "description": "Potężny magiczny atak na wszystkich wrogów oraz osłabienie ich obrony.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_team",
+            "amount": 130,
+            "damage_type": "magical"
+          },
+          {
+            "type": "debuff",
+            "target": "enemy_team",
+            "stat": "defense",
+            "value": 20,
+            "value_type": "percentage",
+            "duration": 8
+          }
+        ]
+      },
       "avatar": "/avatars/krasu.png"
     },
     {
@@ -557,6 +1307,26 @@
       "cost": 4,
       "role": "fighter",
       "max_mana": 150,
+      "skill": {
+        "name": "Koggersowy Wybuch",
+        "description": "Eksploduje, zadając duże obrażenia przedniej linii i pozostawiając obszarowe uszkodzenia.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_front",
+            "amount": 180,
+            "damage_type": "physical"
+          },
+          {
+            "type": "damage_over_time",
+            "target": "enemy_front",
+            "damage": 30,
+            "duration": 6,
+            "interval": 1.5,
+            "damage_type": "physical"
+          }
+        ]
+      },
       "avatar": "/avatars/atomowy_coggers.png"
     },
     {
@@ -571,6 +1341,25 @@
       "cost": 5,
       "role": "fighter",
       "max_mana": 150,
+      "skill": {
+        "name": "Ziołowa Zasłona",
+        "description": "Tworzy pole, które leczy sojuszników i zwiększa ich odporność.",
+        "effects": [
+          {
+            "type": "heal",
+            "target": "ally_front",
+            "amount": 80
+          },
+          {
+            "type": "buff",
+            "target": "ally_front",
+            "stat": "defense",
+            "value": 20,
+            "value_type": "percentage",
+            "duration": 6
+          }
+        ]
+      },
       "avatar": "/avatars/szalwia.png"
     },
     {
@@ -585,7 +1374,18 @@
       "cost": 1,
       "role": "fighter",
       "max_mana": 150,
-      "avatar": "/avatars/bosman.png"
+      "avatar": "/avatars/bosman.png",
+      "skill": {
+        "name": "Falowy Cios",
+        "description": "Silny cios falowy, zadający obrażenia jednemu przeciwnikowi i rozchodzący się lekko",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 45
+          }
+        ]
+      }
     },
     {
       "id": "un4given",
@@ -599,7 +1399,21 @@
       "cost": 1,
       "role": "defender",
       "max_mana": 80,
-      "avatar": "/avatars/un4given.png"
+      "avatar": "/avatars/un4given.png",
+      "skill": {
+        "name": "Taktyczna Osłona",
+        "description": "Przyjmuje pozycję obronną, zwiększając swoją obronę",
+        "effects": [
+          {
+            "type": "buff",
+            "target": "self",
+            "stat": "defense",
+            "value": 25,
+            "value_type": "flat",
+            "duration": 4
+          }
+        ]
+      }
     },
     {
       "id": "beudzik",
@@ -613,7 +1427,28 @@
       "cost": 2,
       "role": "fighter",
       "max_mana": 150,
-      "avatar": "/avatars/beudzik.png"
+      "avatar": "/avatars/beudzik.png",
+      "skill": {
+        "name": "Szybki Kombos",
+        "description": "Seria szybkich uderzeń — dwa ataki pod rząd",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 45
+          },
+          {
+            "type": "delay",
+            "target": "self",
+            "duration": 0.25
+          },
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 30
+          }
+        ]
+      }
     },
     {
       "id": "buba",
@@ -627,7 +1462,23 @@
       "cost": 2,
       "role": "fighter",
       "max_mana": 100,
-      "avatar": "/avatars/buba.png"
+      "avatar": "/avatars/buba.png",
+      "skill": {
+        "name": "Iskrzące Uderzenie",
+        "description": "Skierowane uderzenie, które leczy w użytkowniku część zadanych obrażeń",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 30
+          },
+          {
+            "type": "heal",
+            "target": "self",
+            "amount": 20
+          }
+        ]
+      }
     },
     {
       "id": "hikki",
@@ -641,7 +1492,24 @@
       "cost": 2,
       "role": "fighter",
       "max_mana": 150,
-      "avatar": "/avatars/hikki.png"
+      "avatar": "/avatars/hikki.png",
+      "skill": {
+        "name": "Grom z Płyt",
+        "description": "Wysyła elektryczny impuls, zadając obrażenia i lekko ogłuszając cel",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 40,
+            "damage_type": "magical"
+          },
+          {
+            "type": "stun",
+            "target": "single_enemy",
+            "duration": 1
+          }
+        ]
+      }
     },
     {
       "id": "alyson_stark",
@@ -655,6 +1523,25 @@
       "cost": 3,
       "role": "fighter",
       "max_mana": 150,
+      "skill": {
+        "name": "Przemówienie Lidera",
+        "description": "Podnosi morale: leczy przednią linię i zwiększa ich atak.",
+        "effects": [
+          {
+            "type": "heal",
+            "target": "ally_front",
+            "amount": 70
+          },
+          {
+            "type": "buff",
+            "target": "ally_front",
+            "stat": "attack",
+            "value": 18,
+            "value_type": "percentage",
+            "duration": 6
+          }
+        ]
+      },
       "avatar": "/avatars/alyson_stark.png"
     },
     {
@@ -669,6 +1556,26 @@
       "cost": 3,
       "role": "fighter",
       "max_mana": 150,
+      "skill": {
+        "name": "Płomienny Wybuch",
+        "description": "Wybuchający ogień rani wszystkich wrogów i zostawia palące się miejsce.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "enemy_team",
+            "amount": 120,
+            "damage_type": "magical"
+          },
+          {
+            "type": "damage_over_time",
+            "target": "enemy_team",
+            "damage": 25,
+            "duration": 6,
+            "interval": 1.5,
+            "damage_type": "magical"
+          }
+        ]
+      },
       "avatar": "/avatars/flaminga.png"
     },
     {
@@ -683,6 +1590,26 @@
       "cost": 3,
       "role": "fighter",
       "max_mana": 100,
+      "skill": {
+        "name": "Głęboki Ton",
+        "description": "Skupiony atak obniżający obronę celu i zadający silne obrażenia.",
+        "effects": [
+          {
+            "type": "debuff",
+            "target": "single_enemy_persistent",
+            "stat": "defense",
+            "value": 25,
+            "value_type": "percentage",
+            "duration": 8
+          },
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 140,
+            "damage_type": "physical"
+          }
+        ]
+      },
       "avatar": "/avatars/vitas.png"
     },
     {
@@ -697,6 +1624,26 @@
       "cost": 4,
       "role": "defender",
       "max_mana": 80,
+      "skill": {
+        "name": "Kamienna Zbroja",
+        "description": "Otacza się kamienną zbroją: duża tarcza i odporność na obrażenia.",
+        "effects": [
+          {
+            "type": "shield",
+            "target": "self",
+            "amount": 200,
+            "duration": 8
+          },
+          {
+            "type": "buff",
+            "target": "self",
+            "stat": "damage_reduction",
+            "value": 15,
+            "value_type": "percentage",
+            "duration": 6
+          }
+        ]
+      },
       "avatar": "/avatars/fiko.png"
     },
     {
@@ -711,6 +1658,35 @@
       "cost": 4,
       "role": "duelist",
       "max_mana": 120,
+      "skill": {
+        "name": "Zabójczy Kombos",
+        "description": "Seria precyzyjnych ataków na jednego wroga, kończąca mocnym ciosem.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 40
+          },
+          {
+            "type": "delay",
+            "duration": 0.2
+          },
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 55
+          },
+          {
+            "type": "delay",
+            "duration": 0.2
+          },
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 80
+          }
+        ]
+      },
       "avatar": "/avatars/puszmen12.png"
     },
     {
@@ -725,6 +1701,26 @@
       "cost": 5,
       "role": "fighter",
       "max_mana": 100,
+      "skill": {
+        "name": "Yakuza Strike",
+        "description": "Precyzyjny atak na jednego wroga, zadający duże obrażenia i osłabiający jego atak.",
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy_persistent",
+            "amount": 160,
+            "damage_type": "physical"
+          },
+          {
+            "type": "debuff",
+            "target": "single_enemy_persistent",
+            "stat": "attack",
+            "value": 20,
+            "value_type": "percentage",
+            "duration": 6
+          }
+        ]
+      },
       "avatar": "/avatars/pan_yakuza.png"
     }
   ],

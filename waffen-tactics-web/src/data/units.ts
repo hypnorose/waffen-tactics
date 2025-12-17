@@ -9,11 +9,18 @@ export interface Unit {
   role?: string
   role_color?: string
   avatar?: string
+  skill?: {
+    name: string
+    description: string
+    mana_cost?: number
+    effects: any[]
+  }
   stats?: {
     hp: number
     attack: number
     defense: number
     attack_speed: number
+    max_mana?: number
   }
 }
 
@@ -28,7 +35,7 @@ export async function loadUnits(): Promise<void> {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
     const response = await axios.get(`${API_URL}/game/units`)
     const unitsArray: Unit[] = response.data
-    
+    console.log(unitsArray);
     UNITS_CACHE = {}
     unitsArray.forEach(unit => {
       UNITS_CACHE[unit.id] = unit
@@ -50,59 +57,17 @@ const FALLBACK_UNITS: Record<string, Unit> = {
     factions: ['Denciak'],
     classes: ['Normik'],
     stats: { hp: 100, attack: 15, defense: 5, attack_speed: 1.0 }
-  },
-  falconbalkon: {
-    id: 'falconbalkon',
-    name: 'FalconBalkon',
-    cost: 2,
-    factions: ['Denciak'],
-    classes: ['Gamer'],
-    stats: { hp: 150, attack: 25, defense: 8, attack_speed: 1.2 }
-  },
-  piwniczak: {
-    id: 'piwniczak',
-    name: 'Piwniczak',
-    cost: 2,
-    factions: ['Denciak'],
-    classes: ['Haker'],
-    stats: { hp: 120, attack: 30, defense: 5, attack_speed: 0.9 }
-  },
-  capybara: {
-    id: 'capybara',
-    name: 'Capybara',
-    cost: 3,
-    factions: ['Denciak'],
-    classes: ['Femboy'],
-    stats: { hp: 200, attack: 35, defense: 12, attack_speed: 1.1 }
-  },
-  dyzma: {
-    id: 'dyzma',
-    name: 'Dyzma',
-    cost: 3,
-    factions: ['Denciak'],
-    classes: ['Wojownik'],
-    stats: { hp: 250, attack: 40, defense: 15, attack_speed: 0.8 }
-  },
-  smutny_dawid: {
-    id: 'smutny_dawid',
-    name: 'Smutny Dawid',
-    cost: 4,
-    factions: ['Lewo'],
-    classes: ['Tank'],
-    stats: { hp: 350, attack: 30, defense: 25, attack_speed: 0.7 }
-  },
-  veselymemes: {
-    id: 'veselymemes',
-    name: 'VeselyMemes',
-    cost: 4,
-    factions: ['Prawo'],
-    classes: ['Snajper'],
-    stats: { hp: 180, attack: 60, defense: 8, attack_speed: 1.5 }
   }
 }
 
 export function getUnit(unitId: string): Unit | undefined {
   return UNITS_CACHE[unitId] || FALLBACK_UNITS[unitId]
+}
+
+export function getAllUnits(): Unit[] {
+  const cached = Object.values(UNITS_CACHE || {})
+  const fallback = Object.values(FALLBACK_UNITS).filter(f => !cached.find(c => c.id === f.id))
+  return [...cached, ...fallback]
 }
 
 export function getCostColor(cost: number): string {

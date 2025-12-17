@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { gameAPI } from '../services/api'
+import { getCostColor } from '../data/units'
 
 interface TraitsInfoModalProps {
   isOpen: boolean
@@ -8,11 +9,12 @@ interface TraitsInfoModalProps {
 
 export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProps) {
   const [traits, setTraits] = useState<any[]>([])
+  const [units, setUnits] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
-      loadTraits()
+      loadData()
     }
   }, [isOpen])
 
@@ -28,9 +30,29 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
     }
   }
 
+  const loadUnits = async () => {
+    try {
+      const res = await gameAPI.getUnits()
+      // API returns array or object with `units` key depending on endpoint
+      const data = res.data && (res.data.units || res.data) ? (res.data.units || res.data) : []
+      setUnits(data)
+    } catch (err) {
+      console.error('Failed to load units:', err)
+    }
+  }
+
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      await Promise.all([loadTraits(), loadUnits()])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const replacePlaceholders = (description: string, effect: any) => {
     let desc = description
-    if (effect.actions && effect.actions[0]) {
+    if (effect && effect.actions && effect.actions[0]) {
       const action = effect.actions[0]
       desc = desc.replace(/<v>/g, action.value || '')
       desc = desc.replace(/<d>/g, action.duration || '')
@@ -43,9 +65,9 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
       }
     } else {
       // For effects without actions, like per_second_buff
-      desc = desc.replace(/<v>/g, effect.value || '')
-      desc = desc.replace(/<d>/g, effect.duration || '')
-      const chance = effect.chance || effect.chance_percent
+      desc = desc.replace(/<v>/g, (effect && effect.value) || '')
+      desc = desc.replace(/<d>/g, (effect && effect.duration) || '')
+      const chance = effect && (effect.chance || effect.chance_percent)
       if (chance && chance !== 100) {
         desc = desc.replace(/<c>/g, chance)
       } else {
@@ -119,6 +141,32 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
                         </span>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Units list for this trait */}
+                  <div className="mt-3">
+                    <h4 className="font-semibold text-text/90 mb-2">Jednostki z tym traitem:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {units && units.length > 0 ? (
+                        <>
+                          {units.filter((u: any) => {
+                            const factions = u.factions || []
+                            const classes = u.classes || []
+                            return factions.includes(trait.name) || classes.includes(trait.name)
+                          }).map((u: any) => {
+                            const costClass = getCostColor(u.cost || 1).split(' ')[0]
+                            return (
+                              <div key={u.id} className="flex items-center gap-2 bg-surface/60 px-2 py-1 rounded">
+                                <img src={u.avatar || '/avatars/default.png'} alt={u.name} className="w-8 h-8 rounded-full object-cover" />
+                                <span className={`text-sm font-medium ${costClass}`}>{u.name}</span>
+                              </div>
+                            )
+                          })}
+                        </>
+                      ) : (
+                        <div className="text-sm text-text/60">Brak jednostek</div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

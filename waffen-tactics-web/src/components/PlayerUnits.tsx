@@ -7,12 +7,13 @@ interface Props {
   attackingUnits: string[]
   targetUnits: string[]
   regenMap: Record<string, any>
+  attackDurations?: Record<string, number>
 }
 
-const PlayerUnits = memo(function PlayerUnits({ units, attackingUnits, targetUnits, regenMap }: Props) {
+const PlayerUnits = memo(function PlayerUnits({ units, attackingUnits, targetUnits, regenMap, attackDurations = {} }: Props) {
   const frontUnits = units.filter(u => u.position === 'front')
   const backUnits = units.filter(u => u.position === 'back')
-
+  console.log(units);
   return (
     <div className="bg-gray-800 rounded-lg p-3 border border-gray-700" style={{ flexShrink: 0, width: '100%' }}>
       <h3 className="text-sm font-bold text-green-400 mb-2 text-center">🛡️ Twoje Jednostki</h3>
@@ -31,6 +32,7 @@ const PlayerUnits = memo(function PlayerUnits({ units, attackingUnits, targetUni
                   attackingUnits={attackingUnits}
                   targetUnits={targetUnits}
                   regen={regenMap[u.id]}
+                  attackDuration={attackDurations[u.id]}
                 />
               </motion.div>
             ))}
@@ -52,6 +54,7 @@ const PlayerUnits = memo(function PlayerUnits({ units, attackingUnits, targetUni
                   attackingUnits={attackingUnits}
                   targetUnits={targetUnits}
                   regen={regenMap[u.id]}
+                  attackDuration={attackDurations[u.id]}
                 />
               </motion.div>
             ))}

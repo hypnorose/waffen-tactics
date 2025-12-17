@@ -129,12 +129,6 @@
         {
           "type": "stat_buff",
           "stat": "attack_speed",
-          "value": 10,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stat": "attack_speed",
           "value": 15,
           "is_percentage": true
         },
@@ -148,6 +142,12 @@
           "type": "stat_buff",
           "stat": "attack_speed",
           "value": 60,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stat": "attack_speed",
+          "value": 150,
           
           "is_percentage": true
         }
@@ -174,25 +174,25 @@
         {
           "type": "stat_buff",
           "stat": "attack",
-          "value": 10,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stat": "attack",
           "value": 20,
           "is_percentage": true
         },
         {
           "type": "stat_buff",
           "stat": "attack",
-          "value": 30,
+          "value": 40,
           "is_percentage": true
         },
         {
           "type": "stat_buff",
           "stat": "attack",
-          "value": 50,
+          "value": 70,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stat": "attack",
+          "value": 130,
           "is_percentage": true
         }
       ]
@@ -272,25 +272,25 @@
         {
           "type": "per_round_buff",
           "stat": "hp",
-          "value": 0.5,
-          "is_percentage": true
-        },
-        {
-          "type": "per_round_buff",
-          "stat": "hp",
           "value": 1,
           "is_percentage": true
         },
         {
           "type": "per_round_buff",
           "stat": "hp",
-          "value": 1.5,
+          "value": 2,
           "is_percentage": true
         },
         {
           "type": "per_round_buff",
           "stat": "hp",
-          "value": 2,
+          "value": 3,
+          "is_percentage": true
+        },
+        {
+          "type": "per_round_buff",
+          "stat": "hp",
+          "value": 5,
           "is_percentage": true
         }
       ]
@@ -533,7 +533,7 @@
             {
               "type": "kill_buff",
               "stat": "defense",
-              "value": 3,
+              "value": 10,
               "is_percentage": true,
               "collect_stat": "defense"
             }
@@ -545,7 +545,7 @@
             {
               "type": "kill_buff",
               "stat": "defense",
-              "value": 6,
+              "value": 20,
               "is_percentage": true,
               "collect_stat": "defense"
             }
@@ -557,7 +557,7 @@
             {
               "type": "kill_buff",
               "stat": "defense",
-              "value": 15,
+              "value": 40,
               "is_percentage": true,
               "collect_stat": "defense"
             }
@@ -589,7 +589,7 @@
             "attack",
             "attack_speed"
           ],
-          "value": 8,
+          "value": 10,
           "is_percentage": true
         },
         {
@@ -598,16 +598,7 @@
             "attack",
             "attack_speed"
           ],
-          "value": 14,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stats": [
-            "attack",
-            "attack_speed"
-          ],
-          "value": 22,
+          "value": 20,
           "is_percentage": true
         },
         {
@@ -617,6 +608,15 @@
             "attack_speed"
           ],
           "value": 30,
+          "is_percentage": true
+        },
+        {
+          "type": "stat_buff",
+          "stats": [
+            "attack",
+            "attack_speed"
+          ],
+          "value": 60,
           "is_percentage": true
         }
       ]
@@ -660,16 +660,17 @@
     {
       "name": "Hitman",
       "type": "class",
-      "description": "Zawsze atakuje jednostkę z najmniejszym HP",
+      "description": "Priorytetyzuje linię tylną",
       "thresholds": [
         1
       ],
+      "target": "self",
       "threshold_descriptions": [
-        "Zawsze atakuje jednostkę z najmniejszym HP"
+        "Priorytetyzuje linię tylną"
       ],
       "effects": [
         {
-          "type": "target_least_hp"
+          "type": "target_backline"
         }
       ]
     },
@@ -740,6 +741,24 @@
         {
           "type": "dynamic_hp_per_loss",
           "percent_per_loss": 5
+        }
+      ]
+    },
+    {
+      "name": "XN HomoKomando",
+      "type": "class",
+      "description": "XN HomoKomando dostaje lifesteal",
+      "thresholds": [
+        1
+      ],
+      "threshold_descriptions": [
+        "Dostaje <v>% lifesteala"
+      ],
+      "effects": [
+       {
+          "type": "stat_buff",
+          "stat": "lifesteal",
+          "value": 15
         }
       ]
     },

@@ -32,6 +32,7 @@ export default function CombatOverlay({ onClose }: CombatOverlayProps) {
     setShowLog,
     attackingUnits,
     targetUnits,
+    attackDurations,
     combatSpeed,
     setCombatSpeed,
     regenMap,
@@ -107,11 +108,11 @@ export default function CombatOverlay({ onClose }: CombatOverlayProps) {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1.5rem', position: 'relative' }}>
           {/* Jednostki przeciwnika */}
           <div style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
-            <OpponentUnits units={opponentUnits} attackingUnits={attackingUnits} targetUnits={targetUnits} regenMap={regenMap} />
+            <OpponentUnits units={opponentUnits} attackingUnits={attackingUnits} targetUnits={targetUnits} regenMap={regenMap} attackDurations={attackDurations} />
           </div>
           {/* Jednostki gracza */}
           <div style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <PlayerUnits units={playerUnits} attackingUnits={attackingUnits} targetUnits={targetUnits} regenMap={regenMap} />
+            <PlayerUnits units={playerUnits} attackingUnits={attackingUnits} targetUnits={targetUnits} regenMap={regenMap} attackDurations={attackDurations} />
           </div>
 
           {/* Przycisk do logu walki */}

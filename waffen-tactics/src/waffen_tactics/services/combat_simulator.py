@@ -1,7 +1,6 @@
 """
 CombatSimulator class - handles combat simulation logic
 """
-import random
 from typing import List, Dict, Any, Callable, Optional
 
 from .combat_attack_processor import CombatAttackProcessor
@@ -9,6 +8,7 @@ from .combat_effect_processor import CombatEffectProcessor
 from .combat_regeneration_processor import CombatRegenerationProcessor
 from .combat_win_conditions import CombatWinConditionsProcessor
 from .combat_per_second_buff_processor import CombatPerSecondBuffProcessor
+from .combat_unit import CombatUnit
 
 
 class CombatSimulator(
@@ -34,7 +34,9 @@ class CombatSimulator(
         self,
         team_a: List['CombatUnit'],
         team_b: List['CombatUnit'],
-        event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        round_number: int = 1,
+        skip_per_round_buffs: bool = False
     ) -> Dict[str, Any]:
         """
         Simulate combat between two teams
@@ -43,6 +45,7 @@ class CombatSimulator(
             team_a: First team units
             team_b: Second team units
             event_callback: Optional callback for combat events (type, data)
+            round_number: Current round number for per-round buffs
 
         Returns:
             Dict with winner, duration, survivors, log
@@ -56,8 +59,17 @@ class CombatSimulator(
         b_hp = [u.hp for u in team_b]
         log = []
 
+        # Reset per-unit transient flags used during simulation (e.g. death processed)
+        for u in team_a + team_b:
+            if hasattr(u, '_death_processed'):
+                u._death_processed = False
+
         time = 0.0
         last_full_second = -1
+
+        # Apply per-round buffs at start of combat
+        if not skip_per_round_buffs:
+            self._process_per_round_buffs(team_a, team_b, a_hp, b_hp, time, log, event_callback, round_number)
 
         # Debug log
         import logging
@@ -92,6 +104,19 @@ class CombatSimulator(
             if current_second != last_full_second:
                 last_full_second = current_second
                 self._process_per_second_buffs(team_a, team_b, a_hp, b_hp, time, log, event_callback)
+
+                # Send state snapshot every second
+                if event_callback:
+                    snapshot_data = {
+                        'player_units': [u.to_dict(a_hp[i]) for i, u in enumerate(team_a)],
+                        'opponent_units': [u.to_dict(b_hp[i]) for i, u in enumerate(team_b)],
+                        'timestamp': time,
+                        'seq': current_second
+                    }
+                    event_callback('state_snapshot', snapshot_data)
+
+            # Process damage over time effects
+            self._process_damage_over_time(team_a, team_b, a_hp, b_hp, time, log, event_callback)
 
         # Timeout - winner by total HP
         sum_a = sum(max(0, h) for h in a_hp)
@@ -144,51 +169,51 @@ class CombatSimulator(
             if attacking_hp[i] <= 0:
                 continue
 
-            # Attack chance per tick based on attack speed
-            if random.random() < unit.attack_speed * self.dt:
-                # Find alive targets - prioritize front line units
-                front_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'front']
-                back_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'back']
-                
-                # Target front line first, then back line
-                targets = front_targets + back_targets
-                
-                if not targets:
+            # Attack if enough time has passed since last attack
+            attack_interval = 1.0 / unit.attack_speed if unit.attack_speed > 0 else float('inf')
+            if time - unit.last_attack_time >= attack_interval:
+                target_idx = self._select_target(attacking_team, defending_team, attacking_hp, defending_hp, i)
+                if target_idx is None:
                     # Attacking team wins
                     return "team_a" if side == "team_a" else "team_b"
 
-                # Target selection override: if attacker has 'target_least_hp', pick alive target with least current HP
-                if any(e.get('type') == 'target_least_hp' for e in getattr(unit, 'effects', [])):
-                    target_idx = min([t[0] for t in targets], key=lambda idx: defending_hp[idx])
-                else:
-                    # Target selection: 60% highest defense, 40% random
-                    if random.random() < 0.6:
-                        target_idx = max(targets, key=lambda x: x[1])[0]
-                    else:
-                        target_idx = random.choice([t[0] for t in targets])
-
                 # Calculate damage
                 damage = self._calculate_damage(unit, defending_team[target_idx])
-                defending_hp[target_idx] -= damage
+                # Account for shield on the defender (if any) before applying HP loss
+                defender = defending_team[target_idx]
+                shield_absorbed = 0
+                if getattr(defender, 'shield', 0) > 0 and damage > 0:
+                    shield_absorbed = min(defender.shield, damage)
+                    defender.shield = max(0, defender.shield - shield_absorbed)
+                remaining_damage = max(0, damage - shield_absorbed)
+                defending_hp[target_idx] -= remaining_damage
                 defending_hp[target_idx] = max(0, defending_hp[target_idx])
 
                 # Log and callback
                 msg = f"[{time:.2f}s] {side.upper()[0]}:{unit.name} hits {'A' if side == 'team_b' else 'B'}:{defending_team[target_idx].name} for {damage}, hp={defending_hp[target_idx]}"
                 log.append(msg)
 
-                # Attack callback
+                # Attack callback (include shield_absorbed if any)
                 if event_callback:
-                    event_callback('attack', {
+                    payload = {
                         'attacker_id': unit.id,
                         'attacker_name': unit.name,
                         'target_id': defending_team[target_idx].id,
                         'target_name': defending_team[target_idx].name,
                         'damage': damage,
+                        'shield_absorbed': shield_absorbed,
                         'target_hp': defending_hp[target_idx],
                         'target_max_hp': defending_team[target_idx].max_hp,
                         'side': side,
                         'timestamp': time
-                    })
+                    }
+                    event_callback('attack', payload)
+
+                # Check if target died
+                if defending_hp[target_idx] <= 0:
+                    self._process_unit_death(
+                        unit, defending_team, defending_hp, attacking_team, attacking_hp, target_idx, time, log, event_callback, side
+                    )
 
                 # Post-attack effect processing (lifesteal, mana on attack)
                 # Lifesteal: heal attacker by damage * lifesteal%
@@ -214,15 +239,24 @@ class CombatSimulator(
                     })
 
                 # Check for skill casting if mana is full (reaches max_mana)
+                skill_was_cast = False
+                target_was_alive_before_skill = defending_hp[target_idx] > 0
+                print(f"Checking skill for {unit.name}: hasattr={hasattr(unit, 'skill')}, skill={unit.skill}, mana={unit.mana}, max_mana={unit.max_mana}")
                 if hasattr(unit, 'skill') and unit.skill and unit.mana >= unit.max_mana:
+                    print(f"Casting skill for {unit.name}")
+                    skill_was_cast = True
                     self._process_skill_cast(unit, defending_team[target_idx], defending_hp, target_idx, time, log, event_callback, side)
 
                 # Death callback and on-death effect triggers
-                if defending_hp[target_idx] <= 0:
+                # Only process death if target died from skill (attack death was already processed above)
+                if defending_hp[target_idx] <= 0 and skill_was_cast and target_was_alive_before_skill:
                     self._process_unit_death(unit, defending_team, defending_hp, attacking_team, attacking_hp, target_idx, time, log, event_callback, side)
-                else:
+                elif defending_hp[target_idx] > 0:
                     # Target is still alive -> check for on_ally_hp_below triggers on defending team
                     self._process_ally_hp_below_triggers(defending_team, defending_hp, target_idx, time, log, event_callback, side)
+
+                # Update last attack time
+                unit.last_attack_time = time
 
         return None
 
@@ -238,54 +272,337 @@ class CombatSimulator(
         side: str
     ):
         """Process skill casting for a unit."""
-        skill = caster.skill
-        caster.mana = 0  # Reset mana to 0 after casting
-        log.append(f"[{time:.2f}s] {caster.name} casts {skill['name']}!")
+        from waffen_tactics.services.skill_executor import skill_executor
+        from waffen_tactics.models.skill import SkillExecutionContext
 
-        # Send mana update event after reset
-        if event_callback:
-            event_callback('mana_update', {
-                'unit_id': caster.id,
-                'unit_name': caster.name,
-                'current_mana': caster.mana,
-                'max_mana': caster.max_mana,
-                'side': side,
-                'timestamp': time
-            })
+        skill_data = caster.skill
+        if not skill_data:
+            return
 
-        # Apply skill effect (basic implementation)
-        effect = skill['effect']
-        if effect.get('type') == 'damage':
-            # Deal damage to target
-            skill_damage = effect.get('amount', 0)
-            target_hp_list[target_idx] -= skill_damage
-            target_hp_list[target_idx] = max(0, target_hp_list[target_idx])
-            log.append(f"[{time:.2f}s] {skill['name']} deals {skill_damage} damage to {target.name}")
+        # Check if unit has new skill system
+        new_skill = skill_data.get('effect', {}).get('skill')
+        if new_skill:
+            # Use new skill system
+            context = SkillExecutionContext(
+                caster=caster,
+                team_a=self.team_a if hasattr(self, 'team_a') else [],
+                team_b=self.team_b if hasattr(self, 'team_b') else [],
+                combat_time=time
+            )
 
+            try:
+                import asyncio
+                print(f"Executing skill {new_skill.name} for {caster.name}")
+                events = skill_executor.execute_skill(new_skill, context)
+                print(f"Skill executed, events: {len(events)}")
+
+                # Process events
+                for event_type, event_data in events:
+                    print(f"Skill effect event: {event_type} - {event_data}")
+                    # Prefer event-specific timestamp from handler; otherwise use context.combat_time
+                    evt_ts = event_data.get('timestamp', context.combat_time)
+                    if event_callback:
+                        event_callback(event_type, {
+                            **event_data,
+                            'side': side,
+                            'timestamp': evt_ts
+                        })
+
+                    # Update HP if damage event
+                    if event_type == 'unit_attack':
+                        target_id = event_data.get('target_id')
+                        damage = event_data.get('damage', 0)
+                        # Find target index and update HP
+                        for i, unit in enumerate(self.team_a + self.team_b):
+                            if unit.id == target_id:
+                                if i < len(self.team_a):
+                                    target_hp_list[i] -= damage
+                                    target_hp_list[i] = max(0, target_hp_list[i])
+                                else:
+                                    idx = i - len(self.team_a)
+                                    target_hp_list[idx] -= damage
+                                    target_hp_list[idx] = max(0, target_hp_list[idx])
+                                break
+
+                # Add log messages for skill effects (use per-event timestamp if available)
+                for event_type, event_data in events:
+                    evt_ts = event_data.get('timestamp', context.combat_time)
+                    if event_type == 'unit_attack':
+                        attacker = next((u for u in self.team_a + self.team_b if u.id == event_data.get('attacker_id')), None)
+                        target = next((u for u in self.team_a + self.team_b if u.id == event_data.get('target_id')), None)
+                        if attacker and target:
+                            log.append(f"[{evt_ts:.2f}s] {attacker.name} deals {event_data['damage']} damage to {target.name}")
+                    elif event_type == 'unit_heal':
+                        healer = next((u for u in self.team_a + self.team_b if u.id == event_data.get('healer_id')), None)
+                        target = next((u for u in self.team_a + self.team_b if u.id == event_data.get('unit_id')), None)
+                        if healer and target:
+                            log.append(f"[{evt_ts:.2f}s] {healer.name} heals {target.name} for {event_data['amount']} HP")
+                    elif event_type == 'stat_buff':
+                        caster = next((u for u in self.team_a + self.team_b if u.id == event_data.get('caster_id')), None)
+                        target = next((u for u in self.team_a + self.team_b if u.id == event_data.get('unit_id')), None)
+                        if caster and target:
+                            buff_type = event_data.get('buff_type', 'buff')
+                            stat = event_data['stat']
+                            value = event_data['value']
+                            duration = event_data['duration']
+                            log.append(f"[{evt_ts:.2f}s] {caster.name} {buff_type}s {target.name}'s {stat} by {value} for {duration}s")
+                    elif event_type == 'shield_applied':
+                        caster = next((u for u in self.team_a + self.team_b if u.id == event_data.get('caster_id')), None)
+                        target = next((u for u in self.team_a + self.team_b if u.id == event_data.get('unit_id')), None)
+                        if caster and target:
+                            amount = event_data['amount']
+                            duration = event_data['duration']
+                            log.append(f"[{evt_ts:.2f}s] {caster.name} grants {target.name} {amount} shield for {duration}s")
+                    elif event_type == 'unit_stunned':
+                        caster = next((u for u in self.team_a + self.team_b if u.id == event_data.get('caster_id')), None)
+                        target = next((u for u in self.team_a + self.team_b if u.id == event_data.get('unit_id')), None)
+                        if caster and target:
+                            duration = event_data['duration']
+                            log.append(f"[{evt_ts:.2f}s] {caster.name} stuns {target.name} for {duration}s")
+
+                log.append(f"[{time:.2f}s] {caster.name} casts {new_skill.name}!")
+
+            except Exception as e:
+                log.append(f"[{time:.2f}s] Skill execution failed: {e}")
+
+        else:
+            # Fallback to old skill system
+            caster.mana = 0  # Reset mana to 0 after casting
+            log.append(f"[{time:.2f}s] {caster.name} casts {skill_data['name']}!")
+
+            # Send mana update event after reset
             if event_callback:
+                event_callback('mana_update', {
+                    'unit_id': caster.id,
+                    'unit_name': caster.name,
+                    'current_mana': caster.mana,
+                    'max_mana': caster.max_mana,
+                    'side': side,
+                    'timestamp': time
+                })
+
+            # Apply skill effect (basic implementation)
+            effect = skill_data.get('effect') or skill_data.get('effects')
+
+            # Determine deterministic vs random selection for skill targets
+            import os
+            DETERMINISTIC_TARGETING = os.getenv('WAFFEN_DETERMINISTIC_TARGETING', '0') in ('1', 'true', 'True')
+
+            # Normalize effects to a list so a skill can contain multiple sequential effects
+            effects_list = []
+            if isinstance(effect, list):
+                effects_list = effect
+            elif isinstance(effect, dict):
+                effects_list = [effect]
+
+            # Keep track of "last chosen" to allow effects to target the same unit
+            last_chosen_idx = None
+
+            # Helper to resolve candidate indices and pick one according to rules
+            def choose_target_idx(target_spec: str, candidates_indices: list):
+                if not candidates_indices:
+                    return None
+                if DETERMINISTIC_TARGETING:
+                    return candidates_indices[0]
+                import random as _rand
+                return _rand.choice(candidates_indices)
+
+            # If team lists are available, build defending_team reference to inspect positions
+            have_teams = hasattr(self, 'team_a') and hasattr(self, 'team_b')
+            defending_team_full = None
+            if have_teams:
+                defending_team_full = self.team_b if side == 'team_a' else self.team_a
+
+            # Track damage/heal applied per index for summary
+            damage_by_idx = {}
+
+            for eff in effects_list:
+                typ = eff.get('type')
+
+                # Determine target selection rules for this effect
+                target_spec = eff.get('target')  # e.g. 'attack_target','self','random_enemy','enemy_backline','enemy_frontline','same'
+
+                # Build candidate indices on the provided target_hp_list (indexes correspond to defending side order)
+                candidates = [i for i, hp in enumerate(target_hp_list) if hp > 0]
+
+                # Filter by position if requested and we have defending team info
+                if target_spec in ('enemy_backline', 'enemy_frontline') and defending_team_full is not None:
+                    line = 'back' if target_spec == 'enemy_backline' else 'front'
+                    candidates = [i for i in candidates if getattr(defending_team_full[i], 'position', 'front') == line]
+
+                # Support explicit 'attack_target' (use given target_idx), 'self', 'same' (previous chosen)
+                chosen_idx = None
+                if target_spec == 'attack_target':
+                    chosen_idx = target_idx
+                elif target_spec == 'self':
+                    chosen_idx = None  # will treat as applying to caster/self
+                elif target_spec == 'same':
+                    chosen_idx = last_chosen_idx
+                elif target_spec == 'ally_random' and eff.get('ally_scope'):
+                    # not implemented: fallback
+                    chosen_idx = None
+                else:
+                    # random_enemy, enemy_frontline, enemy_backline, or None => pick from candidates
+                    chosen_idx = choose_target_idx(target_spec or 'random_enemy', candidates)
+
+                # Apply effect depending on type
+                if typ == 'damage':
+                    skill_damage = eff.get('amount', 0)
+                    # If chosen_idx is None -> apply to provided target (or caster in case of self)
+                    apply_idx = chosen_idx if chosen_idx is not None else target_idx
+                    # Guard index
+                    if apply_idx is None or apply_idx < 0 or apply_idx >= len(target_hp_list):
+                        apply_idx = target_idx
+
+                    old_hp = target_hp_list[apply_idx]
+                    target_hp_list[apply_idx] = max(0, target_hp_list[apply_idx] - skill_damage)
+                    new_hp = target_hp_list[apply_idx]
+
+                    # Resolve unit object for events/log
+                    if defending_team_full is not None and apply_idx < len(defending_team_full):
+                        unit_obj = defending_team_full[apply_idx]
+                    else:
+                        unit_obj = target
+
+                    log.append(f"[{time:.2f}s] {skill_data.get('name')} deals {skill_damage} damage to {unit_obj.name}")
+                    if event_callback:
+                        event_callback('unit_attack', {
+                            'attacker_id': caster.id,
+                            'attacker_name': caster.name,
+                            'target_id': unit_obj.id,
+                            'target_name': unit_obj.name,
+                            'damage': skill_damage,
+                            'damage_type': eff.get('damage_type', 'physical'),
+                            'old_hp': old_hp,
+                            'new_hp': new_hp,
+                            'is_skill': True,
+                            'side': side,
+                            'timestamp': time
+                        })
+
+                    # record damage for summary
+                    damage_by_idx[apply_idx] = damage_by_idx.get(apply_idx, 0) + skill_damage
+                    last_chosen_idx = apply_idx
+
+                elif typ == 'heal':
+                    amount = eff.get('amount', 0)
+                    # Heal target (apply to provided target if chosen_idx None)
+                    apply_idx = chosen_idx if chosen_idx is not None else target_idx
+                    if apply_idx is None or apply_idx < 0 or apply_idx >= len(target_hp_list):
+                        apply_idx = target_idx
+                    old_hp = target_hp_list[apply_idx]
+                    # When healing, we don't know max_hp easily without team lists; emit event and update value
+                    target_hp_list[apply_idx] = min(getattr(target, 'max_hp', old_hp + amount), target_hp_list[apply_idx] + amount)
+                    if event_callback:
+                        event_callback('unit_heal', {
+                            'healer_id': caster.id,
+                            'unit_id': (defending_team_full[apply_idx].id if defending_team_full and apply_idx < len(defending_team_full) else target.id),
+                            'amount': amount,
+                            'side': side,
+                            'timestamp': time
+                        })
+                    last_chosen_idx = apply_idx
+
+                elif typ in ('stun', 'unit_stunned'):
+                    duration = eff.get('duration', 1.0)
+                    apply_idx = chosen_idx if chosen_idx is not None else target_idx
+                    if apply_idx is None or apply_idx < 0 or apply_idx >= len(target_hp_list):
+                        apply_idx = target_idx
+                    if defending_team_full is not None and apply_idx < len(defending_team_full):
+                        unit_obj = defending_team_full[apply_idx]
+                    else:
+                        unit_obj = target
+                    if event_callback:
+                        event_callback('unit_stunned', {
+                            'caster_id': caster.id,
+                            'unit_id': unit_obj.id,
+                            'unit_name': unit_obj.name,
+                            'duration': duration,
+                            'side': side,
+                            'timestamp': time
+                        })
+                    last_chosen_idx = apply_idx
+
+                elif typ in ('stat_buff', 'buff'):
+                    stat = eff.get('stat')
+                    value = eff.get('value')
+                    duration = eff.get('duration', 5)
+                    apply_idx = chosen_idx if chosen_idx is not None else target_idx
+                    if apply_idx is None or apply_idx < 0 or apply_idx >= len(target_hp_list):
+                        apply_idx = target_idx
+                    if defending_team_full is not None and apply_idx < len(defending_team_full):
+                        unit_obj = defending_team_full[apply_idx]
+                    else:
+                        unit_obj = target
+                    if event_callback:
+                        event_callback('stat_buff', {
+                            'caster_id': caster.id,
+                            'unit_id': unit_obj.id,
+                            'unit_name': unit_obj.name,
+                            'stat': stat,
+                            'value': value,
+                            'duration': duration,
+                            'side': side,
+                            'timestamp': time
+                        })
+                    last_chosen_idx = apply_idx
+
+                else:
+                    # Unknown effect: emit generic skill event for now
+                    if event_callback:
+                        event_callback('skill_effect', {
+                            'caster_id': caster.id,
+                            'effect': eff,
+                            'side': side,
+                            'timestamp': time
+                        })
+                    # don't modify last_chosen_idx
+
+            # Emit a summary skill_cast event for UI and downstream handlers
+            if event_callback:
+                # Primary target: prefer last_chosen_idx, else provided target_idx
+                primary_idx = last_chosen_idx if last_chosen_idx is not None else target_idx
+                primary_unit = None
+                primary_target_id = None
+                primary_target_name = None
+                primary_target_hp = None
+                primary_target_max_hp = None
+                primary_damage = None
+
+                if primary_idx is not None and defending_team_full is not None and primary_idx < len(defending_team_full):
+                    primary_unit = defending_team_full[primary_idx]
+                    primary_target_id = primary_unit.id
+                    primary_target_name = primary_unit.name
+                    primary_target_hp = target_hp_list[primary_idx]
+                    primary_target_max_hp = getattr(primary_unit, 'max_hp', None)
+                    primary_damage = damage_by_idx.get(primary_idx, 0)
+                else:
+                    # Fallback to provided target object
+                    if target is not None:
+                        primary_target_id = getattr(target, 'id', None)
+                        primary_target_name = getattr(target, 'name', None)
+                        primary_target_hp = target_hp_list[target_idx] if (target_idx is not None and 0 <= target_idx < len(target_hp_list)) else None
+                        primary_target_max_hp = getattr(target, 'max_hp', None)
+                        primary_damage = damage_by_idx.get(primary_idx, 0) if primary_idx is not None else None
+
                 event_callback('skill_cast', {
                     'caster_id': caster.id,
                     'caster_name': caster.name,
-                    'skill_name': skill['name'],
-                    'target_id': target.id,
-                    'target_name': target.name,
-                    'damage': skill_damage,
-                    'target_hp': target_hp_list[target_idx],
-                    'target_max_hp': target.max_hp,
+                    'skill_name': skill_data.get('name'),
+                    'target_id': primary_target_id,
+                    'target_name': primary_target_name,
+                    'damage': primary_damage,
+                    'target_hp': primary_target_hp,
+                    'target_max_hp': primary_target_max_hp,
                     'side': side,
                     'timestamp': time,
-                    'message': f"{caster.name} casts {skill['name']}!"
+                    'message': f"{caster.name} casts {skill_data.get('name')}!"
                 })
 
         # Check if target died from skill
         if target_hp_list[target_idx] <= 0:
-            if event_callback:
-                event_callback('unit_died', {
-                    'unit_id': target.id,
-                    'unit_name': target.name,
-                    'side': 'team_a' if side == 'team_b' else 'team_b',
-                    'timestamp': time
-                })
+            # Use _process_unit_death to handle trait effects properly
+            self._process_unit_death(caster, [target], target_hp_list, [caster], [caster.max_hp], 0, time, log, event_callback, side)
 
     def _process_ally_hp_below_triggers(
         self,
@@ -319,4 +636,82 @@ class CombatSimulator(
                             })
                         eff['_triggered'] = True
                         break
+
+    def _process_damage_over_time(
+        self,
+        team_a: List[CombatUnit],
+        team_b: List[CombatUnit],
+        a_hp: List[int],
+        b_hp: List[int],
+        time: float,
+        log: List[str],
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]]
+    ):
+        """Process damage over time effects for both teams."""
+        # Process team A
+        self._process_dot_for_team(team_a, a_hp, time, log, event_callback, 'team_a')
+        # Process team B
+        self._process_dot_for_team(team_b, b_hp, time, log, event_callback, 'team_b')
+
+    def _process_dot_for_team(
+        self,
+        team: List[CombatUnit],
+        hp_list: List[int],
+        time: float,
+        log: List[str],
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+        side: str
+    ):
+        """Process damage over time effects for a single team."""
+        for i, unit in enumerate(team):
+            # Skip dead units — DoT should not tick on already-dead units
+            if hp_list[i] <= 0:
+                continue
+
+            if not hasattr(unit, 'effects') or not unit.effects:
+                continue
+
+            # Process each effect on the unit
+            effects_to_remove = []
+            for j, effect in enumerate(unit.effects):
+                if effect.get('type') == 'damage_over_time':
+                    # Check if it's time for the next tick
+                    next_tick = effect.get('next_tick_time', 0)
+                    if time >= next_tick:
+                        # Apply damage
+                        damage = effect.get('damage', 0)
+                        damage_type = effect.get('damage_type', 'physical')
+
+                        # Apply damage (can be reduced by shields, etc.)
+                        actual_damage = damage  # TODO: Apply damage reduction logic
+
+                        hp_list[i] = max(0, hp_list[i] - actual_damage)
+                        log.append(f"{unit.name} takes {actual_damage} {damage_type} damage from DoT")
+
+                        if event_callback:
+                            event_callback('damage_over_time_tick', {
+                                'unit_id': unit.id,
+                                'unit_name': unit.name,
+                                'damage': actual_damage,
+                                'damage_type': damage_type,
+                                'side': side,
+                                'unit_hp': hp_list[i],
+                                'unit_max_hp': unit.max_hp,
+                                'timestamp': time
+                            })
+
+                        # Update effect
+                        ticks_remaining = effect.get('ticks_remaining', 0) - 1
+                        if ticks_remaining > 0:
+                            # Schedule next tick
+                            interval = effect.get('interval', 1.0)
+                            effect['ticks_remaining'] = ticks_remaining
+                            effect['next_tick_time'] = time + interval
+                        else:
+                            # Effect expires
+                            effects_to_remove.append(j)
+
+            # Remove expired effects (in reverse order to maintain indices)
+            for j in reversed(effects_to_remove):
+                unit.effects.pop(j)
 

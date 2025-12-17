@@ -29,6 +29,11 @@ class CombatEffectProcessor:
         target = defending_team[target_idx]
         defending_side = 'team_a' if side == 'team_b' else 'team_b'
 
+        # Prevent duplicate processing for the same death within a simulation tick
+        if getattr(target, '_death_processed', False):
+            return
+        target._death_processed = True
+
         # Increment collected stats for the killer if they have relevant effects
         if killer:
             # Find all collect_stat values from kill_buff effects
@@ -157,15 +162,15 @@ class CombatEffectProcessor:
                     unit.hp_regen_per_sec += add_per_sec
                     log.append(f"[{time:.2f}s] {unit.name} gains +{total_amount:.2f} HP over {duration}s (+{add_per_sec:.2f} HP/s)")
                     if event_callback:
-                            event_callback('regen_gain', {
-                                'unit_id': unit.id,
-                                'unit_name': unit.name,
-                                'amount_per_sec': add_per_sec,
-                                'total_amount': total_amount,
-                                'duration': duration,
-                                'side': side,
-                                'timestamp': time
-                            })
+                        event_callback('regen_gain', {
+                            'unit_id': unit.id,
+                            'unit_name': unit.name,
+                            'amount_per_sec': add_per_sec,
+                            'total_amount': total_amount,
+                            'duration': duration,
+                            'side': side,
+                            'timestamp': time
+                        })
                 elif target == 'team' and attacking_team and attacking_hp:
                     # Apply to all surviving units in attacking team
                     survivors = [u for u, hp in zip(attacking_team, attacking_hp) if hp > 0]
@@ -175,16 +180,16 @@ class CombatEffectProcessor:
                             u.hp_regen_per_sec += per_unit
                         log.append(f"[{time:.2f}s] Team gains +{total_amount:.2f} HP over {duration}s (+{add_per_sec:.2f} HP/s total)")
                         if event_callback:
-                                event_callback('regen_gain', {
-                                    'unit_id': unit.id,
-                                    'unit_name': unit.name,
-                                    'amount_per_sec': add_per_sec,
-                                    'total_amount': total_amount,
-                                    'duration': duration,
-                                    'side': side,
-                                    'target': 'team',
-                                    'timestamp': time
-                                })
+                            event_callback('regen_gain', {
+                                'unit_id': unit.id,
+                                'unit_name': unit.name,
+                                'amount_per_sec': add_per_sec,
+                                'total_amount': total_amount,
+                                'duration': duration,
+                                'side': side,
+                                'target': 'team',
+                                'timestamp': time
+                            })
 
     def _apply_actions(
         self,
@@ -209,19 +214,32 @@ class CombatEffectProcessor:
             if action_type == 'stat_buff':
                 self._apply_stat_buff(unit, action, hp_list, unit_idx, time, log, event_callback, side, attacking_team, defending_team, attacking_hp, defending_hp)
             elif action_type in ('kill_buff', 'collect_stat'):
-                # Use new EffectProcessor for kill_buff and collect_stat actions
-                result = self.effect_processor.process_effect(
-                    action, unit, attacking_team, defending_team,
-                    attacking_hp, defending_hp, side
-                )
-                if result.get('errors'):
-                    for error in result['errors']:
-                        log.append(f"Effect processing error: {error}")
-                if result.get('processed') and result.get('changes'):
-                    # Log successful processing
-                    if 'buffs_applied' in result['changes']:
-                        for buff_info in result['changes']['buffs_applied']:
-                            log.append(f"{unit.name} applied {buff_info['stat_type']} buff (+{buff_info['increment']})")
+                # Apply permanent stat buff from kill
+                stat = action.get('stat')
+                value = action.get('value', 0)
+                is_percentage = action.get('is_percentage', False)
+                
+                if stat == 'defense':
+                    if is_percentage:
+                        added = int(unit.defense * (value / 100.0))
+                        unit.defense += added
+                    else:
+                        added = int(value)
+                        unit.defense += added
+                    log.append(f"{unit.name} gains permanent +{added} Defense from kill")
+                    if event_callback:
+                        event_callback('stat_buff', {
+                            'unit_id': unit.id,
+                            'unit_name': unit.name,
+                            'stat': 'defense',
+                            'amount': added,
+                            'is_percentage': is_percentage,
+                            'cause': 'kill',
+                            'permanent': True,
+                            'side': side,
+                            'timestamp': time
+                        })
+                # Add other stats as needed
             elif action_type == 'reward':
                 if triggered_rewards is not None and effect and effect.get('trigger_once', False):
                     reward_type = action.get('reward')
@@ -314,17 +332,7 @@ class CombatEffectProcessor:
                     side
                 )
 
-                # Log and event
-                log.append(f"{recipient.name} gains +{final_increment} {stat_type} (stat_buff)")
-                if event_callback:
-                    event_callback('stat_buff', {
-                        'unit_id': recipient.id,
-                        'unit_name': recipient.name,
-                        'stat': stat_type,
-                        'amount': final_increment,
-                        'side': side,
-                        'timestamp': time
-                    })
+                # Handler already emits events/logs; avoid duplicate event emission here
 
     def _apply_stat_buff(
         self,
@@ -478,7 +486,7 @@ class CombatEffectProcessor:
                             recipient.mana_regen += added_int
                         log.append(f"{recipient.name} gains +{added_int} {st} (stat_buff)")
                         if event_callback:
-                            event_callback('stat_buff', {'unit_id': recipient.id, 'unit_name': recipient.name, 'stat': st, 'amount': added_int, 'side': side, 'timestamp': time})
+                            event_callback('stat_buff', {'unit_id': recipient.id, 'unit_name': recipient.name, 'stat': st, 'amount': added_int, 'side': side, 'timestamp': time, 'cause': 'effect'})
                     elif st == 'hp':
                         added_int = int(added)
                         # find recipient index in hp lists
@@ -498,17 +506,17 @@ class CombatEffectProcessor:
                         recipient.attack_speed += float(added)
                         log.append(f"{recipient.name} gains +{added:.2f} Attack Speed (stat_buff)")
                         if event_callback:
-                            event_callback('stat_buff', {'unit_id': recipient.id, 'unit_name': recipient.name, 'stat': 'attack_speed', 'amount': added, 'side': side, 'timestamp': time})
+                            event_callback('stat_buff', {'unit_id': recipient.id, 'unit_name': recipient.name, 'stat': 'attack_speed', 'amount': added, 'side': side, 'timestamp': time, 'cause': 'effect'})
                     elif st == 'lifesteal':
                         recipient.lifesteal += float(added)
                         log.append(f"{recipient.name} gains +{float(added):.1%} Lifesteal (stat_buff)")
                         if event_callback:
-                            event_callback('stat_buff', {'unit_id': recipient.id, 'unit_name': recipient.name, 'stat': 'lifesteal', 'amount': added, 'side': side, 'timestamp': time})
+                            event_callback('stat_buff', {'unit_id': recipient.id, 'unit_name': recipient.name, 'stat': 'lifesteal', 'amount': added, 'side': side, 'timestamp': time, 'cause': 'effect'})
                     elif st == 'damage_reduction':
                         recipient.damage_reduction += float(added)
                         log.append(f"{recipient.name} gains +{float(added):.1%} Damage Reduction (stat_buff)")
                         if event_callback:
-                            event_callback('stat_buff', {'unit_id': recipient.id, 'unit_name': recipient.name, 'stat': 'damage_reduction', 'amount': added, 'side': side, 'timestamp': time})
+                            event_callback('stat_buff', {'unit_id': recipient.id, 'unit_name': recipient.name, 'stat': 'damage_reduction', 'amount': added, 'side': side, 'timestamp': time, 'cause': 'effect'})
                     elif st == 'hp_regen_per_sec':
                         recipient.hp_regen_per_sec += float(added)
                         log.append(f"{recipient.name} gains +{float(added):.2f} HP Regen/sec (stat_buff)")
@@ -583,38 +591,28 @@ class CombatEffectProcessor:
         b_hp: List[int],
         time: float,
         log: List[str],
-        event_callback: Optional[Callable[[str, Dict[str, Any]], None]]
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+        round_number: int
     ):
-        """Apply per-round buffs for both teams."""
+        """Apply per-round buffs for both teams based on current round number."""
         # Team A buffs
         for idx_u, u in enumerate(team_a):
             for eff in getattr(u, 'effects', []):
-                if eff.get('type') == 'per_second_buff':
+                if eff.get('type') == 'per_round_buff':
                     stat = eff.get('stat')
                     val = eff.get('value', 0)
                     is_pct = eff.get('is_percentage', False)
-                    # Check for buff amplifier on this unit
-                    mult = 1.0
-                    for beff in getattr(u, 'effects', []):
-                        if beff.get('type') == 'buff_amplifier':
-                            try:
-                                mult = max(mult, float(beff.get('multiplier', 1)))
-                            except Exception:
-                                pass
-                    if stat == 'attack':
-                        if is_pct:
-                            add = int(u.attack * (val / 100.0) * mult)
-                        else:
-                            add = int(val * mult)
-                        u.attack += add
-                        log.append(f"{u.name} +{add} Atak (per second)")
+                    
+                    # Calculate buff based on round number
+                    buff_amount = val * round_number
+                    
                     if stat == 'hp':
                         if is_pct:
-                            add = int(u.max_hp * (val / 100.0) * mult)
+                            add = int(u.max_hp * (buff_amount / 100.0))
                         else:
-                            add = int(val * mult)
+                            add = int(buff_amount)
                         a_hp[idx_u] = min(u.max_hp, a_hp[idx_u] + add)
-                        log.append(f"{u.name} +{add} HP (per second)")
+                        log.append(f"{u.name} +{add} HP (per round buff)")
                         if event_callback and add > 0:
                             event_callback('heal', {
                                 'unit_id': u.id,
@@ -629,32 +627,21 @@ class CombatEffectProcessor:
         # Team B buffs
         for idx_u, u in enumerate(team_b):
             for eff in getattr(u, 'effects', []):
-                if eff.get('type') == 'per_second_buff':
+                if eff.get('type') == 'per_round_buff':
                     stat = eff.get('stat')
                     val = eff.get('value', 0)
                     is_pct = eff.get('is_percentage', False)
-                    # Check for buff amplifier on this unit
-                    mult_b = 1.0
-                    for beff2 in getattr(u, 'effects', []):
-                        if beff2.get('type') == 'buff_amplifier':
-                            try:
-                                mult_b = max(mult_b, float(beff2.get('multiplier', 1)))
-                            except Exception:
-                                pass
-                    if stat == 'attack':
-                        if is_pct:
-                            add = int(u.attack * (val / 100.0) * mult_b)
-                        else:
-                            add = int(val * mult_b)
-                        u.attack += add
-                        log.append(f"{u.name} +{add} Atak (per second)")
+                    
+                    # Calculate buff based on round number
+                    buff_amount = val * round_number
+                    
                     if stat == 'hp':
                         if is_pct:
-                            add = int(u.max_hp * (val / 100.0) * mult_b)
+                            add = int(u.max_hp * (buff_amount / 100.0))
                         else:
-                            add = int(val * mult_b)
+                            add = int(buff_amount)
                         b_hp[idx_u] = min(u.max_hp, b_hp[idx_u] + add)
-                        log.append(f"{u.name} +{add} HP (per second)")
+                        log.append(f"{u.name} +{add} HP (per round buff)")
                         if event_callback and add > 0:
                             event_callback('heal', {
                                 'unit_id': u.id,
@@ -665,21 +652,3 @@ class CombatEffectProcessor:
                                 'unit_max_hp': u.max_hp,
                                 'timestamp': time
                             })
-
-        # Apply base mana regen for all units
-        for u in team_a + team_b:
-            if u.mana_regen > 0:
-                old_mana = u.mana
-                u.mana = min(u.max_mana, u.mana + u.mana_regen)
-                add = u.mana - old_mana
-                if add > 0:
-                    log.append(f"{u.name} +{add} Mana (regen)")
-                    if event_callback:
-                        event_callback('mana_update', {
-                            'unit_id': u.id,
-                            'unit_name': u.name,
-                            'current_mana': u.mana,
-                            'max_mana': u.max_mana,
-                            'side': 'team_a' if u in team_a else 'team_b',
-                            'timestamp': time
-                        })

@@ -109,6 +109,7 @@ def exchange_code():
             {
                 'user_id': user_data['id'],
                 'username': user_data['username'],
+                'avatar': user_data.get('avatar'),
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
             },
             JWT_SECRET,

@@ -47,7 +47,8 @@ class CombatPerSecondBuffProcessor:
                                 'stat': 'attack',
                                 'amount': add,
                                 'side': 'team_a',
-                                'timestamp': time
+                                'timestamp': time,
+                                'cause': 'effect'
                             })
                     if stat == 'defense':
                         if is_pct:
@@ -63,7 +64,8 @@ class CombatPerSecondBuffProcessor:
                                 'stat': 'defense',
                                 'amount': add,
                                 'side': 'team_a',
-                                'timestamp': time
+                                'timestamp': time,
+                                'cause': 'effect'
                             })
                     if stat == 'hp':
                         if is_pct:
@@ -82,6 +84,25 @@ class CombatPerSecondBuffProcessor:
                                 'unit_max_hp': u.max_hp,
                                 'timestamp': time
                             })
+                elif eff.get('type') == 'mana_regen':
+                    # Handle mana regeneration
+                    regen_amount = eff.get('value', 0)
+                    if regen_amount > 0:
+                        old_mana = u.mana
+                        u.mana = min(u.max_mana, u.mana + regen_amount)
+                        gained = u.mana - old_mana
+                        if gained > 0:
+                            log.append(f"{u.name} regenerates +{gained} Mana")
+                            if event_callback:
+                                event_callback('mana_regen', {
+                                    'unit_id': u.id,
+                                    'unit_name': u.name,
+                                    'amount': gained,
+                                    'current_mana': u.mana,
+                                    'max_mana': u.max_mana,
+                                    'side': 'team_a',
+                                    'timestamp': time
+                                })
 
         # Team B buffs
         for idx_u, u in enumerate(team_b):
@@ -153,7 +174,8 @@ class CombatPerSecondBuffProcessor:
                                 'stat': 'attack_speed',
                                 'amount': add,
                                 'side': 'team_b',
-                                'timestamp': time
+                                'timestamp': time,
+                                'cause': 'effect'
                             })
                     if stat == 'hp':
                         if is_pct:
@@ -167,7 +189,8 @@ class CombatPerSecondBuffProcessor:
                                 'stat': 'hp',
                                 'amount': add,
                                 'side': 'team_b',
-                                'timestamp': time
+                                'timestamp': time,
+                                'cause': 'effect'
                             })
                         b_hp[idx_u] = min(u.max_hp, b_hp[idx_u] + add)
                         log.append(f"{u.name} +{add} HP (per second)")
@@ -181,3 +204,22 @@ class CombatPerSecondBuffProcessor:
                                 'unit_max_hp': u.max_hp,
                                 'timestamp': time
                             })
+                elif eff.get('type') == 'mana_regen':
+                    # Handle mana regeneration
+                    regen_amount = eff.get('value', 0)
+                    if regen_amount > 0:
+                        old_mana = u.mana
+                        u.mana = min(u.max_mana, u.mana + regen_amount)
+                        gained = u.mana - old_mana
+                        if gained > 0:
+                            log.append(f"{u.name} regenerates +{gained} Mana")
+                            if event_callback:
+                                event_callback('mana_regen', {
+                                    'unit_id': u.id,
+                                    'unit_name': u.name,
+                                    'amount': gained,
+                                    'current_mana': u.mana,
+                                    'max_mana': u.max_mana,
+                                    'side': 'team_b',
+                                    'timestamp': time
+                                })

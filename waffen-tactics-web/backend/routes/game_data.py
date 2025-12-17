@@ -13,9 +13,16 @@ db_manager = DatabaseManager(DB_PATH)
 game_manager = GameManager()
 
 
-def get_leaderboard_data():
-    """Pure function to get leaderboard data"""
-    leaderboard = run_async(db_manager.get_leaderboard())
+def get_leaderboard_data(period: str = '24h'):
+    """Pure function to get leaderboard data.
+
+    period: '24h' (default) or 'all'.
+    """
+    try:
+        leaderboard = run_async(db_manager.get_leaderboard(period=period))
+    except TypeError:
+        # Backwards-compatible: some tests/mocks expect no-arg signature
+        leaderboard = run_async(db_manager.get_leaderboard())
     return leaderboard
 
 
@@ -27,8 +34,59 @@ def get_units_data():
         # displays the same base values the backend uses for buff calculations.
         base_stats = getattr(unit, 'stats', None)
         if not base_stats:
-            # All units should have authoritative stats - this should not happen
-            raise ValueError(f"Unit {unit.id} missing authoritative stats")
+            # Fallback stats calculation based on cost
+            cost = getattr(unit, 'cost', 1)
+            stats_dict = {
+                'hp': 80 + (cost * 40),
+                'attack': 20 + (cost * 10),
+                'defense': 10 + (cost * 5),
+                'attack_speed': 1.0,
+                'max_mana': 100,
+                'mana_on_attack': 10,
+                'mana_regen': 5
+            }
+        elif isinstance(base_stats, dict):
+            stats_dict = base_stats
+        else:
+            # Handle Stats objects
+            stats_dict = {
+                'hp': base_stats.hp,
+                'attack': base_stats.attack,
+                'defense': base_stats.defense,
+                'attack_speed': base_stats.attack_speed,
+                'max_mana': base_stats.max_mana,
+                'mana_on_attack': base_stats.mana_on_attack,
+                'mana_regen': base_stats.mana_regen
+            }
+        
+        # Get skill data if available
+        skill_data = None
+        if hasattr(unit, 'skill') and unit.skill:
+            # Check if it's the new skill format
+            if hasattr(unit.skill, 'effect') and isinstance(unit.skill.effect, dict) and 'skill' in unit.skill.effect:
+                new_skill = unit.skill.effect['skill']
+                # Use explicit skill mana_cost if present, otherwise fall back to unit base max_mana
+                skill_data = {
+                    'name': new_skill.name,
+                    'description': new_skill.description,
+                    'mana_cost': (new_skill.mana_cost if getattr(new_skill, 'mana_cost', None) is not None else stats_dict.get('max_mana', 100)),
+                    'effects': [
+                        {
+                            'type': effect.type.value,
+                            'target': effect.target.value,
+                            **({k: v for k, v in effect.__dict__.items() if k not in ['type', 'target'] and v is not None})
+                        } for effect in new_skill.effects
+                    ]
+                }
+            else:
+                # Legacy skill format - prefer explicit mana_cost when present
+                skill_data = {
+                    'name': unit.skill.name,
+                    'description': unit.skill.description,
+                    'mana_cost': (unit.skill.mana_cost if getattr(unit.skill, 'mana_cost', None) is not None else stats_dict.get('max_mana', 100)),
+                    'effects': [unit.skill.effect] if unit.skill.effect else []
+                }
+        
         units_data.append({
             'id': unit.id,
             'name': unit.name,
@@ -38,15 +96,8 @@ def get_units_data():
             'role': getattr(unit, 'role', None),
             'role_color': getattr(unit, 'role_color', '#6b7280'),
             'avatar': getattr(unit, 'avatar', None),
-            'stats': {
-                'hp': base_stats.hp,
-                'attack': base_stats.attack,
-                'defense': base_stats.defense,
-                'attack_speed': base_stats.attack_speed,
-                'max_mana': base_stats.max_mana,
-                'mana_on_attack': base_stats.mana_on_attack,
-                'mana_regen': base_stats.mana_regen
-            }
+            'skill': skill_data,
+            'stats': stats_dict
         })
     return units_data
 

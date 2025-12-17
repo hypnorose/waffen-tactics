@@ -24,7 +24,7 @@ class Stats:
 class Skill:
     name: str
     description: str
-    mana_cost: int
+    mana_cost: int = 0
     # For now, effect is a simple dict placeholder
     effect: Dict[str, Any] = field(default_factory=dict)
 
@@ -40,6 +40,7 @@ class Unit:
     role: str = ""
     role_color: str = "#6b7280"
     avatar: str = ""
+    last_attack_time: float = 0.0
 
     @staticmethod
     def from_json(d: Dict[str, Any], default_stats: Stats, default_skill: Skill, role_color: str = "#6b7280") -> "Unit":
@@ -54,4 +55,5 @@ class Unit:
             role=d.get("role", ""),
             role_color=role_color,
             avatar=d.get("avatar", ""),
+            last_attack_time=0.0,
         )

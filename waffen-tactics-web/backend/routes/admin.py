@@ -70,12 +70,15 @@ def get_active_games(user_id):
                     for row in rows:
                         user_id_db, state_json, updated_at, nickname = row
                         state = json.loads(state_json)
+                        if not isinstance(state, dict):
+                            continue
                         games.append({
                             'user_id': user_id_db,
                             'nickname': nickname,
                             'level': state.get('level', 1),
                             'gold': state.get('gold', 0),
-                            'health': state.get('health', 100),
+                            # PlayerState stores HP under 'hp' key; support legacy 'health' as fallback
+                            'health': state.get('hp', state.get('health', 100)),
                             'round': state.get('round_number', 1),
                             'xp': state.get('xp', 0),
                             'board': state.get('board', []),
@@ -129,6 +132,8 @@ def get_teams(user_id):
                     for row in rows:
                         team_id, user_id_db, nickname, team_json, wins, losses, level, is_active_db, created_at = row
                         team = json.loads(team_json)
+                        if not isinstance(team, dict):
+                            continue
                         
                         teams.append({
                             'id': team_id,
@@ -248,6 +253,9 @@ def get_traits_popularity(user_id):
                         team_json, wins, losses = row
                         try:
                             team = json.loads(team_json)
+                            if not isinstance(team, dict):
+                                continue
+                                continue
                         except Exception:
                             continue
 
@@ -269,14 +277,15 @@ def get_traits_popularity(user_id):
 
                 # Also include live players' current boards (only real players)
                 player_query = "SELECT state_json FROM players WHERE user_id > 1000000"
-                if time_filter != 'all':
-                    player_query += f" AND updated_at >= datetime('now', '-{hours} hours')"
                 async with db.execute(player_query) as cursor:
                     prow = await cursor.fetchall()
                     for (state_json,) in prow:
                         try:
                             state = json.loads(state_json)
+                            if not isinstance(state, dict):
+                                continue
                         except Exception:
+                            continue
                             continue
                         round_number = int(state.get('round_number', 1))
                         if round_number not in popularity:
@@ -343,6 +352,8 @@ def get_units_popularity(user_id):
                         team_json, wins, losses = row
                         try:
                             team = json.loads(team_json)
+                            if not isinstance(team, dict):
+                                continue
                         except Exception:
                             continue
 
@@ -371,9 +382,11 @@ def get_units_popularity(user_id):
                     for (state_json,) in prow:
                         try:
                             state = json.loads(state_json)
+                            if not isinstance(state, dict):
+                                continue
                         except Exception:
                             continue
-                        round_number = int(state.get('round_number', 1))
+                        round_number = int(state.get(round_number, 1))
                         if round_number not in popularity:
                             popularity[round_number] = {}
 
@@ -417,7 +430,12 @@ def get_team_details(user_id, team_id):
                         return None
                     
                     team_id_db, user_id_db, nickname, team_json, wins, losses, level, is_active_db, created_at = row
-                    team = json.loads(team_json)
+                    try:
+                        team = json.loads(team_json)
+                        if not isinstance(team, dict):
+                            return None
+                    except Exception:
+                        return None
                     
                     # Get unit details for board and bench
                     def get_units_details(units_list):

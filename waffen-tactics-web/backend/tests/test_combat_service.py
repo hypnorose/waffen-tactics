@@ -167,13 +167,9 @@ class TestCombatService(unittest.TestCase):
         # Setup mocks
         mock_db_manager.get_random_opponent = AsyncMock(return_value=None)
 
-        # Execute
-        opponent_units, opponent_unit_info, opponent_info = prepare_opponent_units_for_combat(self.mock_player)
-
-        # Assert
-        self.assertEqual(len(opponent_units), 5)  # Fallback creates 5 bot units
-        self.assertEqual(len(opponent_unit_info), 5)
-        self.assertEqual(opponent_info['name'], 'Bot')
+        # Execute & Assert: no DB opponent should cause an error (no ad-hoc fallbacks)
+        with self.assertRaises(RuntimeError):
+            prepare_opponent_units_for_combat(self.mock_player)
 
     @patch('services.combat_service.CombatSimulator')
     def test_run_combat_simulation_success(self, mock_simulator_class):

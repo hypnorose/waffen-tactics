@@ -22,6 +22,7 @@ export default function Game() {
   const [notificationMessage, setNotificationMessage] = useState('')
   const [notificationType, setNotificationType] = useState<'error' | 'success' | 'info'>('error')
   const [leaderboard, setLeaderboard] = useState<any[]>([])
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState<'24h' | 'all'>('24h')
 
   const showNotificationModal = (message: string, type: 'error' | 'success' | 'info' = 'error') => {
     setNotificationMessage(message)
@@ -38,6 +39,21 @@ export default function Game() {
   useEffect(() => {
     initGame()
   }, [])
+
+  // Ensure player's avatar is cached on the server so the combat UI can load
+  useEffect(() => {
+    const ensureAvatar = async () => {
+      if (!user?.id) return
+      try {
+        const avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=256`
+        await gameAPI.ensurePlayerAvatar({ avatarUrl })
+      } catch (err) {
+        // Non-fatal; ignore
+        console.warn('Failed to ensure player avatar:', err)
+      }
+    }
+    ensureAvatar()
+  }, [user])
   
   useEffect(() => {
     // Check if game is over
@@ -154,10 +170,9 @@ export default function Game() {
     }
   }
 
-  const handleShowLeaderboard = async () => {
-    setShowLeaderboard(true)
+  const fetchLeaderboard = async (period: '24h' | 'all') => {
     try {
-      const response = await gameAPI.getLeaderboard()
+      const response = await gameAPI.getLeaderboard(period)
       // Filter to show only the best result per player (highest wins, latest date if tie)
       const filteredLeaderboard = response.data.reduce((acc: any[], entry: any[]) => {
         const nickname = entry[0]
@@ -180,6 +195,12 @@ export default function Game() {
       console.error('Failed to load leaderboard:', err)
       setLeaderboard([])
     }
+  }
+
+  const handleShowLeaderboard = async () => {
+    setLeaderboardPeriod('24h')
+    setShowLeaderboard(true)
+    await fetchLeaderboard('24h')
   }
 
   if (!playerState) {
@@ -373,9 +394,25 @@ export default function Game() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-surface border-2 border-yellow-500 rounded-lg max-w-3xl w-full max-h-[80vh] overflow-auto">
             <div className="sticky top-0 bg-surface border-b border-yellow-500/20 p-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <span>🏆</span> Tablica Wyników
-              </h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <span>🏆</span> Tablica Wyników
+                </h2>
+                <div className="flex items-center gap-2 text-sm">
+                  <button
+                    onClick={async () => { setLeaderboardPeriod('24h'); await fetchLeaderboard('24h') }}
+                    className={`px-3 py-1 rounded ${leaderboardPeriod === '24h' ? 'bg-yellow-500 text-black' : 'bg-surface/50'}`}
+                  >
+                    Ostatnie 24h
+                  </button>
+                  <button
+                    onClick={async () => { setLeaderboardPeriod('all'); await fetchLeaderboard('all') }}
+                    className={`px-3 py-1 rounded ${leaderboardPeriod === 'all' ? 'bg-yellow-500 text-black' : 'bg-surface/50'}`}
+                  >
+                    Wszystkie
+                  </button>
+                </div>
+              </div>
               <button
                 onClick={() => setShowLeaderboard(false)}
                 className="btn bg-red-600 hover:bg-red-700 px-4 py-2"

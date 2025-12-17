@@ -82,6 +82,7 @@ class TestGetUnitsData:
         mock_unit.factions = ['faction2']
         mock_unit.classes = ['class2']
         # No stats attribute - should use fallback
+        del mock_unit.stats
 
         # Mock unit without role/role_color/avatar
         del mock_unit.role

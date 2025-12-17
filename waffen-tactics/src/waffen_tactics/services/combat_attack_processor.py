@@ -2,6 +2,7 @@
 Combat attack processor - handles attack logic and damage calculation
 """
 import random
+import os
 from typing import List, Dict, Any, Callable, Optional
 
 
@@ -10,13 +11,12 @@ class CombatAttackProcessor:
 
     def _calculate_damage(self, attacker: 'CombatUnit', defender: 'CombatUnit') -> int:
         """Calculate damage from attacker to defender."""
-        # Calculate damage: LoL-style armor reduction
         damage = attacker.attack * 100.0 / (100.0 + defender.defense)
         # Apply target damage reduction if present
         dr = getattr(defender, 'damage_reduction', 0.0)
         if dr:
             damage = damage * (1.0 - dr / 100.0)
-        return max(1, damage)  # Minimum 1 damage
+        return max(1, int(damage))  # Minimum 1 damage
 
     def _process_team_attacks(
         self,
@@ -34,28 +34,18 @@ class CombatAttackProcessor:
             if attacking_hp[i] <= 0:
                 continue
 
-            # Attack chance per tick based on attack speed
-            if random.random() < unit.attack_speed * self.dt:
-                # Find alive targets
-                targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0]
-                if not targets:
+            # Attack if enough time has passed since last attack
+            attack_interval = 1.0 / unit.attack_speed if unit.attack_speed > 0 else float('inf')
+            if time - unit.last_attack_time >= attack_interval:
+                target_idx = self._select_target(attacking_team, defending_team, attacking_hp, defending_hp, i)
+                if target_idx is None:
                     # Attacking team wins
                     return "team_a" if side == "team_a" else "team_b"
-
-                # Target selection override: if attacker has 'target_least_hp', pick alive target with least current HP
-                if any(e.get('type') == 'target_least_hp' for e in getattr(unit, 'effects', [])):
-                    target_idx = min([t[0] for t in targets], key=lambda idx: defending_hp[idx])
-                else:
-                    # Target selection: 60% highest defense, 40% random
-                    if random.random() < 0.6:
-                        target_idx = max(targets, key=lambda x: x[1])[0]
-                    else:
-                        target_idx = random.choice([t[0] for t in targets])
 
                 # Calculate damage
                 damage = self._calculate_damage(unit, defending_team[target_idx])
                 defending_hp[target_idx] -= damage
-                defending_hp[target_idx] = max(0, defending_hp[target_idx])
+                defending_hp[target_idx] = max(0, int(defending_hp[target_idx]))
 
                 # Log and callback
                 msg = f"[{time:.2f}s] {side.upper()[0]}:{unit.name} hits {'A' if side == 'team_b' else 'B'}:{defending_team[target_idx].name} for {damage}, hp={defending_hp[target_idx]}"
@@ -87,7 +77,7 @@ class CombatAttackProcessor:
                 if ls and damage > 0:
                     heal = int(damage * (ls / 100.0))
                     if heal > 0:
-                        attacking_hp[i] = min(unit.max_hp, attacking_hp[i] + heal)
+                        attacking_hp[i] = min(unit.max_hp, int(attacking_hp[i] + heal))
                         log.append(f"{unit.name} lifesteals {heal}")
 
                 # Mana gain: per attack
@@ -105,17 +95,78 @@ class CombatAttackProcessor:
                     })
 
                 # Check for skill casting if mana is full (reaches max_mana)
+                skill_was_cast = False
+                target_was_alive_before_skill = defending_hp[target_idx] > 0
                 if hasattr(unit, 'skill') and unit.skill and unit.mana >= unit.max_mana:
+                    skill_was_cast = True
                     self._process_skill_cast(unit, defending_team[target_idx], defending_hp, target_idx, time, log, event_callback, side)
 
                 # Death callback and on-death effect triggers
-                if defending_hp[target_idx] <= 0:
+                # Only process death if target died from skill (attack death was already processed above)
+                if defending_hp[target_idx] <= 0 and skill_was_cast and target_was_alive_before_skill:
                     self._process_unit_death(unit, defending_team, defending_hp, attacking_team, attacking_hp, target_idx, time, log, event_callback, side)
-                else:
+                elif defending_hp[target_idx] > 0:
                     # Target is still alive -> check for on_ally_hp_below triggers on defending team
                     self._process_ally_hp_below_triggers(defending_team, defending_hp, target_idx, time, log, event_callback, side)
 
+                # Update last attack time
+                unit.last_attack_time = time
+
         return None
+
+    def _select_target(
+        self,
+        attacking_team: List['CombatUnit'],
+        defending_team: List['CombatUnit'],
+        attacking_hp: List[int],
+        defending_hp: List[int],
+        attacker_idx: int
+    ) -> Optional[int]:
+        """Select a target for the attacking unit at index attacker_idx."""
+        unit = attacking_team[attacker_idx]
+        
+        # Find alive targets and split by line
+        front_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'front']
+        back_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'back']
+
+        # Default ordering: front line first then back line
+        targets = front_targets + back_targets
+        # If unit has a 'target_backline' effect, prefer backline targets first
+        has_backline = False
+        for e in getattr(unit, 'effects', []) or []:
+            if isinstance(e, dict) and e.get('type') == 'target_backline':
+                has_backline = True
+                break
+            if isinstance(e, str) and e == 'target_backline':
+                has_backline = True
+                break
+        if has_backline:
+            targets = back_targets + front_targets
+        if not targets:
+            return None
+
+        # Feature flag: when WAFFEN_DETERMINISTIC_TARGETING=1 the selection is deterministic
+        # Default behaviour (when the var is not set) is to select randomly within the preferred line.
+        DETERMINISTIC_TARGETING = os.getenv('WAFFEN_DETERMINISTIC_TARGETING', '0') in ('1', 'true', 'True')
+
+        # Target selection override: if attacker has 'target_least_hp', pick alive target with least current HP
+        if any(e.get('type') == 'target_least_hp' for e in getattr(unit, 'effects', [])):
+            target_idx = min([t[0] for t in targets], key=lambda idx: defending_hp[idx])
+        else:
+            # Deterministic override: when the env var is set we pick the first-in-priority list.
+            # Otherwise (default) pick a random target within the preferred line.
+            if DETERMINISTIC_TARGETING:
+                target_idx = targets[0][0]
+            else:
+                if has_backline:
+                    preferred = back_targets if back_targets else front_targets
+                else:
+                    preferred = front_targets if front_targets else back_targets
+
+                candidate_list = preferred if preferred else targets
+                target_idx = random.choice([t[0] for t in candidate_list])
+
+        return target_idx
 
     def _process_skill_cast(
         self,
@@ -150,7 +201,7 @@ class CombatAttackProcessor:
             # Deal damage to target
             skill_damage = effect.get('amount', 0)
             target_hp_list[target_idx] -= skill_damage
-            target_hp_list[target_idx] = max(0, target_hp_list[target_idx])
+            target_hp_list[target_idx] = max(0, int(target_hp_list[target_idx]))
             log.append(f"[{time:.2f}s] {skill['name']} deals {skill_damage} damage to {target.name}")
 
             if event_callback:
@@ -170,10 +221,5 @@ class CombatAttackProcessor:
 
         # Check if target died from skill
         if target_hp_list[target_idx] <= 0:
-            if event_callback:
-                event_callback('unit_died', {
-                    'unit_id': target.id,
-                    'unit_name': target.name,
-                    'side': 'team_a' if side == 'team_b' else 'team_b',
-                    'timestamp': time
-                })
+            # Use _process_unit_death to handle trait effects properly
+            self._process_unit_death(caster, [target], target_hp_list, [caster], [caster.max_hp], target_idx, time, log, event_callback, side)

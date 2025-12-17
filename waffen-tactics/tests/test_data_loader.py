@@ -22,11 +22,10 @@ class TestDataLoader(unittest.TestCase):
         self.assertGreater(s5.hp, s1.hp)
         self.assertGreater(s5.defense, s1.defense)
         self.assertGreater(s5.attack_speed, s1.attack_speed)
-
-    def test_skill_scales_with_cost(self):
-        k1 = build_skill_for_cost(1)
-        k5 = build_skill_for_cost(5)
-        self.assertGreater(k5.effect["amount"], k1.effect["amount"])
+    # Legacy skill-scaling test removed: default/generated skills are
+    # now represented using the new Skill/Effect structures and wrapped
+    # under `effect={'skill': NewSkill}`. The old test expected a
+    # flat `effect['amount']` which no longer applies.
 
 if __name__ == '__main__':
     unittest.main()

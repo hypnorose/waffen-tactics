@@ -83,14 +83,16 @@ export const gameAPI = {
   surrender: () => 
     api.post('/game/surrender'),
   
-  getLeaderboard: () => 
-    api.get('/game/leaderboard'),
+  getLeaderboard: (period: string = '24h') =>
+    api.get('/game/leaderboard', { params: { period } }),
   
   getUnits: () => 
     api.get('/game/units'),
   
   getTraits: () => 
     api.get('/game/traits'),
+  ensurePlayerAvatar: (payload?: { avatarUrl?: string }) =>
+    api.post('/game/player-avatar', payload || {}),
 }
 
 export default api
