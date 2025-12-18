@@ -226,75 +226,54 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
           if (nextEvent.opponent) setOpponentInfo(nextEvent.opponent);
         } else if (nextEvent.type === 'state_snapshot') {
           // Authoritative periodic snapshot from server. Merge into local state
-          const snapTs = typeof nextEvent.timestamp === 'number' ? nextEvent.timestamp : null
-          const snapSeq = (nextEvent as any).seq ?? null
-          console.log(`[STATE_UPDATE] Received state snapshot at seq ${snapSeq}, timestamp ${snapTs}`)
-
+             const snapTs = typeof nextEvent.timestamp === 'number' ? nextEvent.timestamp : null
+             const snapSeq = (nextEvent as any).seq ?? null
           if (nextEvent.player_units) {
             const players = nextEvent.player_units as any[]
-            const normalizedPlayers = players.map((u, idx) => ({ ...u, hp: u.hp ?? 0, current_mana: u.current_mana ?? 0, shield: u.shield ?? 0 }))
+            const normalizedPlayers = players.map((u, idx) => ({
+              ...u,
+              hp: u.hp ?? 0,
+              current_mana: u.current_mana ?? 0,
+              shield: u.shield ?? 0
+            }))
+
             setPlayerUnits(prev => {
-              // Log desync in stats, effects, etc.
-              normalizedPlayers.forEach(u => {
-                const prevU = prev.find(p => p.id === u.id)
-                if (prevU) {
-                  if (prevU.hp !== u.hp) {
-                    console.log(`[DESYNC] Player unit ${u.id} (${u.name}) HP: UI=${prevU.hp}, Server=${u.hp}`)
-                  }
-                  if (prevU.shield !== u.shield) {
-                    console.log(`[DESYNC] Player unit ${u.id} (${u.name}) Shield: UI=${prevU.shield}, Server=${u.shield}`)
-                  }
-                  if (prevU.current_mana !== u.current_mana) {
-                    console.log(`[DESYNC] Player unit ${u.id} (${u.name}) Mana: UI=${prevU.current_mana}, Server=${u.current_mana}`)
-                  }
-                  const prevEffects = prevU.effects || []
-                  const serverEffects = u.effects || []
-                  if (JSON.stringify(prevEffects.sort()) !== JSON.stringify(serverEffects.sort())) {
-                    console.log(`[DESYNC] Player unit ${u.id} (${u.name}) effects: UI=${JSON.stringify(prevEffects)}, Server=${JSON.stringify(serverEffects)}`)
-                  }
-                }
-              })
               const prevMap = new Map(prev.map(p => [p.id, p]))
               return normalizedPlayers.map(u => {
                 const prevU = prevMap.get(u.id)
-                // Preserve client-side persistent buffs when merging
-                const mergedPersistent = { ...(u.persistent_buffs || {}), ...(prevU?.persistent_buffs || {}) }
-                // Prefer keeping client-side active effects to avoid losing UI badges/animations
-                const mergedEffects = u.effects || []
-                return { ...u, persistent_buffs: mergedPersistent, effects: mergedEffects, avatar: prevU?.avatar || u.avatar, factions: prevU?.factions || u.factions, classes: prevU?.classes || u.classes, skill: prevU?.skill || u.skill }
+                return {
+                  ...u,
+                  // preserve avatar/template_id/factions/classes/skill from previous UI state when missing in snapshot
+                  avatar: prevU?.avatar || (u as any).avatar || undefined,
+                  template_id: (prevU as any)?.template_id || (u as any).template_id || undefined,
+                  factions: prevU?.factions || (u as any).factions || undefined,
+                  classes: prevU?.classes || (u as any).classes || undefined,
+                  skill: prevU?.skill || (u as any).skill || undefined,
+                }
               })
             })
           }
           if (nextEvent.opponent_units) {
             const opponents = nextEvent.opponent_units as any[]
-            const normalizedOpps = opponents.map((u, idx) => ({ ...u, hp: u.hp ?? 0, current_mana: u.current_mana ?? 0, shield: u.shield ?? 0 }))
+            const normalizedOpps = opponents.map((u, idx) => ({
+              ...u,
+              hp: u.hp ?? 0,
+              current_mana: u.current_mana ?? 0,
+              shield: u.shield ?? 0
+            }))
+
             setOpponentUnits(prev => {
-              // Log desync
-              normalizedOpps.forEach(u => {
-                const prevU = prev.find(p => p.id === u.id)
-                if (prevU) {
-                  if (prevU.hp !== u.hp) {
-                    console.log(`[DESYNC] Opponent unit ${u.id} (${u.name}) HP: UI=${prevU.hp}, Server=${u.hp}`)
-                  }
-                  if (prevU.shield !== u.shield) {
-                    console.log(`[DESYNC] Opponent unit ${u.id} (${u.name}) Shield: UI=${prevU.shield}, Server=${u.shield}`)
-                  }
-                  if (prevU.current_mana !== u.current_mana) {
-                    console.log(`[DESYNC] Opponent unit ${u.id} (${u.name}) Mana: UI=${prevU.current_mana}, Server=${u.current_mana}`)
-                  }
-                  const prevEffects = prevU.effects || []
-                  const serverEffects = u.effects || []
-                  if (JSON.stringify(prevEffects.sort()) !== JSON.stringify(serverEffects.sort())) {
-                    console.log(`[DESYNC] Opponent unit ${u.id} (${u.name}) effects: UI=${JSON.stringify(prevEffects)}, Server=${JSON.stringify(serverEffects)}`)
-                  }
-                }
-              })
               const prevMap = new Map(prev.map(p => [p.id, p]))
               return normalizedOpps.map(u => {
                 const prevU = prevMap.get(u.id)
-                const mergedPersistent = { ...(u.persistent_buffs || {}), ...(prevU?.persistent_buffs || {}) }
-                const mergedEffects = u.effects || []
-                return { ...u, persistent_buffs: mergedPersistent, effects: mergedEffects, avatar: prevU?.avatar || u.avatar, factions: prevU?.factions || u.factions, classes: prevU?.classes || u.classes, skill: prevU?.skill || u.skill }
+                return {
+                  ...u,
+                  avatar: prevU?.avatar || (u as any).avatar || undefined,
+                  template_id: (prevU as any)?.template_id || (u as any).template_id || undefined,
+                  factions: prevU?.factions || (u as any).factions || undefined,
+                  classes: prevU?.classes || (u as any).classes || undefined,
+                  skill: prevU?.skill || (u as any).skill || undefined,
+                }
               })
             })
           }
@@ -304,18 +283,24 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
 
           // Drop queued events that are older than snapshot (by seq if present, else by timestamp)
           if (snapSeq !== null) {
-            setEventQueue(prev => prev.filter(e => {
+            const filtered = rest.filter(e => {
               const es = (e as any).seq
               if (typeof es === 'number') return es > snapSeq
               if (typeof e.timestamp === 'number' && snapTs !== null) return e.timestamp > snapTs
               return true
-            }))
+            })
+            // replace rest with filtered for further processing
+            rest.length = 0
+            rest.push(...filtered)
           } else if (snapTs !== null) {
-            setEventQueue(prev => prev.filter(e => (typeof e.timestamp === 'number' ? e.timestamp > snapTs : true)))
+            const filtered = rest.filter(e => (typeof e.timestamp === 'number' ? e.timestamp > snapTs : true))
+            rest.length = 0
+            rest.push(...filtered)
           }
 
           if (snapTs !== null) lastTimestampRef.current = snapTs
-        } else if (nextEvent.type === 'attack') {
+        }
+        else if (nextEvent.type === 'attack') {
           // Update HP and shield immediately on attack
           const targetId = nextEvent.target_id
           const targetHp = nextEvent.target_hp

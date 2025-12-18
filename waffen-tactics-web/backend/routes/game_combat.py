@@ -273,9 +273,36 @@ def start_combat():
             b_hp = [u.hp for u in opponent_units]
             log = []
             simulator._process_per_round_buffs(player_units, opponent_units, a_hp, b_hp, 0, log, None, 1)
-            # Update unit_info with applied buffs
-            player_unit_info = [u.to_dict() for u in player_units]
-            opponent_unit_info = [u.to_dict() for u in opponent_units]
+            # Update unit_info with applied buffs. Preserve `template_id` and
+            # server-side avatar metadata that `prepare_*_for_combat` provided.
+            # `prepare_*_for_combat` returned lightweight `player_unit_info`/
+            # `opponent_unit_info` which included `template_id`; the subsequent
+            # `to_dict()` call would overwrite that — merge them back here.
+            orig_player_info_map = {u['id']: u for u in player_unit_info} if player_unit_info else {}
+            orig_opp_info_map = {u['id']: u for u in opponent_unit_info} if opponent_unit_info else {}
+
+            player_unit_info = []
+            for u in player_units:
+                d = u.to_dict()
+                orig = orig_player_info_map.get(d.get('id'))
+                if orig:
+                    # preserve template_id and avatar if present
+                    if 'template_id' in orig and orig.get('template_id'):
+                        d['template_id'] = orig.get('template_id')
+                    if 'avatar' in orig and orig.get('avatar'):
+                        d['avatar'] = orig.get('avatar')
+                player_unit_info.append(d)
+
+            opponent_unit_info = []
+            for u in opponent_units:
+                d = u.to_dict()
+                orig = orig_opp_info_map.get(d.get('id'))
+                if orig:
+                    if 'template_id' in orig and orig.get('template_id'):
+                        d['template_id'] = orig.get('template_id')
+                    if 'avatar' in orig and orig.get('avatar'):
+                        d['avatar'] = orig.get('avatar')
+                opponent_unit_info.append(d)
 
             # Send initial units state with synergies and trait definitions
             trait_definitions = [{'name': t['name'], 'type': t['type'], 'description': t.get('description', ''), 'thresholds': t['thresholds'], 'threshold_descriptions': t.get('threshold_descriptions', []), 'effects': t['effects']} for t in game_manager.data.traits]

@@ -219,7 +219,7 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-800 border border-gray-600 text-white text-sm rounded-lg p-4 shadow-xl z-[100] min-w-[300px]">
           <div className="flex items-center mb-3">
             {unit.avatar && (
-              <img src={unit.avatar} alt={unit.name} className="w-10 h-10 rounded mr-3 object-cover" />
+              <img src={typeof unit.avatar === 'string' ? unit.avatar : (unit as any)?.avatar?.url || ''} alt={unit.name} className="w-10 h-10 rounded mr-3 object-cover" />
             )}
             <div>
               <div className="font-bold text-base">{unit.name}</div>
