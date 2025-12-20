@@ -28,6 +28,10 @@ def emit_stat_buff(
       { unit_id, unit_name, stat, value, value_type, duration, permanent, effect_id?, side, timestamp, cause, source_id }
     """
     ts = timestamp if timestamp is not None else _now_ts()
+    try:
+        print(f"[EMIT_STAT_BUFF] recipient={getattr(recipient,'id',None)} stat={stat} value={value} event_callback_set={event_callback is not None}")
+    except Exception:
+        pass
 
     # Ensure recipient.effects exists
     if not hasattr(recipient, 'effects') or recipient.effects is None:
@@ -57,9 +61,13 @@ def emit_stat_buff(
                 # For temporary buffs with no handler system, we still apply immediate numeric change
                 setattr(recipient, stat, getattr(recipient, stat, 0) + delta)
         elif stat == 'hp':
-            # heal
+            # delegate hp changes to emit_heal for canonical emission
             delta = int(value)
-            recipient.hp = min(getattr(recipient, 'max_hp', recipient.hp), getattr(recipient, 'hp', 0) + delta)
+            try:
+                emit_heal(event_callback, recipient, delta, source=source, side=side, timestamp=ts)
+            except Exception:
+                # best-effort fallback
+                recipient.hp = min(getattr(recipient, 'max_hp', getattr(recipient, 'hp', 0)), getattr(recipient, 'hp', 0) + delta)
         elif stat in ('attack_speed', 'lifesteal', 'damage_reduction', 'hp_regen_per_sec'):
             # float fields
             cur = float(getattr(recipient, stat, 0.0))
@@ -111,9 +119,12 @@ def emit_stat_buff(
 
     if event_callback:
         try:
+            print(f"[EMIT_STAT_BUFF] calling callback for recipient={getattr(recipient,'id',None)}")
             event_callback('stat_buff', payload)
+            print(f"[EMIT_STAT_BUFF] callback returned for recipient={getattr(recipient,'id',None)}")
         except Exception:
             # Don't let event emission break simulation
+            print(f"[EMIT_STAT_BUFF] callback raised for recipient={getattr(recipient,'id',None)}")
             pass
 
     return payload
@@ -127,25 +138,42 @@ def emit_heal(
     side: Optional[str] = None,
     timestamp: Optional[float] = None,
     cause: Optional[str] = None,
+    current_hp: Optional[int] = None,
 ):
-    """Apply heal to recipient (best-effort) and emit canonical `heal` event."""
+    """Apply heal to recipient and emit canonical `heal` event.
+
+    Args:
+        current_hp: If provided, use this as the authoritative current HP instead of reading from recipient.hp.
+                   This is critical when HP lists are updated before calling emit_heal.
+    """
     ts = timestamp if timestamp is not None else _now_ts()
     try:
-        cur = int(getattr(recipient, 'hp', 0))
+        # Use current_hp if provided (authoritative from hp_list), otherwise read from unit
+        if current_hp is not None:
+            cur = int(current_hp)
+        else:
+            cur = int(getattr(recipient, 'hp', 0))
         max_hp = int(getattr(recipient, 'max_hp', cur))
         add = int(amount)
         new = min(max_hp, cur + add)
+        # apply mutation to both recipient.hp and return new value
         recipient.hp = new
     except Exception:
         # best-effort
         new = getattr(recipient, 'hp', None)
         max_hp = getattr(recipient, 'max_hp', None)
+        if current_hp is not None:
+            cur = current_hp
+        else:
+            cur = getattr(recipient, 'hp', None)
 
     payload = {
         'unit_id': getattr(recipient, 'id', None),
         'unit_name': getattr(recipient, 'name', None),
         'amount': int(amount) if amount is not None else None,
-        'unit_hp': new,
+        'pre_hp': cur,
+        'post_hp': new,
+        'unit_hp': new,  # Authoritative HP after heal
         'unit_max_hp': max_hp,
         'side': side,
         'timestamp': ts,
@@ -275,8 +303,10 @@ def emit_unit_died(
         # mark dead and normalize in-memory hp immediately so authoritative
         # state used by snapshots is consistent when this event is emitted
         setattr(recipient, '_dead', True)
-        setattr(recipient, '_death_processed', True)
+        # NOTE: Do NOT set _death_processed here! That should only be set by
+        # _process_unit_death AFTER it has processed all death-triggered effects.
         if hasattr(recipient, 'hp'):
+            # enforce HP changes only via canonical helpers
             recipient.hp = 0
     except Exception:
         pass
@@ -306,18 +336,37 @@ def emit_unit_heal(
     side: Optional[str] = None,
     timestamp: Optional[float] = None,
     cause: Optional[str] = None,
+    current_hp: Optional[int] = None,
 ):
+    """Apply heal to target and emit canonical `unit_heal` event.
+
+    Args:
+        current_hp: If provided, use this as the authoritative current HP instead of reading from target.hp.
+                   This is critical when HP lists are updated before calling emit_unit_heal.
+    """
     ts = timestamp if timestamp is not None else _now_ts()
     # apply heal to target
     try:
-        cur = int(getattr(target, 'hp', 0))
+        # Use current_hp if provided (authoritative from hp_list), otherwise read from unit
+        if current_hp is not None:
+            cur = int(current_hp)
+        else:
+            cur = int(getattr(target, 'hp', 0))
         max_hp = int(getattr(target, 'max_hp', cur))
         add = int(amount)
         new = min(max_hp, cur + add)
+        # Debug logging for mrozu
+        if getattr(target, 'id', None) == 'mrozu':
+            import sys
+            print(f"[emit_unit_heal DEBUG] target={target.id} current_hp={current_hp} cur={cur} amount={amount} add={add} max_hp={max_hp} new={new}", file=sys.stderr)
         target.hp = new
     except Exception:
         new = getattr(target, 'hp', None)
         max_hp = getattr(target, 'max_hp', None)
+        if current_hp is not None:
+            cur = current_hp
+        else:
+            cur = getattr(target, 'hp', None)
 
     payload = {
         'healer_id': getattr(healer, 'id', None),
@@ -325,12 +374,18 @@ def emit_unit_heal(
         'unit_id': getattr(target, 'id', None),
         'unit_name': getattr(target, 'name', None),
         'amount': int(amount) if amount is not None else None,
-        'unit_hp': new,
+        'pre_hp': cur,
+        'post_hp': new,
+        'unit_hp': new,  # Authoritative HP after heal
         'unit_max_hp': max_hp,
         'side': side,
         'timestamp': ts,
         'cause': cause,
     }
+    # Debug logging for mrozu
+    if getattr(target, 'id', None) == 'mrozu':
+        import sys
+        print(f"[emit_unit_heal DEBUG] payload unit_hp={payload.get('unit_hp')} pre_hp={payload.get('pre_hp')} post_hp={payload.get('post_hp')}", file=sys.stderr)
     # Do not emit unit_heal for dead units
     if getattr(target, '_dead', False):
         return None
@@ -349,43 +404,74 @@ def emit_damage_over_time_tick(
     damage_type: str = 'physical',
     side: Optional[str] = None,
     timestamp: Optional[float] = None,
+    effect_id: Optional[str] = None,
+    tick_index: Optional[int] = None,
+    total_ticks: Optional[int] = None,
 ):
     ts = timestamp if timestamp is not None else _now_ts()
-    try:
-        # best-effort: apply damage to target hp if present
-        cur = int(getattr(target, 'hp', None))
-        max_hp = getattr(target, 'max_hp', None)
-        if cur is not None:
-            # Skip applying DoT to dead targets
-            if getattr(target, '_dead', False):
-                pass
-            else:
-                # Apply damage and ensure canonical authoritative HP fields
-                new_hp = max(0, cur - int(damage))
-                target.hp = new_hp
-    except Exception:
-        pass
-
-    payload = {
-        'unit_id': getattr(target, 'id', None),
-        'unit_name': getattr(target, 'name', None),
-        'damage': int(damage),
-        'damage_type': damage_type,
-        'side': side,
-        # Provide multiple authoritative HP fields so reconstructors / UIs
-        # can unambiguously prefer emitter-provided values.
-        'unit_hp': getattr(target, 'hp', None),
-        'target_hp': getattr(target, 'hp', None),
-        'new_hp': getattr(target, 'hp', None),
-        'unit_max_hp': max_hp,
-        'timestamp': ts,
-    }
+    # Use canonical emit_damage helper to change HP and emit a single authoritative payload
+    payload = emit_damage(
+        event_callback=event_callback,
+        attacker=None,
+        target=target,
+        raw_damage=damage,
+        shield_absorbed=0,
+        damage_type=damage_type,
+        side=side,
+        timestamp=ts,
+        cause='dot_tick',
+        emit_event=False,
+    )
     # If the target was dead, skip emitting DoT tick
-    if getattr(target, '_dead', False):
-        return None
+    # emit_damage already called the event_callback; return canonical payload
+    # Additionally emit a DoT-specific tick event so reconstructors and UI
+    # can recognize the tick lifecycle (includes effect_id and authoritative HP)
+    if event_callback and payload is not None:
+        try:
+            dot_payload = {
+                'unit_id': getattr(target, 'id', None),
+                'unit_name': getattr(target, 'name', None),
+                'effect_id': effect_id,
+                'damage': int(damage) if damage is not None else 0,
+                'damage_type': damage_type,
+                'unit_hp': payload.get('post_hp'),
+                'tick_index': tick_index,
+                'total_ticks': total_ticks,
+                'side': side,
+                'timestamp': ts,
+            }
+            event_callback('damage_over_time_tick', dot_payload)
+        except Exception:
+            pass
+
+    return payload
+
+
+def emit_gold_reward(
+    event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    recipient: Any,
+    amount: int,
+    side: Optional[str] = None,
+    timestamp: Optional[float] = None,
+    cause: Optional[str] = None,
+):
+    """Emit a canonical gold_reward event.
+
+    Centralizes payload shape for gold rewards so downstream consumers
+    (reconstructor, SSE mapping) receive a stable schema.
+    """
+    ts = timestamp if timestamp is not None else _now_ts()
+    payload = {
+        'unit_id': getattr(recipient, 'id', None),
+        'unit_name': getattr(recipient, 'name', None),
+        'amount': int(amount) if amount is not None else 0,
+        'side': side,
+        'timestamp': ts,
+        'cause': cause,
+    }
     if event_callback:
         try:
-            event_callback('damage_over_time_tick', payload)
+            event_callback('gold_reward', payload)
         except Exception:
             pass
     return payload
@@ -486,4 +572,100 @@ def emit_shield_applied(
             event_callback('shield_applied', payload)
         except Exception:
             pass
+    return payload
+
+
+def emit_damage(
+    event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    attacker: Optional[Any],
+    target: Any,
+    raw_damage: float,
+    shield_absorbed: int = 0,
+    damage_type: str = 'physical',
+    side: Optional[str] = None,
+    timestamp: Optional[float] = None,
+    cause: Optional[str] = None,
+    emit_event: bool = True,
+):
+    """Canonical damage emitter — centralizes HP mutation and event emission.
+
+    Always emits an authoritative damage payload containing `pre_hp` and `post_hp`.
+    This function is the only allowed place to mutate `target.hp`.
+    """
+    ts = timestamp if timestamp is not None else _now_ts()
+
+    pre_hp = None
+    max_hp = None
+    try:
+        pre_hp = int(getattr(target, 'hp', None))
+        max_hp = getattr(target, 'max_hp', None)
+    except Exception:
+        pass
+
+    # If target is already dead, do not apply further damage
+    if getattr(target, '_dead', False):
+        payload = {
+            'attacker_id': getattr(attacker, 'id', None) if attacker is not None else None,
+            'attacker_name': getattr(attacker, 'name', None) if attacker is not None else None,
+            'unit_id': getattr(target, 'id', None),
+            'unit_name': getattr(target, 'name', None),
+            'pre_hp': pre_hp,
+            'post_hp': pre_hp,
+            'applied_damage': 0,
+            'shield_absorbed': shield_absorbed,
+            'damage_type': damage_type,
+            'side': side,
+            'timestamp': ts,
+            'cause': cause,
+        }
+        return payload
+
+    applied = int(raw_damage) if raw_damage is not None else 0
+    post_hp = pre_hp
+    try:
+        post_hp = max(0, (pre_hp or 0) - applied)
+        # Mutate HP only here
+        target.hp = post_hp
+        # Do NOT mark `_dead` or `_death_processed` here — death handling
+        # (effects, rewards) should be performed by the centralized
+        # effect processor via `_process_unit_death` to ensure ordering.
+    except Exception:
+        pass
+
+    payload = {
+        'attacker_id': getattr(attacker, 'id', None) if attacker is not None else None,
+        'attacker_name': getattr(attacker, 'name', None) if attacker is not None else None,
+        'unit_id': getattr(target, 'id', None),
+        'unit_name': getattr(target, 'name', None),
+        # Backwards-compatible target keys
+        'target_id': getattr(target, 'id', None),
+        'target_name': getattr(target, 'name', None),
+        'pre_hp': pre_hp,
+        'post_hp': post_hp,
+        'applied_damage': applied,
+        # Backwards-compatible fields expected by older reconstructor logic
+        'damage': applied,
+        'target_hp': post_hp,
+        'new_hp': post_hp,
+        'unit_hp': post_hp,
+        'shield_absorbed': shield_absorbed,
+        'damage_type': damage_type,
+        'side': side,
+        'timestamp': ts,
+        'cause': cause,
+    }
+
+    if emit_event and event_callback:
+        try:
+            event_callback('attack', payload)
+        except Exception:
+            pass
+
+    # If target died as the result, also emit unit_died with authoritative pre_hp
+    if post_hp == 0:
+        try:
+            emit_unit_died(event_callback, target, side=side, timestamp=ts, unit_hp=pre_hp)
+        except Exception:
+            pass
+
     return payload

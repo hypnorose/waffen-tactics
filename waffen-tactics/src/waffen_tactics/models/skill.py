@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 from enum import Enum
 
 
@@ -80,6 +80,8 @@ class SkillExecutionContext:
     combat_time: float = 0.0
     random_seed: Optional[int] = None
     persistent_target: Optional[Any] = None  # For SINGLE_ENEMY_PERSISTENT targeting
+    # Optional event callback from simulator so effect handlers can emit canonical events
+    event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None
 
     @property
     def caster_team(self) -> List[Any]:

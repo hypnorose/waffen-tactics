@@ -46,6 +46,8 @@ def build_stats_for_unit(unit_data: Dict[str, Any], roles: Dict[str, Dict[str, A
     cost_mult = 1.0 + (cost - 1) * 0.2
     
     max_mana = unit_data.get("max_mana", 100)
+    if max_mana is None:
+        raise ValueError(f"Unit {unit_data.get('id', 'unknown')} has max_mana = None")
     return Stats(
         attack=int(role_stats.get('attack', 50) * cost_mult),
         hp=int(role_stats.get('hp', 500) * cost_mult),

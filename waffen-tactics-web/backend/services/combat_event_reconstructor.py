@@ -63,6 +63,8 @@ class CombatEventReconstructor:
             self._process_dot_applied_event(event_data)
         elif event_type == 'damage_over_time_expired':
             self._process_dot_expired_event(event_data)
+        elif event_type == 'effect_expired':
+            self._process_effect_expired_event(event_data)
         elif event_type == 'unit_stunned':
             self._process_stun_event(event_data)
         elif event_type == 'stat_buff':
@@ -182,23 +184,29 @@ class CombatEventReconstructor:
         """Process heal or unit_heal event."""
         unit_id = event_data.get('unit_id')
         amount = event_data.get('amount')
-        if unit_id and amount is not None:
-            unit_dict = self._get_unit_dict(unit_id)
-            if unit_dict:
-                old_hp = unit_dict['hp']
-                unit_dict['hp'] = min(unit_dict['max_hp'], unit_dict['hp'] + amount)
-                # print(f"  Healed unit {unit_id} from {old_hp} to {unit_dict['hp']}")
+        if not unit_id:
+            return
+        unit_dict = self._get_unit_dict(unit_id)
+        if not unit_dict:
+            return
 
-    def _process_mana_update_event(self, event_data: Dict[str, Any]):
-        """Process mana_update event."""
-        unit_id = event_data.get('unit_id')
-        amount = event_data.get('amount')
-        if unit_id and amount is not None:
-            unit_dict = self._get_unit_dict(unit_id)
-            if unit_dict:
-                old_mana = unit_dict['current_mana']
-                unit_dict['current_mana'] = min(unit_dict['max_mana'], unit_dict['current_mana'] + amount)
-                # print(f"  Regenerated mana for unit {unit_id} from {old_mana} to {unit_dict['current_mana']}")
+        # Prefer authoritative HP fields when present to avoid double-applying
+        # heals (some emitters include the post-heal HP as 'unit_hp'/'target_hp'/'new_hp').
+        authoritative_hp = None
+        if 'unit_hp' in event_data and event_data.get('unit_hp') is not None:
+            authoritative_hp = event_data.get('unit_hp')
+        elif 'target_hp' in event_data and event_data.get('target_hp') is not None:
+            authoritative_hp = event_data.get('target_hp')
+        elif 'new_hp' in event_data and event_data.get('new_hp') is not None:
+            authoritative_hp = event_data.get('new_hp')
+
+        old_hp = unit_dict.get('hp')
+        if authoritative_hp is not None:
+            unit_dict['hp'] = min(unit_dict.get('max_hp', authoritative_hp), authoritative_hp)
+        elif amount is not None:
+            unit_dict['hp'] = min(unit_dict.get('max_hp', old_hp + amount), unit_dict.get('max_hp', old_hp + amount))
+        # print(f"  Healed unit {unit_id} from {old_hp} to {unit_dict['hp']}")
+
 
     def _process_shield_applied_event(self, event_data: Dict[str, Any]):
         """Process shield_applied event."""
@@ -362,6 +370,9 @@ class CombatEventReconstructor:
         if unit_id:
             unit_dict = self._get_unit_dict(unit_id)
             if unit_dict:
+                # Targeted debug for failing unit
+                if unit_id == 'laylo':
+                    print(f"[DBG STAT_BUFF] seq={event_data.get('seq')} unit=laylo payload={event_data}")
                 # Use applied_delta from emitter when present; else compute with
                 # consistent rounding and prefer base_stats to avoid compounding.
                 delta = event_data.get('applied_delta')
@@ -413,11 +424,31 @@ class CombatEventReconstructor:
                     'applied_delta': delta  # Store for reversion
                 }
                 unit_dict['effects'].append(effect)
+                if unit_id == 'laylo':
+                    print(f"[DBG STAT_BUFF_APPLIED] seq={event_data.get('seq')} unit=laylo effect={effect} applied_delta={delta}")
                 # print(f"  Applied stat_buff to unit {unit_id}: {stat} += {delta}, effect_id={effect_id}")
 
     def _process_stun_event(self, event_data: Dict[str, Any]):
         """Process unit_stunned event."""
-        
+        unit_id = event_data.get('unit_id')
+        duration = event_data.get('duration')
+        source = event_data.get('source') or event_data.get('source_id')
+        timestamp = event_data.get('timestamp', 0)
+        if not unit_id:
+            return
+        unit_dict = self._get_unit_dict(unit_id)
+        if not unit_dict:
+            return
+        # Create a canonical stun effect entry similar to emitter shape
+        eff = {
+            'type': 'stun',
+            'duration': duration,
+            'source': source,
+            'expires_at': (timestamp + float(duration)) if (duration and duration > 0) else None,
+        }
+        unit_dict.setdefault('effects', [])
+        unit_dict['effects'].append(eff)
+        print(f"  Reconstructed stun on unit {unit_id}: duration={duration}, source={source}")
     def _process_dot_expired_event(self, event_data: Dict[str, Any]):
         """Process damage_over_time_expired event: remove canonical DoT effect."""
         unit_id = event_data.get('unit_id')
@@ -458,17 +489,32 @@ class CombatEventReconstructor:
             print(f"  DoT expire updated unit {unit_id} HP: {old_hp} -> {unit_dict['hp']}")
         unit_id = event_data.get('unit_id')
         duration = event_data.get('duration')
-        source = event_data.get('source')
-        if unit_id:
-            unit_dict = self._get_unit_dict(unit_id)
-            if unit_dict:
-                effect = {
-                    'type': 'stun',
-                    'duration': duration,
-                    'source': source
-                }
-                unit_dict['effects'].append(effect)
-                print(f"  Applied stun to unit {unit_id}: duration={duration}, source={source}")
+
+    def _process_effect_expired_event(self, event_data: Dict[str, Any]):
+        """Process effect_expired event: remove canonical effect."""
+        unit_id = event_data.get('unit_id')
+        effect_id = event_data.get('effect_id')
+        if not unit_id:
+            return
+        unit_dict = self._get_unit_dict(unit_id)
+        if not unit_dict:
+            return
+        # Remove effect by id
+        effs = unit_dict.get('effects') or []
+        new_eff = [e for e in effs if e.get('id') != effect_id]
+        if len(new_eff) != len(effs):
+            unit_dict['effects'] = new_eff
+            print(f"  Removed effect from unit {unit_id}: effect_id={effect_id}")
+        # If authoritative unit_hp provided, update unit hp
+        if 'unit_hp' in event_data and event_data.get('unit_hp') is not None:
+            old_hp = unit_dict.get('hp')
+            unit_dict['hp'] = event_data.get('unit_hp')
+            print(f"  Effect expire updated unit {unit_id} HP: {old_hp} -> {unit_dict['hp']}")
+        # NOTE: previously this handler incorrectly appended a stun effect
+        # unconditionally. An "effect_expired" event should only remove the
+        # described effect (and optionally update authoritative HP). Stuns
+        # are reconstructed from `unit_stunned` events; do not create new
+        # effects here.
 
     def _process_state_snapshot_event(self, event_data: Dict[str, Any]):
         """Process state_snapshot event - validate reconstruction."""
@@ -487,13 +533,25 @@ class CombatEventReconstructor:
             for u in event_data['opponent_units']
         }
 
-        # Expire effects in snapshot as well
+        # Targeted snapshot debug for laylo
+        try:
+            if 'laylo' in snapshot_opponent_units:
+                print(f"[RECON SNAPSHOT DEBUG] seq={event_data.get('seq')} snapshot_opponent.laylo.effects={snapshot_opponent_units['laylo'].get('effects')}")
+        except Exception:
+            pass
+
+        # Expire effects in snapshot as well. Normalize None expires_at to
+        # infinite (still active) to avoid TypeErrors and to match emitter
+        # semantics where ``expires_at`` may be None for persistent effects.
         for units in [snapshot_player_units, snapshot_opponent_units]:
             for unit_dict in units.values():
-                unit_dict['effects'] = [
-                    e for e in unit_dict['effects']
-                    if e.get('expires_at', float('inf')) > current_time
-                ]
+                new_effects = []
+                for e in unit_dict.get('effects', []):
+                    expires = e.get('expires_at')
+                    # Treat None as "no expiry" (active)
+                    if expires is None or expires > current_time:
+                        new_effects.append(e)
+                unit_dict['effects'] = new_effects
 
         # Reconcile authoritative snapshot effects into our reconstructed state.
         # If the emitter included an active effect in the snapshot that we don't
@@ -522,8 +580,43 @@ class CombatEventReconstructor:
                                 if ex.get('amount') == (candidate.get('amount') or candidate.get('applied_amount')) and ex.get('source') == candidate.get('source') and ex.get('expires_at') == candidate.get('expires_at'):
                                     return True
                             elif candidate.get('type') in ('buff', 'debuff'):
-                                if ex.get('stat') == candidate.get('stat') and ex.get('value') == candidate.get('value') and ex.get('source') == candidate.get('source') and ex.get('expires_at') == candidate.get('expires_at'):
+                                # Normalize value comparison: emitter may use 'value',
+                                # 'amount' or 'applied_delta'. Compare a canonical
+                                # numeric representation when possible to avoid
+                                # false negatives during reconciliation.
+                                def _val(x):
+                                    if x is None:
+                                        return None
+                                    if isinstance(x, (int, float)):
+                                        return x
+                                    try:
+                                        return float(x)
+                                    except Exception:
+                                        return x
+
+                                ex_val = ex.get('value') if ex.get('value') is not None else ex.get('amount') if ex.get('amount') is not None else ex.get('applied_delta')
+                                cand_val = candidate.get('value') if candidate.get('value') is not None else candidate.get('amount') if candidate.get('amount') is not None else candidate.get('applied_delta')
+                                if ex.get('stat') == candidate.get('stat') and _val(ex_val) == _val(cand_val) and ex.get('source') == candidate.get('source') and ex.get('expires_at') == candidate.get('expires_at'):
                                     return True
+                            elif candidate.get('type') == 'damage_over_time':
+                                # Compare DoT by damage, source and expires_at when possible
+                                try:
+                                    def _num(x):
+                                        if x is None:
+                                            return None
+                                        if isinstance(x, (int, float)):
+                                            return float(x)
+                                        try:
+                                            return float(x)
+                                        except Exception:
+                                            return None
+
+                                    ex_dmg = ex.get('damage') if ex.get('damage') is not None else ex.get('amount')
+                                    cand_dmg = candidate.get('damage') if candidate.get('damage') is not None else candidate.get('amount')
+                                    if ex.get('type') == 'damage_over_time' and ex.get('source') == candidate.get('source') and (_num(ex_dmg) == _num(cand_dmg)) and ex.get('expires_at') == candidate.get('expires_at'):
+                                        return True
+                                except Exception:
+                                    pass
                         return False
 
                     if eff_type == 'shield':
@@ -543,6 +636,8 @@ class CombatEventReconstructor:
                             except Exception:
                                 pass
                         recon_u['effects'].append(new_eff)
+                        if uid == 'laylo':
+                            print(f"[DBG RECONCILE_APPLY] seq={event_data.get('seq')} uid=laylo applied_effect={new_eff}")
                     elif eff_type in ('buff', 'debuff') and stat:
                         # Skip if an equivalent stat effect already present
                         if has_equivalent(recon_u.get('effects', []), eff):
@@ -615,12 +710,25 @@ class CombatEventReconstructor:
                         new_eff['applied_delta'] = delta
                         new_eff['id'] = new_eff.get('id') or str(uuid.uuid4())
                         recon_u['effects'].append(new_eff)
+                        if uid == 'laylo':
+                            print(f"[DBG RECONCILE_APPLY] seq={event_data.get('seq')} uid=laylo applied_effect={new_eff}")
                     elif eff_type == 'damage_over_time':
                         # Reconcile DoT effects present in snapshot into reconstructed state.
                         # DoT doesn't directly modify top-level stats here; we only
                         # ensure the effect object exists with id and expires_at so
                         # expiry and tick processing line up deterministically.
+                        # Debug: log DoT from snapshot being reconciled
+                        try:
+                            if uid in ('hyodo888',):
+                                print(f"[DBG RECONCILE DOT] seq={event_data.get('seq')} uid={uid} snap_eff={eff} existing_ids={existing_ids} recon_effects={recon_u.get('effects')}")
+                        except Exception:
+                            pass
                         if has_equivalent(recon_u.get('effects', []), eff):
+                            try:
+                                if uid in ('hyodo888',):
+                                    print(f"[DBG RECONCILE DOT] seq={event_data.get('seq')} uid={uid} skip_has_equivalent=True")
+                            except Exception:
+                                pass
                             continue
                         new_eff = eff.copy()
                         new_eff['id'] = new_eff.get('id') or str(uuid.uuid4())
@@ -631,6 +739,11 @@ class CombatEventReconstructor:
                         except Exception:
                             pass
                         recon_u['effects'].append(new_eff)
+                        try:
+                            if uid in ('hyodo888',):
+                                print(f"[DBG RECONCILE DOT] seq={event_data.get('seq')} uid={uid} appended_eff={new_eff}")
+                        except Exception:
+                            pass
 
                 # Sync authoritative top-level numeric stats from the snapshot into
                 # our reconstructed unit when they differ. Some emitters update
@@ -641,6 +754,22 @@ class CombatEventReconstructor:
                 for field in ('hp', 'max_hp', 'current_mana', 'max_mana', 'attack', 'defense', 'attack_speed', 'shield'):
                     if field in snap_u:
                         recon_u[field] = snap_u[field]
+
+                # Prune reconstructed effects that are not present in the
+                # authoritative snapshot. The snapshot is ground truth; if
+                # it omits an effect we hold, remove it so comparisons match.
+                try:
+                    snap_effects = snap_u.get('effects', []) or []
+                    kept = []
+                    for ex in recon_u.get('effects', []):
+                        if has_equivalent(snap_effects, ex):
+                            kept.append(ex)
+                        else:
+                            # dropped: snapshot did not report this effect
+                            pass
+                    recon_u['effects'] = kept
+                except Exception:
+                    pass
 
         # Targeted debug: if this snapshot seq matches a known failing seq,
         # dump mrvlook state for investigation.
@@ -786,67 +915,9 @@ class CombatEventReconstructor:
                         reconstructed_effects_sorted = sorted(reconstructed_effects)
                         snapshot_effects_sorted = sorted(snapshot_effects)
                         if reconstructed_effects_sorted != snapshot_effects_sorted:
-                            # Attempt recovery: if mismatch is caused by transient
-                            # DoT or stun presence/expiry ordering, try injecting
-                            # a synthetic expiration from the backend at the
-                            # snapshot timestamp and re-run expiry to see if
-                            # the states align. This mirrors an additional
-                            # backend message indicating an effect expired.
-                            try:
-                                resolved = False
-                                # Identify extra effects present in reconstructed
-                                extra_in_recon = [e for e in reconstructed_effects if e not in snapshot_effects]
-                                # Only attempt for DoT/stun type extras
-                                for extra in extra_in_recon:
-                                    # extra is a tuple from normalize; check type
-                                    etype = extra[0] if extra else None
-                                    if etype in ('damage_over_time', 'stun'):
-                                        # Find the actual effect object by matching source+expires
-                                        for unit_eff in reconstructed[uid].get('effects', []):
-                                            # Compare normalized form
-                                            cand = normalize_effect_for_compare(unit_eff)
-                                            if cand == extra:
-                                                # Inject expiration at current_time (slightly in the past)
-                                                try:
-                                                    unit_eff['expires_at'] = float(current_time) - 1e-6
-                                                except Exception:
-                                                    unit_eff['expires_at'] = current_time
-                                                print(f"  Injected synthetic expiration for effect on unit {uid}: type={etype}, seq={seq}")
-                                                resolved = True
-                                                break
-                                        if resolved:
-                                            break
-
-                                if resolved:
-                                    # Re-run expiry and re-evaluate the comparison
-                                    self._expire_effects(current_time)
-                                    # Record synthetic expiration in dot trace for diagnosis
-                                    try:
-                                        lt = self._dot_trace.setdefault(uid, [])
-                                        synth_entry = {
-                                            'seq': seq,
-                                            'timestamp': current_time,
-                                            'damage': None,
-                                            'effect_id': (extra[0] if extra else None),
-                                            'event': 'synthetic_expire',
-                                            'unit_hp': None,
-                                            'raw_event': {'injected_for': extra}
-                                        }
-                                        lt.append(synth_entry)
-                                        if uid == 'mrvlook':
-                                            print(f"[DOT TRACE APPEND] unit={uid} appended_trace_len={len(lt)} entry={synth_entry}")
-                                    except Exception:
-                                        pass
-                                    # Recompute normalized lists
-                                    reconstructed_effects = [normalize_effect_for_compare(e) for e in reconstructed[uid].get('effects', [])]
-                                    reconstructed_effects = [e for e in reconstructed_effects if e is not None]
-                                    reconstructed_effects_sorted = sorted(reconstructed_effects)
-                                    if reconstructed_effects_sorted == snapshot_effects_sorted:
-                                        # Recovery succeeded; continue comparison
-                                        continue
-                            except Exception:
-                                pass
-
+                            # Do NOT attempt synthetic repairs here. The reconstructor
+                            # must not guess expirations or invent lifecycle events.
+                            # Missing apply/expire/tick events are a backend emitter bug.
                             raise AssertionError(f"{field.capitalize()} mismatch for {side} unit {uid} at seq {seq} (seed {self.seed}): reconstructed={reconstructed_effects_sorted}, snapshot={snapshot_effects_sorted}")
                     elif data[field] != snapshot_data[field]:
                         # If this is the failing unit, dump DoT trace for diagnosis

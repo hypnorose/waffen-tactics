@@ -46,9 +46,12 @@ class DebuffHandler(EffectHandler):
             'source': f"skill_{context.caster.id}"
         }
 
-        # Use canonical emitter to apply the debuff to server state and produce payload
+        # Use canonical emitter to apply the debuff to server state and produce payload.
+        # Emit directly if simulator provided an event callback; otherwise return
+        # the payload for offline forwarding.
+        cb = getattr(context, 'event_callback', None)
         payload = emit_stat_buff(
-            None,
+            cb,
             recipient=target,
             stat=stat,
             value=value,
@@ -60,6 +63,8 @@ class DebuffHandler(EffectHandler):
             timestamp=getattr(context, 'combat_time', None),
         )
 
+        if cb:
+            return []
         return [('stat_buff', payload)]
 
     def validate_params(self, effect: Effect) -> bool:

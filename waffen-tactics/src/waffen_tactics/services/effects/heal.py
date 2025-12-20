@@ -16,25 +16,48 @@ class HealHandler(EffectHandler):
         if amount <= 0:
             return []
 
-        # Calculate actual healing
-        old_hp = target.hp
-        max_hp = target.max_hp
-        target.hp = min(max_hp, target.hp + amount)
-        actual_heal = target.hp - old_hp
+        # Calculate actual healing (do not mutate target here; emitters will
+        # perform authoritative in-memory updates when the simulator processes
+        # returned events)
+        old_hp = int(getattr(target, 'hp', 0))
+        max_hp = int(getattr(target, 'max_hp', old_hp))
+        new_hp = min(max_hp, old_hp + int(amount))
+        actual_heal = new_hp - old_hp
 
         if actual_heal <= 0:
             return []
 
-        # Generate event
+        # If we have an event_callback in context, return an event for the
+        # simulator to forward (the simulator will call canonical emitters).
+        # Otherwise (dry-run/test mode), apply the mutation directly.
+        if getattr(context, 'event_callback', None) is None:
+            # Apply directly for tests/dry-runs
+            target.hp = new_hp
+            # also ensure shield/defaults exist
+            return [(
+                'unit_heal', {
+                    'unit_id': target.id,
+                    'unit_name': target.name,
+                    'healer_id': context.caster.id,
+                    'healer_name': context.caster.name,
+                    'amount': actual_heal,
+                    'pre_hp': old_hp,
+                    'post_hp': new_hp,
+                    'unit_max_hp': max_hp,
+                    'timestamp': context.combat_time,
+                }
+            )]
+
         event = ('unit_heal', {
             'unit_id': target.id,
             'unit_name': target.name,
             'healer_id': context.caster.id,
             'healer_name': context.caster.name,
             'amount': actual_heal,
-            'old_hp': old_hp,
-            'new_hp': target.hp,
-            'max_hp': max_hp
+            'pre_hp': old_hp,
+            'post_hp': new_hp,
+            'unit_max_hp': max_hp,
+            'timestamp': context.combat_time,
         })
 
         return [event]

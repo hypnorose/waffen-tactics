@@ -74,11 +74,17 @@ class AttackBuffHandler(StatBuffHandler):
         buffed_value = StatCalculator.calculate_buff(base_value, value, is_percentage, amplifier)
         final_value = base_value + buffed_value
 
-        self.set_value(unit, final_value)
+        # Apply via canonical emitter when possible so the mutation is centralized
+        added = buffed_value
         log.append(f"{unit.name} gains +{buffed_value:.0f} Atak (stat_buff)")
-
         if event_callback:
-            emit_stat_buff(event_callback, unit, 'attack', buffed_value, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+            try:
+                print(f"[STAT_BUFF DEBUG] Emitting attack buff for {unit.id} +{buffed_value}")
+            except Exception:
+                pass
+            emit_stat_buff(event_callback, unit, 'attack', added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+        else:
+            self.set_value(unit, final_value)
 
 
 class DefenseBuffHandler(StatBuffHandler):
@@ -110,11 +116,16 @@ class DefenseBuffHandler(StatBuffHandler):
         buffed_value = StatCalculator.calculate_buff(base_value, value, is_percentage, amplifier)
         final_value = base_value + buffed_value
 
-        self.set_value(unit, final_value)
+        added = buffed_value
         log.append(f"{unit.name} gains +{buffed_value:.0f} {self.stat_name.capitalize()} (stat_buff)")
-
         if event_callback:
-            emit_stat_buff(event_callback, unit, self.stat_name, buffed_value, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+            try:
+                print(f"[STAT_BUFF DEBUG] Emitting defense buff for {unit.id} +{buffed_value}")
+            except Exception:
+                pass
+            emit_stat_buff(event_callback, unit, self.stat_name, added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+        else:
+            self.set_value(unit, final_value)
 
 
 class HpBuffHandler(StatBuffHandler):
@@ -146,11 +157,12 @@ class HpBuffHandler(StatBuffHandler):
         buffed_value = StatCalculator.calculate_buff(base_value, value, is_percentage, amplifier)
         final_value = base_value + buffed_value
 
-        self.set_value(unit, final_value)
+        added = buffed_value
         log.append(f"{unit.name} gains +{buffed_value:.0f} HP (stat_buff)")
-
         if event_callback:
-            emit_stat_buff(event_callback, unit, 'hp', buffed_value, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+            emit_stat_buff(event_callback, unit, 'hp', added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+        else:
+            self.set_value(unit, final_value)
 
 
 class AttackSpeedBuffHandler(StatBuffHandler):
@@ -182,11 +194,12 @@ class AttackSpeedBuffHandler(StatBuffHandler):
         buffed_value = StatCalculator.calculate_buff(base_value, value, is_percentage, amplifier)
         final_value = base_value + buffed_value
 
-        self.set_value(unit, final_value)
+        added = buffed_value
         log.append(f"{unit.name} gains +{buffed_value:.2f} Attack Speed (stat_buff)")
-
         if event_callback:
-            emit_stat_buff(event_callback, unit, 'attack_speed', buffed_value, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+            emit_stat_buff(event_callback, unit, 'attack_speed', added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+        else:
+            self.set_value(unit, final_value)
 
 
 class ManaRegenBuffHandler(StatBuffHandler):
@@ -218,11 +231,12 @@ class ManaRegenBuffHandler(StatBuffHandler):
         buffed_value = StatCalculator.calculate_buff(base_value, value, is_percentage, amplifier)
         final_value = base_value + buffed_value
 
-        self.set_value(unit, final_value)
+        added = buffed_value
         log.append(f"{unit.name} gains +{buffed_value:.0f} Mana Regen (stat_buff)")
-
         if event_callback:
-            emit_stat_buff(event_callback, unit, self.stat_name, buffed_value, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+            emit_stat_buff(event_callback, unit, self.stat_name, added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+        else:
+            self.set_value(unit, final_value)
 
 
 class LifestealBuffHandler(StatBuffHandler):
@@ -254,11 +268,12 @@ class LifestealBuffHandler(StatBuffHandler):
         lifesteal_gain = value / 100.0 if is_percentage else value
         final_value = self.get_base_value(unit) + lifesteal_gain
 
-        self.set_value(unit, final_value)
+        added = lifesteal_gain
         log.append(f"{unit.name} gains +{lifesteal_gain:.1%} Lifesteal (stat_buff)")
-
         if event_callback:
-            emit_stat_buff(event_callback, unit, 'lifesteal', lifesteal_gain, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+            emit_stat_buff(event_callback, unit, 'lifesteal', added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+        else:
+            self.set_value(unit, final_value)
 
 
 class DamageReductionBuffHandler(StatBuffHandler):
@@ -290,11 +305,12 @@ class DamageReductionBuffHandler(StatBuffHandler):
         reduction_gain = value / 100.0 if is_percentage else value
         final_value = self.get_base_value(unit) + reduction_gain
 
-        self.set_value(unit, final_value)
+        added = reduction_gain
         log.append(f"{unit.name} gains +{reduction_gain:.1%} Damage Reduction (stat_buff)")
-
         if event_callback:
-            emit_stat_buff(event_callback, unit, 'damage_reduction', reduction_gain, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+            emit_stat_buff(event_callback, unit, 'damage_reduction', added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+        else:
+            self.set_value(unit, final_value)
 
 
 class HpRegenPerSecBuffHandler(StatBuffHandler):
@@ -326,11 +342,12 @@ class HpRegenPerSecBuffHandler(StatBuffHandler):
         regen_gain = StatCalculator.calculate_buff(base_value, value, is_percentage, amplifier)
         final_value = base_value + regen_gain
 
-        self.set_value(unit, final_value)
+        added = regen_gain
         log.append(f"{unit.name} gains +{regen_gain:.2f} HP Regen/sec (stat_buff)")
-
         if event_callback:
-            emit_regen_gain(event_callback, unit, regen_gain, side=side, timestamp=time)
+            emit_regen_gain(event_callback, unit, added, side=side, timestamp=time)
+        else:
+            self.set_value(unit, final_value)
 
 
 # Registry of stat handlers

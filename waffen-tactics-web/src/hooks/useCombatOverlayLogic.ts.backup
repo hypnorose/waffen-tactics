@@ -1,44 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
-import { PlayerState } from '../store/gameStore'
-import { useAuthStore } from '../store/authStore'
-import { useCombatSSEBuffer } from './combat/useCombatSSEBuffer'
-import { computeDelayMs } from './combat/replayTiming'
-import { applyCombatEvent } from './combat/applyEvent'
-import { compareUnits } from './combat/desync'
-import { useCombatAnimations } from './combat/useCombatAnimations'
-import { CombatState, CombatEvent, DesyncEntry } from './combat/types'
+// Deprecated backup file neutralized. Original contents removed to avoid
+// confusion with the active useCombatOverlayLogic implementation.
+// See src/hooks/useCombatOverlayLogic.ts for the current logic.
 
-interface UseCombatOverlayLogicProps {
-  onClose: (newState?: PlayerState) => void
-  logEndRef: MutableRefObject<HTMLDivElement | null>
-}
-
-export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLogicProps) {
-  const { token } = useAuthStore()
-  const { bufferedEvents, isBufferedComplete } = useCombatSSEBuffer(token)
-  const [playhead, setPlayhead] = useState(0)
-  const [combatState, setCombatState] = useState<CombatState>({
-    playerUnits: [],
-    opponentUnits: [],
-    combatLog: [],
-    isFinished: false,
-    victory: null,
-    finalState: null,
-    synergies: {},
-    traits: [],
-    opponentInfo: null,
-    regenMap: {},
-    simTime: 0
-  })
-  const [hoveredTrait, setHoveredTrait] = useState<string | null>(null)
-  const [showLog, setShowLog] = useState(false)
-  const [combatSpeed, setCombatSpeed] = useState(() => {
-    const saved = localStorage.getItem('combatSpeed')
-    return saved ? parseFloat(saved) : 1
-  })
-  const [desyncLogs, setDesyncLogs] = useState<DesyncEntry[]>([])
-  const [overwriteSnapshots, setOverwriteSnapshots] = useState<boolean>(() => {
-    try {
       const v = localStorage.getItem('combat.overwriteSnapshots')
       return v === null ? true : v === 'true'
     } catch (err) {

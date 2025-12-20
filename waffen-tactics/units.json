@@ -382,7 +382,7 @@
     },
     {
       "id": "grzalcia",
-      "name": "Loki",
+      "name": "Grzałcia",
       "factions": [
         "Srebrna Gwardia"
       ],
@@ -1632,7 +1632,7 @@
           {
             "type": "buff",
             "target": "self",
-            "stat": "damage_reduction",
+            "stat": "defense",
             "value": 15,
             "value_type": "percentage",
             "duration": 6

@@ -46,6 +46,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'state_snapshot':
+      console.log(`[SNAPSHOT] overwriteSnapshots=${ctx.overwriteSnapshots}`)
       // Expire effects before updating
       const currentTime = ctx.simTime
       newState.playerUnits = newState.playerUnits.map(u => ({
@@ -58,6 +59,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       }))
       // Handle snapshot - overwrite if enabled
       if (event.player_units && ctx.overwriteSnapshots) {
+        console.log(`[SNAPSHOT] OVERWRITING player units with snapshot`)
         const normalizedPlayers = event.player_units.map((u, idx) => ({
           ...u,
           hp: u.hp ?? 0,
@@ -229,17 +231,35 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'mana_update':
-      if (event.unit_id && event.amount !== undefined) {
-        const amountNum = event.amount ?? 0
-        const updateFn = (u: Unit) => {
-          const cur = u.current_mana ?? 0
-          const max = u.max_mana ?? Number.POSITIVE_INFINITY
-          return { ...u, current_mana: Math.min(max, cur + amountNum) }
-        }
-        if (event.unit_id.startsWith('opp_')) {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
-        } else {
-          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
+      if (event.unit_id) {
+        console.log(`[MANA] Event for ${event.unit_id}: current_mana=${event.current_mana}, amount=${event.amount}`)
+        if (event.current_mana !== undefined && event.current_mana !== null) {
+          // Absolute mana update (set to specific value)
+          const updateFn = (u: Unit) => {
+            console.log(`[MANA] Updating ${u.id} from ${u.current_mana} to ${event.current_mana}`)
+            return { ...u, current_mana: event.current_mana }
+          }
+          if (event.unit_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
+          }
+          newState.combatLog = [...newState.combatLog, `🔮 ${event.unit_name} mana: ${event.current_mana}/${event.max_mana}`]
+        } else if (event.amount !== undefined) {
+          // Relative mana update (add/subtract amount)
+          const amountNum = event.amount ?? 0
+          const updateFn = (u: Unit) => {
+            const cur = u.current_mana ?? 0
+            const max = u.max_mana ?? Number.POSITIVE_INFINITY
+            const newMana = Math.min(max, cur + amountNum)
+            console.log(`[MANA] Updating ${u.id} from ${cur} by ${amountNum} to ${newMana}`)
+            return { ...u, current_mana: newMana }
+          }
+          if (event.unit_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
+          }
         }
       }
       break
@@ -257,7 +277,30 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'end':
       newState.isFinished = true
-      if (event.state) newState.finalState = event.state
+      if (event.state) {
+        newState.finalState = event.state
+        // Update units with final state to ensure UI shows correct final HP values
+        if (event.state.player_units) {
+          newState.playerUnits = event.state.player_units.map((u: any) => ({
+            ...u,
+            hp: u.hp,
+            max_hp: u.max_hp,
+            current_mana: u.current_mana,
+            shield: u.shield,
+            effects: u.effects || []
+          }))
+        }
+        if (event.state.opponent_units) {
+          newState.opponentUnits = event.state.opponent_units.map((u: any) => ({
+            ...u,
+            hp: u.hp,
+            max_hp: u.max_hp,
+            current_mana: u.current_mana,
+            shield: u.shield,
+            effects: u.effects || []
+          }))
+        }
+      }
       break
 
     case 'heal':
@@ -297,8 +340,8 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'damage_over_time_tick':
-      if (event.unit_id && event.damage !== undefined) {
-        const updateFn = (u: Unit) => ({ ...u, hp: Math.max(0, u.hp - event.damage!) })
+      if (event.unit_id) {
+        const updateFn = (u: Unit) => ({ ...u, hp: event.unit_hp ?? u.hp })
         if (event.unit_id.startsWith('opp_')) {
           newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
         } else {
@@ -317,26 +360,9 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       }
       break
 
-    case 'mana_update':
-      if (event.unit_id && event.current_mana !== undefined) {
-        if (event.unit_id.startsWith('opp_')) {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, current_mana: event.current_mana }))
-        } else {
-          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, current_mana: event.current_mana }))
-        }
-      }
-      newState.combatLog = [...newState.combatLog, `🔮 ${event.unit_name} mana: ${event.current_mana}/${event.max_mana}`]
-      break
-
     case 'skill_cast':
-      if (event.caster_id) {
-        const updateFn = (u: Unit) => ({ ...u, current_mana: 0 })
-        if (event.caster_id.startsWith('opp_')) {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.caster_id, updateFn)
-        } else {
-          newState.playerUnits = updateUnitById(newState.playerUnits, event.caster_id, updateFn)
-        }
-      }
+      // Mana is already updated by the preceding mana_update event
+      // Don't set mana to 0 here as it would override the correct value
       if (event.target_id && event.target_hp !== undefined) {
         if (event.target_id.startsWith('opp_')) {
           newState.opponentUnits = updateUnitById(newState.opponentUnits, event.target_id, u => ({ ...u, hp: event.target_hp! }))
@@ -409,10 +435,64 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       }
       break
 
-    default:
-      // Unknown event, ignore
+    case 'damage_over_time_expired':
+      if (event.unit_id) {
+        // Remove the DoT effect by id
+        const removeEffectFn = (u: Unit) => ({
+          ...u,
+          effects: u.effects?.filter(e => e.id !== event.effect_id) || []
+        })
+        if (event.unit_id.startsWith('opp_')) {
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, removeEffectFn)
+        } else {
+          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, removeEffectFn)
+        }
+        // Update HP if provided
+        if (event.unit_hp !== undefined) {
+          const updateHpFn = (u: Unit) => ({ ...u, hp: event.unit_hp! })
+          if (event.unit_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateHpFn)
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateHpFn)
+          }
+        }
+      }
+      break
+
+    case 'effect_expired':
+      if (event.unit_id) {
+        // Remove the effect by id
+        const removeEffectFn = (u: Unit) => ({
+          ...u,
+          effects: u.effects?.filter(e => e.id !== event.effect_id) || []
+        })
+        if (event.unit_id.startsWith('opp_')) {
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, removeEffectFn)
+        } else {
+          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, removeEffectFn)
+        }
+        // Update HP if provided
+        if (event.unit_hp !== undefined) {
+          const updateHpFn = (u: Unit) => ({ ...u, hp: event.unit_hp! })
+          if (event.unit_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateHpFn)
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateHpFn)
+          }
+        }
+      }
       break
   }
+
+  // Expire effects based on current simTime
+  newState.playerUnits = newState.playerUnits.map(u => ({
+    ...u,
+    effects: u.effects?.filter(e => !e.expiresAt || e.expiresAt > newState.simTime) || []
+  }))
+  newState.opponentUnits = newState.opponentUnits.map(u => ({
+    ...u,
+    effects: u.effects?.filter(e => !e.expiresAt || e.expiresAt > newState.simTime) || []
+  }))
 
   return newState
 }

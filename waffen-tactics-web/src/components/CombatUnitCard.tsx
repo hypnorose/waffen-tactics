@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { getUnit } from '../data/units'
+import { useUnitAnchors } from '../hooks/useUnitAnchors'
 
 interface Unit {
   id: string
@@ -35,11 +36,7 @@ interface Unit {
 interface Props {
   unit: Unit
   isOpponent?: boolean
-  attackingUnits?: string[]
-  targetUnits?: string[]
-  skillUnits?: string[]
   regen?: { amount_per_sec: number } | undefined
-  attackDuration?: number
 }
 
 const getRarityColor = (cost?: number) => {
@@ -52,8 +49,15 @@ const getRarityColor = (cost?: number) => {
   return '#6b7280'
 }
 
-export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], targetUnits = [], skillUnits = [], regen, attackDuration }: Props) {
+export default function CombatUnitCard({ unit, isOpponent, regen }: Props) {
   const [showTooltip, setShowTooltip] = useState(false)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const { register } = useUnitAnchors()
+
+  useEffect(() => {
+    register(unit.id, rootRef.current)
+    return () => register(unit.id, null)
+  }, [unit.id, register])
   const displayMaxHp = unit.buffed_stats?.hp ?? unit.max_hp
   const displayHp = Math.min(unit.hp, displayMaxHp)
   const displayAttack = unit.buffed_stats?.attack ?? unit.attack
@@ -94,6 +98,7 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
 
   return (
     <div
+      ref={rootRef}
       className="group"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
@@ -104,17 +109,7 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
         border: `2px solid ${unit.hp > 0 ? getRarityColor(unit.cost) : '#374151'}`,
         opacity: unit.hp > 0 ? 1 : 0.4,
         transition: 'all 0.3s',
-        boxShadow:
-          attackingUnits.includes(unit.id)
-            ? '0 0 20px #ff0000, 0 0 30px #ff0000'
-            : skillUnits.includes(unit.id)
-            ? '0 0 20px #8b5cf6, 0 0 30px #8b5cf6'
-            : targetUnits.includes(unit.id)
-            ? '0 0 20px #ffff00, 0 0 30px #ffff00'
-            : unit.hp > 0
-            ? `0 0 10px ${getRarityColor(unit.cost)}40`
-            : 'none',
-        transform: attackingUnits.includes(unit.id) || skillUnits.includes(unit.id) ? 'scale(1.1)' : 'scale(1)',
+        boxShadow: unit.hp > 0 ? `0 0 10px ${getRarityColor(unit.cost)}40` : 'none',
         minWidth: 0,
         position: 'relative',
         width: '120px',
@@ -140,39 +135,7 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
           )
         })}
       </div>
-      {attackingUnits.includes(unit.id) && (
-        (() => {
-          const animMs = attackDuration ?? 600
-          const animSec = Math.max(0.12, animMs / 1000)
-          return (
-            <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '1.5rem', animation: `pulse ${animSec}s ease-in-out` }}>
-              ⚔️
-            </div>
-          )
-        })()
-      )}
-      {skillUnits.includes(unit.id) && (
-        (() => {
-          const animMs = attackDuration ?? 600
-          const animSec = Math.max(0.12, animMs / 1000)
-          return (
-            <div style={{ position: 'absolute', top: '-10px', left: '-10px', fontSize: '1.5rem', animation: `pulse ${animSec}s ease-in-out` }}>
-              ✨
-            </div>
-          )
-        })()
-      )}
-      {targetUnits.includes(unit.id) && (
-        (() => {
-          const animMs = attackDuration ?? 600
-          const animSec = Math.max(0.12, animMs / 1000)
-          return (
-            <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '1.5rem', animation: `pulse ${animSec}s ease-in-out` }}>
-              💥
-            </div>
-          )
-        })()
-      )}
+      {/* Old inline attack/skill/target visuals removed in favor of projectile VFX */}
 
       {/* Unit avatar (robust source resolution with fallback) */}
       <img

@@ -41,8 +41,8 @@ class CombatPerSecondBuffProcessor:
                             add = int(val * mult)
                         u.attack += add
                         log.append(f"{u.name} +{add} Atak (per second)")
-                        if event_callback and add != 0:
-                            emit_stat_buff(event_callback, u, 'attack', add, value_type='flat', duration=None, permanent=False, source=None, side='team_a', timestamp=time, cause='effect')
+                        if event_callback:
+                            emit_stat_buff(event_callback, u, 'attack', add, value_type='flat', duration=None, permanent=False, source=None, side='team_a', timestamp=time, cause='per_second_buff')
                     if stat == 'defense':
                         if is_pct:
                             add = int(u.defense * (val / 100.0) * mult)
@@ -50,8 +50,8 @@ class CombatPerSecondBuffProcessor:
                             add = int(val * mult)
                         u.defense += add
                         log.append(f"{u.name} +{add} Defense (per second)")
-                        if event_callback and add != 0:
-                            emit_stat_buff(event_callback, u, 'defense', add, value_type='flat', duration=None, permanent=False, source=None, side='team_a', timestamp=time, cause='effect')
+                        if event_callback:
+                            emit_stat_buff(event_callback, u, 'defense', add, value_type='flat', duration=None, permanent=False, source=None, side='team_a', timestamp=time, cause='per_second_buff')
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (val / 100.0) * mult)
@@ -68,8 +68,7 @@ class CombatPerSecondBuffProcessor:
                         new_hp = int(a_hp[idx_u])
                         log.append(f"{u.name} {add:+d} HP (per second)")
                         # print(f"[HP DEBUG] ts={time:.9f} side=team_a target={u.id}:{u.name} old_hp={old_hp} -> new_hp={new_hp} cause=per_second_buff add={add}")
-                        if event_callback and add != 0:
-                            emit_stat_buff(event_callback, u, 'hp', add, value_type='flat', duration=None, permanent=False, source=None, side='team_a', timestamp=time, cause='effect')
+                        # Per-second buffs are direct stat modifications, not effects
                 elif eff.get('type') == 'mana_regen':
                     # Handle mana regeneration
                     regen_amount = eff.get('value', 0)
@@ -104,8 +103,8 @@ class CombatPerSecondBuffProcessor:
                             add = int(val * mult_b)
                         u.attack += add
                         log.append(f"{u.name} +{add} Atak (per second)")
-                        if event_callback and add != 0:
-                            emit_stat_buff(event_callback, u, 'attack', add, value_type='flat', duration=None, permanent=False, source=None, side='team_b', timestamp=time)
+                        if event_callback:
+                            emit_stat_buff(event_callback, u, 'attack', add, value_type='flat', duration=None, permanent=False, source=None, side='team_b', timestamp=time, cause='per_second_buff')
                     if stat == 'defense':
                         if is_pct:
                             add = int(u.defense * (val / 100.0) * mult_b)
@@ -113,8 +112,8 @@ class CombatPerSecondBuffProcessor:
                             add = int(val * mult_b)
                         u.defense += add
                         log.append(f"{u.name} +{add} Defense (per second)")
-                        if event_callback and add != 0:
-                            emit_stat_buff(event_callback, u, 'defense', add, value_type='flat', duration=None, permanent=False, source=None, side='team_b', timestamp=time)
+                        if event_callback:
+                            emit_stat_buff(event_callback, u, 'defense', add, value_type='flat', duration=None, permanent=False, source=None, side='team_b', timestamp=time, cause='per_second_buff')
                     if stat == 'attack_speed':
                         if is_pct:
                             add = u.attack_speed * (val / 100.0) * mult_b
@@ -131,8 +130,7 @@ class CombatPerSecondBuffProcessor:
                         add = add * amp
                         u.attack_speed += add
                         log.append(f"{u.name} gains +{add:.2f} Attack Speed (per second)")
-                        if event_callback and add != 0:
-                            emit_stat_buff(event_callback, u, 'attack_speed', add, value_type='flat', duration=None, permanent=False, source=None, side='team_b', timestamp=time, cause='effect')
+                        # Per-second buffs are direct stat modifications, not effects
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (val / 100.0) * mult_b)
@@ -149,8 +147,7 @@ class CombatPerSecondBuffProcessor:
                         new_hp_b = int(b_hp[idx_u])
                         log.append(f"{u.name} {add:+d} HP (per second)")
                         # print(f"[HP DEBUG] ts={time:.9f} side=team_b target={u.id}:{u.name} old_hp={old_hp_b} -> new_hp={new_hp_b} cause=per_second_buff add={add}")
-                        if event_callback and add != 0:
-                            emit_stat_buff(event_callback, u, 'hp', add, value_type='flat', duration=None, permanent=False, source=None, side='team_b', timestamp=time, cause='effect')
+                        # Per-second buffs are direct stat modifications, not effects
                 elif eff.get('type') == 'mana_regen':
                     # Handle mana regeneration
                     regen_amount = eff.get('value', 0)

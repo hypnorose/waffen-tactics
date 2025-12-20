@@ -116,8 +116,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'type': 'mana_update',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
-            'current_mana': data.get('current_mana'),
-            'max_mana': data.get('max_mana'),
+            'amount': data.get('amount'),
             'side': data.get('side'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
@@ -212,6 +211,16 @@ def map_event_to_sse_payload(event_type: str, data: dict):
         # exactly when the server considers it expired.
         res = {
             'type': 'damage_over_time_expired',
+            'unit_id': data.get('unit_id'),
+            'unit_name': data.get('unit_name'),
+            'effect_id': data.get('effect_id'),
+            'unit_hp': data.get('unit_hp'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
+        }
+    if event_type == 'effect_expired':
+        res = {
+            'type': 'effect_expired',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
             'effect_id': data.get('effect_id'),
@@ -382,56 +391,26 @@ def start_combat():
                 payload['timestamp'] = float(event_time)
                 return [json.dumps(payload)]
 
-            # Event handlers to apply changes before capturing game_state
-            def apply_unit_attack(data, units):
-                target_id = data.get('target_id')
-                new_hp = data.get('target_hp')
-                if target_id and new_hp is not None:
-                    for u in units:
-                        if u.id == target_id:
-                            u.hp = new_hp
-                            return
-                    print(f"DEBUG: Unit {target_id} not found for unit_attack")
-
-            def apply_unit_died(data, units):
-                unit_id = data.get('unit_id')
-                if unit_id:
-                    for u in units:
-                        if u.id == unit_id:
-                            u.hp = 0
-                            return
-
-            def apply_unit_heal(data, units):
-                unit_id = data.get('unit_id')
-                new_hp = data.get('unit_hp')
-                if unit_id and new_hp is not None:
-                    for u in units:
-                        if u.id == unit_id:
-                            print(f"DEBUG: Applying unit_heal: {u.id} hp {u.hp} -> {new_hp}")
-                            u.hp = new_hp
-                            return
-
-            event_handlers = {
-                'attack': apply_unit_attack,
-                'unit_attack': apply_unit_attack,
-                'unit_died': apply_unit_died,
-                'unit_heal': apply_unit_heal,
-            }
-
             # Collect events with timestamps
             events = []  # (event_type, data, event_time)
             def event_collector(event_type: str, data: dict):
-                # print(f"DEBUG: Event {event_type} at {data.get('timestamp', 0.0)}, units ids: {[u.id for u in player_units + opponent_units]}")
-                # Apply event changes to units before capturing game_state
-                handler = event_handlers.get(event_type)
-                if handler:
-                    handler(data, player_units + opponent_units)
-                # Use timestamp from combat simulator (combat-relative time starting from 0)
+                # No manual syncing needed! Simulator already updated its units.
+                # Read authoritative state directly from simulator when available,
+                # otherwise fall back to the prepared player/opponent unit lists.
                 event_time = data.get('timestamp', 0.0)
+                try:
+                    player_state = [u.to_dict() for u in simulator.team_a]
+                    opponent_state = [u.to_dict() for u in simulator.team_b]
+                except Exception:
+                    # Some fake/test simulators don't set team_a/team_b; use the
+                    # prepared units instead to avoid crashing the stream.
+                    player_state = [u.to_dict() for u in player_units]
+                    opponent_state = [u.to_dict() for u in opponent_units]
+
                 # Add game state to every event
                 data['game_state'] = {
-                    'player_units': [u.to_dict() for u in player_units],
-                    'opponent_units': [u.to_dict() for u in opponent_units],
+                    'player_units': player_state,
+                    'opponent_units': opponent_state,
                 }
                 events.append((event_type, data, event_time))
 

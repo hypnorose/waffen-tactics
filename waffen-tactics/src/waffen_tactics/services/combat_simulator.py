@@ -267,33 +267,44 @@ class CombatSimulator(
 
             # Per-second buffs: apply once per full second
             current_second = int(time)
+            buffs_processed = False
             if current_second != last_full_second:
                 last_full_second = current_second
                 self._process_per_second_buffs(team_a, team_b, a_hp, b_hp, time, log, event_callback)
-
-                # Send state snapshot every second
-                if event_callback:
-                    # Build snapshot payload from current HP lists
-                    snapshot_data = {
-                        'player_units': [u.to_dict(a_hp[i]) for i, u in enumerate(team_a)],
-                        'opponent_units': [u.to_dict(b_hp[i]) for i, u in enumerate(team_b)],
-                        'timestamp': time
-                    }
-
-                    # Log the HP values used to construct the snapshot and expected seq
-                    try:
-                        seq_expected = self._event_seq + 1
-                        player_hp_list = [(u.id, u.name, a_hp[i]) for i, u in enumerate(team_a)]
-                        opponent_hp_list = [(u.id, u.name, b_hp[i]) for i, u in enumerate(team_b)]
-                        logger.info(f"[COMBAT] Emitting state_snapshot seq={seq_expected}, ts={time:.9f}, player_hp={player_hp_list}, opponent_hp={opponent_hp_list}")
-                        # Also print to stdout for test harness visibility
-                    except Exception:
-                        logger.info(f"[COMBAT] Emitting state_snapshot ts={time:.9f}")
-
-                    event_callback('state_snapshot', snapshot_data)
+                buffs_processed = True
 
             # Process damage over time effects
             self._process_damage_over_time(team_a, team_b, a_hp, b_hp, time, log, event_callback)
+
+            # Send state snapshot every second (after all processing)
+            if buffs_processed and event_callback:
+                # Build snapshot payload from current HP lists
+                snapshot_data = {
+                    'player_units': [u.to_dict(a_hp[i]) for i, u in enumerate(team_a)],
+                    'opponent_units': [u.to_dict(b_hp[i]) for i, u in enumerate(team_b)],
+                    'timestamp': time
+                }
+                try:
+                    seq_expected = self._event_seq + 1
+                    player_hp_list = [(u.id, u.name, a_hp[i]) for i, u in enumerate(team_a)]
+                    opponent_hp_list = [(u.id, u.name, b_hp[i]) for i, u in enumerate(team_b)]
+                    logger.info(f"[COMBAT] Emitting state_snapshot seq={seq_expected}, ts={time:.9f}, player_hp={player_hp_list}, opponent_hp={opponent_hp_list}")
+                    # Also print to stdout for test harness visibility
+                except Exception:
+                    logger.info(f"[COMBAT] Emitting state_snapshot ts={time:.9f}")
+
+                # Debug: show effects on specific failing unit 'laylo' at snapshot time
+                try:
+                    for u in team_a + team_b:
+                        if getattr(u, 'id', None) == 'laylo':
+                            try:
+                                print(f"[SNAPSHOT DEBUG] time={time} laylo.effects={getattr(u, 'effects', None)}")
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+
+                event_callback('state_snapshot', snapshot_data)
 
         # Timeout - winner by total HP
         sum_a = sum(max(0, h) for h in a_hp)
@@ -367,56 +378,71 @@ class CombatSimulator(
                     old_hp = int(defending_hp[target_idx])
                 except Exception:
                     old_hp = defending_hp[target_idx]
-                defending_hp[target_idx] -= remaining_damage
-                defending_hp[target_idx] = max(0, defending_hp[target_idx])
+
+                # Use canonical emit_damage to mutate target HP and emit authoritative attack event
                 try:
-                    new_hp = int(defending_hp[target_idx])
+                    from .event_canonicalizer import emit_damage
+                    payload = emit_damage(
+                        event_callback=event_callback,
+                        attacker=unit,
+                        target=defender,
+                        raw_damage=remaining_damage,
+                        shield_absorbed=shield_absorbed,
+                        damage_type='physical',
+                        side=side,
+                        timestamp=time,
+                        cause='attack',
+                    )
+                except Exception:
+                    payload = None
+
+                # Synchronize local defending_hp mirror with authoritative unit hp
+                try:
+                    new_hp = int(getattr(defender, 'hp', defending_hp[target_idx]))
                 except Exception:
                     new_hp = defending_hp[target_idx]
+                defending_hp[target_idx] = max(0, new_hp)
+
                 # Authoritative HP write debug (include expected seq for diagnostics)
                 try:
                     seq_expected = self._event_seq + 1
                 except Exception:
                     seq_expected = None
-                # print(f"[HP DEBUG] seq_expected={seq_expected} ts={time:.9f} side={side} target={defending_team[target_idx].id}:{defending_team[target_idx].name} old_hp={old_hp} -> new_hp={new_hp} cause=attack damage={remaining_damage}")
 
                 # Log HP mutation for debugging ordering issues (include expected seq)
                 try:
-                    seq_expected = self._event_seq + 1
-                except Exception:
-                    seq_expected = None
-                try:
                     logger.info(f"[COMBAT HP MUTATION] seq={seq_expected} ts={time:.9f} side={side} target={defending_team[target_idx].id}:{defending_team[target_idx].name} hp={defending_hp[target_idx]}")
-                    # Short stdout visibility for reproducer
                     if defending_team[target_idx].id == 'olsak_10' or defending_team[target_idx].name.lower().startswith('olsak'):
                         print(f"[COMBAT HP MUTATION] seq={seq_expected} ts={time:.9f} target={defending_team[target_idx].id}:{defending_team[target_idx].name} hp={defending_hp[target_idx]}")
                 except Exception:
                     pass
-                # Log and callback
+
+                # Log
                 msg = f"[{time:.2f}s] {side.upper()[0]}:{unit.name} hits {'A' if side == 'team_b' else 'B'}:{defending_team[target_idx].name} for {damage}, hp={defending_hp[target_idx]}"
                 log.append(msg)
 
-                # Attack callback (include shield_absorbed if any)
-                if event_callback:
-                    payload = {
-                        'attacker_id': unit.id,
-                        'attacker_name': unit.name,
-                        'target_id': defending_team[target_idx].id,
-                        'target_name': defending_team[target_idx].name,
-                        'damage': damage,
-                        'shield_absorbed': shield_absorbed,
-                        'target_hp': defending_hp[target_idx],
-                        'target_max_hp': defending_team[target_idx].max_hp,
-                        'side': side,
-                        'timestamp': time
-                    }
-                    event_callback('attack', payload)
-
                 # Check if target died
                 if defending_hp[target_idx] <= 0:
+                    try:
+                        print(f"[ATTACK DEBUG] attacker={getattr(unit,'id',None)} attacking_team_ids={[getattr(u,'id',None) for u in attacking_team]}")
+                    except Exception:
+                        pass
                     self._process_unit_death(
                         unit, defending_team, defending_hp, attacking_team, attacking_hp, target_idx, time, log, event_callback, side
                     )
+                    # Ensure on_enemy_death effects emit stat_buff via canonical emitter
+                    try:
+                        for eff in getattr(unit, 'effects', []):
+                            if eff.get('type') == 'on_enemy_death':
+                                stats = eff.get('stats', []) or []
+                                val = eff.get('value', 0)
+                                for st in stats:
+                                    try:
+                                        emit_stat_buff(event_callback, unit, st, val, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='on_enemy_death')
+                                    except Exception:
+                                        pass
+                    except Exception:
+                        pass
 
                 # Post-attack effect processing (lifesteal, mana on attack)
                 # Lifesteal: heal attacker by damage * lifesteal%
@@ -424,11 +450,12 @@ class CombatSimulator(
                 if ls and damage > 0:
                     heal = int(damage * (ls / 100.0))
                     if heal > 0:
+                        old_hp = attacking_hp[i]
                         attacking_hp[i] = min(unit.max_hp, attacking_hp[i] + heal)
                         log.append(f"{unit.name} lifesteals {heal}")
                         if event_callback:
                             from .event_canonicalizer import emit_unit_heal
-                            emit_unit_heal(event_callback, unit, unit, heal, side=side, timestamp=time)
+                            emit_unit_heal(event_callback, unit, unit, heal, side=side, timestamp=time, current_hp=old_hp)
 
                 # Mana gain: per attack
                 unit.mana = min(unit.max_mana, unit.mana + unit.stats.mana_on_attack)
@@ -484,7 +511,8 @@ class CombatSimulator(
                 caster=caster,
                 team_a=self.team_a if hasattr(self, 'team_a') else [],
                 team_b=self.team_b if hasattr(self, 'team_b') else [],
-                combat_time=time
+                combat_time=time,
+                event_callback=event_callback,
             )
 
             try:
@@ -692,7 +720,7 @@ class CombatSimulator(
                     if event_callback:
                         from .event_canonicalizer import emit_unit_heal
                         target_obj = (defending_team_full[apply_idx] if defending_team_full and apply_idx < len(defending_team_full) else target)
-                        emit_unit_heal(event_callback, target_obj, caster, amount, side=side, timestamp=time)
+                        emit_unit_heal(event_callback, target_obj, caster, amount, side=side, timestamp=time, current_hp=old_hp)
                     last_chosen_idx = apply_idx
 
                 elif typ in ('stun', 'unit_stunned'):
@@ -833,6 +861,7 @@ class CombatSimulator(
         side: str
     ):
         """Process damage over time effects for a single team."""
+        # First, process DoT ticks only for alive units
         for i, unit in enumerate(team):
             # Skip dead units — DoT should not tick on already-dead units
             if hp_list[i] <= 0:
@@ -855,13 +884,47 @@ class CombatSimulator(
                         # Apply damage (can be reduced by shields, etc.)
                         actual_damage = damage  # TODO: Apply damage reduction logic
 
-                        hp_list[i] = max(0, hp_list[i] - actual_damage)
+                        # Compute tick metadata before mutating effect counters
+                        before_ticks = int(effect.get('ticks_remaining', 0))
+                        total_ticks = int(effect.get('total_ticks', before_ticks))
+                        tick_index = (total_ticks - before_ticks) + 1 if total_ticks and before_ticks is not None else None
+
+                        # Apply damage via canonical helper which will emit an authoritative attack
+                        from .event_canonicalizer import emit_damage_over_time_tick
+                        try:
+                            payload = emit_damage_over_time_tick(
+                                event_callback=event_callback,
+                                target=unit,
+                                damage=actual_damage,
+                                damage_type=damage_type,
+                                side=side,
+                                timestamp=time,
+                                effect_id=effect.get('id'),
+                                tick_index=tick_index,
+                                total_ticks=total_ticks,
+                            )
+                        except Exception:
+                            payload = None
+
+                        # Synchronize local hp mirror with authoritative unit hp
+                        # CRITICAL: unit.hp should ALWAYS be set by emit_damage_over_time_tick
+                        # If this raises an exception, it means emit_damage failed to set unit.hp
+                        try:
+                            authoritative_hp = int(getattr(unit, 'hp'))
+                            hp_list[i] = max(0, authoritative_hp)
+                        except (AttributeError, TypeError, ValueError) as e:
+                            # This should NEVER happen - if it does, it's a critical bug
+                            import sys
+                            print(f"[CRITICAL BUG] DoT tick failed to get authoritative HP for {unit.name}: {e}", file=sys.stderr)
+                            print(f"  unit.hp = {getattr(unit, 'hp', 'MISSING')}", file=sys.stderr)
+                            print(f"  actual_damage = {actual_damage}", file=sys.stderr)
+                            print(f"  hp_list[{i}] = {hp_list[i]}", file=sys.stderr)
+                            # DO NOT use fallback calculation - fail loudly to expose the bug
+                            raise
+
                         log.append(f"{unit.name} takes {actual_damage} {damage_type} damage from DoT")
 
-                        if event_callback:
-                            emit_damage_over_time_tick(event_callback, unit, actual_damage, damage_type=damage_type, side=side, timestamp=time)
-
-                        # Update effect
+                        # Update effect counters
                         ticks_remaining = effect.get('ticks_remaining', 0) - 1
                         if ticks_remaining > 0:
                             # Schedule next tick
@@ -869,11 +932,7 @@ class CombatSimulator(
                             effect['ticks_remaining'] = ticks_remaining
                             effect['next_tick_time'] = time + interval
                         else:
-                            # Effect expires
-                            # Emit an explicit expire event so downstream consumers
-                            # (reconstructors / UIs) can deterministically remove
-                            # the canonical effect instead of heuristically injecting
-                            # a synthetic expire.
+                            # Effect expires — emit deterministic expire event
                             effects_to_remove.append(j)
                             if event_callback:
                                 try:
@@ -889,7 +948,52 @@ class CombatSimulator(
                                     # best-effort emit — never fail the simulator
                                     pass
 
-            # Remove expired effects (in reverse order to maintain indices)
+                        # If the DoT killed the unit, process death triggers
+                        try:
+                            if hp_list[i] <= 0:
+                                # Determine opposing team and their HP lists
+                                if side == 'team_a':
+                                    attacking_team = getattr(self, 'team_b', [])
+                                    attacking_hp = getattr(self, 'b_hp', None)
+                                else:
+                                    attacking_team = getattr(self, 'team_a', [])
+                                    attacking_hp = getattr(self, 'a_hp', None)
+                                # Call central death processor (killer unknown for DoT)
+                                try:
+                                    self._process_unit_death(None, team, hp_list, attacking_team, attacking_hp or [], i, time, log, event_callback, side)
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
+
+            # Remove expired DoT effects (in reverse order to maintain indices)
+            for j in reversed(effects_to_remove):
+                unit.effects.pop(j)
+
+        # Then, expire stat buffs and other effects for all units (including dead ones)
+        for i, unit in enumerate(team):
+            if not hasattr(unit, 'effects') or not unit.effects:
+                continue
+
+            effects_to_remove = []
+            for j, effect in enumerate(unit.effects):
+                if effect.get('expires_at') and effect.get('expires_at') <= time and effect.get('type') != 'damage_over_time':
+                    effects_to_remove.append(j)
+                    if event_callback:
+                        try:
+                            payload = {
+                                'unit_id': getattr(unit, 'id', None),
+                                'unit_name': getattr(unit, 'name', None),
+                                'effect_id': effect.get('id'),
+                                'unit_hp': hp_list[i],
+                                'timestamp': time,
+                            }
+                            event_callback('effect_expired', payload)
+                        except Exception:
+                            # best-effort emit — never fail the simulator
+                            pass
+
+            # Remove expired stat effects
             for j in reversed(effects_to_remove):
                 unit.effects.pop(j)
 

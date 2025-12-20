@@ -80,7 +80,9 @@ class TestEventCanonicalizer(unittest.TestCase):
         cb = make_cb(events)
         ec.emit_unit_died(cb, u, side='team_a', timestamp=9.0)
         self.assertTrue(getattr(u, '_dead', False))
-        self.assertTrue(getattr(u, '_death_processed', False))
+        # NOTE: _death_processed should NOT be set by emit_unit_died
+        # It should only be set by _process_unit_death after death effects are applied
+        self.assertFalse(getattr(u, '_death_processed', False))
         self.assertEqual(events[0][0], 'unit_died')
 
     def test_emit_damage_over_time_tick_applies_damage_and_payload(self):

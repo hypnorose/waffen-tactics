@@ -23,6 +23,8 @@ class CombatUnit:
         self.effects = effects or []
         # Mana system (for future skills)
         self.max_mana = max_mana
+        if self.max_mana is None:
+            raise ValueError(f"CombatUnit {self.id} initialized with max_mana = None")
         self.mana = 0
         self.mana_regen = mana_regen
         self.stats = stats
@@ -76,6 +78,10 @@ class CombatUnit:
     def to_dict(self, current_hp: Optional[int] = None) -> Dict[str, Any]:
         """Serialize to dict for snapshots"""
         hp = current_hp if current_hp is not None else self.hp
+        # Safety: ensure mana is never None
+        mana = getattr(self, 'mana', 0)
+        if mana is None:
+            mana = 0
         return {
             'id': self.id,
             'name': self.name,
@@ -87,7 +93,7 @@ class CombatUnit:
             'star_level': self.star_level,
             'position': self.position,
             'effects': self.effects,
-            'current_mana': self.mana,
+            'current_mana': mana,
             'max_mana': self.max_mana,
             'shield': self.shield,
             'base_stats': self.base_stats,

@@ -5,7 +5,7 @@ import { useCombatSSEBuffer } from './combat/useCombatSSEBuffer'
 import { computeDelayMs } from './combat/replayTiming'
 import { applyCombatEvent } from './combat/applyEvent'
 import { compareCombatStates } from './combat/desync'
-import { useCombatAnimations } from './combat/useCombatAnimations'
+import { useProjectileSystem } from './useProjectileSystem'
 import { CombatState, CombatEvent, DesyncEntry } from './combat/types'
 
 interface UseCombatOverlayLogicProps {
@@ -46,15 +46,16 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   const [overwriteSnapshots, setOverwriteSnapshots] = useState<boolean>(() => {
     try {
       const v = localStorage.getItem('combat.overwriteSnapshots')
-      return v === null ? true : v === 'true'
+      return v === null ? false : v === 'true'  // Changed default from true to false (Phase 1 makes snapshots accurate)
     } catch (err) {
-      return true
+      return false  // Changed default from true to false
     }
   })
   const [storedGoldBreakdown, setStoredGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number } | null>(null)
   const [displayedGoldBreakdown, setDisplayedGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number } | null>(null)
+  const [pendingHpUpdates, setPendingHpUpdates] = useState<Record<string, { hp: number, shield: number }>>({})
 
-  const { attackingUnits, targetUnits, animatingUnits, skillUnits, attackDurations, triggerAttackAnimation, triggerSkillAnimation, triggerTargetFlash } = useCombatAnimations()
+  const { spawnProjectile } = useProjectileSystem()
 
   const pushDesync = (entry: DesyncEntry) => {
     setDesyncLogs(prev => [entry, ...prev].slice(0, 200))
@@ -100,18 +101,81 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     // Apply event
     const currentState = combatStateRef.current
     const newState = applyCombatEvent(currentState, event, { overwriteSnapshots, simTime: currentState.simTime })
+    
+    // Handle delayed HP updates for projectile timing
+    if (event.type === 'unit_attack' && event.target_id && event.damage !== undefined) {
+      const shieldAbsorbed = event.shield_absorbed || 0
+      const hpDamage = event.damage - shieldAbsorbed
+      
+      // Find the target unit in current state
+      const targetUnit = event.target_id.startsWith('opp_') 
+        ? currentState.opponentUnits.find(u => u.id === event.target_id)
+        : currentState.playerUnits.find(u => u.id === event.target_id)
+      
+      if (targetUnit) {
+        const oldHp = targetUnit.hp
+        const oldShield = targetUnit.shield || 0
+        const newHp = Math.max(0, oldHp - hpDamage)
+        const newShield = Math.max(0, oldShield - shieldAbsorbed)
+        
+        // Store pending update
+        setPendingHpUpdates(prev => ({
+          ...prev,
+          [event.target_id!]: { hp: newHp, shield: newShield }
+        }))
+        
+        // Temporarily keep old values in UI state
+        if (event.target_id.startsWith('opp_')) {
+          newState.opponentUnits = newState.opponentUnits.map(u => 
+            u.id === event.target_id ? { ...u, hp: oldHp, shield: oldShield } : u
+          )
+        } else {
+          newState.playerUnits = newState.playerUnits.map(u => 
+            u.id === event.target_id ? { ...u, hp: oldHp, shield: oldShield } : u
+          )
+        }
+      }
+    }
+    
     setCombatState(newState)
     combatStateRef.current = newState
 
-    // Trigger animations
+    // Trigger projectile VFX for attacks (replaces old card shake / flashes)
     if (event.type === 'unit_attack' && event.attacker_id && event.target_id) {
-      const allUnits = [...newState.playerUnits, ...newState.opponentUnits]
-      triggerAttackAnimation(event.attacker_id, event.target_id, combatSpeed, allUnits)
-    } else if (event.type === 'skill_cast' && event.caster_id) {
-      const allUnits = [...newState.playerUnits, ...newState.opponentUnits]
-      triggerSkillAnimation(event.caster_id, combatSpeed, allUnits)
-    } else if (event.type === 'damage_over_time_tick' && event.unit_id) {
-      triggerTargetFlash(event.unit_id, combatSpeed)
+      const emoji = event.is_skill ? '✨' : '🗡️'
+      spawnProjectile({ 
+        fromId: event.attacker_id, 
+        toId: event.target_id, 
+        emoji,
+        onComplete: () => {
+          // Apply pending HP update and trigger hurt effect when projectile arrives
+          // Skip if combat has finished to prevent overwriting final state
+          if (combatStateRef.current.isFinished) return
+          
+          if (event.target_id && pendingHpUpdates[event.target_id]) {
+            setCombatState(prevState => {
+              const updatedState = { ...prevState }
+              if (event.target_id!.startsWith('opp_')) {
+                updatedState.opponentUnits = prevState.opponentUnits.map(u => 
+                  u.id === event.target_id ? { ...u, ...pendingHpUpdates[event.target_id] } : u
+                )
+              } else {
+                updatedState.playerUnits = prevState.playerUnits.map(u => 
+                  u.id === event.target_id ? { ...u, ...pendingHpUpdates[event.target_id] } : u
+                )
+              }
+              return updatedState
+            })
+            
+            // Clean up pending update
+            setPendingHpUpdates(prev => {
+              const newPending = { ...prev }
+              delete newPending[event.target_id!]
+              return newPending
+            })
+          }
+        }
+      })
     }
 
     // Compare with server if game_state present
@@ -130,7 +194,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
       setCombatState(prev => ({ ...prev, isFinished: true }))
       combatStateRef.current = { ...combatStateRef.current, isFinished: true }
     }
-  }, [isBufferedComplete, bufferedEvents, playhead, combatSpeed, overwriteSnapshots, triggerAttackAnimation, triggerTargetFlash])
+  }, [isBufferedComplete, bufferedEvents, playhead, combatSpeed, overwriteSnapshots, spawnProjectile])
 
   // Start replay when buffered
   useEffect(() => {
@@ -249,6 +313,13 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [combatState.combatLog])
 
+  // Clear pending HP updates when combat finishes to prevent race conditions
+  useEffect(() => {
+    if (combatState.isFinished) {
+      setPendingHpUpdates({})
+    }
+  }, [combatState.isFinished])
+
   const handleClose = () => onClose(combatState.finalState || undefined)
   const handleGoldDismiss = () => { setDisplayedGoldBreakdown(null); setStoredGoldBreakdown(null); handleClose() }
 
@@ -266,11 +337,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     opponentInfo: combatState.opponentInfo,
     showLog,
     setShowLog,
-    attackingUnits,
-    targetUnits,
-    skillUnits,
-    attackDurations,
-    animatingUnits,
+    // attack animation state removed; projectiles are used instead
     combatSpeed,
     setCombatSpeed,
     regenMap: combatState.regenMap,

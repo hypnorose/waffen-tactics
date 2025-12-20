@@ -20,11 +20,31 @@ class DamageHandler(EffectHandler):
         # Calculate actual damage (could add damage type modifiers later)
         actual_damage = amount
 
-        # Apply damage
-        old_hp = target.hp
-        target.hp = max(0, target.hp - actual_damage)
+        # Calculate damage outcome without mutating target here. The simulator
+        # will apply the authoritative mutation via canonical emitters when it
+        # forwards returned events to the provided `event_callback`.
+        old_hp = int(getattr(target, 'hp', 0))
+        new_hp = max(0, old_hp - int(actual_damage))
 
-        # Generate event
+        # If no event_callback provided, mutate target directly (dry-run/tests).
+        if getattr(context, 'event_callback', None) is None:
+            target.hp = new_hp
+            return [(
+                'unit_attack', {
+                    'attacker_id': context.caster.id,
+                    'attacker_name': context.caster.name,
+                    'target_id': target.id,
+                    'target_name': target.name,
+                    'damage': actual_damage,
+                    'damage_type': damage_type,
+                    'old_hp': old_hp,
+                    'new_hp': new_hp,
+                    'target_hp': new_hp,
+                    'is_skill': True,
+                    'timestamp': context.combat_time,
+                }
+            )]
+
         event = ('unit_attack', {
             'attacker_id': context.caster.id,
             'attacker_name': context.caster.name,
@@ -32,10 +52,11 @@ class DamageHandler(EffectHandler):
             'target_name': target.name,
             'damage': actual_damage,
             'damage_type': damage_type,
-            'old_hp': old_hp,
-            'new_hp': target.hp,
-            'target_hp': target.hp,  # Authoritative HP after damage (for reconstruction)
-            'is_skill': True
+            'pre_hp': old_hp,
+            'post_hp': new_hp,
+            'unit_hp': new_hp,
+            'is_skill': True,
+            'timestamp': context.combat_time,
         })
 
         return [event]

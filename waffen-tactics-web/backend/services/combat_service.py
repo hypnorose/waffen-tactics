@@ -459,9 +459,15 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
 
         # Collect events regardless of callback
         events = []
+        import copy
+
         def event_collector(event_type: str, data: dict):
-            # print(f"Collected event: {event_type} - {data}")
-            events.append((event_type, data))
+            # Collected events must be deep-copied to avoid later in-place
+            # mutations of nested structures (e.g. unit.effects) by the
+            # simulator. Storing references caused snapshots to differ from
+            # the state at emission time when the simulator mutated units
+            # after appending the payload.
+            events.append((event_type, copy.deepcopy(data)))
             # Also call the callback if provided
             if event_callback:
                 event_callback(event_type, data)

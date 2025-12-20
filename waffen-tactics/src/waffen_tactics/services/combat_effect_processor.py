@@ -10,6 +10,7 @@ from .event_canonicalizer import (
     emit_heal,
     emit_unit_died,
     emit_unit_heal,
+    emit_gold_reward,
 )
 
 
@@ -35,6 +36,11 @@ class CombatEffectProcessor:
         """Process effects when a unit dies."""
         target = defending_team[target_idx]
         defending_side = 'team_a' if side == 'team_b' else 'team_b'
+
+        try:
+            print(f"[ENTER _process_unit_death] killer={getattr(killer,'id',None)} target={getattr(target,'id',None)} event_callback_set={event_callback is not None}")
+        except Exception:
+            pass
 
         # Prevent duplicate processing for the same death within a simulation tick
         if getattr(target, '_death_processed', False):
@@ -121,35 +127,59 @@ class CombatEffectProcessor:
             except Exception:
                 pass
 
-        # Keep the CombatUnit object in sync as well
+        # Keep the CombatUnit object in sync via canonical emitter
+        # Determine the actual side of the dead unit from simulator lists
+        target_side = None
         try:
-            target.hp = 0
+            if hasattr(self, 'team_a') and target in getattr(self, 'team_a', []):
+                target_side = 'team_a'
+            elif hasattr(self, 'team_b') and target in getattr(self, 'team_b', []):
+                target_side = 'team_b'
+        except Exception:
+            target_side = None
+
+        # Fallback to defending_side if we couldn't determine membership
+        if target_side is None:
+            target_side = defending_side
+
+        # Use canonical emitter to mark unit as dead and update in-memory HP.
+        # Call emitter regardless of presence of event_callback so in-memory
+        # state is normalized even when no callback is provided.
+        try:
+            emit_unit_died(event_callback, target, side=target_side, timestamp=time, unit_hp=pre_hp)
         except Exception:
             pass
 
-        if event_callback:
-            # Determine the actual side of the dead unit from simulator lists
-            target_side = None
-            try:
-                if hasattr(self, 'team_a') and target in getattr(self, 'team_a', []):
-                    target_side = 'team_a'
-                elif hasattr(self, 'team_b') and target in getattr(self, 'team_b', []):
-                    target_side = 'team_b'
-            except Exception:
-                target_side = None
+        try:
+            print(f"[DEATH DEBUG] emitted unit_died for {getattr(target,'id',None)}; attacking_team_len={len(attacking_team) if attacking_team is not None else 'None'}; attacking_ids={[getattr(u,'id',None) for u in (attacking_team or [])]}")
+        except Exception:
+            pass
 
-            # Fallback to defending_side if we couldn't determine membership
-            if target_side is None:
-                target_side = defending_side
-
-            # Emit unit_died including the captured pre-death HP so reconstructors
-            # can still trust the original HP value while snapshots read 0.
-            emit_unit_died(event_callback, target, side=target_side, timestamp=time, unit_hp=pre_hp)
+        # Ensure on_enemy_death stat effects are applied even if prior logic skipped them
+        try:
+            for unit in (attacking_team or []):
+                for eff in getattr(unit, 'effects', []):
+                    if eff.get('type') == 'on_enemy_death':
+                        try:
+                            self._apply_stat_buff(unit, eff, attacking_hp, (attacking_team or []).index(unit), time, log, event_callback, side, attacking_team, defending_team, attacking_hp, defending_hp)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
 
         # Trigger on_enemy_death effects for attacking team
-        for unit in attacking_team:
+        print(f"[DEATH LOOP] attacking_team_len={len(attacking_team) if attacking_team is not None else 'None'}")
+        for idx_unit, unit in enumerate(attacking_team or []):
+            try:
+                print(f"[DEATH LOOP] idx={idx_unit} unit_id={getattr(unit,'id',None)} effects={getattr(unit,'effects',None)}")
+            except Exception:
+                pass
             for eff in getattr(unit, 'effects', []):
                 if eff.get('type') == 'on_enemy_death':
+                    try:
+                        print(f"[DEATH LOOP] applying on_enemy_death for unit={getattr(unit,'id',None)} eff={eff}")
+                    except Exception:
+                        pass
                     actions = eff.get('actions', [])
                     if actions:
                         self._apply_actions(unit, actions, attacking_hp, attacking_team.index(unit), time, log, event_callback, side, attacking_team, attacking_hp, defending_team, defending_hp)
@@ -206,25 +236,12 @@ class CombatEffectProcessor:
             if target == 'self':
                 log.append(f"{unit.name} gains +{amount} gold")
                 if event_callback:
-                    event_callback('gold_reward', {
-                        'amount': amount,
-                        'unit_id': unit.id,
-                        'unit_name': unit.name,
-                        'side': side,
-                        'timestamp': time
-                    })
+                    emit_gold_reward(event_callback, unit, amount, side=side, timestamp=time)
             elif target == 'team' and attacking_team and attacking_hp:
                 # For team, distribute or just log as team reward
                 log.append(f"Team gains +{amount} gold")
                 if event_callback:
-                    event_callback('gold_reward', {
-                        'amount': amount,
-                        'unit_id': unit.id,
-                        'unit_name': unit.name,
-                        'side': side,
-                        'timestamp': time,
-                        'target': 'team'
-                    })
+                    emit_gold_reward(event_callback, unit, amount, side=side, timestamp=time)
         elif reward == 'hp_regen':
             is_pct = effect.get('is_percentage', False)
             val = float(effect.get('value', 0))
@@ -271,8 +288,16 @@ class CombatEffectProcessor:
         effect: Optional[Dict[str, Any]] = None
     ):
         """Apply list of actions from an effect."""
+        try:
+            print(f"[APPLY_ACTIONS] unit={getattr(unit,'id',None)} actions={actions} event_callback_set={event_callback is not None}")
+        except Exception:
+            pass
         for action in actions:
             action_type = action.get('type')
+            try:
+                print(f"[APPLY_ACTIONS] action_type={action_type} action={action}")
+            except Exception:
+                pass
             if action_type == 'stat_buff':
                 self._apply_stat_buff(unit, action, hp_list, unit_idx, time, log, event_callback, side, attacking_team, defending_team, attacking_hp, defending_hp)
             elif action_type in ('kill_buff', 'collect_stat'):
@@ -433,6 +458,10 @@ class CombatEffectProcessor:
         defending_hp: Optional[List[int]] = None
     ):
         """Apply stat buff from an effect."""
+        try:
+            print(f"[STAT_APPLY] unit={getattr(unit,'id',None)} effect={effect}")
+        except Exception:
+            pass
         # Try to use new handlers first for supported stats
         supported_stats = {'attack', 'defense', 'hp', 'attack_speed', 'mana_regen'}
         effect_stats = set(effect.get('stats', []))
@@ -569,16 +598,20 @@ class CombatEffectProcessor:
                         # find recipient index in hp lists
                         if attacking_team and recipient in attacking_team and attacking_hp is not None:
                             idx = attacking_team.index(recipient)
+                            old_hp = attacking_hp[idx]
                             attacking_hp[idx] = min(recipient.max_hp, attacking_hp[idx] + added_int)
                             log.append(f"{recipient.name} heals +{added_int} HP (stat_buff)")
                             if event_callback:
-                                emit_heal(event_callback, recipient, added_int, source=unit, side='team_a' if recipient in (attacking_team or []) else 'team_b', timestamp=time)
+                                # Pass old HP so emit_heal can calculate correct new HP
+                                emit_heal(event_callback, recipient, added_int, source=unit, side='team_a' if recipient in (attacking_team or []) else 'team_b', timestamp=time, current_hp=old_hp)
                         elif defending_team and recipient in defending_team and defending_hp is not None:
                             idx = defending_team.index(recipient)
+                            old_hp = defending_hp[idx]
                             defending_hp[idx] = min(recipient.max_hp, defending_hp[idx] + added_int)
                             log.append(f"{recipient.name} heals +{added_int} HP (stat_buff)")
                             if event_callback:
-                                emit_heal(event_callback, recipient, added_int, source=unit, side='team_b' if recipient in (defending_team or []) else 'team_a', timestamp=time)
+                                # Pass old HP so emit_heal can calculate correct new HP
+                                emit_heal(event_callback, recipient, added_int, source=unit, side='team_b' if recipient in (defending_team or []) else 'team_a', timestamp=time, current_hp=old_hp)
                     elif st == 'attack_speed':
                         recipient.attack_speed += float(added)
                         log.append(f"{recipient.name} gains +{added:.2f} Attack Speed (stat_buff)")
@@ -645,10 +678,11 @@ class CombatEffectProcessor:
                     heal_pct = float(eff.get('heal_percent', 50))
                     if hp_list[target_idx] <= team[target_idx].max_hp * (thresh / 100.0):
                         heal_amt = int(team[target_idx].max_hp * (heal_pct / 100.0))
+                        old_hp = hp_list[target_idx]
                         hp_list[target_idx] = min(team[target_idx].max_hp, hp_list[target_idx] + heal_amt)
                         log.append(f"{unit.name} heals {team[target_idx].name} for {heal_amt} (ally hp below {thresh}%)")
                         if event_callback:
-                            emit_heal(event_callback, team[target_idx], heal_amt, source=None, side=side, timestamp=time)
+                            emit_heal(event_callback, team[target_idx], heal_amt, source=None, side=side, timestamp=time, current_hp=old_hp)
                         eff['_triggered'] = True
                         break
 
@@ -680,10 +714,11 @@ class CombatEffectProcessor:
                             add = int(u.max_hp * (buff_amount / 100.0))
                         else:
                             add = int(buff_amount)
+                        old_hp = a_hp[idx_u]
                         a_hp[idx_u] = min(u.max_hp, a_hp[idx_u] + add)
                         log.append(f"{u.name} +{add} HP (per round buff)")
                         if event_callback and add > 0:
-                            emit_heal(event_callback, u, add, source=None, side='team_a', timestamp=time)
+                            emit_heal(event_callback, u, add, source=None, side='team_a', timestamp=time, current_hp=old_hp)
 
         # Team B buffs
         for idx_u, u in enumerate(team_b):
@@ -692,16 +727,17 @@ class CombatEffectProcessor:
                     stat = eff.get('stat')
                     val = eff.get('value', 0)
                     is_pct = eff.get('is_percentage', False)
-                    
+
                     # Calculate buff based on round number
                     buff_amount = val * round_number
-                    
+
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (buff_amount / 100.0))
                         else:
                             add = int(buff_amount)
+                        old_hp = b_hp[idx_u]
                         b_hp[idx_u] = min(u.max_hp, b_hp[idx_u] + add)
                         log.append(f"{u.name} +{add} HP (per round buff)")
                         if event_callback and add > 0:
-                            emit_heal(event_callback, u, add, source=None, side='team_b', timestamp=time)
+                            emit_heal(event_callback, u, add, source=None, side='team_b', timestamp=time, current_hp=old_hp)
