@@ -72,7 +72,12 @@ class SkillParser:
             return None
 
         try:
-            return self._parse_skill(skill_data)
+            # If unit data omits mana_cost (many legacy unit defs), prefer to
+            # fill it from unit's max_mana so parsing doesn't fail during bulk load.
+            sd = skill_data.copy()
+            if 'mana_cost' not in sd:
+                sd['mana_cost'] = unit_data.get('max_mana') or (unit_data.get('stats') or {}).get('max_mana') or 100
+            return self._parse_skill(sd)
         except Exception as e:
             unit_id = unit_data.get('id', 'unknown')
             self.logger.error(f"Failed to parse skill for unit {unit_id}: {e}")
@@ -84,8 +89,8 @@ class SkillParser:
         if not isinstance(skill_data, dict):
             raise SkillParseError("Skill data must be a dictionary")
 
-        # Validate required fields (mana_cost is now optional; use max_mana from unit)
-        required_fields = ['name', 'description', 'effects']
+        # Validate required fields
+        required_fields = ['name', 'description', 'effects', 'mana_cost']
         for field in required_fields:
             if field not in skill_data:
                 raise SkillParseError(f"Missing required field: {field}")

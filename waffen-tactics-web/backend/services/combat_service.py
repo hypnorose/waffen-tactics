@@ -142,6 +142,11 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                 if buffed_stats is None:
                     buffed_stats = base_stats_dict.copy()
 
+                # Apply persistent buffs
+                for stat, value in unit_instance.persistent_buffs.items():
+                    if stat in buffed_stats:
+                        buffed_stats[stat] += value
+
                 hp = buffed_stats['hp']
                 attack = buffed_stats['attack']
                 defense = buffed_stats['defense']
@@ -174,6 +179,8 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                         'effect': unit.skill.effect
                     } if hasattr(unit, 'skill') and unit.skill else None
                 )
+                # Set max_hp to buffed hp to prevent hp > max_hp issues
+                combat_unit.max_hp = hp
                 player_units.append(combat_unit)
 
                 # Store for frontend (include buffed stats so UI shows consistent values)
@@ -231,21 +238,31 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
     try:
         # Get opponent from database unless we're in the configured initial bot rounds
         opponent_data = None
-        # Prefer a real player opponent (closest by round), fall back to system bots.
-        try:
-            opponent_data = _run_async(db_manager.get_random_opponent(
-                exclude_user_id=player.user_id,
-                player_wins=player.wins,
-                player_rounds=player.wins + player.losses
-            ))
-        except Exception:
-            opponent_data = None
-
-        if not opponent_data:
+        player_rounds = player.wins + player.losses
+        player_level = player.level
+        # For new players (low rounds), prefer system bots to avoid mismatched real players
+        if player_rounds <= 5:
             try:
-                opponent_data = _run_async(db_manager.get_random_system_opponent(player.wins + player.losses))
+                opponent_data = _run_async(db_manager.get_random_system_opponent(player_rounds, player_level))
             except Exception:
                 opponent_data = None
+        else:
+            # Prefer a real player opponent (closest by round), fall back to system bots.
+            try:
+                opponent_data = _run_async(db_manager.get_random_opponent(
+                    exclude_user_id=player.user_id,
+                    player_wins=player.wins,
+                    player_rounds=player_rounds,
+                    player_level=player_level
+                ))
+            except Exception:
+                opponent_data = None
+
+            if not opponent_data:
+                try:
+                    opponent_data = _run_async(db_manager.get_random_system_opponent(player_rounds, player_level))
+                except Exception:
+                    opponent_data = None
 
         if opponent_data:
             opponent_name = opponent_data['nickname']
@@ -323,6 +340,8 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                             'effect': unit.skill.effect
                         } if hasattr(unit, 'skill') and unit.skill else None
                     )
+                    # Set max_hp to buffed hp to prevent hp > max_hp issues
+                    combat_unit.max_hp = hp
                     opponent_units.append(combat_unit)
 
                     opponent_unit_info.append({
@@ -398,13 +417,50 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
         Combat result dictionary
     """
     try:
+        # Ensure units look like fresh templates when reused across multiple runs.
+        # Some tests construct unit lists once and call this function repeatedly with
+        # different RNG seeds. The simulator mutates unit HP/mana in-place; if a
+        # previously-run simulation left units dead, subsequent runs would be
+        # effectively no-ops. Detect that situation and reset units to their
+        # `max_hp` / starting mana before running so repeated runs start fresh.
+        def _reset_units_if_needed(units: List[CombatUnit]):
+            for u in units:
+                try:
+                    # Only reset units that are dead or have invalid HP (> max_hp)
+                    # Don't reset units that are intentionally damaged (0 < hp < max_hp)
+                    max_hp = getattr(u, 'max_hp', None)
+                    if max_hp is None:
+                        continue
+                    if getattr(u, 'hp', None) is None:
+                        continue
+                    # Only reset if dead or over-healed beyond max
+                    if u.hp <= 0 or u.hp > max_hp:
+                        u.hp = max_hp
+                        # reset transient combat state
+                        if hasattr(u, 'current_mana'):
+                            try:
+                                u.current_mana = 0
+                            except Exception:
+                                pass
+                        if hasattr(u, 'shield'):
+                            try:
+                                u.shield = 0
+                            except Exception:
+                                pass
+                except Exception:
+                    # If a unit is non-conforming, skip reset for safety
+                    continue
+
+        _reset_units_if_needed(player_units)
+        _reset_units_if_needed(opponent_units)
+
         # Run combat simulation using shared logic
         simulator = CombatSimulator(dt=0.1, timeout=60)
 
         # Collect events regardless of callback
         events = []
         def event_collector(event_type: str, data: dict):
-            print(f"Collected event: {event_type} - {data}")
+            # print(f"Collected event: {event_type} - {data}")
             events.append((event_type, data))
             # Also call the callback if provided
             if event_callback:
@@ -412,6 +468,13 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
 
         result = simulator.simulate(player_units, opponent_units, event_collector)
         result['events'] = events
+
+        # Update unit HP with final values from simulation
+        for i, unit in enumerate(player_units):
+            unit.hp = simulator.a_hp[i]
+        for i, unit in enumerate(opponent_units):
+            unit.hp = simulator.b_hp[i]
+
         return result
 
     except Exception as e:
@@ -559,7 +622,7 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
             result_message = "🎉 ZWYCIĘSTWO!"
         elif result['winner'] == 'team_b':
             # Defeat - lose HP based on surviving enemy star levels
-            hp_loss = result.get('surviving_star_sum', 1) * 2  # 2 HP per surviving enemy star
+            hp_loss = (result.get('surviving_star_sum') or 1)  # 1 HP per surviving enemy star
             player.hp -= hp_loss
             player.losses += 1
             player.streak = 0

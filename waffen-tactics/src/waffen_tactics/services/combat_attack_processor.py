@@ -4,6 +4,7 @@ Combat attack processor - handles attack logic and damage calculation
 import random
 import os
 from typing import List, Dict, Any, Callable, Optional
+from .event_canonicalizer import emit_mana_update
 
 
 class CombatAttackProcessor:
@@ -44,8 +45,11 @@ class CombatAttackProcessor:
 
                 # Calculate damage
                 damage = self._calculate_damage(unit, defending_team[target_idx])
+                old_hp = int(defending_hp[target_idx])
                 defending_hp[target_idx] -= damage
                 defending_hp[target_idx] = max(0, int(defending_hp[target_idx]))
+                new_hp = int(defending_hp[target_idx])
+                # print(f"[HP DEBUG] ts={time:.9f} side={side} target={defending_team[target_idx].id}:{defending_team[target_idx].name} old_hp={old_hp} -> new_hp={new_hp} cause=attack damage={damage}")
 
                 # Log and callback
                 msg = f"[{time:.2f}s] {side.upper()[0]}:{unit.name} hits {'A' if side == 'team_b' else 'B'}:{defending_team[target_idx].name} for {damage}, hp={defending_hp[target_idx]}"
@@ -83,16 +87,9 @@ class CombatAttackProcessor:
                 # Mana gain: per attack
                 unit.mana = min(unit.max_mana, unit.mana + unit.stats.mana_on_attack)
 
-                # Send mana update event
+                # Send mana update event (canonicalized)
                 if event_callback:
-                    event_callback('mana_update', {
-                        'unit_id': unit.id,
-                        'unit_name': unit.name,
-                        'current_mana': unit.mana,
-                        'max_mana': unit.max_mana,
-                        'side': side,
-                        'timestamp': time
-                    })
+                    emit_mana_update(event_callback, unit, current_mana=unit.mana, max_mana=unit.max_mana, side=side, timestamp=time)
 
                 # Check for skill casting if mana is full (reaches max_mana)
                 skill_was_cast = False
@@ -184,16 +181,9 @@ class CombatAttackProcessor:
         caster.mana = 0  # Reset mana to 0 after casting
         log.append(f"[{time:.2f}s] {caster.name} casts {skill['name']}!")
 
-        # Send mana update event after reset
+        # Send mana update event after reset (canonicalized)
         if event_callback:
-            event_callback('mana_update', {
-                'unit_id': caster.id,
-                'unit_name': caster.name,
-                'current_mana': caster.mana,
-                'max_mana': caster.max_mana,
-                'side': side,
-                'timestamp': time
-            })
+            emit_mana_update(event_callback, caster, current_mana=caster.mana, max_mana=caster.max_mana, side=side, timestamp=time)
 
         # Apply skill effect (basic implementation)
         effect = skill['effect']

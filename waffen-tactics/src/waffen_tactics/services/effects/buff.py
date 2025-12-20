@@ -4,6 +4,8 @@ Buff Effect Handler - Handles stat buff effects in skills
 from typing import Dict, Any, List
 from waffen_tactics.models.skill import Effect, SkillExecutionContext, EffectType
 from waffen_tactics.services.effects import EffectHandler, register_effect_handler
+from waffen_tactics.services.event_canonicalizer import emit_stat_buff
+import random
 
 
 class BuffHandler(EffectHandler):
@@ -19,6 +21,14 @@ class BuffHandler(EffectHandler):
         if not stat or duration <= 0:
             return []
 
+        # Resolve random stat at cast time to a concrete stat so replay
+        # and reconstruction are deterministic and consistent.
+        if stat == 'random':
+            choices = ['defense', 'attack', 'attack_speed']
+            if getattr(context, 'random_seed', None) is not None:
+                random.seed(context.random_seed)
+            stat = random.choice(choices)
+
         # Create buff effect
         buff_effect = {
             'type': 'buff',
@@ -29,28 +39,21 @@ class BuffHandler(EffectHandler):
             'source': f"skill_{context.caster.id}"
         }
 
-        # Add to target's effects
-        if not hasattr(target, 'effects'):
-            target.effects = []
-        target.effects.append(buff_effect)
+        # Use canonical emitter to apply the buff to server state and produce payload
+        payload = emit_stat_buff(
+            None,
+            recipient=target,
+            stat=stat,
+            value=value,
+            value_type=value_type,
+            duration=duration,
+            permanent=False,
+            source=context.caster,
+            side=None,
+            timestamp=getattr(context, 'combat_time', None),
+        )
 
-        # Apply immediate stat change if needed
-        # (This would be handled by the stat calculation system)
-
-        # Generate event
-        event = ('stat_buff', {
-            'unit_id': target.id,
-            'unit_name': getattr(target, 'name', None),
-            'caster_id': context.caster.id,
-            'caster_name': getattr(context.caster, 'name', None),
-            'stat': stat,
-            'value': value,
-            'value_type': value_type,
-            'duration': duration,
-            'buff_type': 'buff'
-        })
-
-        return [event]
+        return [('stat_buff', payload)]
 
     def validate_params(self, effect: Effect) -> bool:
         """Validate buff parameters"""

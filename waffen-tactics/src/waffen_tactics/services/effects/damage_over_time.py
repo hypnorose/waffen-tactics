@@ -2,6 +2,7 @@
 Damage Over Time Effect Handler - Handles damage over time effects in skills
 """
 from typing import Dict, Any, List
+import uuid
 from waffen_tactics.models.skill import Effect, SkillExecutionContext, EffectType
 from waffen_tactics.services.effects import EffectHandler, register_effect_handler
 
@@ -25,14 +26,21 @@ class DamageOverTimeHandler(EffectHandler):
             return []
 
         # Create damage over time effect
+        # Create a canonical DoT effect object with id and expires_at so
+        # snapshots and reconstructor can reason about expiry deterministically.
+        dot_id = str(uuid.uuid4())
+        next_tick = context.combat_time + interval
+        expires_at = context.combat_time + duration
         dot_effect = {
+            'id': dot_id,
             'type': 'damage_over_time',
             'damage': damage,
             'damage_type': damage_type,
             'interval': interval,
             'ticks_remaining': ticks,
             'total_ticks': ticks,
-            'next_tick_time': context.combat_time + interval,
+            'next_tick_time': next_tick,
+            'expires_at': expires_at,
             'source': f"skill_{context.caster.id}"
         }
 
@@ -42,6 +50,8 @@ class DamageOverTimeHandler(EffectHandler):
         target.effects.append(dot_effect)
 
         # Generate initial event
+        # Emit an applied event that includes the canonical effect id and expiry
+        # so reconstructor can install the same effect deterministically.
         event = ('damage_over_time_applied', {
             'unit_id': target.id,
             'unit_name': getattr(target, 'name', None),
@@ -51,7 +61,11 @@ class DamageOverTimeHandler(EffectHandler):
             'damage_type': damage_type,
             'duration': duration,
             'interval': interval,
-            'ticks': ticks
+            'ticks': ticks,
+            'effect_id': dot_id,
+            'next_tick_time': next_tick,
+            'expires_at': expires_at,
+            'source': f"skill_{context.caster.id}"
         })
 
         return [event]

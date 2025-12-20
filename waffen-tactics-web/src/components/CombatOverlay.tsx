@@ -10,6 +10,7 @@ import CombatLog from './CombatLog'
 import SynergiesPanel from './SynergiesPanel'
 import CombatSpeedSlider from './CombatSpeedSlider'
 import CombatLogModal from './CombatLogModal'
+import DesyncInspector from './DesyncInspector'
 import { CombatOverlayProps } from './CombatOverlayTypes'
 
 export default function CombatOverlay({ onClose }: CombatOverlayProps) {
@@ -32,6 +33,7 @@ export default function CombatOverlay({ onClose }: CombatOverlayProps) {
     setShowLog,
     attackingUnits,
     targetUnits,
+    skillUnits,
     attackDurations,
     combatSpeed,
     setCombatSpeed,
@@ -41,11 +43,19 @@ export default function CombatOverlay({ onClose }: CombatOverlayProps) {
     setDisplayedGoldBreakdown,
     setStoredGoldBreakdown,
     handleClose,
-    handleGoldDismiss
+    handleGoldDismiss,
+    defeatMessage,
+    desyncLogs,
+    clearDesyncLogs,
+    exportDesyncJSON,
+    overwriteSnapshots,
+    setOverwriteSnapshots,
+    animatingUnits
   } = useCombatOverlayLogic({ onClose, logEndRef })
+  const [showDesyncInspector, setShowDesyncInspector] = useState(false)
 
   useEffect(() => {
-    if (victory !== null) {
+    if (victory !== null && isFinished) {
       // Delay appearance for smooth transition
       const showTimer = setTimeout(() => {
         setShowVictoryOverlay(true)
@@ -62,7 +72,7 @@ export default function CombatOverlay({ onClose }: CombatOverlayProps) {
     } else {
       setShowVictoryOverlay(false)
     }
-  }, [victory])
+  }, [victory, isFinished])
 
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
@@ -108,17 +118,29 @@ export default function CombatOverlay({ onClose }: CombatOverlayProps) {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1.5rem', position: 'relative' }}>
           {/* Jednostki przeciwnika */}
           <div style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
-            <OpponentUnits units={opponentUnits} attackingUnits={attackingUnits} targetUnits={targetUnits} regenMap={regenMap} attackDurations={attackDurations} />
+            <OpponentUnits units={opponentUnits} attackingUnits={attackingUnits} targetUnits={targetUnits} skillUnits={skillUnits} regenMap={regenMap} attackDurations={attackDurations} />
           </div>
           {/* Jednostki gracza */}
           <div style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <PlayerUnits units={playerUnits} attackingUnits={attackingUnits} targetUnits={targetUnits} regenMap={regenMap} attackDurations={attackDurations} />
+            <PlayerUnits units={playerUnits} attackingUnits={attackingUnits} targetUnits={targetUnits} skillUnits={skillUnits} regenMap={regenMap} attackDurations={attackDurations} />
           </div>
 
           {/* Przycisk do logu walki */}
           <button onClick={() => setShowLog(!showLog)} style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
             {showLog ? 'Ukryj log walki' : 'Pokaż log walki'}
           </button>
+
+          {import.meta.env.DEV && (
+            <button onClick={() => setShowDesyncInspector(s => !s)} style={{ position: 'absolute', top: 56, right: 16, zIndex: 100, background: '#1f2937', color: '#7dd3fc', border: 'none', borderRadius: 6, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+              {showDesyncInspector ? 'Ukryj Desync Inspector' : 'Pokaż Desync Inspector'}
+            </button>
+          )}
+
+          {import.meta.env.DEV && (
+            <button onClick={() => setOverwriteSnapshots(s => !s)} style={{ position: 'absolute', top: 96, right: 16, zIndex: 100, background: overwriteSnapshots ? '#065f46' : '#4b5563', color: '#e6fffa', border: 'none', borderRadius: 6, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+              {overwriteSnapshots ? 'Snapshot overwrite: ON' : 'Snapshot overwrite: OFF'}
+            </button>
+          )}
 
           {/* Log walki jako modal */}
           <CombatLogModal showLog={showLog} setShowLog={setShowLog} combatLog={combatLog} logEndRef={logEndRef} />
@@ -130,12 +152,14 @@ export default function CombatOverlay({ onClose }: CombatOverlayProps) {
 
       {/* Gold Notification Overlay */}
       <GoldNotification breakdown={displayedGoldBreakdown} onDismiss={handleGoldDismiss} />
-
+      {import.meta.env.DEV && showDesyncInspector && (
+        <DesyncInspector desyncLogs={(desyncLogs as any) || []} onClear={(clearDesyncLogs as any) || (() => {})} onExport={(exportDesyncJSON as any) || (() => '[]')} />
+      )}
       {/* Victory/Defeat Overlay */}
       <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-60 transition-all duration-300 ease-out ${showVictoryOverlay ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
         <div className="bg-surface border-4 border-primary/60 rounded-xl p-8 shadow-2xl">
           <div className={`text-5xl font-bold text-center ${victory ? 'text-green-400' : 'text-red-400'}`}>
-            {victory ? '🎉 ZWYCIĘSTWO! 🎉' : '💔 PRZEGRANA! 💔'}
+            {victory ? '🎉 ZWYCIĘSTWO! 🎉' : (defeatMessage || '💔 PRZEGRANA! 💔')}
           </div>
         </div>
       </div>

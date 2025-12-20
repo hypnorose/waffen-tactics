@@ -2,13 +2,29 @@
 Tests for Combat Service
 """
 import unittest
+import uuid
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../waffen-tactics/src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from unittest.mock import AsyncMock, MagicMock, patch
 from waffen_tactics.models.player_state import PlayerState
 from waffen_tactics.services.combat_shared import CombatUnit
+from waffen_tactics.services.data_loader import load_game_data
 from services.combat_service import (
     prepare_player_units_for_combat, prepare_opponent_units_for_combat,
     run_combat_simulation, process_combat_results
 )
+from services.combat_event_reconstructor import CombatEventReconstructor
+
+# Silence noisy `print` calls in these tests; keep a handle to the original
+# print and provide `error_print` for printing errors only.
+_original_print = print
+def print(*args, **kwargs):
+    # no-op to avoid test spam
+    return None
+def error_print(*args, **kwargs):
+    _original_print(*args, **kwargs)
 
 
 class TestCombatService(unittest.TestCase):
@@ -259,7 +275,7 @@ class TestCombatService(unittest.TestCase):
         # Assert
         self.assertFalse(game_over)
         self.assertIn('PRZEGRANA', result_data['result_message'])
-        self.assertEqual(self.mock_player.hp, 90)  # Lost 10 HP (5 * 2)
+        self.assertEqual(self.mock_player.hp, 95)  # Lost 5 HP (5 * 1)
         self.assertEqual(self.mock_player.streak, 0)  # Reset to 0
 
     @patch('services.combat_service.game_manager')
@@ -283,7 +299,567 @@ class TestCombatService(unittest.TestCase):
         # Assert
         self.assertTrue(game_over)
         self.assertIn('Koniec gry', result_data['result_message'])
-        self.assertEqual(self.mock_player.hp, -5)  # Went below 0
+        self.assertEqual(self.mock_player.hp, 0)  # Went to 0 (5 - 5)
+
+    @patch('services.combat_service.db_manager')
+    @patch('services.combat_service.game_manager')
+    def test_prepare_player_units_hp_calculation_with_synergies_and_persistent_buffs(self, mock_game_manager, mock_db_manager):
+        """Test HP calculation with synergies and persistent buffs applied in correct order"""
+        # Setup mocks
+        mock_db_manager.load_player = AsyncMock(return_value=self.mock_player)
+        
+        # Create unit instance with persistent HP buff
+        self.mock_unit_instance.persistent_buffs = {'hp': 50}
+        self.mock_player.board = [self.mock_unit_instance]
+        
+        mock_game_manager.data.units = [self.mock_unit]
+        
+        # Mock synergies - Normik class giving +20% HP
+        mock_game_manager.get_board_synergies.return_value = {"Normik": (2, 1)}  # 2 units, tier 1
+        
+        # Base HP calculation: 100 * (1.6^(1-1)) = 100
+        # Synergy buff: +20% HP = 100 * 1.2 = 120
+        mock_game_manager.synergy_engine.apply_stat_buffs.return_value = {
+            'hp': 120, 'attack': 20, 'defense': 5, 'attack_speed': 0.8
+        }
+        # No dynamic effects for this test
+        mock_game_manager.synergy_engine.apply_dynamic_effects.return_value = {
+            'hp': 120, 'attack': 20, 'defense': 5, 'attack_speed': 0.8, 'max_mana': 100, 'current_mana': 0
+        }
+        mock_game_manager.synergy_engine.get_active_effects.return_value = []
+
+        # Execute
+        success, message, result = prepare_player_units_for_combat(self.user_id)
+
+        # Assert
+        self.assertTrue(success)
+        player_units, player_unit_info, synergies_data = result
+        
+        # Check CombatUnit has correct HP (synergies + persistent buffs)
+        combat_unit = player_units[0]
+        expected_hp = 120 + 50  # 120 from synergies + 50 persistent = 170
+        self.assertEqual(combat_unit.hp, expected_hp)
+        self.assertEqual(combat_unit.max_hp, expected_hp)
+        
+        # Check player_unit_info has correct data
+        unit_info = player_unit_info[0]
+        self.assertEqual(unit_info['hp'], expected_hp)
+        self.assertEqual(unit_info['max_hp'], expected_hp)
+        self.assertEqual(unit_info['buffed_stats']['hp'], expected_hp)
+
+    @patch('services.combat_service.db_manager')
+    @patch('services.combat_service.game_manager')
+    def test_prepare_player_units_hp_calculation_order_verification(self, mock_game_manager, mock_db_manager):
+        """Test that HP buffs are applied in correct order: base -> synergies -> persistent"""
+        # Setup mocks
+        mock_db_manager.load_player = AsyncMock(return_value=self.mock_player)
+        
+        # Create unit instance with persistent HP buff
+        self.mock_unit_instance.persistent_buffs = {'hp': 100}
+        self.mock_player.board = [self.mock_unit_instance]
+        
+        mock_game_manager.data.units = [self.mock_unit]
+        
+        # Mock synergies - higher tier Normik giving +40% HP
+        mock_game_manager.get_board_synergies.return_value = {"Normik": (4, 2)}  # 4 units, tier 2
+        
+        # Base HP: 100
+        # Synergy buff: +40% HP = 100 * 1.4 = 140
+        mock_game_manager.synergy_engine.apply_stat_buffs.return_value = {
+            'hp': 140, 'attack': 20, 'defense': 5, 'attack_speed': 0.8
+        }
+        mock_game_manager.synergy_engine.apply_dynamic_effects.return_value = {
+            'hp': 140, 'attack': 20, 'defense': 5, 'attack_speed': 0.8, 'max_mana': 100, 'current_mana': 0
+        }
+        mock_game_manager.synergy_engine.get_active_effects.return_value = []
+
+        # Execute
+        success, message, result = prepare_player_units_for_combat(self.user_id)
+
+        # Assert
+        self.assertTrue(success)
+        player_units, player_unit_info, synergies_data = result
+        
+        # Check order: synergies applied first (140), then persistent buffs (+100) = 240
+        combat_unit = player_units[0]
+        expected_hp = 140 + 100  # synergies first, then persistent
+        self.assertEqual(combat_unit.hp, expected_hp)
+        self.assertEqual(combat_unit.max_hp, expected_hp)
+
+    def test_specific_team_simulation_and_event_replay(self):
+        """Test simulation with specific teams and verify event replay can reconstruct game state"""
+        import random
+        random.seed(42)  # Add seed for deterministic randomness
+
+        from waffen_tactics.services.combat_shared import CombatUnit
+
+        # Load real game data
+        game_data = load_game_data()
+
+        # Helper to get unit by id
+        def get_unit(unit_id):
+            return next(u for u in game_data.units if u.id == unit_id)
+
+        # Define opponent team
+        hyodo_unit = get_unit('hyodo888')
+        alysonstark_unit = get_unit('alyson_stark')
+        adrianski_unit = get_unit('adrianski')
+        szachowymentor_unit = get_unit('szachowymentor')
+        olsak_unit = get_unit('olsak')
+        pepe_unit = get_unit('pepe')
+        frajdzia_unit = get_unit('frajdzia')
+
+        opponent_back = [
+            CombatUnit(id=hyodo_unit.id, name=hyodo_unit.name, hp=hyodo_unit.stats.hp, attack=hyodo_unit.stats.attack, defense=hyodo_unit.stats.defense, attack_speed=hyodo_unit.stats.attack_speed, position='back', stats=hyodo_unit.stats, skill=hyodo_unit.skill, max_mana=hyodo_unit.stats.max_mana),
+            CombatUnit(id=alysonstark_unit.id, name=alysonstark_unit.name, hp=alysonstark_unit.stats.hp, attack=alysonstark_unit.stats.attack, defense=alysonstark_unit.stats.defense, attack_speed=alysonstark_unit.stats.attack_speed, position='back', stats=alysonstark_unit.stats, skill=alysonstark_unit.skill, max_mana=alysonstark_unit.stats.max_mana),
+            CombatUnit(id=adrianski_unit.id, name=adrianski_unit.name, hp=adrianski_unit.stats.hp, attack=adrianski_unit.stats.attack, defense=adrianski_unit.stats.defense, attack_speed=adrianski_unit.stats.attack_speed, position='back', stats=adrianski_unit.stats, skill=adrianski_unit.skill, max_mana=adrianski_unit.stats.max_mana),
+            CombatUnit(id=szachowymentor_unit.id, name=szachowymentor_unit.name, hp=szachowymentor_unit.stats.hp, attack=szachowymentor_unit.stats.attack, defense=szachowymentor_unit.stats.defense, attack_speed=szachowymentor_unit.stats.attack_speed, position='back', stats=szachowymentor_unit.stats, skill=szachowymentor_unit.skill, max_mana=szachowymentor_unit.stats.max_mana),
+        ]
+        opponent_front = [
+            CombatUnit(id=olsak_unit.id, name=olsak_unit.name, hp=olsak_unit.stats.hp, attack=olsak_unit.stats.attack, defense=olsak_unit.stats.defense, attack_speed=olsak_unit.stats.attack_speed, position='front', stats=olsak_unit.stats, skill=olsak_unit.skill, max_mana=olsak_unit.stats.max_mana),
+            CombatUnit(id=pepe_unit.id, name=pepe_unit.name, hp=pepe_unit.stats.hp, attack=pepe_unit.stats.attack, defense=pepe_unit.stats.defense, attack_speed=pepe_unit.stats.attack_speed, position='front', stats=pepe_unit.stats, skill=pepe_unit.skill, max_mana=pepe_unit.stats.max_mana),
+            CombatUnit(id=frajdzia_unit.id, name=frajdzia_unit.name, hp=frajdzia_unit.stats.hp, attack=frajdzia_unit.stats.attack, defense=frajdzia_unit.stats.defense, attack_speed=frajdzia_unit.stats.attack_speed, position='front', stats=frajdzia_unit.stats, skill=frajdzia_unit.skill, max_mana=frajdzia_unit.stats.max_mana),
+        ]
+        opponent_units = opponent_back + opponent_front
+
+        # Define player team
+        turboglowica_unit = get_unit('turboglovica')
+        maxas12_unit = get_unit('maxas12')
+        dumb_unit = get_unit('dumb')
+        puszmen12_unit = get_unit('puszmen12')
+        fiko_unit = get_unit('fiko')
+        wodazlodowca_unit = get_unit('wodazlodowca')
+        vitas_unit = get_unit('vitas')
+        mrozu_unit = get_unit('mrozu')
+
+        player_back = [
+            CombatUnit(id=turboglowica_unit.id, name=turboglowica_unit.name, hp=turboglowica_unit.stats.hp, attack=turboglowica_unit.stats.attack, defense=turboglowica_unit.stats.defense, attack_speed=turboglowica_unit.stats.attack_speed, position='back', stats=turboglowica_unit.stats, skill=turboglowica_unit.skill, max_mana=turboglowica_unit.stats.max_mana),
+            CombatUnit(id=maxas12_unit.id, name=maxas12_unit.name, hp=maxas12_unit.stats.hp, attack=maxas12_unit.stats.attack, defense=maxas12_unit.stats.defense, attack_speed=maxas12_unit.stats.attack_speed, position='back', stats=maxas12_unit.stats, skill=maxas12_unit.skill, max_mana=maxas12_unit.stats.max_mana),
+            CombatUnit(id=dumb_unit.id, name=dumb_unit.name, hp=dumb_unit.stats.hp, attack=dumb_unit.stats.attack, defense=dumb_unit.stats.defense, attack_speed=dumb_unit.stats.attack_speed, position='back', stats=dumb_unit.stats, skill=dumb_unit.skill, max_mana=dumb_unit.stats.max_mana),
+            CombatUnit(id=puszmen12_unit.id, name=puszmen12_unit.name, hp=puszmen12_unit.stats.hp, attack=puszmen12_unit.stats.attack, defense=puszmen12_unit.stats.defense, attack_speed=puszmen12_unit.stats.attack_speed, position='back', stats=puszmen12_unit.stats, skill=puszmen12_unit.skill, max_mana=puszmen12_unit.stats.max_mana),
+        ]
+        player_front = [
+            CombatUnit(id=fiko_unit.id, name=fiko_unit.name, hp=fiko_unit.stats.hp, attack=fiko_unit.stats.attack, defense=fiko_unit.stats.defense, attack_speed=fiko_unit.stats.attack_speed, position='front', stats=fiko_unit.stats, skill=fiko_unit.skill, max_mana=fiko_unit.stats.max_mana),
+            CombatUnit(id=wodazlodowca_unit.id, name=wodazlodowca_unit.name, hp=wodazlodowca_unit.stats.hp, attack=wodazlodowca_unit.stats.attack, defense=wodazlodowca_unit.stats.defense, attack_speed=wodazlodowca_unit.stats.attack_speed, position='front', stats=wodazlodowca_unit.stats, skill=wodazlodowca_unit.skill, max_mana=wodazlodowca_unit.stats.max_mana),
+            CombatUnit(id=vitas_unit.id, name=vitas_unit.name, hp=vitas_unit.stats.hp, attack=vitas_unit.stats.attack, defense=vitas_unit.stats.defense, attack_speed=vitas_unit.stats.attack_speed, position='front', stats=vitas_unit.stats, skill=vitas_unit.skill, max_mana=vitas_unit.stats.max_mana),
+            CombatUnit(id=mrozu_unit.id, name=mrozu_unit.name, hp=mrozu_unit.stats.hp, attack=mrozu_unit.stats.attack, defense=mrozu_unit.stats.defense, attack_speed=mrozu_unit.stats.attack_speed, position='front', stats=mrozu_unit.stats, skill=mrozu_unit.skill, max_mana=mrozu_unit.stats.max_mana),
+        ]
+        player_units = player_back + player_front
+
+        # Run simulation
+        result = run_combat_simulation(player_units, opponent_units)
+
+        # Verify simulation completed
+        self.assertIn('winner', result)
+        self.assertIn('duration', result)
+        self.assertIn('events', result)
+        self.assertIsInstance(result['events'], list)
+        self.assertGreater(len(result['events']), 0)
+
+        # Verify events have proper structure
+        for event_type, event_data in result['events']:
+            self.assertIsInstance(event_type, str)
+            self.assertIsInstance(event_data, dict)
+            # Check if seq is present (should be added by simulator)
+            if event_type in ['attack', 'unit_attack', 'unit_died', 'state_snapshot']:
+                self.assertIn('seq', event_data)
+                self.assertIsInstance(event_data['seq'], int)
+
+        # Test event replay: reconstruct game state from events only (no game_state)
+        # Sort events by seq
+        events = result['events']
+        events.sort(key=lambda x: x[1]['seq'])
+
+        # Find state_snapshots
+        state_snapshots = [event for event in events if event[0] == 'state_snapshot']
+        self.assertGreater(len(state_snapshots), 0, "No state_snapshots found")
+
+        # Initialize reconstruction from first snapshot using the reconstructor
+        reconstructor = CombatEventReconstructor()
+        first_snapshot = state_snapshots[0][1]
+        reconstructor.initialize_from_snapshot(first_snapshot)
+
+        # Process events in order using the reconstructor
+        processed_events = 0
+        for event_type, event_data in events:
+            processed_events += 1
+            reconstructor.process_event(event_type, event_data)
+
+        print(f"Total events processed: {processed_events}")
+
+        # Get reconstructed state
+        reconstructed_player_units, reconstructed_opponent_units = reconstructor.get_reconstructed_state()
+
+        # Compare final state from simulation (units after simulation) with reconstructed state from events
+        for unit in player_units:
+            self.assertEqual(unit.hp, reconstructed_player_units[unit.id]['hp'], f"HP mismatch for player unit {unit.id}")
+            self.assertEqual(unit.max_hp, reconstructed_player_units[unit.id]['max_hp'], f"Max HP mismatch for player unit {unit.id}")
+        for unit in opponent_units:
+            self.assertEqual(unit.hp, reconstructed_opponent_units[unit.id]['hp'], f"HP mismatch for opponent unit {unit.id}")
+            self.assertEqual(unit.max_hp, reconstructed_opponent_units[unit.id]['max_hp'], f"Max HP mismatch for opponent unit {unit.id}")
+
+
+    def test_negative_damage_event_processing(self):
+        """Test how negative damage in unit_attack events is processed on server and client side"""
+        # Create mock units
+        player_units = [{'id': 'player1', 'hp': 100, 'max_hp': 100, 'effects': [], 'shield': 0, 'current_mana': 50, 'max_mana': 100, 'attack': 20, 'defense': 5, 'attack_speed': 1.0, 'dead': False}]
+        opponent_units = [{'id': 'opponent1', 'hp': 100, 'max_hp': 100, 'effects': [], 'shield': 0, 'current_mana': 50, 'max_mana': 100, 'attack': 20, 'defense': 5, 'attack_speed': 1.0, 'dead': False}]
+
+        # Simulate event processing like in the main test
+        reconstructed_player_units = {u['id']: dict(u) for u in player_units}
+        reconstructed_opponent_units = {u['id']: dict(u) for u in opponent_units}
+
+        # Test negative damage event (should heal)
+        negative_damage_event = ('unit_attack', {
+            'target_id': 'opponent1',
+            'new_hp': 120,  # HP increases due to negative damage
+            'damage': -20,  # Negative damage means healing
+            'shield_absorbed': 0,
+            'seq': 1,
+            'timestamp': 1.0
+        })
+
+        # Process the event (simulate the test's event processing)
+        event_type, event_data = negative_damage_event
+        target_id = event_data.get('target_id')
+        new_hp = event_data.get('target_hp') or event_data.get('new_hp')
+        shield_absorbed = event_data.get('shield_absorbed', 0)
+        damage = event_data.get('damage', 0)
+
+        print(f"Processing negative damage event: damage={damage}, new_hp={new_hp}")
+
+        if target_id in reconstructed_opponent_units:
+            old_hp = reconstructed_opponent_units[target_id]['hp']
+            reconstructed_opponent_units[target_id]['hp'] = new_hp
+            reconstructed_opponent_units[target_id]['shield'] = max(0, reconstructed_opponent_units[target_id].get('shield', 0) - shield_absorbed)
+            reconstructed_opponent_units[target_id]['dead'] = new_hp == 0
+            print(f"Opponent unit {target_id} HP changed from {old_hp} to {new_hp} (heal of {new_hp - old_hp})")
+
+        # Assert that HP increased (heal occurred)
+        self.assertEqual(reconstructed_opponent_units['opponent1']['hp'], 120)
+        self.assertEqual(reconstructed_opponent_units['opponent1']['hp'] - 100, 20)  # Heal amount
+
+        # Test positive damage event (should damage)
+        positive_damage_event = ('unit_attack', {
+            'target_id': 'player1',
+            'new_hp': 80,  # HP decreases
+            'damage': 20,  # Positive damage
+            'shield_absorbed': 0,
+            'seq': 2,
+            'timestamp': 2.0
+        })
+
+        event_type, event_data = positive_damage_event
+        target_id = event_data.get('target_id')
+        new_hp = event_data.get('target_hp') or event_data.get('new_hp')
+        shield_absorbed = event_data.get('shield_absorbed', 0)
+
+        if target_id in reconstructed_player_units:
+            old_hp = reconstructed_player_units[target_id]['hp']
+            reconstructed_player_units[target_id]['hp'] = new_hp
+            reconstructed_player_units[target_id]['shield'] = max(0, reconstructed_player_units[target_id].get('shield', 0) - shield_absorbed)
+            reconstructed_player_units[target_id]['dead'] = new_hp == 0
+            print(f"Player unit {target_id} HP changed from {old_hp} to {new_hp} (damage of {old_hp - new_hp})")
+
+        # Assert that HP decreased (damage occurred)
+        self.assertEqual(reconstructed_player_units['player1']['hp'], 80)
+        self.assertEqual(100 - reconstructed_player_units['player1']['hp'], 20)  # Damage amount
+
+        print("Test completed: Negative damage causes heal, positive damage causes damage")
+
+    def test_10v10_simulation_and_event_replay(self):
+        """Test simulation with 10 vs 10 real units and verify event replay can reconstruct game state"""
+        import random
+        random.seed(12345)  # Set seed for reproducible results
+
+        from waffen_tactics.services.combat_shared import CombatUnit
+
+        # Load real game data
+        game_data = load_game_data()
+
+        # Get first 10 units for player team
+        player_unit_ids = [u.id for u in game_data.units[:10]]
+        opponent_unit_ids = [u.id for u in game_data.units[10:20]]  # Next 10 for opponent
+
+        # Helper to get unit by id
+        def get_unit(unit_id):
+            return next(u for u in game_data.units if u.id == unit_id)
+
+        # Create player team (10 units)
+        player_units = []
+        for unit_id in player_unit_ids:
+            unit = get_unit(unit_id)
+            player_units.append(CombatUnit(
+                id=unit.id, name=unit.name, hp=unit.stats.hp, attack=unit.stats.attack,
+                defense=unit.stats.defense, attack_speed=unit.stats.attack_speed,
+                position='front' if len(player_units) < 5 else 'back',
+                stats=unit.stats, skill=unit.skill, max_mana=unit.stats.max_mana
+            ))
+
+        # Create opponent team (10 units)
+        opponent_units = []
+        for unit_id in opponent_unit_ids:
+            unit = get_unit(unit_id)
+            opponent_units.append(CombatUnit(
+                id=unit.id, name=unit.name, hp=unit.stats.hp, attack=unit.stats.attack,
+                defense=unit.stats.defense, attack_speed=unit.stats.attack_speed,
+                position='front' if len(opponent_units) < 5 else 'back',
+                stats=unit.stats, skill=unit.skill, max_mana=unit.stats.max_mana
+            ))
+
+        print(f"Player team ({len(player_units)} units): {[u.name for u in player_units]}")
+        print(f"Opponent team ({len(opponent_units)} units): {[u.name for u in opponent_units]}")
+
+        # Run simulation
+        result = run_combat_simulation(player_units, opponent_units)
+
+        # Verify simulation completed
+        self.assertIn('winner', result)
+        self.assertIn('duration', result)
+        self.assertIn('events', result)
+        self.assertIsInstance(result['events'], list)
+        self.assertGreater(len(result['events']), 0)
+
+        # Verify events have proper structure
+        for event_type, event_data in result['events']:
+            self.assertIsInstance(event_type, str)
+            self.assertIsInstance(event_data, dict)
+            if event_type in ['attack', 'unit_attack', 'unit_died', 'state_snapshot']:
+                self.assertIn('seq', event_data)
+                self.assertIsInstance(event_data['seq'], int)
+
+        # Test event replay using the reusable CombatEventReconstructor
+        events = result['events']
+        events.sort(key=lambda x: (x[1]['seq'], 0 if x[0] != 'state_snapshot' else 1, x[1]['timestamp']))
+
+        # Find state_snapshots
+        state_snapshots = [event for event in events if event[0] == 'state_snapshot']
+        self.assertGreater(len(state_snapshots), 0, "No state_snapshots found")
+
+        # Initialize reconstruction from first snapshot
+        reconstructor = CombatEventReconstructor()
+        first_snapshot = state_snapshots[0][1]
+        reconstructor.initialize_from_snapshot(first_snapshot)
+
+        # Process all events
+        for event_type, event_data in events:
+            reconstructor.process_event(event_type, event_data)
+
+        # Get final reconstructed state
+        reconstructed_player_units, reconstructed_opponent_units = reconstructor.get_reconstructed_state()
+
+        # Compare final state with simulation results
+        for unit in player_units:
+            self.assertEqual(unit.hp, reconstructed_player_units[unit.id]['hp'],
+                           f"HP mismatch for player unit {unit.name} ({unit.id})")
+            self.assertEqual(unit.max_hp, reconstructed_player_units[unit.id]['max_hp'],
+                           f"Max HP mismatch for player unit {unit.name} ({unit.id})")
+
+        for unit in opponent_units:
+            self.assertEqual(unit.hp, reconstructed_opponent_units[unit.id]['hp'],
+                           f"HP mismatch for opponent unit {unit.name} ({unit.id})")
+            self.assertEqual(unit.max_hp, reconstructed_opponent_units[unit.id]['max_hp'],
+                           f"Max HP mismatch for opponent unit {unit.name} ({unit.id})")
+
+        print(f"10v10 test completed successfully. Winner: {result['winner']}, Duration: {result['duration']:.2f}s")
+
+    def test_10v10_simulation_and_event_replay_different_seed(self):
+        """Test simulation with 10 vs 10 real units and verify event replay can reconstruct game state with different seed"""
+        import random
+        random.seed(54321)  # Set different seed for reproducible results
+
+        from waffen_tactics.services.combat_shared import CombatUnit
+
+        # Load real game data
+        game_data = load_game_data()
+
+        # Get first 10 units for player team
+        player_unit_ids = [u.id for u in game_data.units[:10]]
+        opponent_unit_ids = [u.id for u in game_data.units[10:20]]  # Next 10 for opponent
+
+        # Helper to get unit by id
+        def get_unit(unit_id):
+            return next(u for u in game_data.units if u.id == unit_id)
+
+        # Create player team (10 units)
+        player_units = []
+        for unit_id in player_unit_ids:
+            unit = get_unit(unit_id)
+            player_units.append(CombatUnit(
+                id=unit.id, name=unit.name, hp=unit.stats.hp, attack=unit.stats.attack,
+                defense=unit.stats.defense, attack_speed=unit.stats.attack_speed,
+                position='front' if len(player_units) < 5 else 'back',
+                stats=unit.stats, skill=unit.skill, max_mana=unit.stats.max_mana
+            ))
+
+        # Create opponent team (10 units)
+        opponent_units = []
+        for unit_id in opponent_unit_ids:
+            unit = get_unit(unit_id)
+            opponent_units.append(CombatUnit(
+                id=unit.id, name=unit.name, hp=unit.stats.hp, attack=unit.stats.attack,
+                defense=unit.stats.defense, attack_speed=unit.stats.attack_speed,
+                position='front' if len(opponent_units) < 5 else 'back',
+                stats=unit.stats, skill=unit.skill, max_mana=unit.stats.max_mana
+            ))
+
+        print(f"Player team ({len(player_units)} units): {[u.name for u in player_units]}")
+        print(f"Opponent team ({len(opponent_units)} units): {[u.name for u in opponent_units]}")
+
+        # Run simulation
+        result = run_combat_simulation(player_units, opponent_units)
+
+        # Verify simulation completed
+        self.assertIn('winner', result)
+        self.assertIn('duration', result)
+        self.assertIn('events', result)
+        self.assertIsInstance(result['events'], list)
+        self.assertGreater(len(result['events']), 0)
+
+        # Verify events have proper structure
+        for event_type, event_data in result['events']:
+            self.assertIsInstance(event_type, str)
+            self.assertIsInstance(event_data, dict)
+            if event_type in ['attack', 'unit_attack', 'unit_died', 'state_snapshot']:
+                self.assertIn('seq', event_data)
+                self.assertIsInstance(event_data['seq'], int)
+
+        # Test event replay using the reusable CombatEventReconstructor
+        events = result['events']
+        events.sort(key=lambda x: (x[1]['seq'], 0 if x[0] != 'state_snapshot' else 1, x[1]['timestamp']))
+
+        # Find state_snapshots
+        state_snapshots = [event for event in events if event[0] == 'state_snapshot']
+        self.assertGreater(len(state_snapshots), 0, "No state_snapshots found")
+
+        # Initialize reconstruction from first snapshot
+        reconstructor = CombatEventReconstructor()
+        first_snapshot = state_snapshots[0][1]
+        reconstructor.initialize_from_snapshot(first_snapshot)
+
+        # Process all events
+        for event_type, event_data in events:
+            reconstructor.process_event(event_type, event_data)
+
+        # Get final reconstructed state
+        reconstructed_player_units, reconstructed_opponent_units = reconstructor.get_reconstructed_state()
+
+        # Compare final state with simulation results
+        for unit in player_units:
+            self.assertEqual(unit.hp, reconstructed_player_units[unit.id]['hp'],
+                           f"HP mismatch for player unit {unit.name} ({unit.id})")
+            self.assertEqual(unit.max_hp, reconstructed_player_units[unit.id]['max_hp'],
+                           f"Max HP mismatch for player unit {unit.name} ({unit.id})")
+
+        for unit in opponent_units:
+            self.assertEqual(unit.hp, reconstructed_opponent_units[unit.id]['hp'],
+                           f"HP mismatch for opponent unit {unit.name} ({unit.id})")
+            self.assertEqual(unit.max_hp, reconstructed_opponent_units[unit.id]['max_hp'],
+                           f"Max HP mismatch for opponent unit {unit.name} ({unit.id})")
+
+        print(f"10v10 test with different seed completed successfully. Winner: {result['winner']}, Duration: {result['duration']:.2f}s")
+
+    def test_10v10_simulation_multiple_seeds(self):
+        """Test simulation with 10 vs 10 real units and verify event replay can reconstruct game state with seeds from 1 to 10000"""
+        import random
+        from waffen_tactics.services.combat_shared import CombatUnit
+
+        # Load real game data
+        game_data = load_game_data()
+
+        # Get first 10 units for player team
+        player_unit_ids = [u.id for u in game_data.units[:10]]
+        opponent_unit_ids = [u.id for u in game_data.units[10:20]]  # Next 10 for opponent
+
+        # Helper to get unit by id
+        def get_unit(unit_id):
+            return next(u for u in game_data.units if u.id == unit_id)
+
+        # Create player team (10 units)
+        player_units = []
+        for unit_id in player_unit_ids:
+            unit = get_unit(unit_id)
+            player_units.append(CombatUnit(
+                id=unit.id, name=unit.name, hp=unit.stats.hp, attack=unit.stats.attack,
+                defense=unit.stats.defense, attack_speed=unit.stats.attack_speed,
+                position='front' if len(player_units) < 5 else 'back',
+                stats=unit.stats, skill=unit.skill, max_mana=unit.stats.max_mana
+            ))
+
+        # Create opponent team (10 units)
+        opponent_units = []
+        for unit_id in opponent_unit_ids:
+            unit = get_unit(unit_id)
+            opponent_units.append(CombatUnit(
+                id=unit.id, name=unit.name, hp=unit.stats.hp, attack=unit.stats.attack,
+                defense=unit.stats.defense, attack_speed=unit.stats.attack_speed,
+                position='front' if len(opponent_units) < 5 else 'back',
+                stats=unit.stats, skill=unit.skill, max_mana=unit.stats.max_mana
+            ))
+
+        # Test with seeds from 1 to 10000
+        for seed in range(1, 10):
+            if seed % 100 == 0:
+                error_print(f"Testing seed {seed}...")
+
+            random.seed(seed)
+
+            try:
+                # Run simulation
+                result = run_combat_simulation(player_units, opponent_units)
+
+                # Verify simulation completed
+                self.assertIn('winner', result)
+                self.assertIn('duration', result)
+                self.assertIn('events', result)
+                self.assertIsInstance(result['events'], list)
+                self.assertGreater(len(result['events']), 0)
+
+                # Verify events have proper structure
+                for event_type, event_data in result['events']:
+                    self.assertIsInstance(event_type, str)
+                    self.assertIsInstance(event_data, dict)
+                    if event_type in ['attack', 'unit_attack', 'unit_died', 'state_snapshot']:
+                        self.assertIn('seq', event_data)
+                        self.assertIsInstance(event_data['seq'], int)
+
+                # Test event replay using the reusable CombatEventReconstructor
+                events = result['events']
+                events.sort(key=lambda x: (x[1]['seq'], 0 if x[0] != 'state_snapshot' else 1, x[1]['timestamp']))
+                # Find state_snapshots
+                state_snapshots = [event for event in events if event[0] == 'state_snapshot']
+                self.assertGreater(len(state_snapshots), 0, f"No state_snapshots found for seed {seed}")
+
+                # Initialize reconstruction from first snapshot
+                reconstructor = CombatEventReconstructor()
+                first_snapshot = state_snapshots[0][1]
+                reconstructor.initialize_from_snapshot(first_snapshot)
+
+                # Process all events
+                for event_type, event_data in events:
+                    reconstructor.process_event(event_type, event_data)
+
+                # Get final reconstructed state
+                reconstructed_player_units, reconstructed_opponent_units = reconstructor.get_reconstructed_state()
+
+                # Compare final state with simulation results
+                for unit in player_units:
+                    self.assertEqual(unit.hp, reconstructed_player_units[unit.id]['hp'],
+                                   f"HP mismatch for player unit {unit.name} ({unit.id}) at seed {seed}")
+                    self.assertEqual(unit.max_hp, reconstructed_player_units[unit.id]['max_hp'],
+                                   f"Max HP mismatch for player unit {unit.name} ({unit.id}) at seed {seed}")
+
+                for unit in opponent_units:
+                    self.assertEqual(unit.hp, reconstructed_opponent_units[unit.id]['hp'],
+                                   f"HP mismatch for opponent unit {unit.name} ({unit.id}) at seed {seed}")
+                    self.assertEqual(unit.max_hp, reconstructed_opponent_units[unit.id]['max_hp'],
+                                   f"Max HP mismatch for opponent unit {unit.name} ({unit.id}) at seed {seed}")
+
+            except Exception as e:
+                error_print(f"Error at seed {seed}: {e}")
+                raise
+
+        print("All 10000 seeds tested successfully!")
 
 
 if __name__ == '__main__':

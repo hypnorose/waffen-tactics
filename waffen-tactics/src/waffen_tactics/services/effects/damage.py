@@ -34,6 +34,7 @@ class DamageHandler(EffectHandler):
             'damage_type': damage_type,
             'old_hp': old_hp,
             'new_hp': target.hp,
+            'target_hp': target.hp,  # Authoritative HP after damage (for reconstruction)
             'is_skill': True
         })
 

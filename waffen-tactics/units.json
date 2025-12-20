@@ -183,10 +183,10 @@
           {
             "type": "buff",
             "target": "self",
-            "stat": "speed",
+            "stat": "attack_speed",
             "value": 20,
             "value_type": "percentage",
-            "duration": 3
+            "duration": 2
           }
         ]
       }
@@ -382,7 +382,7 @@
     },
     {
       "id": "grzalcia",
-      "name": "Grzałcia",
+      "name": "Loki",
       "factions": [
         "Srebrna Gwardia"
       ],
@@ -596,15 +596,15 @@
         "effects": [
           {
             "type": "damage",
-            "target": "enemy_team",
-            "amount": 140,
+            "target": "enemy_front",
+            "amount": 50,
             "damage_type": "magical"
           },
           {
             "type": "debuff",
             "target": "enemy_team",
-            "stat": "speed",
-            "value": 20,
+            "stat": "attack_speed",
+            "value": 10,
             "value_type": "percentage",
             "duration": 3
           }
@@ -751,7 +751,6 @@
       "skill": {
         "name": "Miniaturka",
         "description": "Szybki atak na jednego wroga z krótkim ogłuszeniem",
-        "mana_cost": 45,
         "effects": [
           {
             "type": "damage",
@@ -783,7 +782,6 @@
       "skill": {
         "name": "Wykalkulowana wymiana",
         "description": "Osłabia obronę wroga, a następnie zadaje precyzyjne obrażenia",
-        "mana_cost": 70,
         "effects": [
           {
             "type": "debuff",
@@ -818,7 +816,6 @@
       "skill": {
         "name": "Totalna Napierdalanka",
         "description": "Niszczy przednią linię i ogłusza wrogów",
-        "mana_cost": 120,
         "effects": [
           {
             "type": "damage",
@@ -882,7 +879,6 @@
       "skill": {
         "name": "Psychiczny Wstrząs",
         "description": "Zadaje obrażenia magiczne i ma szansę na ogłuszenie wroga",
-        "mana_cost": 50,
         "effects": [
           {
             "type": "damage",
@@ -958,7 +954,6 @@
       "skill": {
         "name": "Forteca Strategii",
         "description": "Wzmacnia obronę sojuszników i osłabia atak wrogów",
-        "mana_cost": 95,
         "effects": [
           {
             "type": "buff",
@@ -1147,7 +1142,7 @@
           {
             "type": "stun",
             "target": "single_enemy_persistent",
-            "duration": 2
+            "duration": 0.3
           }
         ]
       },
@@ -1207,7 +1202,7 @@
             "type": "debuff",
             "target": "enemy_team",
             "stat": "attack",
-            "value": 30,
+            "value": 15,
             "value_type": "percentage",
             "duration": 10
           },
@@ -1215,14 +1210,14 @@
             "type": "debuff",
             "target": "enemy_team",
             "stat": "defense",
-            "value": 30,
+            "value": 15,
             "value_type": "percentage",
             "duration": 10
           },
           {
             "type": "damage",
             "target": "enemy_front",
-            "amount": 160,
+            "amount": 100,
             "damage_type": "physical"
           }
         ]
@@ -1248,14 +1243,14 @@
           {
             "type": "damage",
             "target": "enemy_front",
-            "amount": 170,
+            "amount": 120,
             "damage_type": "physical"
           },
           {
             "type": "buff",
             "target": "ally_front",
             "stat": "attack",
-            "value": 20,
+            "value": 10,
             "value_type": "percentage",
             "duration": 6
           }
@@ -1506,7 +1501,7 @@
           {
             "type": "stun",
             "target": "single_enemy",
-            "duration": 1
+            "duration": 0.3
           }
         ]
       }

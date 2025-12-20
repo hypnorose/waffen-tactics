@@ -4,6 +4,7 @@ Shield Effect Handler - Handles shield/damage reduction effects in skills
 from typing import Dict, Any, List
 from waffen_tactics.models.skill import Effect, SkillExecutionContext, EffectType
 from waffen_tactics.services.effects import EffectHandler, register_effect_handler
+from waffen_tactics.services.event_canonicalizer import emit_shield_applied
 
 
 class ShieldHandler(EffectHandler):
@@ -25,20 +26,17 @@ class ShieldHandler(EffectHandler):
             'source': f"skill_{context.caster.id}"
         }
 
-        # Add to target's shield
-        target.shield += amount
+        # Use canonical emitter to apply shield and produce a canonical payload
+        payload = emit_shield_applied(
+            None,
+            recipient=target,
+            amount=amount,
+            duration=duration,
+            source=context.caster,
+            timestamp=context.combat_time,
+        )
 
-        # Generate event
-        event = ('shield_applied', {
-            'unit_id': target.id,
-            'unit_name': getattr(target, 'name', None),
-            'caster_id': context.caster.id,
-            'caster_name': getattr(context.caster, 'name', None),
-            'amount': amount,
-            'duration': duration
-        })
-
-        return [event]
+        return [('shield_applied', payload)]
 
     def validate_params(self, effect: Effect) -> bool:
         """Validate shield parameters"""

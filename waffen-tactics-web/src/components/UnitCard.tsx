@@ -299,15 +299,27 @@ export default function UnitCard({
       )}
 
       <div
-        className={`w-full rounded-lg ${detailed ? 'p-2' : 'p-1'} transition-all duration-150 border-2 bg-gray-800/90 hover:bg-gray-800 ${detailed ? 'h-64' : 'h-32'} flex flex-col`}
+        className={`w-full rounded-lg ${detailed ? 'p-2' : 'p-1'} transition-all duration-150 border-2 bg-gray-800/90 hover:bg-gray-800 ${detailed ? 'h-64' : 'h-32'} flex flex-col relative`}
         style={{
           borderColor: getCostBorderColor(unit.cost),
           boxShadow: `0 0 10px ${getCostBorderColor(unit.cost)}40`,
         }}
       >
+        {starLevel > 1 && (
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+            <div className="flex items-center gap-0.5 px-1 py-0.5">
+              {Array.from({ length: starLevel }).map((_, i) => (
+                <span key={i} className="text-yellow-400 text-sm bg-black/70 px-0.5 py-0.5 rounded-full">
+                  ⭐
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-center mb-2">
           <div
-            className={`${detailed ? 'w-16 h-16' : 'w-10 h-10'} rounded-full flex items-center justify-center font-bold text-2xl border-2 relative overflow-hidden`}
+            className={`${detailed ? 'w-48 h-24' : 'w-28 h-14'} rounded-lg flex items-center justify-center font-bold text-2xl border-2 relative overflow-hidden`}
             style={{ borderColor: getCostBorderColor(unit.cost), backgroundColor: '#1e293b' }}
           >
             {unit.avatar ? (
@@ -397,17 +409,6 @@ export default function UnitCard({
           </div>
         )}
 
-        {starLevel > 1 && (
-          <div className="flex justify-center mt-auto">
-            <div className="flex items-center gap-0.5">
-              {Array.from({ length: starLevel }).map((_, i) => (
-                <span key={i} className="text-yellow-400 text-sm">
-                  ⭐
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

@@ -289,8 +289,12 @@ class UnitManager:
 
             # Create upgraded unit
             upgraded = UnitInstance(unit_id=unit_id, star_level=star_level + 1)
-            # Preserve persistent buffs from the first merged unit
-            upgraded.persistent_buffs = units_to_merge[0].persistent_buffs.copy()
+            # Combine persistent buffs from all merged units
+            combined_buffs = {}
+            for unit in units_to_merge:
+                for stat, value in unit.persistent_buffs.items():
+                    combined_buffs[stat] = combined_buffs.get(stat, 0) + value
+            upgraded.persistent_buffs = combined_buffs
 
             # Prefer board if any merged unit was on board and there's space
             if merged_on_board and len(player.board) < player.max_board_size:

@@ -2,11 +2,12 @@
 CombatUnit class - represents a unit in combat
 """
 from typing import List, Dict, Any, Optional
+import copy
 
 
 class CombatUnit:
     """Lightweight unit representation for combat with effect hooks"""
-    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, skill: Optional[Dict[str, Any]] = None, mana_regen: int = 0, stats: Optional['Stats'] = None, star_level: int = 1, position: str = 'front'):
+    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, skill: Optional[Dict[str, Any]] = None, mana_regen: int = 0, stats: Optional['Stats'] = None, star_level: int = 1, position: str = 'front', base_stats: Optional[Dict[str, float]] = None):
         self.id = id
         self.name = name
         self.hp = hp
@@ -35,6 +36,24 @@ class CombatUnit:
             }
         else:
             self.skill = skill
+        # Store base stats for frontend consistency
+        self.base_stats = base_stats or {
+            'hp': self.max_hp,
+            'attack': attack,
+            'defense': defense,
+            'attack_speed': attack_speed,
+            'max_mana': max_mana
+        }
+        # Skill system
+        if skill and hasattr(skill, 'name'):
+            # Convert Skill object to dict; do not store mana_cost on skill definitions
+            self.skill = {
+                'name': skill.name,
+                'description': skill.description,
+                'effect': skill.effect
+            }
+        else:
+            self.skill = skill
         # Convenience caches for common passive values
         self.lifesteal = 0.0
         self.damage_reduction = 0.0
@@ -51,6 +70,8 @@ class CombatUnit:
         self.collected_stats: Dict[str, float] = {}
         # Shield amount
         self.shield = 0
+        # Populate caches from effects
+        self._update_caches()
 
     def to_dict(self, current_hp: Optional[int] = None) -> Dict[str, Any]:
         """Serialize to dict for snapshots"""
@@ -69,6 +90,7 @@ class CombatUnit:
             'current_mana': self.mana,
             'max_mana': self.max_mana,
             'shield': self.shield,
+            'base_stats': self.base_stats,
             'buffed_stats': {
                 'hp': self.max_hp,
                 'attack': self.attack,

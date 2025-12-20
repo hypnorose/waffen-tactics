@@ -1,5 +1,5 @@
 """Game manager handling player actions and game logic"""
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 from ..models.player_state import PlayerState, UnitInstance
 from ..models.unit import Unit
 from ..services.data_loader import load_game_data, GameData
@@ -89,9 +89,9 @@ class GameManager:
         
         return self.synergy_engine.compute(board_units)
     
-    def start_combat(self, player: PlayerState, opponent_board: List[Unit]) -> dict:
+    def start_combat(self, player: PlayerState, opponent_board: List[Unit], opponent_info: Optional[Dict] = None) -> dict:
         """
         Simulate combat between player board and opponent
         Returns combat result with winner, log, etc.
         """
-        return self.combat_manager.start_combat(player, opponent_board)
+        return self.combat_manager.start_combat(player, opponent_board, opponent_info)

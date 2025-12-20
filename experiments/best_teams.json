@@ -1,0 +1,417 @@
+{
+  "best_score": 1.0,
+  "best_team": [
+    "socjopata",
+    "galanonim",
+    "olaczka",
+    "szalwia",
+    "pan_yakuza",
+    "mrvlook",
+    "dawid_czerw",
+    "capybara",
+    "vitas",
+    "pepe"
+  ],
+  "history": [
+    {
+      "gen": 0,
+      "best_score": 1.0
+    },
+    {
+      "gen": 1,
+      "best_score": 0.9666666666666667
+    },
+    {
+      "gen": 2,
+      "best_score": 1.0
+    },
+    {
+      "gen": 3,
+      "best_score": 0.9666666666666667
+    },
+    {
+      "gen": 4,
+      "best_score": 0.9333333333333333
+    },
+    {
+      "gen": 5,
+      "best_score": 1.0
+    },
+    {
+      "gen": 6,
+      "best_score": 1.0
+    },
+    {
+      "gen": 7,
+      "best_score": 1.0
+    },
+    {
+      "gen": 8,
+      "best_score": 1.0
+    },
+    {
+      "gen": 9,
+      "best_score": 1.0
+    },
+    {
+      "gen": 10,
+      "best_score": 1.0
+    },
+    {
+      "gen": 11,
+      "best_score": 1.0
+    },
+    {
+      "gen": 12,
+      "best_score": 0.9666666666666667
+    },
+    {
+      "gen": 13,
+      "best_score": 1.0
+    },
+    {
+      "gen": 14,
+      "best_score": 1.0
+    },
+    {
+      "gen": 15,
+      "best_score": 1.0
+    },
+    {
+      "gen": 16,
+      "best_score": 1.0
+    },
+    {
+      "gen": 17,
+      "best_score": 1.0
+    },
+    {
+      "gen": 18,
+      "best_score": 1.0
+    },
+    {
+      "gen": 19,
+      "best_score": 1.0
+    },
+    {
+      "gen": 20,
+      "best_score": 1.0
+    },
+    {
+      "gen": 21,
+      "best_score": 1.0
+    },
+    {
+      "gen": 22,
+      "best_score": 1.0
+    },
+    {
+      "gen": 23,
+      "best_score": 1.0
+    },
+    {
+      "gen": 24,
+      "best_score": 1.0
+    },
+    {
+      "gen": 25,
+      "best_score": 1.0
+    },
+    {
+      "gen": 26,
+      "best_score": 1.0
+    },
+    {
+      "gen": 27,
+      "best_score": 1.0
+    },
+    {
+      "gen": 28,
+      "best_score": 1.0
+    },
+    {
+      "gen": 29,
+      "best_score": 1.0
+    },
+    {
+      "gen": 30,
+      "best_score": 1.0
+    },
+    {
+      "gen": 31,
+      "best_score": 1.0
+    },
+    {
+      "gen": 32,
+      "best_score": 1.0
+    },
+    {
+      "gen": 33,
+      "best_score": 1.0
+    },
+    {
+      "gen": 34,
+      "best_score": 1.0
+    },
+    {
+      "gen": 35,
+      "best_score": 1.0
+    },
+    {
+      "gen": 36,
+      "best_score": 1.0
+    },
+    {
+      "gen": 37,
+      "best_score": 1.0
+    },
+    {
+      "gen": 38,
+      "best_score": 0.9666666666666667
+    },
+    {
+      "gen": 39,
+      "best_score": 1.0
+    },
+    {
+      "gen": 40,
+      "best_score": 1.0
+    },
+    {
+      "gen": 41,
+      "best_score": 1.0
+    },
+    {
+      "gen": 42,
+      "best_score": 1.0
+    },
+    {
+      "gen": 43,
+      "best_score": 1.0
+    },
+    {
+      "gen": 44,
+      "best_score": 1.0
+    },
+    {
+      "gen": 45,
+      "best_score": 1.0
+    },
+    {
+      "gen": 46,
+      "best_score": 1.0
+    },
+    {
+      "gen": 47,
+      "best_score": 1.0
+    },
+    {
+      "gen": 48,
+      "best_score": 1.0
+    },
+    {
+      "gen": 49,
+      "best_score": 1.0
+    },
+    {
+      "gen": 50,
+      "best_score": 0.9666666666666667
+    },
+    {
+      "gen": 51,
+      "best_score": 1.0
+    },
+    {
+      "gen": 52,
+      "best_score": 1.0
+    },
+    {
+      "gen": 53,
+      "best_score": 1.0
+    },
+    {
+      "gen": 54,
+      "best_score": 1.0
+    },
+    {
+      "gen": 55,
+      "best_score": 1.0
+    },
+    {
+      "gen": 56,
+      "best_score": 0.9666666666666667
+    },
+    {
+      "gen": 57,
+      "best_score": 1.0
+    },
+    {
+      "gen": 58,
+      "best_score": 1.0
+    },
+    {
+      "gen": 59,
+      "best_score": 1.0
+    },
+    {
+      "gen": 60,
+      "best_score": 1.0
+    },
+    {
+      "gen": 61,
+      "best_score": 1.0
+    },
+    {
+      "gen": 62,
+      "best_score": 1.0
+    },
+    {
+      "gen": 63,
+      "best_score": 1.0
+    },
+    {
+      "gen": 64,
+      "best_score": 1.0
+    },
+    {
+      "gen": 65,
+      "best_score": 1.0
+    },
+    {
+      "gen": 66,
+      "best_score": 1.0
+    },
+    {
+      "gen": 67,
+      "best_score": 1.0
+    },
+    {
+      "gen": 68,
+      "best_score": 1.0
+    },
+    {
+      "gen": 69,
+      "best_score": 1.0
+    },
+    {
+      "gen": 70,
+      "best_score": 1.0
+    },
+    {
+      "gen": 71,
+      "best_score": 1.0
+    },
+    {
+      "gen": 72,
+      "best_score": 1.0
+    },
+    {
+      "gen": 73,
+      "best_score": 1.0
+    },
+    {
+      "gen": 74,
+      "best_score": 1.0
+    },
+    {
+      "gen": 75,
+      "best_score": 1.0
+    },
+    {
+      "gen": 76,
+      "best_score": 1.0
+    },
+    {
+      "gen": 77,
+      "best_score": 1.0
+    },
+    {
+      "gen": 78,
+      "best_score": 1.0
+    },
+    {
+      "gen": 79,
+      "best_score": 1.0
+    },
+    {
+      "gen": 80,
+      "best_score": 1.0
+    },
+    {
+      "gen": 81,
+      "best_score": 1.0
+    },
+    {
+      "gen": 82,
+      "best_score": 1.0
+    },
+    {
+      "gen": 83,
+      "best_score": 1.0
+    },
+    {
+      "gen": 84,
+      "best_score": 1.0
+    },
+    {
+      "gen": 85,
+      "best_score": 1.0
+    },
+    {
+      "gen": 86,
+      "best_score": 1.0
+    },
+    {
+      "gen": 87,
+      "best_score": 1.0
+    },
+    {
+      "gen": 88,
+      "best_score": 1.0
+    },
+    {
+      "gen": 89,
+      "best_score": 1.0
+    },
+    {
+      "gen": 90,
+      "best_score": 1.0
+    },
+    {
+      "gen": 91,
+      "best_score": 0.9666666666666667
+    },
+    {
+      "gen": 92,
+      "best_score": 1.0
+    },
+    {
+      "gen": 93,
+      "best_score": 1.0
+    },
+    {
+      "gen": 94,
+      "best_score": 1.0
+    },
+    {
+      "gen": 95,
+      "best_score": 1.0
+    },
+    {
+      "gen": 96,
+      "best_score": 1.0
+    },
+    {
+      "gen": 97,
+      "best_score": 1.0
+    },
+    {
+      "gen": 98,
+      "best_score": 1.0
+    },
+    {
+      "gen": 99,
+      "best_score": 1.0
+    }
+  ]
+}

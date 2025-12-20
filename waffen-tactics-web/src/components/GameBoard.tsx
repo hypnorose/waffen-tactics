@@ -246,8 +246,8 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
       {/* Construction Notice */}
       <div className="bg-yellow-500/20 border-2 border-yellow-500/50 rounded-lg p-4 text-center">
         <div className="text-xl font-bold text-yellow-600 mb-2">
-          {/* 🚧 MENTOR CWEL MIŁEGO GRANIA 🚧 */}
-          👨‍✈️  👨‍✈️
+          🚧 MENTOR CWEL MIŁEGO GRANIA 🚧
+          {/* 👨‍✈️ MENTOR CWEL MIŁEGO GRANIA 👨‍✈️ */}
         </div>
         {/* <div className="text-sm text-yellow-700">
           Funkcjonalności są w trakcie rozwoju. Przepraszamy za niedogodności!

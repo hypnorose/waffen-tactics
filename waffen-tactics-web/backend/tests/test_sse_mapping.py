@@ -86,3 +86,53 @@ def test_mapping_preserves_is_skill_on_attack():
     # Find any unit_attack that was produced by a skill (is_skill == True)
     skill_attacks = [m for m in mapped if m and m.get('type') == 'unit_attack' and m.get('is_skill')]
     assert len(skill_attacks) >= 1, f"Expected at least one skill-origin unit_attack, mapped={mapped}"
+
+
+def test_all_mapped_payloads_include_seq():
+    # Test that every mapped payload includes 'seq'
+    heal = Effect(type=EffectType.HEAL, target=TargetType.ALLY_TEAM, params={'amount': 30})
+    skill = Skill(name='Heal', description='Heal', mana_cost=50, effects=[heal])
+
+    caster = make_unit('c3', 'Caster3', hp=100, max_mana=100, skill=skill)
+    ally = make_unit('a3', 'Ally3', hp=10, max_mana=100)
+    enemy = make_unit('e3', 'Enemy3', hp=100, max_mana=100)
+
+    caster.mana = 100
+
+    result = run_combat_simulation([caster, ally], [enemy])
+
+    assert 'events' in result
+
+    # Map each event and assert all payloads have 'seq'
+    for et, d in result['events']:
+        payload = gc.map_event_to_sse_payload(et, d)
+        if payload:
+            assert 'seq' in payload, f"Payload for event {et} missing 'seq': {payload}"
+            assert isinstance(payload['seq'], int), f"seq should be int, got {type(payload['seq'])}: {payload['seq']}"
+
+
+def test_seq_is_monotonically_increasing():
+    # Test that seq values are monotonically increasing across events
+    heal = Effect(type=EffectType.HEAL, target=TargetType.ALLY_TEAM, params={'amount': 30})
+    buff = Effect(type=EffectType.BUFF, target=TargetType.ALLY_TEAM, params={'stat': 'attack', 'value': 5, 'duration': 5})
+    skill = Skill(name='Support', description='Support', mana_cost=50, effects=[heal, buff])
+
+    caster = make_unit('c4', 'Caster4', hp=100, max_mana=100, skill=skill)
+    ally = make_unit('a4', 'Ally4', hp=10, max_mana=100)
+    enemy = make_unit('e4', 'Enemy4', hp=100, max_mana=100)
+
+    caster.mana = 100
+
+    result = run_combat_simulation([caster, ally], [enemy])
+
+    assert 'events' in result
+
+    seqs = []
+    for et, d in result['events']:
+        payload = gc.map_event_to_sse_payload(et, d)
+        if payload and 'seq' in payload:
+            seqs.append(payload['seq'])
+
+    # Assert seqs are strictly increasing
+    for i in range(1, len(seqs)):
+        assert seqs[i] > seqs[i-1], f"seq not increasing: {seqs[i-1]} >= {seqs[i]}"

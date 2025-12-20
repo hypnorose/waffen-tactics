@@ -241,7 +241,7 @@ class DatabaseManager:
             """)
             await db.commit()
     
-    async def get_random_opponent(self, exclude_user_id: Optional[int] = None, player_wins: int = 0, player_rounds: int = 0) -> Optional[Dict]:
+    async def get_random_opponent(self, exclude_user_id: Optional[int] = None, player_wins: int = 0, player_rounds: int = 0, player_level: int = 1) -> Optional[Dict]:
         """Get opponent team - prefer real players close by rounds, else system bots.
 
         Tries several round-difference windows (1,3,5) to improve matchmaking
@@ -296,7 +296,7 @@ class DatabaseManager:
                 if exclude is not None:
                     count_q = """
                         SELECT COUNT(*) FROM opponent_teams
-                        WHERE user_id != ? AND user_id > 100 AND is_active = 1
+                        WHERE user_id != ? AND user_id > 100000 AND is_active = 1
                         AND ABS((wins + losses) - ?) <= ?
                     """
                     async with db.execute(count_q, (exclude, player_rounds, delta)) as cursor:
@@ -306,7 +306,7 @@ class DatabaseManager:
                     sel_q = """
                         SELECT user_id, nickname, team_json, wins, losses, level, avatar, avatar_local
                         FROM opponent_teams
-                        WHERE user_id != ? AND user_id > 100 AND is_active = 1 AND ABS((wins + losses) - ?) <= ?
+                        WHERE user_id != ? AND user_id > 100000 AND is_active = 1 AND ABS((wins + losses) - ?) <= ?
                         ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
                         LIMIT 1
                     """
@@ -315,7 +315,7 @@ class DatabaseManager:
                 else:
                     count_q = """
                         SELECT COUNT(*) FROM opponent_teams
-                        WHERE user_id > 100 AND is_active = 1 AND ABS((wins + losses) - ?) <= ?
+                        WHERE user_id > 100000 AND is_active = 1 AND ABS((wins + losses) - ?) <= ?
                     """
                     async with db.execute(count_q, (player_rounds, delta)) as cursor:
                         cnt = await cursor.fetchone()
@@ -324,7 +324,7 @@ class DatabaseManager:
                     sel_q = """
                         SELECT user_id, nickname, team_json, wins, losses, level, avatar, avatar_local
                         FROM opponent_teams
-                        WHERE user_id > 100 AND is_active = 1 AND ABS((wins + losses) - ?) <= ?
+                        WHERE user_id > 100000 AND is_active = 1 AND ABS((wins + losses) - ?) <= ?
                         ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
                         LIMIT 1
                     """
@@ -343,19 +343,19 @@ class DatabaseManager:
                     """
                     SELECT user_id, nickname, team_json, wins, losses, level, avatar, avatar_local
                     FROM opponent_teams
-                    WHERE user_id <= 100 {exclude_clause}
+                    WHERE user_id <= 100000 {exclude_clause}
                     ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
                     LIMIT 1
                     """.format(exclude_clause="AND user_id != ?" if exclude_user_id is not None else ""),
-                    (player_rounds, ) if exclude_user_id is None else (player_rounds, exclude_user_id)
+                    (player_rounds, ) if exclude_user_id is None else (exclude_user_id, player_rounds)
                 ) as cursor:
-                    # Note: parameter order for the exclude case is (player_rounds, exclude_user_id)
-                    # because we injected the exclude placeholder at the end of the WHERE clause.
+                    # Note: parameter order for the exclude case is (exclude_user_id, player_rounds)
+                    # because the WHERE clause ? comes before the ORDER BY ? in the query
                     row = await cursor.fetchone()
 
             return _build_from_row(row)
 
-    async def get_random_system_opponent(self, player_rounds: int = 0) -> Optional[Dict]:
+    async def get_random_system_opponent(self, player_rounds: int = 0, player_level: int = 1) -> Optional[Dict]:
         """Select a system opponent (user_id <= 100), ignoring `is_active`.
 
         This mirrors the selection logic used by the combat service which expects
@@ -366,7 +366,7 @@ class DatabaseManager:
                 """
                 SELECT user_id, nickname, team_json, wins, losses, level, avatar, avatar_local
                 FROM opponent_teams
-                WHERE user_id <= 100
+                WHERE user_id <= 100000
                 ORDER BY ABS((wins + losses) - ?) ASC, RANDOM()
                 LIMIT 1
                 """,

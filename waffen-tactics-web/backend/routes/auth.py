@@ -3,9 +3,11 @@ from functools import wraps
 import os
 import jwt
 import datetime
-from dotenv import load_dotenv
 from pathlib import Path
 import requests
+from dotenv import load_dotenv
+
+
 
 # Load environment variables (project .env is one level up)
 load_dotenv(Path(__file__).parent.parent / '.env')

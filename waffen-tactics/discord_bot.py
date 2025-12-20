@@ -829,7 +829,7 @@ class WaffenTacticsBot:
         self.last_simple_messages[interaction.user.id] = msg
         
         # Get opponent from database (exclude self, match by wins)
-        opponent_data = await self.db.get_random_opponent(exclude_user_id=interaction.user.id, player_wins=player.wins)
+        opponent_data = await self.db.get_random_opponent(exclude_user_id=interaction.user.id, player_wins=player.wins, player_level=player.level)
         
         if not opponent_data:
             await self.send_or_edit_simple_message(interaction, "❌ Brak przeciwników w bazie! Zagraj więcej rund aby zapisać swój zespół.")

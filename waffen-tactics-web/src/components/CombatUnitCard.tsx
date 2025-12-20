@@ -37,6 +37,7 @@ interface Props {
   isOpponent?: boolean
   attackingUnits?: string[]
   targetUnits?: string[]
+  skillUnits?: string[]
   regen?: { amount_per_sec: number } | undefined
   attackDuration?: number
 }
@@ -51,7 +52,7 @@ const getRarityColor = (cost?: number) => {
   return '#6b7280'
 }
 
-export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], targetUnits = [], regen, attackDuration }: Props) {
+export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], targetUnits = [], skillUnits = [], regen, attackDuration }: Props) {
   const [showTooltip, setShowTooltip] = useState(false)
   const displayMaxHp = unit.buffed_stats?.hp ?? unit.max_hp
   const displayHp = Math.min(unit.hp, displayMaxHp)
@@ -91,13 +92,6 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
     return `/avatars/${idForPath}.png`
   })()
 
-  // Debugging hook: log resolved avatar source when tooltip opens or during render
-  try {
-    // keep this quiet in production; dev consoles will show it
-    // eslint-disable-next-line no-console
-    console.debug('CombatUnitCard: resolved avatarSrc', { instanceId: unit.id, templateId: (unit as any).template_id, avatarSrc })
-  } catch (e) {}
-
   return (
     <div
       className="group"
@@ -113,12 +107,14 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
         boxShadow:
           attackingUnits.includes(unit.id)
             ? '0 0 20px #ff0000, 0 0 30px #ff0000'
+            : skillUnits.includes(unit.id)
+            ? '0 0 20px #8b5cf6, 0 0 30px #8b5cf6'
             : targetUnits.includes(unit.id)
             ? '0 0 20px #ffff00, 0 0 30px #ffff00'
             : unit.hp > 0
             ? `0 0 10px ${getRarityColor(unit.cost)}40`
             : 'none',
-        transform: attackingUnits.includes(unit.id) ? 'scale(1.1)' : 'scale(1)',
+        transform: attackingUnits.includes(unit.id) || skillUnits.includes(unit.id) ? 'scale(1.1)' : 'scale(1)',
         minWidth: 0,
         position: 'relative',
         width: '120px',
@@ -151,6 +147,17 @@ export default function CombatUnitCard({ unit, isOpponent, attackingUnits = [], 
           return (
             <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '1.5rem', animation: `pulse ${animSec}s ease-in-out` }}>
               ⚔️
+            </div>
+          )
+        })()
+      )}
+      {skillUnits.includes(unit.id) && (
+        (() => {
+          const animMs = attackDuration ?? 600
+          const animSec = Math.max(0.12, animMs / 1000)
+          return (
+            <div style={{ position: 'absolute', top: '-10px', left: '-10px', fontSize: '1.5rem', animation: `pulse ${animSec}s ease-in-out` }}>
+              ✨
             </div>
           )
         })()

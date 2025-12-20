@@ -10,8 +10,17 @@ import sys
 import asyncio
 from pathlib import Path
 from functools import wraps
-from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
+
+try:
+    from dotenv import load_dotenv
+except Exception:
+    # If python-dotenv is not available in the current runtime, provide a
+    # harmless fallback so the service can still start (useful in CI or
+    # containers where env is provided externally).
+    def load_dotenv(path=None):
+        print('⚠️ python-dotenv not available; skipping .env load')
+        return False
 
 # Load environment variables
 load_dotenv(Path(__file__).parent.parent / '.env')
@@ -113,7 +122,7 @@ def get_units_route():
 def get_traits_route():
     return get_traits()
 
-@game_bp.route('/combat', methods=['GET'])
+@game_bp.route('/combat', methods=['POST'])
 def start_combat_route():
     return start_combat()
 

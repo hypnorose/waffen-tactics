@@ -103,6 +103,7 @@ export default function Game() {
       showNotificationModal('Dodaj jednostki na planszę!')
       return
     }
+    console.log('[GAME] Starting combat - this will trigger SSE connection to /game/combat')
     setShowCombat(true)
   }
 
@@ -335,7 +336,7 @@ export default function Game() {
               </button>
               <button onClick={logout} className="btn btn-danger">
                 🚪 Wyloguj
-              </button>
+              </button> 
               {/* Detailed view toggle (global) */}
               <TopDetailedToggle />
             </div>

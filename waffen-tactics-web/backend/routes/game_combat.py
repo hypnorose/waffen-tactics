@@ -26,9 +26,11 @@ def map_event_to_sse_payload(event_type: str, data: dict):
     Exposed at module level so tests can call it directly to verify the
     JSON payloads the route would stream.
     """
+    logger.debug(f"Mapping event {event_type} with seq={data.get('seq')}")
     # Support both legacy 'attack' and new 'unit_attack' event types
+    res = None
     if event_type in ('attack', 'unit_attack'):
-        return {
+        res = {
             'type': 'unit_attack',
             'attacker_id': data.get('attacker_id'),
             'attacker_name': data.get('attacker_name'),
@@ -39,27 +41,30 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'target_hp': data.get('target_hp') or data.get('unit_hp'),
             'target_max_hp': data.get('target_max_hp'),
             'is_skill': data.get('is_skill', False),
-            'timestamp': data.get('timestamp', time.time())
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'unit_died':
-        return {
+        res = {
             'type': 'unit_died',
             'unit_id': data['unit_id'],
             'unit_name': data['unit_name'],
-            'timestamp': data.get('timestamp', time.time())
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'regen_gain':
-        return {
+        res = {
             'type': 'regen_gain',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
             'amount_per_sec': data.get('amount_per_sec'),
             'total_amount': data.get('total_amount'),
             'duration': data.get('duration'),
-            'timestamp': data.get('timestamp', time.time())
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type in ('heal', 'unit_heal'):
-        return {
+        res = {
             'type': 'unit_heal',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
@@ -68,17 +73,19 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'healer_name': data.get('healer_name') or data.get('caster_name'),
             'unit_hp': data.get('unit_hp') or data.get('new_hp'),
             'unit_max_hp': data.get('unit_max_hp') or data.get('max_hp'),
-            'timestamp': data.get('timestamp', time.time())
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'gold_reward':
         amt = int(data.get('amount', 0) or 0)
-        return {
+        res = {
             'type': 'gold_reward',
             'amount': amt,
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
             'side': data.get('side'),
-            'timestamp': data.get('timestamp', time.time())
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'stat_buff':
         # Build an effect summary so the UI can show badges on unit cards
@@ -89,7 +96,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'value_type': data.get('value_type'),
             'duration': data.get('duration')
         }
-        return {
+        res = {
             'type': 'stat_buff',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
@@ -101,20 +108,22 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'duration': data.get('duration'),
             'side': data.get('side'),
             'effect': eff,
-            'timestamp': data.get('timestamp', time.time())
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'mana_update':
-        return {
+        res = {
             'type': 'mana_update',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
             'current_mana': data.get('current_mana'),
             'max_mana': data.get('max_mana'),
             'side': data.get('side'),
-            'timestamp': data.get('timestamp', time.time())
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'skill_cast':
-        return {
+        res = {
             'type': 'skill_cast',
             'caster_id': data.get('caster_id'),
             'caster_name': data.get('caster_name'),
@@ -122,7 +131,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'target_id': data.get('target_id'),
             'target_name': data.get('target_name'),
             'damage': data.get('damage'),
-            'timestamp': data.get('timestamp', time.time())
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'shield_applied':
         eff = {
@@ -130,7 +140,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'amount': data.get('amount'),
             'duration': data.get('duration')
         }
-        return {
+        res = {
             'type': 'shield_applied',
             'unit_id': data.get('unit_id'),
             'caster_id': data.get('caster_id'),
@@ -139,11 +149,12 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'amount': data.get('amount'),
             'duration': data.get('duration'),
             'effect': eff,
-            'timestamp': data.get('timestamp', time.time())
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'unit_stunned':
         eff = {'type': 'stun', 'duration': data.get('duration')}
-        return {
+        res = {
             'type': 'unit_stunned',
             'unit_id': data.get('unit_id'),
             'caster_id': data.get('caster_id'),
@@ -151,7 +162,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'caster_name': data.get('caster_name'),
             'duration': data.get('duration'),
             'effect': eff,
-            'timestamp': data.get('timestamp', time.time())
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'damage_over_time_applied':
         eff = {
@@ -160,9 +172,10 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'damage_type': data.get('damage_type'),
             'duration': data.get('duration'),
             'interval': data.get('interval'),
-            'ticks': data.get('ticks')
+            'ticks': data.get('ticks'),
+            'id': data.get('effect_id')
         }
-        return {
+        res = {
             'type': 'damage_over_time_applied',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
@@ -174,11 +187,13 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'interval': data.get('interval'),
             'ticks': data.get('ticks'),
             'effect': eff,
-            'timestamp': data.get('timestamp', time.time())
+            'effect_id': data.get('effect_id'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'damage_over_time_tick':
         eff = {'type': 'damage_over_time', 'damage': data.get('damage'), 'damage_type': data.get('damage_type')}
-        return {
+        res = {
             'type': 'damage_over_time_tick',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
@@ -187,22 +202,54 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_hp': data.get('unit_hp'),
             'unit_max_hp': data.get('unit_max_hp'),
             'effect': eff,
-            'timestamp': data.get('timestamp', time.time())
+            'effect_id': data.get('effect_id') or (data.get('effect') or {}).get('id'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
+        }
+    if event_type == 'damage_over_time_expired':
+        # Explicit expire event for DoT effects — include effect id and
+        # authoritative unit HP so reconstructors can remove the effect
+        # exactly when the server considers it expired.
+        res = {
+            'type': 'damage_over_time_expired',
+            'unit_id': data.get('unit_id'),
+            'unit_name': data.get('unit_name'),
+            'effect_id': data.get('effect_id'),
+            'unit_hp': data.get('unit_hp'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
         }
     if event_type == 'state_snapshot':
-        return {
+        res = {
             'type': 'state_snapshot',
             'player_units': data.get('player_units'),
             'opponent_units': data.get('opponent_units'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
+
+    # Attach seq and event_id centrally so every SSE payload carries them when available
+    if res is not None:
+        # Prefer existing seq on the mapped payload, but fall back to provided data
+        if 'seq' not in res or res.get('seq') is None:
+            if 'seq' in data:
+                res['seq'] = data.get('seq')
+        # Attach event_id if present
+        if 'event_id' in data and data.get('event_id'):
+            res['event_id'] = data.get('event_id')
+        # Attach game_state if present
+        if 'game_state' in data:
+            res['game_state'] = data['game_state']
+        logger.debug(f"Mapped {event_type} to payload with seq={res.get('seq')}")
+        return res
+
     return None
 def start_combat():
     """Start combat and stream events with Server-Sent Events"""
 
-    # Get token from query param (EventSource doesn't support custom headers)
-    token = request.args.get('token', '')
+    # Get token from request body (POST)
+    data = request.get_json() or {}
+    token = data.get('token', '')
     if not token:
         logger.warning('start_combat: missing token in request from %s', request.remote_addr)
         return jsonify({'error': 'Missing token'}), 401
@@ -253,6 +300,11 @@ def start_combat():
 
             player_units, player_unit_info, synergies_data = player_data
 
+            # Clear any lingering effects from previous combats (effects should not persist between battles)
+            for u in player_units:
+                u.effects = []
+            # print(f"DEBUG: After clearing effects, player_units effects: {[u.effects for u in player_units]}")
+
             # Prepare opponent units
             try:
                 opponent_units, opponent_unit_info, opponent_info = prepare_opponent_units_for_combat(player)
@@ -267,12 +319,18 @@ def start_combat():
                 yield f"data: {json.dumps({'type': 'error', 'message': 'Internal server error preparing opponent'})}\n\n"
                 return
 
+            # Clear any lingering effects from previous combats (effects should not persist between battles)
+            for u in opponent_units:
+                u.effects = []
+
             # Apply per-round buffs before sending units_init
             simulator = CombatSimulator(dt=0.1, timeout=60)
             a_hp = [u.hp for u in player_units]
             b_hp = [u.hp for u in opponent_units]
             log = []
+            # print(f"DEBUG: Before buffs, player_units effects: {[u.effects for u in player_units]}")
             simulator._process_per_round_buffs(player_units, opponent_units, a_hp, b_hp, 0, log, None, 1)
+            # print(f"DEBUG: After buffs, player_units effects: {[u.effects for u in player_units]}")
             # Update unit_info with applied buffs. Preserve `template_id` and
             # server-side avatar metadata that `prepare_*_for_combat` provided.
             # `prepare_*_for_combat` returned lightweight `player_unit_info`/
@@ -306,13 +364,17 @@ def start_combat():
 
             # Send initial units state with synergies and trait definitions
             trait_definitions = [{'name': t['name'], 'type': t['type'], 'description': t.get('description', ''), 'thresholds': t['thresholds'], 'threshold_descriptions': t.get('threshold_descriptions', []), 'effects': t['effects']} for t in game_manager.data.traits]
-            yield f"data: {json.dumps({'type': 'units_init', 'player_units': player_unit_info, 'opponent_units': opponent_unit_info, 'synergies': synergies_data, 'traits': trait_definitions, 'opponent': opponent_info})}\n\n"
+            logger.info(f"start_combat: sending units_init for player {user_id}")
+            yield f"data: {json.dumps({'type': 'units_init', 'player_units': player_unit_info, 'opponent_units': opponent_unit_info, 'synergies': synergies_data, 'traits': trait_definitions, 'opponent': opponent_info, 'game_state': {'player_units': player_unit_info, 'opponent_units': opponent_unit_info}, 'seq': 0})}\n\n"
 
             # Start combat
-            yield f"data: {json.dumps({'type': 'start', 'message': '⚔️ Walka rozpoczyna się!'})}\n\n"
+            logger.info(f"start_combat: sending start event for player {user_id}")
+            yield f"data: {json.dumps({'type': 'start', 'message': '⚔️ Walka rozpoczyna się!', 'seq': 0})}\n\n"
 
             # Combat callback for SSE streaming with timestamp
             def combat_event_handler(event_type: str, data: dict, event_time: float):
+                if event_type == 'state_snapshot':
+                    print(f"DEBUG: state_snapshot seq: {data.get('seq')}, timestamp: {data.get('timestamp')}, game_state keys: {list(data.get('game_state', {}).keys())}")
                 # Use the mapping helper to standardize payloads
                 payload = map_event_to_sse_payload(event_type, data)
                 if payload is None:
@@ -320,11 +382,57 @@ def start_combat():
                 payload['timestamp'] = float(event_time)
                 return [json.dumps(payload)]
 
+            # Event handlers to apply changes before capturing game_state
+            def apply_unit_attack(data, units):
+                target_id = data.get('target_id')
+                new_hp = data.get('target_hp')
+                if target_id and new_hp is not None:
+                    for u in units:
+                        if u.id == target_id:
+                            u.hp = new_hp
+                            return
+                    print(f"DEBUG: Unit {target_id} not found for unit_attack")
+
+            def apply_unit_died(data, units):
+                unit_id = data.get('unit_id')
+                if unit_id:
+                    for u in units:
+                        if u.id == unit_id:
+                            u.hp = 0
+                            return
+
+            def apply_unit_heal(data, units):
+                unit_id = data.get('unit_id')
+                new_hp = data.get('unit_hp')
+                if unit_id and new_hp is not None:
+                    for u in units:
+                        if u.id == unit_id:
+                            print(f"DEBUG: Applying unit_heal: {u.id} hp {u.hp} -> {new_hp}")
+                            u.hp = new_hp
+                            return
+
+            event_handlers = {
+                'attack': apply_unit_attack,
+                'unit_attack': apply_unit_attack,
+                'unit_died': apply_unit_died,
+                'unit_heal': apply_unit_heal,
+            }
+
             # Collect events with timestamps
             events = []  # (event_type, data, event_time)
             def event_collector(event_type: str, data: dict):
+                # print(f"DEBUG: Event {event_type} at {data.get('timestamp', 0.0)}, units ids: {[u.id for u in player_units + opponent_units]}")
+                # Apply event changes to units before capturing game_state
+                handler = event_handlers.get(event_type)
+                if handler:
+                    handler(data, player_units + opponent_units)
                 # Use timestamp from combat simulator (combat-relative time starting from 0)
                 event_time = data.get('timestamp', 0.0)
+                # Add game state to every event
+                data['game_state'] = {
+                    'player_units': [u.to_dict() for u in player_units],
+                    'opponent_units': [u.to_dict() for u in opponent_units],
+                }
                 events.append((event_type, data, event_time))
 
             # Run combat simulation using shared logic
@@ -340,6 +448,7 @@ def start_combat():
                 except Exception:
                     pass
                 for chunk in combat_event_handler(event_type, data, event_time):
+                    logger.debug(f"start_combat: yielding event {event_type} for player {user_id}")
                     yield f"data: {chunk}\n\n"
 
             # Combat result
@@ -469,11 +578,12 @@ def start_combat():
                 player.gold += win_bonus
                 player.streak += 1
 
-                yield f"data: {json.dumps({'type': 'victory', 'message': '🎉 ZWYCIĘSTWO!'})}\n\n"
+                yield f"data: {json.dumps({'type': 'victory', 'message': '🎉 ZWYCIĘSTWO!', 'seq': 999998})}\n\n"
+
             elif result['winner'] == 'team_b':
                 # Defeat - lose HP based on surviving enemy star levels
-                hp_loss = result.get('surviving_star_sum', 1) * 2  # 2 HP per surviving enemy star
-                print(f"DEBUG: surviving_star_sum = {result.get('surviving_star_sum', 'NOT_FOUND')}, hp_loss = {hp_loss}")
+                hp_loss = (result.get('surviving_star_sum') or 1)  # 1 HP per surviving enemy star
+                # print(f"DEBUG: surviving_star_sum = {result.get('surviving_star_sum', 'NOT_FOUND')}, hp_loss = {hp_loss}")
                 player.hp -= hp_loss
                 player.losses += 1
                 player.streak = 0
@@ -491,9 +601,14 @@ def start_combat():
                         round_number=player.round_number,
                         team_units=team_units
                     ))
-                    yield f"data: {json.dumps({'type': 'defeat', 'message': '💀 PRZEGRANA! Koniec gry!', 'game_over': True})}\n\n"
+                    yield f"data: {json.dumps({'type': 'defeat', 'message': f'💀 PRZEGRANA! -{hp_loss} HP. Koniec gry!', 'game_over': True, 'seq': 999998})}\n\n"
                 else:
-                    yield f"data: {json.dumps({'type': 'defeat', 'message': f'💔 PRZEGRANA! -{hp_loss} HP (zostało {player.hp} HP)'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'defeat', 'message': f'💔 PRZEGRANA! -{hp_loss} HP (zostało {player.hp} HP)', 'seq': 999998})}\n\n"
+
+            # Previously an intermediate 'end' event was sent here to finalize
+            # buffering. That prematurely signals the client the stream is
+            # complete; remove the intermediate 'end' so the final 'end'
+            # (which includes full `state`) is the canonical completion event.
 
             # Handle XP level ups (use PlayerState's xp_to_next_level property)
             while player.level < 10:
@@ -523,7 +638,8 @@ def start_combat():
                 'interest': interest,
                 'milestone': milestone_bonus,
                 'win_bonus': win_bonus,
-                'total': total_income + win_bonus
+                'total': total_income + win_bonus,
+                'seq': 999997
             }
             yield f"data: {json.dumps(gold_breakdown)}\n\n"
 
@@ -548,12 +664,16 @@ def start_combat():
                 level=player.level
             ))
 
+            # Clear effects after combat to prevent persistence
+            for u in player_units + opponent_units:
+                u.effects = []
+
             # Save state
             run_async(db_manager.save_player(player))
 
             # Send final state - this will show "Kontynuuj" button
             state_dict = enrich_player_state(player)
-            yield f"data: {json.dumps({'type': 'end', 'state': state_dict})}\n\n"
+            yield f"data: {json.dumps({'type': 'end', 'state': state_dict, 'seq': 1000000})}\n\n"
 
             print(f"Combat finished for user {user_id}, waiting for user to close...")
 

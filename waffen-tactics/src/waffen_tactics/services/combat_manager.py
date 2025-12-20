@@ -1,5 +1,5 @@
 """Combat management service handling battle simulation"""
-from typing import List, Dict
+from typing import List, Dict, Optional
 from ..models.player_state import PlayerState
 from ..models.unit import Unit
 from ..services.synergy import SynergyEngine
@@ -17,7 +17,7 @@ class CombatManager:
     def __init__(self, synergy_engine: SynergyEngine):
         self.synergy_engine = synergy_engine
 
-    def start_combat(self, player: PlayerState, opponent_board: List[Unit]) -> Dict:
+    def start_combat(self, player: PlayerState, opponent_board: List[Unit], opponent_info: Optional[Dict] = None) -> Dict:
         """
         Simulate combat between player board and opponent
         Returns combat result with winner, log, etc.
@@ -117,9 +117,17 @@ class CombatManager:
             base_attack = int(unit.stats.attack * (1.4 ** (ui.star_level - 1)))
             base_defense = int(unit.stats.defense)
             base_attack_speed = float(unit.stats.attack_speed)
+            
             base_stats = {'hp': base_hp, 'attack': base_attack, 'defense': base_defense, 'attack_speed': base_attack_speed}
             buffed_stats = self.synergy_engine.apply_stat_buffs(base_stats, unit, active_synergies)
             buffed_stats = self.synergy_engine.apply_dynamic_effects(unit, buffed_stats, active_synergies, player)
+
+            # Apply persistent buffs after synergies (consistent with UI)
+            if ui.persistent_buffs:
+                buffed_stats['hp'] += int(ui.persistent_buffs.get('hp', 0))
+                buffed_stats['attack'] += int(ui.persistent_buffs.get('attack', 0))
+                buffed_stats['defense'] += int(ui.persistent_buffs.get('defense', 0))
+                buffed_stats['attack_speed'] += ui.persistent_buffs.get('attack_speed', 0)
 
             hp = buffed_stats['hp']
             attack = buffed_stats['attack']
@@ -129,7 +137,7 @@ class CombatManager:
             # Get active effects
             effects_a = self.synergy_engine.get_active_effects(unit, active_synergies)
 
-            team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats, position=ui.position))
+            team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats, position=ui.position, base_stats=base_stats))
 
             # Opponent team
             opponent_units = [u for u in opponent_board]
@@ -155,7 +163,7 @@ class CombatManager:
 
                 effects_b = self.synergy_engine.get_active_effects(u, opponent_active)
 
-                team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b, max_mana=u.stats.max_mana, stats=u.stats, position='front'))
+                team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b, max_mana=u.stats.max_mana, stats=u.stats, position='front', base_stats={'hp': hp_b, 'attack': attack_b, 'defense': defense_b, 'attack_speed': attack_speed_b, 'max_mana': u.stats.max_mana}))
 
             shared = CombatSimulator()
             result = shared.simulate(team_a_combat, team_b_combat, timeout=120, event_callback=None, round_number=player.round_number)
@@ -172,10 +180,22 @@ class CombatManager:
             player.streak = max(0, player.streak) + 1
             damage = 0
             result['winner'] = 'player'
+            
+            # Update persistent buffs for surviving units
+            for i, ui in enumerate(player.board):
+                combat_unit = team_a_combat[i]
+                if combat_unit.hp > 0:  # Only for survivors
+                    permanent_buffs = getattr(combat_unit, 'permanent_buffs_applied', {})
+                    # Add to existing persistent buffs
+                    for stat, value in permanent_buffs.items():
+                        ui.persistent_buffs[stat] = ui.persistent_buffs.get(stat, 0) + value
         else:
             player.losses += 1
             player.streak = min(0, player.streak) - 1
-            damage = result.get('team_b_survivors', 3) + player.round_number
+            # Calculate damage based on star levels of surviving opponents
+            surviving_stars = sum(team_b_combat[i].star_level for i, unit in enumerate(team_b_combat) if unit.hp > 0)
+            opponent_level = opponent_info.get('level', 1) if opponent_info else 1
+            damage = surviving_stars + opponent_level
             player.hp -= damage
             result['winner'] = 'opponent'
 

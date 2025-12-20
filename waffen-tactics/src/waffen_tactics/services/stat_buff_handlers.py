@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .combat_unit import CombatUnit
 
 from .stat_calculator import StatCalculator
+from .event_canonicalizer import emit_stat_buff, emit_regen_gain
 
 
 class StatBuffHandler(ABC):
@@ -77,15 +78,7 @@ class AttackBuffHandler(StatBuffHandler):
         log.append(f"{unit.name} gains +{buffed_value:.0f} Atak (stat_buff)")
 
         if event_callback:
-            event_callback('stat_buff', {
-                'unit_id': unit.id,
-                'unit_name': unit.name,
-                'stat': 'attack',
-                'amount': buffed_value,
-                'side': side,
-                'timestamp': time,
-                'cause': 'effect'
-            })
+            emit_stat_buff(event_callback, unit, 'attack', buffed_value, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
 
 
 class DefenseBuffHandler(StatBuffHandler):
@@ -121,15 +114,7 @@ class DefenseBuffHandler(StatBuffHandler):
         log.append(f"{unit.name} gains +{buffed_value:.0f} {self.stat_name.capitalize()} (stat_buff)")
 
         if event_callback:
-            event_callback('stat_buff', {
-                'unit_id': unit.id,
-                'unit_name': unit.name,
-                'stat': self.stat_name,
-                'amount': buffed_value,
-                'side': side,
-                'timestamp': time,
-                'cause': 'effect'
-            })
+            emit_stat_buff(event_callback, unit, self.stat_name, buffed_value, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
 
 
 class HpBuffHandler(StatBuffHandler):
@@ -165,15 +150,7 @@ class HpBuffHandler(StatBuffHandler):
         log.append(f"{unit.name} gains +{buffed_value:.0f} HP (stat_buff)")
 
         if event_callback:
-            event_callback('stat_buff', {
-                'unit_id': unit.id,
-                'unit_name': unit.name,
-                'stat': 'hp',
-                'amount': buffed_value,
-                'side': side,
-                'timestamp': time,
-                'cause': 'effect'
-            })
+            emit_stat_buff(event_callback, unit, 'hp', buffed_value, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
 
 
 class AttackSpeedBuffHandler(StatBuffHandler):
@@ -209,15 +186,7 @@ class AttackSpeedBuffHandler(StatBuffHandler):
         log.append(f"{unit.name} gains +{buffed_value:.2f} Attack Speed (stat_buff)")
 
         if event_callback:
-            event_callback('stat_buff', {
-                'unit_id': unit.id,
-                'unit_name': unit.name,
-                'stat': 'attack_speed',
-                'amount': buffed_value,
-                'side': side,
-                'timestamp': time,
-                'cause': 'effect'
-            })
+            emit_stat_buff(event_callback, unit, 'attack_speed', buffed_value, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
 
 
 class ManaRegenBuffHandler(StatBuffHandler):
@@ -253,15 +222,7 @@ class ManaRegenBuffHandler(StatBuffHandler):
         log.append(f"{unit.name} gains +{buffed_value:.0f} Mana Regen (stat_buff)")
 
         if event_callback:
-            event_callback('stat_buff', {
-                'unit_id': unit.id,
-                'unit_name': unit.name,
-                'stat': self.stat_name,
-                'amount': buffed_value,
-                'side': side,
-                'timestamp': time,
-                'cause': 'effect'
-            })
+            emit_stat_buff(event_callback, unit, self.stat_name, buffed_value, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
 
 
 class LifestealBuffHandler(StatBuffHandler):
@@ -297,15 +258,7 @@ class LifestealBuffHandler(StatBuffHandler):
         log.append(f"{unit.name} gains +{lifesteal_gain:.1%} Lifesteal (stat_buff)")
 
         if event_callback:
-            event_callback('stat_buff', {
-                'unit_id': unit.id,
-                'unit_name': unit.name,
-                'stat': 'lifesteal',
-                'amount': lifesteal_gain,
-                'side': side,
-                'timestamp': time,
-                'cause': 'effect'
-            })
+            emit_stat_buff(event_callback, unit, 'lifesteal', lifesteal_gain, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
 
 
 class DamageReductionBuffHandler(StatBuffHandler):
@@ -341,15 +294,7 @@ class DamageReductionBuffHandler(StatBuffHandler):
         log.append(f"{unit.name} gains +{reduction_gain:.1%} Damage Reduction (stat_buff)")
 
         if event_callback:
-            event_callback('stat_buff', {
-                'unit_id': unit.id,
-                'unit_name': unit.name,
-                'stat': 'damage_reduction',
-                'amount': reduction_gain,
-                'side': side,
-                'timestamp': time,
-                'cause': 'effect'
-            })
+            emit_stat_buff(event_callback, unit, 'damage_reduction', reduction_gain, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
 
 
 class HpRegenPerSecBuffHandler(StatBuffHandler):
@@ -385,13 +330,7 @@ class HpRegenPerSecBuffHandler(StatBuffHandler):
         log.append(f"{unit.name} gains +{regen_gain:.2f} HP Regen/sec (stat_buff)")
 
         if event_callback:
-            event_callback('regen_gain', {
-                'unit_id': unit.id,
-                'unit_name': unit.name,
-                'amount_per_sec': regen_gain,
-                'side': side,
-                'timestamp': time
-            })
+            emit_regen_gain(event_callback, unit, regen_gain, side=side, timestamp=time)
 
 
 # Registry of stat handlers

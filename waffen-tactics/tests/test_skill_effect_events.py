@@ -56,6 +56,8 @@ def test_skill_emits_heal_and_shield_events_and_applies_effects():
     assert len(shield_events) == 1
     assert shield_events[0]['amount'] == 25
     assert shield_events[0]['unit_id'] == 'caster'
+    # Check that timestamp is correctly set to combat_time (0.0)
+    assert shield_events[0]['timestamp'] == 0.0
 
 
 def test_random_vs_persistent_single_enemy_targeting():

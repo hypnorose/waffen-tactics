@@ -65,6 +65,7 @@ class SkillExecutor:
 
             # Emit skill_cast first (meta/display) then execute effects so
             # the UI shows the caster using the skill before the effect lines.
+            skill_delay = 0.2  # Fixed delay after last attack
             events.append(('skill_cast', {
                 'caster_id': context.caster.id,
                 'caster_name': context.caster.name,
@@ -72,7 +73,7 @@ class SkillExecutor:
                 'target_id': None,
                 'target_name': None,
                 'damage': None,
-                'timestamp': context.combat_time
+                'timestamp': context.combat_time + skill_delay
             }))
 
             # Execute effects sequentially (effects come after skill_cast)
@@ -132,15 +133,18 @@ class SkillExecutor:
             return [caster]
 
         elif target_type == TargetType.SINGLE_ENEMY:
-            # Random enemy - different each time
-            alive_enemies = [u for u in enemy_team if u.hp > 0]
-            if not alive_enemies:
+            # Random enemy - prefer alive targets but fall back to any enemy
+            alive_enemies = [u for u in enemy_team if getattr(u, 'hp', 0) > 0]
+            candidates = alive_enemies if alive_enemies else list(enemy_team)
+
+            # If there truly are no enemies at all, return empty
+            if not candidates:
                 return []
-            
+
             # Use random_seed for deterministic behavior if provided
             if context.random_seed is not None:
                 random.seed(context.random_seed)
-            return [random.choice(alive_enemies)]
+            return [random.choice(candidates)]
 
         elif target_type == TargetType.SINGLE_ENEMY_PERSISTENT:
             # Same enemy for all effects in this skill execution

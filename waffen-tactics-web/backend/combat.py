@@ -103,8 +103,17 @@ class CombatSimulator:
                     
                     # Calculate damage: attack - defense, min 1
                     damage = max(1, unit.attack - team_b[target_idx].defense)
+                    try:
+                        old_hp = int(b_hp[target_idx])
+                    except Exception:
+                        old_hp = b_hp[target_idx]
                     b_hp[target_idx] -= damage
                     b_hp[target_idx] = max(0, b_hp[target_idx])
+                    try:
+                        new_hp = int(b_hp[target_idx])
+                    except Exception:
+                        new_hp = b_hp[target_idx]
+                    # print(f"[HP DEBUG] ts={time:.9f} side=team_a target={team_b[target_idx].id}:{team_b[target_idx].name} old_hp={old_hp} -> new_hp={new_hp} cause=attack damage={damage}")
                     
                     # Log and callback
                     msg = f"A:{unit.name} hits B:{team_b[target_idx].name} for {damage}, hp={b_hp[target_idx]}"
@@ -170,8 +179,17 @@ class CombatSimulator:
                             target_idx = random.choice([t[0] for t in targets])
                     
                     damage = max(1, unit.attack - team_a[target_idx].defense)
+                    try:
+                        old_hp = int(a_hp[target_idx])
+                    except Exception:
+                        old_hp = a_hp[target_idx]
                     a_hp[target_idx] -= damage
                     a_hp[target_idx] = max(0, a_hp[target_idx])
+                    try:
+                        new_hp = int(a_hp[target_idx])
+                    except Exception:
+                        new_hp = a_hp[target_idx]
+                    # print(f"[HP DEBUG] ts={time:.9f} side=team_b target={team_a[target_idx].id}:{team_a[target_idx].name} old_hp={old_hp} -> new_hp={new_hp} cause=attack damage={damage}")
                     
                     msg = f"B:{unit.name} hits A:{team_a[target_idx].name} for {damage}, hp={a_hp[target_idx]}"
                     log.append(msg)
