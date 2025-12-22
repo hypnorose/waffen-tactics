@@ -53,7 +53,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   })
   const [storedGoldBreakdown, setStoredGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number } | null>(null)
   const [displayedGoldBreakdown, setDisplayedGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number } | null>(null)
-  const [pendingHpUpdates, setPendingHpUpdates] = useState<Record<string, { hp: number, shield: number }>>({})
 
   const { spawnProjectile } = useProjectileSystem()
 
@@ -92,6 +91,11 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     const event = bufferedEvents[playhead]
     console.log('Applying event:', event.type, 'seq:', event.seq, 'playhead:', playhead)
 
+    // DEBUG: Log all effect-related events
+    if (event.type === 'unit_stunned' || event.type === 'damage_over_time_applied' || event.type === 'stat_buff' || event.type === 'effect_expired') {
+      console.log(`[EFFECT EVENT] ${event.type} seq=${event.seq}:`, JSON.stringify(event, null, 2))
+    }
+
     // Handle gold income breakdown so UI can display gold notification after replay
     if (event.type === 'gold_income') {
       const breakdown: any = event as any
@@ -100,80 +104,92 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
 
     // Apply event
     const currentState = combatStateRef.current
+
+    // DEBUG: Log state BEFORE applying event (only if effects present)
+    if (event.type === 'mana_update' && event.unit_id) {
+      const unit = event.unit_id.startsWith('opp_')
+        ? currentState.opponentUnits.find(u => u.id === event.unit_id)
+        : currentState.playerUnits.find(u => u.id === event.unit_id)
+
+      if (unit?.effects && unit.effects.length > 0) {
+        console.log(`[STATE DEBUG BEFORE] ${event.type} seq=${event.seq} unit=${event.unit_id} effects:`, unit.effects)
+      }
+    }
+
     const newState = applyCombatEvent(currentState, event, { overwriteSnapshots, simTime: currentState.simTime })
-    
-    // Handle delayed HP updates for projectile timing
-    if (event.type === 'unit_attack' && event.target_id && event.damage !== undefined) {
-      const shieldAbsorbed = event.shield_absorbed || 0
-      const hpDamage = event.damage - shieldAbsorbed
-      
-      // Find the target unit in current state
-      const targetUnit = event.target_id.startsWith('opp_') 
-        ? currentState.opponentUnits.find(u => u.id === event.target_id)
-        : currentState.playerUnits.find(u => u.id === event.target_id)
-      
-      if (targetUnit) {
-        const oldHp = targetUnit.hp
-        const oldShield = targetUnit.shield || 0
-        const newHp = Math.max(0, oldHp - hpDamage)
-        const newShield = Math.max(0, oldShield - shieldAbsorbed)
-        
-        // Store pending update
-        setPendingHpUpdates(prev => ({
-          ...prev,
-          [event.target_id!]: { hp: newHp, shield: newShield }
-        }))
-        
-        // Temporarily keep old values in UI state
-        if (event.target_id.startsWith('opp_')) {
-          newState.opponentUnits = newState.opponentUnits.map(u => 
-            u.id === event.target_id ? { ...u, hp: oldHp, shield: oldShield } : u
-          )
-        } else {
-          newState.playerUnits = newState.playerUnits.map(u => 
-            u.id === event.target_id ? { ...u, hp: oldHp, shield: oldShield } : u
-          )
-        }
+
+    // DEBUG: Log state AFTER applying event (only if effects present)
+    if (event.type === 'mana_update' && event.unit_id) {
+      const unit = event.unit_id.startsWith('opp_')
+        ? newState.opponentUnits.find(u => u.id === event.unit_id)
+        : newState.playerUnits.find(u => u.id === event.unit_id)
+
+      if (unit?.effects && unit.effects.length > 0) {
+        console.log(`[STATE DEBUG AFTER] ${event.type} seq=${event.seq} unit=${event.unit_id} effects:`, unit.effects)
       }
     }
     
+    // Handle delayed HP updates for projectile timing
+    if (event.type === 'unit_attack' && event.target_id) {
+      // CRITICAL: Use authoritative HP from backend, NOT local calculations!
+      // The backend already sends target_hp, post_hp, unit_hp with the correct HP value
+      // after applying damage with proper defense calculations.
+
+      // Get authoritative HP from backend event (priority order: unit_hp, target_hp, post_hp, new_hp)
+      const authoritativeHp = (event as any).unit_hp ?? (event as any).target_hp ?? (event as any).post_hp ?? (event as any).new_hp
+
+      // Calculate shield change from current state
+      const targetUnit = event.target_id.startsWith('opp_')
+        ? newState.opponentUnits.find(u => u.id === event.target_id)
+        : newState.playerUnits.find(u => u.id === event.target_id)
+
+      if (targetUnit && authoritativeHp !== undefined) {
+        const shieldAbsorbed = event.shield_absorbed || 0
+        const newShield = Math.max(0, (targetUnit.shield || 0) - shieldAbsorbed)
+
+        // CRITICAL FIX: DO NOT store pending updates or override authoritative state!
+        // applyCombatEvent already set the correct HP. No need for delayed updates.
+      }
+    }
+    
+    // CRITICAL: Log effects BEFORE setState to verify mutation safety (only if effects present)
+    if (event.unit_id) {
+      const unit = event.unit_id.startsWith('opp_')
+        ? newState.opponentUnits.find(u => u.id === event.unit_id)
+        : newState.playerUnits.find(u => u.id === event.unit_id)
+
+      // Only log if unit has effects to reduce console spam
+      if (unit?.effects && unit.effects.length > 0) {
+        console.log(`[MUTATION CHECK] Before setState: unit=${event.unit_id} effects:`, JSON.parse(JSON.stringify(unit.effects)))
+      }
+    }
+
     setCombatState(newState)
     combatStateRef.current = newState
 
+    // CRITICAL: Log effects AFTER setState to check for mutation (only if effects present)
+    if (event.unit_id) {
+      const unit = event.unit_id.startsWith('opp_')
+        ? newState.opponentUnits.find(u => u.id === event.unit_id)
+        : newState.playerUnits.find(u => u.id === event.unit_id)
+
+      // Only log if unit has effects to reduce console spam
+      if (unit?.effects && unit.effects.length > 0) {
+        console.log(`[MUTATION CHECK] After setState: unit=${event.unit_id} effects:`, JSON.parse(JSON.stringify(unit.effects)))
+      }
+    }
+
     // Trigger projectile VFX for attacks (replaces old card shake / flashes)
     if (event.type === 'unit_attack' && event.attacker_id && event.target_id) {
-      const emoji = event.is_skill ? '✨' : '🗡️'
+      const emoji = event.is_skill ? '⚡' : '🗡️'
       spawnProjectile({ 
         fromId: event.attacker_id, 
         toId: event.target_id, 
         emoji,
         onComplete: () => {
-          // Apply pending HP update and trigger hurt effect when projectile arrives
-          // Skip if combat has finished to prevent overwriting final state
-          if (combatStateRef.current.isFinished) return
-          
-          if (event.target_id && pendingHpUpdates[event.target_id]) {
-            setCombatState(prevState => {
-              const updatedState = { ...prevState }
-              if (event.target_id!.startsWith('opp_')) {
-                updatedState.opponentUnits = prevState.opponentUnits.map(u => 
-                  u.id === event.target_id ? { ...u, ...pendingHpUpdates[event.target_id] } : u
-                )
-              } else {
-                updatedState.playerUnits = prevState.playerUnits.map(u => 
-                  u.id === event.target_id ? { ...u, ...pendingHpUpdates[event.target_id] } : u
-                )
-              }
-              return updatedState
-            })
-            
-            // Clean up pending update
-            setPendingHpUpdates(prev => {
-              const newPending = { ...prev }
-              delete newPending[event.target_id!]
-              return newPending
-            })
-          }
+          // CRITICAL FIX: DO NOT apply pending HP updates here!
+          // applyCombatEvent already set the authoritative HP correctly.
+          // The projectile is purely for visual effect - the state is already correct.
         }
       })
     }
@@ -203,7 +219,12 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     }
   }, [isBufferedComplete, bufferedEvents.length])
 
-  // Regen and effect cleanup
+  // Regen cleanup only
+  // CRITICAL: DO NOT auto-expire effects here! Effects should ONLY be removed when
+  // effect_expired events arrive from backend. Auto-expiration causes desyncs because:
+  // 1. Client timing may differ from server by a few ms
+  // 2. Reverting stat changes (hp, attack, defense) conflicts with authoritative backend values
+  // 3. Backend already sends effect_expired events when effects truly expire
   useEffect(() => {
     const t = setInterval(() => {
       const now = Date.now()
@@ -213,112 +234,18 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
         for (const k of Object.keys(newRegenMap)) {
           if (newRegenMap[k].expiresAt <= now) {
             delete newRegenMap[k]
-            changed = true  
+            changed = true
           }
         }
         if (!changed) return prev
 
         return { ...prev, regenMap: newRegenMap }
-      }) 
-
-      // Cleanup expired effects and revert changes
-      setCombatState(prev => {
-        let changed = false
-        const newPlayerUnits = prev.playerUnits.map(u => {
-          if (!u.effects || u.effects.length === 0) return u
-          const activeEffects = []
-          let revertedHp = 0
-          let revertedAttack = 0
-          let revertedDefense = 0
-          let revertedShield = 0
-          for (const e of u.effects) {
-            if (e.expiresAt && e.expiresAt <= now) {
-              // Revert
-              if (e.type === 'buff' && e.applied_delta) {
-                if (e.stat === 'hp') revertedHp -= e.applied_delta
-                else if (e.stat === 'attack') revertedAttack -= e.applied_delta
-                else if (e.stat === 'defense') revertedDefense -= e.applied_delta
-              } else if (e.type === 'shield' && e.applied_amount) {
-                revertedShield -= e.applied_amount
-              }
-            } else {
-              activeEffects.push(e)
-            }
-          }
-          if (activeEffects.length !== u.effects.length) {
-            changed = true
-            return {
-              ...u,
-              effects: activeEffects,
-              hp: Math.max(0, u.hp + revertedHp),
-              attack: u.attack + revertedAttack,
-              defense: (u.defense ?? 0) + revertedDefense,
-              buffed_stats: {
-                ...u.buffed_stats,
-                attack: (u.buffed_stats?.attack ?? u.attack) + revertedAttack,
-                defense: (u.buffed_stats?.defense ?? u.defense ?? 0) + revertedDefense
-              },
-              shield: Math.max(0, (u.shield ?? 0) + revertedShield)
-            }
-          }
-          return u
-        })
-        const newOpponentUnits = prev.opponentUnits.map(u => {
-          if (!u.effects || u.effects.length === 0) return u
-          const activeEffects = []
-          let revertedHp = 0
-          let revertedAttack = 0
-          let revertedDefense = 0
-          let revertedShield = 0
-          for (const e of u.effects) {
-            if (e.expiresAt && e.expiresAt <= now) {
-              // Revert
-              if (e.type === 'buff' && e.applied_delta) {
-                if (e.stat === 'hp') revertedHp -= e.applied_delta
-                else if (e.stat === 'attack') revertedAttack -= e.applied_delta
-                else if (e.stat === 'defense') revertedDefense -= e.applied_delta
-              } else if (e.type === 'shield' && e.applied_amount) {
-                revertedShield -= e.applied_amount
-              }
-            } else {
-              activeEffects.push(e)
-            }
-          }
-          if (activeEffects.length !== u.effects.length) {
-            changed = true
-            return {
-              ...u,
-              effects: activeEffects,
-              hp: Math.max(0, u.hp + revertedHp),
-              attack: u.attack + revertedAttack,
-              defense: (u.defense ?? 0) + revertedDefense,
-              buffed_stats: {
-                ...u.buffed_stats,
-                attack: (u.buffed_stats?.attack ?? u.attack) + revertedAttack,
-                defense: (u.buffed_stats?.defense ?? u.defense ?? 0) + revertedDefense
-              },
-              shield: Math.max(0, (u.shield ?? 0) + revertedShield)
-            }
-          }
-          return u
-        })
-        if (changed) {
-          return { ...prev, playerUnits: newPlayerUnits, opponentUnits: newOpponentUnits }
-        }
-        return prev
       })
     }, 500)
     return () => clearInterval(t)
   }, [])
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [combatState.combatLog])
-
-  // Clear pending HP updates when combat finishes to prevent race conditions
-  useEffect(() => {
-    if (combatState.isFinished) {
-      setPendingHpUpdates({})
-    }
-  }, [combatState.isFinished])
 
   const handleClose = () => onClose(combatState.finalState || undefined)
   const handleGoldDismiss = () => { setDisplayedGoldBreakdown(null); setStoredGoldBreakdown(null); handleClose() }

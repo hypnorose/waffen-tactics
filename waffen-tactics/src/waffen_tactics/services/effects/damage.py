@@ -4,62 +4,44 @@ Damage Effect Handler - Handles damage effects in skills
 from typing import Dict, Any, List
 from waffen_tactics.models.skill import Effect, SkillExecutionContext, EffectType
 from waffen_tactics.services.effects import EffectHandler, register_effect_handler
+from waffen_tactics.services.event_canonicalizer import emit_damage
 
 
 class DamageHandler(EffectHandler):
     """Handles damage effects"""
 
     def execute(self, effect: Effect, context: SkillExecutionContext, target) -> List[Dict[str, Any]]:
-        """Execute damage effect"""
+        """Execute damage effect using canonical emit_damage"""
         amount = effect.params.get('amount', 0)
         damage_type = effect.params.get('damage_type', 'physical')
 
         if amount <= 0:
             return []
 
-        # Calculate actual damage (could add damage type modifiers later)
-        actual_damage = amount
+        # Use canonical emitter to apply damage (HP mutation + shield handling)
+        # But we emit 'unit_attack' instead of 'attack' to mark this as skill damage
+        cb = getattr(context, 'event_callback', None)
+        payload = emit_damage(
+            cb,
+            attacker=context.caster,
+            target=target,
+            raw_damage=amount,
+            shield_absorbed=0,  # Shields are handled inside emit_damage
+            damage_type=damage_type,
+            side=None,  # Side will be determined by simulator
+            timestamp=getattr(context, 'combat_time', None),
+            cause='skill',
+            emit_event=False,  # Don't auto-emit, we'll emit as unit_attack
+        )
 
-        # Calculate damage outcome without mutating target here. The simulator
-        # will apply the authoritative mutation via canonical emitters when it
-        # forwards returned events to the provided `event_callback`.
-        old_hp = int(getattr(target, 'hp', 0))
-        new_hp = max(0, old_hp - int(actual_damage))
+        # Add is_skill marker to payload
+        payload['is_skill'] = True
 
-        # If no event_callback provided, mutate target directly (dry-run/tests).
-        if getattr(context, 'event_callback', None) is None:
-            target.hp = new_hp
-            return [(
-                'unit_attack', {
-                    'attacker_id': context.caster.id,
-                    'attacker_name': context.caster.name,
-                    'target_id': target.id,
-                    'target_name': target.name,
-                    'damage': actual_damage,
-                    'damage_type': damage_type,
-                    'old_hp': old_hp,
-                    'new_hp': new_hp,
-                    'target_hp': new_hp,
-                    'is_skill': True,
-                    'timestamp': context.combat_time,
-                }
-            )]
-
-        event = ('unit_attack', {
-            'attacker_id': context.caster.id,
-            'attacker_name': context.caster.name,
-            'target_id': target.id,
-            'target_name': target.name,
-            'damage': actual_damage,
-            'damage_type': damage_type,
-            'pre_hp': old_hp,
-            'post_hp': new_hp,
-            'unit_hp': new_hp,
-            'is_skill': True,
-            'timestamp': context.combat_time,
-        })
-
-        return [event]
+        # Emit as unit_attack to distinguish skill damage from regular attacks
+        if cb:
+            cb('unit_attack', payload)
+            return []
+        return [('unit_attack', payload)]
 
     def validate_params(self, effect: Effect) -> bool:
         """Validate damage parameters"""

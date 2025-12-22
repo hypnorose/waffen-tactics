@@ -47,6 +47,58 @@ db_manager = DatabaseManager(DB_PATH)
 game_manager = GameManager()
 
 
+def _apply_persistent_buffs_from_kills(player: PlayerState, player_synergies: Dict[str, Tuple[int, int]], collected_stats_maps: Dict[str, Dict[str, int]], game_manager: GameManager):
+    """
+    Apply persistent buffs to player units based on kills and trait synergies.
+
+    Args:
+        player: The player state
+        player_synergies: Dict of trait_name -> (count, tier)
+        collected_stats_maps: Dict of instance_id -> collected stats
+        game_manager: Game manager for trait data
+    """
+    # Apply permanent buffs from kills (on_enemy_death with permanent_stat_buff)
+    for trait_name, (count, tier) in player_synergies.items():
+        trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
+        if not trait_obj:
+            continue
+        idx = tier - 1
+        if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+            continue
+        effect = trait_obj.get('effects', [])[idx]
+        etype = effect.get('type')
+        if etype == 'on_enemy_death':
+            actions = effect.get('actions', [])
+            for action in actions:
+                if action.get('type') == 'kill_buff':
+                    stat = action.get('stat')
+                    value = action.get('value', 0)
+                    is_percentage = action.get('is_percentage', False)
+                    collect_stat = action.get('collect_stat', 'defense')
+                    if stat:
+                        units_to_buff = []
+                        target = trait_obj.get('target', 'trait')
+                        if target == 'team':
+                            units_to_buff = player.board
+                        elif target == 'trait':
+                            for ui in player.board:
+                                unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
+                                if unit and (trait_name in unit.factions or trait_name in unit.classes):
+                                    units_to_buff.append(ui)
+
+                        for ui in units_to_buff:
+                            collected_stats = collected_stats_maps.get(ui.instance_id, {})
+                            collected_value = collected_stats.get(collect_stat, 0)
+                            if is_percentage:
+                                increment = collected_value * (value / 100.0)
+                            else:
+                                increment = collected_value * value
+
+                            if increment > 0:
+                                current_buff = ui.persistent_buffs.get(stat, 0)
+                                ui.persistent_buffs[stat] = current_buff + increment
+
+
 def _run_async(coro):
     """Helper to run async functions synchronously"""
     loop = asyncio.new_event_loop()
@@ -573,46 +625,7 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
                         ui.persistent_buffs[stat] = current_buff + increment
 
         # Apply permanent buffs from kills (on_enemy_death with permanent_stat_buff)
-        for trait_name, (count, tier) in player_synergies.items():
-            trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
-            if not trait_obj:
-                continue
-            idx = tier - 1
-            if idx < 0 or idx >= len(trait_obj.get('effects', [])):
-                continue
-            effect = trait_obj.get('effects', [])[idx]
-            etype = effect.get('type')
-            if etype == 'on_enemy_death':
-                actions = effect.get('actions', [])
-                for action in actions:
-                    if action.get('type') == 'kill_buff':
-                        stat = action.get('stat')
-                        value = action.get('value', 0)
-                        is_percentage = action.get('is_percentage', False)
-                        collect_stat = action.get('collect_stat', 'defense')
-                        if stat:
-                            units_to_buff = []
-                            target = trait_obj.get('target', 'trait')
-                            if target == 'team':
-                                units_to_buff = player.board
-                            elif target == 'trait':
-                                for ui in player.board:
-                                    unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-                                    if unit and (trait_name in unit.factions or trait_name in unit.classes):
-                                        units_to_buff.append(ui)
-
-                            for ui in units_to_buff:
-                                collected_stats = collected_stats_maps.get(ui.instance_id, {})
-                                if is_percentage:
-                                    collected_value = collected_stats.get(collect_stat, 0)
-                                    increment = collected_value * (value / 100.0)
-                                else:
-                                    collected_value = collected_stats.get('kills', 0)
-                                    increment = collected_value * value
-
-                                if increment > 0:
-                                    current_buff = ui.persistent_buffs.get(stat, 0)
-                                    ui.persistent_buffs[stat] = current_buff + increment
+        _apply_persistent_buffs_from_kills(player, player_synergies, collected_stats_maps, game_manager)
 
         win_bonus = 0
         game_over = False

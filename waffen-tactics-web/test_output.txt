@@ -1,0 +1,135 @@
+
+> waffen-tactics-web@1.0.0 test
+> vitest --run --reporter=verbose
+
+
+ RUN  v2.1.9 /home/ubuntu/waffen-tactics-game/waffen-tactics-web
+
+stdout | src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > unit_stunned events > should add stun effect with ID
+[EFFECT DEBUG] Applying stun to opp_0: {
+  id: 'stun-uuid',
+  type: 'stun',
+  duration: 1.5,
+  caster_name: 'Stunner',
+  expiresAt: 2.5
+}
+[EFFECT DEBUG] opp_0 effects before: 0, after: 1
+
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > stat_buff events > should add effect with proper ID from backend
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > stat_buff events > should detect debuff by negative value
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > stat_buff events > should apply stat changes correctly
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > stat_buff events > should not duplicate effects with same ID
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > stat_buff events > should store applied_delta for reversion
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > effect_expired events > should remove effect and revert stats
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > effect_expired events > should revert defense debuff correctly
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > shield_applied events > should add shield effect with ID
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > unit_stunned events > should add stun effect with ID
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > Immutability - Deep Copy Validation > should not mutate original state
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > Immutability - Deep Copy Validation > should not share effects array references between states
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Effect Handling > Complex Effect Sequences > should handle multiple buffs and debuffs correctly
+ ✓ src/hooks/combat/__tests__/applyEvent.test.ts > applyCombatEvent - Real Event Dump Replay > should replay real combat events from dump without errors
+stdout | src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - events_desync_team.json > should validate all stat_buff events have effect_id
+
+Checking 32 stat_buff events for effect_id...
+
+stderr | src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - Multiple Dumps > should replay events_test_1685.json without errors
+No units_init event found in events_test_1685.json, skipping
+
+stderr | src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - Multiple Dumps > should replay events_test_3055.json without errors
+No units_init event found in events_test_3055.json, skipping
+
+stderr | src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - Multiple Dumps > should replay events_seed42.json without errors
+No units_init event found in events_seed42.json, skipping
+
+stdout | src/hooks/combat/__tests__/realEventReplay.test.ts > Effect ID Validation > should verify all effect events have proper UUIDs
+
+Validating effect_id format for 33 effect events...
+
+stderr | src/hooks/combat/__tests__/realEventReplay.test.ts > Effect ID Validation > should verify all effect events have proper UUIDs
+Missing effect_id in shield_applied event at seq 1007
+
+ × src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - events_desync_team.json > should replay all events without crashing
+   → expected undefined to be defined
+ ✓ src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - events_desync_team.json > should validate all stat_buff events have effect_id
+ × src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - events_desync_team.json > should validate effect types match value signs
+   → Cannot read properties of undefined (reading 'player_units')
+ × src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - events_desync_team.json > should detect desyncs between frontend and backend state
+   → Cannot read properties of undefined (reading 'player_units')
+ × src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - events_desync_team.json > should not create duplicate effects with same ID
+   → Cannot read properties of undefined (reading 'player_units')
+ ✓ src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - Multiple Dumps > should replay events_test_1685.json without errors
+ ✓ src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - Multiple Dumps > should replay events_test_3055.json without errors
+ ✓ src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - Multiple Dumps > should replay events_seed42.json without errors
+ × src/hooks/combat/__tests__/realEventReplay.test.ts > Effect ID Validation > should verify all effect events have proper UUIDs
+   → expected undefined to be defined
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - events_desync_team.json > should replay all events without crashing
+AssertionError: expected undefined to be defined
+ ❯ src/hooks/combat/__tests__/realEventReplay.test.ts:51:28
+     49|     // Find units_init event
+     50|     const unitsInitEvent = events.find((e: any) => e.type === 'units_i…
+     51|     expect(unitsInitEvent).toBeDefined()
+       |                            ^
+     52| 
+     53|     let state = createStateFromUnitsInit(unitsInitEvent)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - events_desync_team.json > should validate effect types match value signs
+TypeError: Cannot read properties of undefined (reading 'player_units')
+ ❯ createStateFromUnitsInit src/hooks/combat/__tests__/realEventReplay.test.ts:30:24
+     28| function createStateFromUnitsInit(event: any): CombatState {
+     29|   return {
+     30|     playerUnits: event.player_units || [],
+       |                        ^
+     31|     opponentUnits: event.opponent_units || [],
+     32|     combatLog: [],
+ ❯ src/hooks/combat/__tests__/realEventReplay.test.ts:97:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - events_desync_team.json > should detect desyncs between frontend and backend state
+TypeError: Cannot read properties of undefined (reading 'player_units')
+ ❯ createStateFromUnitsInit src/hooks/combat/__tests__/realEventReplay.test.ts:30:24
+     28| function createStateFromUnitsInit(event: any): CombatState {
+     29|   return {
+     30|     playerUnits: event.player_units || [],
+       |                        ^
+     31|     opponentUnits: event.opponent_units || [],
+     32|     combatLog: [],
+ ❯ src/hooks/combat/__tests__/realEventReplay.test.ts:144:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/hooks/combat/__tests__/realEventReplay.test.ts > Real Combat Event Replay - events_desync_team.json > should not create duplicate effects with same ID
+TypeError: Cannot read properties of undefined (reading 'player_units')
+ ❯ createStateFromUnitsInit src/hooks/combat/__tests__/realEventReplay.test.ts:30:24
+     28| function createStateFromUnitsInit(event: any): CombatState {
+     29|   return {
+     30|     playerUnits: event.player_units || [],
+       |                        ^
+     31|     opponentUnits: event.opponent_units || [],
+     32|     combatLog: [],
+ ❯ src/hooks/combat/__tests__/realEventReplay.test.ts:203:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  src/hooks/combat/__tests__/realEventReplay.test.ts > Effect ID Validation > should verify all effect events have proper UUIDs
+AssertionError: expected undefined to be defined
+ ❯ src/hooks/combat/__tests__/realEventReplay.test.ts:296:33
+    294|       if (!event.effect_id) {
+    295|         console.error(`Missing effect_id in ${event.type} event at seq…
+    296|         expect(event.effect_id).toBeDefined()
+       |                                 ^
+    297|       }
+    298| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  5 failed | 17 passed (22)
+   Start at  01:42:27
+   Duration  1.06s (transform 190ms, setup 0ms, collect 298ms, tests 60ms, environment 898ms, prepare 386ms)
+

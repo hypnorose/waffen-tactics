@@ -46,84 +46,39 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'state_snapshot':
-      console.log(`[SNAPSHOT] overwriteSnapshots=${ctx.overwriteSnapshots}`)
-      // Expire effects before updating
-      const currentTime = ctx.simTime
-      newState.playerUnits = newState.playerUnits.map(u => ({
-        ...u,
-        effects: u.effects?.filter(e => !e.expiresAt || e.expiresAt > currentTime) || []
-      }))
-      newState.opponentUnits = newState.opponentUnits.map(u => ({
-        ...u,
-        effects: u.effects?.filter(e => !e.expiresAt || e.expiresAt > currentTime) || []
-      }))
-      // Handle snapshot - overwrite if enabled
-      if (event.player_units && ctx.overwriteSnapshots) {
-        console.log(`[SNAPSHOT] OVERWRITING player units with snapshot`)
-        const normalizedPlayers = event.player_units.map((u, idx) => ({
-          ...u,
-          hp: u.hp ?? 0,
-          current_mana: u.current_mana ?? 0,
-          shield: u.shield ?? 0,
-          position: u.position ?? (idx < Math.ceil(event.player_units!.length / 2) ? 'front' : 'back')
-        }))
-        const prevMap = new Map(newState.playerUnits.map(p => [p.id, p]))
-        newState.playerUnits = normalizedPlayers.map(u => {
-          const prevU = prevMap.get(u.id)
-          return {
-            ...u,
-            avatar: prevU?.avatar || u.avatar || undefined,
-            template_id: prevU?.template_id || u.template_id || undefined,
-            factions: prevU?.factions || u.factions || undefined,
-            classes: prevU?.classes || u.classes || undefined,
-            skill: prevU?.skill || u.skill || undefined,
-          }
-        })
-      }
-      // Always update effects
-      if (event.player_units) {
-        newState.playerUnits = newState.playerUnits.map(u => {
-          const serverU = event.player_units!.find(su => su.id === u.id)
-          if (serverU) {
-            return { ...u, effects: serverU.effects }
-          }
-          return u
-        })
-      }
-      // Similar for opponent
-      if (event.opponent_units && ctx.overwriteSnapshots) {
-        const normalizedOpps = event.opponent_units.map((u, idx) => ({
-          ...u,
-          hp: u.hp ?? 0,
-          current_mana: u.current_mana ?? 0,
-          shield: u.shield ?? 0,
-          position: u.position ?? (idx < Math.ceil(event.opponent_units!.length / 2) ? 'front' : 'back')
-        }))
-        const prevMap = new Map(newState.opponentUnits.map(p => [p.id, p]))
-        newState.opponentUnits = normalizedOpps.map(u => {
-          const prevU = prevMap.get(u.id)
-          return {
-            ...u,
-            avatar: prevU?.avatar || u.avatar || undefined,
-            template_id: prevU?.template_id || u.template_id || undefined,
-            factions: prevU?.factions || u.factions || undefined,
-            classes: prevU?.classes || u.classes || undefined,
-            skill: prevU?.skill || u.skill || undefined,
-          }
-        })
-      }
-      if (event.opponent_units) {
-        newState.opponentUnits = newState.opponentUnits.map(u => {
-          const serverU = event.opponent_units!.find(su => su.id === u.id)
-          if (serverU) {
-            return { ...u, effects: serverU.effects }
-          }
-          return u
-        })
-      }
+      // ==================================================================================
+      // SNAPSHOTS ARE VALIDATION ONLY - DO NOT OVERWRITE UI STATE
+      // ==================================================================================
+      // The snapshot event is used for validation in useCombatOverlayLogic.ts:182-184
+      // where compareCombatStates() detects desyncs between UI state and server state.
+      //
+      // We do NOT overwrite UI state with snapshot data here because:
+      // 1. UI state MUST be reconstructable from events alone (event-sourcing principle)
+      // 2. Overwriting masks bugs where events are missing or incorrect
+      // 3. Validation comparison happens AFTER this handler in the combat loop
+      //
+      // If desyncs are detected, they will be logged by DesyncInspector, surfacing the
+      // root cause (missing events, wrong event data, etc.) so it can be fixed properly.
+      // ==================================================================================
+
+      // IMPORTANT: Do NOT auto-expire effects here!
+      // Effects should ONLY be removed when effect_expired events arrive from backend.
+      // Auto-expiration based on simTime causes timing mismatches and desyncs.
+      // The backend explicitly emits effect_expired events when effects truly expire.
+
+      // Update metadata that doesn't come from events (synergies, traits, opponent info)
       if (event.synergies) newState.synergies = event.synergies
       if (event.traits) newState.traits = event.traits
       if (event.opponent) newState.opponentInfo = event.opponent
+
+      // NOTE: We do NOT update unit HP, attack, defense, effects, etc. from snapshots
+      // Those MUST come from events (unit_attack, stat_buff, shield_applied, etc.)
+      // Validation comparison will happen in useCombatOverlayLogic.ts after this handler
+      //
+      // The old 'overwriteSnapshots' feature has been REMOVED because it:
+      // - Violated event-sourcing principles
+      // - Masked bugs where events were missing/wrong
+      // - Made desyncs harder to diagnose
       break
 
     case 'attack':
@@ -141,20 +96,50 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'unit_attack':
-      if (event.target_id && event.damage !== undefined) {
-        const damage = event.damage
-        const shieldAbsorbed = event.shield_absorbed || 0
-        const hpDamage = damage - shieldAbsorbed
-        const updateFn = (u: Unit) => {
-          const oldHp = u.hp
-          const newHp = Math.max(0, oldHp - hpDamage)
-          const newShield = Math.max(0, (u.shield || 0) - shieldAbsorbed)
-          return { ...u, hp: newHp, shield: newShield }
+      if (event.target_id) {
+        // Priority: Use authoritative HP fields from backend (unit_hp, target_hp, post_hp, new_hp)
+        // Fallback: Calculate from damage delta (less reliable, may desync)
+        let newHp: number | undefined
+        if (event.unit_hp !== undefined) {
+          newHp = event.unit_hp
+        } else if (event.target_hp !== undefined) {
+          newHp = event.target_hp
+        } else if (event.post_hp !== undefined) {
+          newHp = event.post_hp
+        } else if (event.new_hp !== undefined) {
+          newHp = event.new_hp
         }
-        if (event.target_id.startsWith('opp_')) {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.target_id, updateFn)
-        } else {
-          newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, updateFn)
+
+        const shieldAbsorbed = event.shield_absorbed || 0
+
+        if (newHp !== undefined) {
+          // Use authoritative HP from backend
+          const updateFn = (u: Unit) => {
+            const newShield = Math.max(0, (u.shield || 0) - shieldAbsorbed)
+            return { ...u, hp: newHp!, shield: newShield }
+          }
+          if (event.target_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.target_id, updateFn)
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, updateFn)
+          }
+        } else if (event.damage !== undefined) {
+          // Fallback: Calculate from delta (TEMPORARY - backend should always provide authoritative HP)
+          // WARNING: This path causes desyncs! Backend should emit unit_hp/target_hp in attack events.
+          console.warn(`⚠️ unit_attack event ${event.seq} missing authoritative HP - using fallback calculation (may desync)`)
+          const damage = event.damage
+          const hpDamage = damage - shieldAbsorbed
+          const updateFn = (u: Unit) => {
+            const oldHp = u.hp
+            const calcHp = Math.max(0, oldHp - hpDamage)
+            const newShield = Math.max(0, (u.shield || 0) - shieldAbsorbed)
+            return { ...u, hp: calcHp, shield: newShield }
+          }
+          if (event.target_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.target_id, updateFn)
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, updateFn)
+          }
         }
       }
       const msg = event.is_skill
@@ -189,7 +174,12 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       if (event.unit_id) {
         const amountNum = event.amount ?? 0
         let delta = 0
-        if (event.stat !== 'random') {
+
+        // Priority: Use authoritative applied_delta from backend if available
+        if (event.applied_delta !== undefined) {
+          delta = event.applied_delta
+        } else if (event.stat !== 'random') {
+          // Fallback: Calculate delta locally (TEMPORARY - backend should always provide applied_delta)
           if (event.value_type === 'percentage') {
             const baseStat = event.stat === 'hp' ? 0 : (event.stat === 'attack' ? (event.unit_attack ?? 0) : (event.unit_defense ?? 0))
             delta = Math.floor(baseStat * (amountNum / 100))
@@ -197,8 +187,11 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
             delta = amountNum
           }
         }
-        const effectType = event.buff_type === 'debuff' ? 'debuff' : 'buff'
+        // CRITICAL: Determine effect type by value sign (negative = debuff)
+        // Backend sends type in the effect object itself, but we need to detect it here too
+        const effectType = (amountNum < 0 || delta < 0) ? 'debuff' : 'buff'
         const effect: EffectSummary = {
+          id: event.effect_id,
           type: effectType,
           stat: event.stat,
           value: amountNum,
@@ -210,15 +203,19 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           applied_delta: delta
         }
         const updateFn = (u: Unit) => {
-          let newU = { ...u, effects: [...(u.effects || []), effect] }
+          // CRITICAL: Create NEW effects array to prevent shared references
+          const newEffects = [...(u.effects || []), { ...effect }]
+          let newU = { ...u, effects: newEffects }
           if (event.stat === 'hp') {
             newU.hp = Math.min(u.max_hp, u.hp + delta)
           } else if (event.stat === 'attack') {
             newU.attack = u.attack + delta
-            newU.buffed_stats = { ...u.buffed_stats, attack: (u.buffed_stats?.attack ?? u.attack) + delta }
+            // buffed_stats should reflect the NEW attack value after delta is applied
+            newU.buffed_stats = { ...u.buffed_stats, attack: newU.attack }
           } else if (event.stat === 'defense') {
             newU.defense = (u.defense ?? 0) + delta
-            newU.buffed_stats = { ...u.buffed_stats, defense: (u.buffed_stats?.defense ?? u.defense ?? 0) + delta }
+            // buffed_stats should reflect the NEW defense value after delta is applied
+            newU.buffed_stats = { ...u.buffed_stats, defense: newU.defense }
           }
           return newU
         }
@@ -305,13 +302,34 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'heal':
       const healUnitId = event.unit_id
-      const healAmount = event.amount
       const healSide = event.side
-      if (healUnitId && typeof healAmount === 'number' && healSide) {
-        if (healSide === 'team_a') {
-          newState.playerUnits = updateUnitById(newState.playerUnits, healUnitId, u => ({ ...u, hp: Math.min(u.max_hp, u.hp + healAmount) }))
-        } else {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, healUnitId, u => ({ ...u, hp: Math.min(u.max_hp, u.hp + healAmount) }))
+      if (healUnitId && healSide) {
+        // Priority: Use authoritative HP from backend (unit_hp, post_hp, new_hp)
+        // Fallback: Calculate from delta (amount)
+        let newHealHp: number | undefined
+        if (event.unit_hp !== undefined) {
+          newHealHp = event.unit_hp
+        } else if (event.post_hp !== undefined) {
+          newHealHp = event.post_hp
+        } else if (event.new_hp !== undefined) {
+          newHealHp = event.new_hp
+        }
+
+        if (newHealHp !== undefined) {
+          // Use authoritative HP
+          if (healSide === 'team_a') {
+            newState.playerUnits = updateUnitById(newState.playerUnits, healUnitId, u => ({ ...u, hp: newHealHp! }))
+          } else {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, healUnitId, u => ({ ...u, hp: newHealHp! }))
+          }
+        } else if (event.amount !== undefined) {
+          // Fallback: incremental update
+          const healAmount = event.amount
+          if (healSide === 'team_a') {
+            newState.playerUnits = updateUnitById(newState.playerUnits, healUnitId, u => ({ ...u, hp: Math.min(u.max_hp, u.hp + healAmount) }))
+          } else {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, healUnitId, u => ({ ...u, hp: Math.min(u.max_hp, u.hp + healAmount) }))
+          }
         }
       }
       break
@@ -319,7 +337,30 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     case 'unit_heal':
       if (event.unit_id) {
         let newHp: number
-        if (event.amount !== undefined) {
+        // Priority: authoritative HP fields first (unit_hp, post_hp, new_hp), then fallback to incremental (amount)
+        if (event.unit_hp !== undefined) {
+          newHp = event.unit_hp
+          if (event.unit_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: newHp }))
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: newHp }))
+          }
+        } else if (event.post_hp !== undefined) {
+          newHp = event.post_hp
+          if (event.unit_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: newHp }))
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: newHp }))
+          }
+        } else if (event.new_hp !== undefined) {
+          newHp = event.new_hp
+          if (event.unit_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: newHp }))
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: newHp }))
+          }
+        } else if (event.amount !== undefined) {
+          // Fallback: incremental update (less reliable)
           const updateFn = (u: Unit) => ({ ...u, hp: Math.min(u.max_hp, u.hp + event.amount!) })
           if (event.unit_id.startsWith('opp_')) {
             newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
@@ -327,16 +368,33 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
             newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
           }
           newHp = 0 // not used
-        } else if (event.unit_hp !== undefined) {
-          newHp = event.unit_hp
-          if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: newHp }))
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: newHp }))
-          }
         }
       }
       newState.combatLog = [...newState.combatLog, `💚 ${event.unit_name} regeneruje ${(event.amount ?? 0).toFixed(2)} HP`]
+      break
+
+    case 'hp_regen':
+      if (event.unit_id) {
+        // Use authoritative unit_hp field from canonical hp_regen event
+        if (event.unit_hp !== undefined) {
+          if (event.unit_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: event.unit_hp! }))
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: event.unit_hp! }))
+          }
+        } else if (event.post_hp !== undefined) {
+          // Fallback to post_hp
+          if (event.unit_id.startsWith('opp_')) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: event.post_hp! }))
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: event.post_hp! }))
+          }
+        }
+      }
+      // Only log significant regen amounts to avoid spam
+      if ((event.amount ?? 0) >= 1) {
+        newState.combatLog = [...newState.combatLog, `💚 ${event.unit_name} regeneruje ${(event.amount ?? 0).toFixed(2)} HP (${event.cause || 'passive'})`]
+      }
       break
 
     case 'damage_over_time_tick':
@@ -378,6 +436,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         const updateFn = (u: Unit) => {
           const newShield = (u.shield || 0) + event.amount!
           const effect: EffectSummary = {
+            id: event.effect_id,
             type: 'shield',
             amount: event.amount,
             duration: event.duration,
@@ -385,7 +444,9 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
             expiresAt: event.duration ? ctx.simTime + event.duration : undefined,
             applied_amount: event.amount
           }
-          return { ...u, effects: [...(u.effects || []), effect], shield: Math.max(0, newShield) }
+          // CRITICAL: Create NEW effects array to prevent shared references
+          const newEffects = [...(u.effects || []), { ...effect }]
+          return { ...u, effects: newEffects, shield: Math.max(0, newShield) }
         }
         if (event.unit_id.startsWith('opp_')) {
           newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
@@ -400,12 +461,19 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       newState.combatLog = [...newState.combatLog, `😵 ${event.unit_name} jest ogłuszony na ${event.duration}s`]
       if (event.unit_id) {
         const effect: EffectSummary = {
+          id: event.effect_id,
           type: 'stun',
           duration: event.duration,
           caster_name: event.caster_name,
           expiresAt: event.duration ? ctx.simTime + event.duration : undefined
         }
-        const updateFn = (u: Unit) => ({ ...u, effects: [...(u.effects || []), effect] })
+        console.log(`[EFFECT DEBUG] Applying stun to ${event.unit_id}:`, effect)
+        const updateFn = (u: Unit) => {
+          // CRITICAL: Create NEW effects array to prevent shared references
+          const newEffects = [...(u.effects || []), { ...effect }]
+          console.log(`[EFFECT DEBUG] ${u.id} effects before: ${u.effects?.length || 0}, after: ${newEffects.length}`)
+          return { ...u, effects: newEffects }
+        }
         if (event.unit_id.startsWith('opp_')) {
           newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
         } else {
@@ -418,6 +486,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       newState.combatLog = [...newState.combatLog, `🔥 ${event.unit_name} otrzymuje DoT (${event.ticks || '?'} ticks)`]
       if (event.unit_id) {
         const effect: EffectSummary = {
+          id: event.effect_id,
           type: 'damage_over_time',
           damage: event.damage || event.amount,
           duration: event.duration,
@@ -426,7 +495,13 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           caster_name: event.caster_name,
           expiresAt: event.duration ? ctx.simTime + event.duration : undefined
         }
-        const updateFn = (u: Unit) => ({ ...u, effects: [...(u.effects || []), effect] })
+        console.log(`[EFFECT DEBUG] Applying DoT to ${event.unit_id}:`, effect)
+        const updateFn = (u: Unit) => {
+          // CRITICAL: Create NEW effects array to prevent shared references
+          const newEffects = [...(u.effects || []), { ...effect }]
+          console.log(`[EFFECT DEBUG] ${u.id} effects before: ${u.effects?.length || 0}, after: ${newEffects.length}`)
+          return { ...u, effects: newEffects }
+        }
         if (event.unit_id.startsWith('opp_')) {
           newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
         } else {
@@ -460,18 +535,45 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'effect_expired':
-      if (event.unit_id) {
-        // Remove the effect by id
-        const removeEffectFn = (u: Unit) => ({
-          ...u,
-          effects: u.effects?.filter(e => e.id !== event.effect_id) || []
-        })
-        if (event.unit_id.startsWith('opp_')) {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, removeEffectFn)
-        } else {
-          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, removeEffectFn)
+      if (event.unit_id && event.effect_id) {
+        // Find and remove the effect, reverting its stat changes
+        const removeAndRevertFn = (u: Unit) => {
+          const expiredEffect = u.effects?.find(e => e.id === event.effect_id)
+          const remainingEffects = u.effects?.filter(e => e.id !== event.effect_id) || []
+
+          if (!expiredEffect) {
+            // Effect not found, just return unchanged
+            return u
+          }
+
+          // Revert stat changes from the expired effect
+          let newU = { ...u, effects: remainingEffects }
+
+          if (expiredEffect.stat && expiredEffect.applied_delta !== undefined) {
+            const delta = -expiredEffect.applied_delta  // Negative to revert
+
+            if (expiredEffect.stat === 'hp') {
+              // Don't revert HP - backend sends authoritative HP in game_state
+              // HP changes are permanent (damage taken, healing, etc.)
+            } else if (expiredEffect.stat === 'attack') {
+              newU.attack = (u.attack ?? 0) + delta
+              newU.buffed_stats = { ...u.buffed_stats, attack: newU.attack }
+            } else if (expiredEffect.stat === 'defense') {
+              newU.defense = (u.defense ?? 0) + delta
+              newU.buffed_stats = { ...u.buffed_stats, defense: newU.defense }
+            }
+          }
+
+          return newU
         }
-        // Update HP if provided
+
+        if (event.unit_id.startsWith('opp_')) {
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, removeAndRevertFn)
+        } else {
+          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, removeAndRevertFn)
+        }
+
+        // Update HP if provided (authoritative from backend)
         if (event.unit_hp !== undefined) {
           const updateHpFn = (u: Unit) => ({ ...u, hp: event.unit_hp! })
           if (event.unit_id.startsWith('opp_')) {
@@ -482,21 +584,55 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         }
       }
       break
+
+    case 'skill_effect':
+      // Log unknown skill effect application
+      console.log(`[Skill Effect] ${event.caster_id} applied unknown effect:`, event.effect)
+      break
   }
 
-  // Expire effects based on current simTime
-  newState.playerUnits = newState.playerUnits.map(u => ({
-    ...u,
-    effects: u.effects?.filter(e => !e.expiresAt || e.expiresAt > newState.simTime) || []
-  }))
-  newState.opponentUnits = newState.opponentUnits.map(u => ({
-    ...u,
-    effects: u.effects?.filter(e => !e.expiresAt || e.expiresAt > newState.simTime) || []
-  }))
+  // IMPORTANT: Do NOT auto-expire effects here!
+  // Effects should ONLY be removed when effect_expired events arrive from backend.
+  // Auto-expiration causes desyncs because frontend timing may differ from backend by a few ms.
+  // The backend explicitly emits effect_expired events when effects truly expire.
 
   return newState
 }
 
+/**
+ * CRITICAL: Deep copy helper to prevent shared reference bugs
+ *
+ * The spread operator creates SHALLOW copies, meaning nested arrays/objects are shared by reference.
+ * This causes bugs where modifying effects/buffed_stats in one unit affects all previous snapshots.
+ *
+ * Example of the bug:
+ *   const u1 = { id: 'test', effects: [{type: 'stun'}] }
+ *   const u2 = { ...u1, hp: 100 }  // SHALLOW COPY!
+ *   u2.effects.push({type: 'dot'})  // ALSO MODIFIES u1.effects!
+ *
+ * Solution: Always deep-copy nested objects when updating units.
+ */
+function deepCopyUnit(u: Unit): Unit {
+  return {
+    ...u,
+    effects: u.effects ? [...u.effects] : [],
+    buffed_stats: u.buffed_stats ? { ...u.buffed_stats } : {}
+  }
+}
+
 function updateUnitById(units: Unit[], id: string, updater: (u: Unit) => Unit): Unit[] {
-  return units.map(u => u.id === id ? updater(u) : u)
+  return units.map(u => {
+    if (u.id === id) {
+      // Deep copy BEFORE passing to updater to prevent mutation
+      const deepCopy = deepCopyUnit(u)
+      const updated = updater(deepCopy)
+      // Ensure nested objects are also deep copied in result
+      return {
+        ...updated,
+        effects: updated.effects ? [...updated.effects] : [],
+        buffed_stats: updated.buffed_stats ? { ...updated.buffed_stats } : {}
+      }
+    }
+    return u
+  })
 }

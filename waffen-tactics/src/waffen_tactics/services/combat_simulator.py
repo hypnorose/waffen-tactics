@@ -9,6 +9,7 @@ from .combat_effect_processor import CombatEffectProcessor
 from .combat_regeneration_processor import CombatRegenerationProcessor
 from .combat_win_conditions import CombatWinConditionsProcessor
 from .combat_per_second_buff_processor import CombatPerSecondBuffProcessor
+from .modular_effect_processor import ModularEffectProcessor, TriggerType
 from .combat_unit import CombatUnit
 from .event_canonicalizer import emit_mana_update, emit_stat_buff, emit_damage_over_time_tick, emit_mana_change
 
@@ -28,7 +29,12 @@ class CombatSimulator(
             dt: Time step in seconds (0.1 = 100ms ticks)
             timeout: Max combat duration in seconds
         """
-        super().__init__()
+        # Initialize modular effect processor first
+        self.modular_effect_processor = ModularEffectProcessor()
+        
+        # Initialize parent classes with modular effect processor
+        super().__init__(self.modular_effect_processor)
+        
         self.dt = dt
         self.timeout = timeout
         self._event_seq = 0
@@ -225,6 +231,9 @@ class CombatSimulator(
             if hasattr(u, 'mana') and hasattr(u, 'id'):
                 self._last_mana[u.id] = u.mana
 
+        # Reset modular effect processor for new combat
+        self.modular_effect_processor.reset_combat_state()
+
         # Reset per-unit transient flags used during simulation (e.g. death processed)
         for u in team_a + team_b:
             if hasattr(u, '_death_processed'):
@@ -236,6 +245,24 @@ class CombatSimulator(
         # Apply per-round buffs at start of combat
         if not skip_per_round_buffs:
             self._process_per_round_buffs(team_a, team_b, a_hp, b_hp, time, log, event_callback, round_number)
+
+            # Process PER_ROUND triggers with modular effect processor
+            for unit in team_a + team_b:
+                if a_hp[team_a.index(unit)] > 0 if unit in team_a else b_hp[team_b.index(unit)] > 0:
+                    context = {
+                        'current_unit': unit,
+                        'all_units': team_a + team_b,
+                        'ally_units': team_a if unit in team_a else team_b,
+                        'enemy_units': team_b if unit in team_a else team_a,
+                        'current_time': time,
+                        'side': 'team_a' if unit in team_a else 'team_b',
+                        'round_number': round_number
+                    }
+                    self.modular_effect_processor.process_trigger(
+                        TriggerType.PER_ROUND,
+                        context,
+                        event_callback
+                    )
 
         # Debug log
         import logging
@@ -252,9 +279,25 @@ class CombatSimulator(
             if winner:
                 return self._finish_combat(winner, time, a_hp, b_hp, log, team_a)
 
+            # Sync HP lists from unit.hp after team_a attacks (canonical emitters may have updated unit.hp)
+            for i, u in enumerate(team_a):
+                new_hp = max(0, int(getattr(u, 'hp', a_hp[i])))
+                a_hp[i] = new_hp
+            for i, u in enumerate(team_b):
+                new_hp = max(0, int(getattr(u, 'hp', b_hp[i])))
+                b_hp[i] = new_hp
+
             winner = self._process_team_attacks(team_b, team_a, b_hp, a_hp, time, log, event_callback, 'team_b')
             if winner:
                 return self._finish_combat(winner, time, a_hp, b_hp, log, team_b)
+
+            # Sync HP lists from unit.hp after team_b attacks (canonical emitters may have updated unit.hp)
+            for i, u in enumerate(team_a):
+                new_hp = max(0, int(getattr(u, 'hp', a_hp[i])))
+                a_hp[i] = new_hp
+            for i, u in enumerate(team_b):
+                new_hp = max(0, int(getattr(u, 'hp', b_hp[i])))
+                b_hp[i] = new_hp
 
             # Apply HP regeneration
             self._process_regeneration(team_a, team_b, a_hp, b_hp, time, log, self.dt, event_callback)
@@ -273,11 +316,42 @@ class CombatSimulator(
                 self._process_per_second_buffs(team_a, team_b, a_hp, b_hp, time, log, event_callback)
                 buffs_processed = True
 
+                # Process PER_SECOND triggers with modular effect processor
+                for unit in team_a + team_b:
+                    if a_hp[team_a.index(unit)] > 0 if unit in team_a else b_hp[team_b.index(unit)] > 0:
+                        context = {
+                            'current_unit': unit,
+                            'all_units': team_a + team_b,
+                            'ally_units': team_a if unit in team_a else team_b,
+                            'enemy_units': team_b if unit in team_a else team_a,
+                            'current_time': time,
+                            'side': 'team_a' if unit in team_a else 'team_b'
+                        }
+                        self.modular_effect_processor.process_trigger(
+                            TriggerType.PER_SECOND,
+                            context,
+                            event_callback
+                        )
+
             # Process damage over time effects
             self._process_damage_over_time(team_a, team_b, a_hp, b_hp, time, log, event_callback)
 
             # Send state snapshot every second (after all processing)
             if buffs_processed and event_callback:
+                # CRITICAL: Sync HP lists from unit.hp before snapshot
+                # Canonical emitters (emit_damage, emit_unit_heal) mutate unit.hp directly.
+                # Ensure hp lists reflect the authoritative unit.hp values.
+                for i, u in enumerate(team_a):
+                    new_hp = max(0, int(getattr(u, 'hp', a_hp[i])))
+                    if getattr(u, 'id', None) == 'mrozu' and new_hp != a_hp[i]:
+                        print(f"[PRE-SNAPSHOT SYNC] mrozu a_hp[{i}]: {a_hp[i]} -> {new_hp} (unit.hp={u.hp})")
+                    a_hp[i] = new_hp
+                for i, u in enumerate(team_b):
+                    new_hp = max(0, int(getattr(u, 'hp', b_hp[i])))
+                    if getattr(u, 'id', None) == 'mrozu' and new_hp != b_hp[i]:
+                        print(f"[PRE-SNAPSHOT SYNC] mrozu b_hp[{i}]: {b_hp[i]} -> {new_hp} (unit.hp={u.hp})")
+                    b_hp[i] = new_hp
+
                 # Build snapshot payload from current HP lists
                 snapshot_data = {
                     'player_units': [u.to_dict(a_hp[i]) for i, u in enumerate(team_a)],
@@ -590,6 +664,21 @@ class CombatSimulator(
                             log.append(f"[{evt_ts:.2f}s] {caster.name} stuns {target.name} for {duration}s")
 
                 log.append(f"[{time:.2f}s] {caster.name} casts {new_skill.name}!")
+
+                # CRITICAL: Sync HP lists from unit.hp after skill execution
+                # Canonical emitters (emit_damage, emit_unit_heal) mutate unit.hp directly.
+                # We must sync attacking_hp and defending_hp to match, otherwise final HP
+                # sync at end of run_combat_simulation will overwrite correct values.
+                for i, u in enumerate(attacking_team):
+                    new_hp = max(0, int(getattr(u, 'hp', attacking_hp[i])))
+                    if new_hp != attacking_hp[i]:
+                        print(f"[HP SYNC] {u.id} attacking_hp[{i}]: {attacking_hp[i]} -> {new_hp}")
+                    attacking_hp[i] = new_hp
+                for i, u in enumerate(defending_team):
+                    new_hp = max(0, int(getattr(u, 'hp', defending_hp[i])))
+                    if new_hp != defending_hp[i]:
+                        print(f"[HP SYNC] {u.id} defending_hp[{i}]: {defending_hp[i]} -> {new_hp}")
+                    defending_hp[i] = new_hp
 
             except Exception as e:
                 log.append(f"[{time:.2f}s] Skill execution failed: {e}")

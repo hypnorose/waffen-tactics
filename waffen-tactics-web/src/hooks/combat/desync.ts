@@ -55,11 +55,22 @@ export function compareCombatStates(localState: CombatState, serverState: any, e
 }
 
 function canonicalizeEffects(effects: any[]): any[] {
-  return effects.map(e => ({
+  // Only log if effects are present to reduce console spam
+  if (effects.length > 0) {
+    console.log(`[CANONICAL DEBUG] Canonicalizing effects:`, JSON.stringify(effects, null, 2))
+  }
+
+  const canonical = effects.map(e => ({
     id: e.id,
     type: e.type,
     stat: e.stat,
     value: e.value ?? e.amount,
     duration: e.duration
   })).sort((a, b) => (a.id || '').localeCompare(b.id || '') || a.type.localeCompare(b.type))
+
+  if (effects.length > 0) {
+    console.log(`[CANONICAL DEBUG] Result:`, JSON.stringify(canonical, null, 2))
+  }
+
+  return canonical
 }

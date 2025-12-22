@@ -1,0 +1,82 @@
+[
+  {
+    "type": "units_init",
+    "seq": 1,
+    "timestamp": 0.0,
+    "player_units": [
+      {
+        "id": "player_0",
+        "name": "Test Unit",
+        "hp": 100,
+        "max_hp": 100,
+        "attack": 50,
+        "defense": 10,
+        "current_mana": 0,
+        "max_mana": 100,
+        "shield": 0,
+        "star_level": 1,
+        "position": "front"
+      }
+    ],
+    "opponent_units": [
+      {
+        "id": "opp_0",
+        "name": "Enemy Unit",
+        "hp": 100,
+        "max_hp": 100,
+        "attack": 50,
+        "defense": 10,
+        "current_mana": 0,
+        "max_mana": 100,
+        "shield": 0,
+        "star_level": 1,
+        "position": "front"
+      }
+    ]
+  },
+  {
+    "type": "unit_attack",
+    "seq": 2,
+    "timestamp": 0.5,
+    "attacker_id": "player_0",
+    "attacker_name": "Test Unit",
+    "target_id": "opp_0",
+    "target_name": "Enemy Unit",
+    "damage": 40,
+    "unit_hp": 60,
+    "is_skill": false
+  },
+  {
+    "type": "state_snapshot",
+    "seq": 3,
+    "timestamp": 1.0,
+    "game_state": {
+      "player_units": [
+        {
+          "id": "player_0",
+          "name": "Test Unit",
+          "hp": 100,
+          "max_hp": 100,
+          "attack": 50,
+          "defense": 10,
+          "current_mana": 10,
+          "max_mana": 100,
+          "shield": 0
+        }
+      ],
+      "opponent_units": [
+        {
+          "id": "opp_0",
+          "name": "Enemy Unit",
+          "hp": 65,
+          "max_hp": 100,
+          "attack": 50,
+          "defense": 10,
+          "current_mana": 0,
+          "max_mana": 100,
+          "shield": 0
+        }
+      ]
+    }
+  }
+]

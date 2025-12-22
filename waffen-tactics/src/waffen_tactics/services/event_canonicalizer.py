@@ -45,16 +45,19 @@ def emit_stat_buff(
     if getattr(recipient, '_dead', False) and event_callback is not None:
         return None
 
-    effect_id = None
+    # CRITICAL: Generate effect_id for ALL stat buffs (even instant ones)
+    # This ensures frontend can always track effects with proper IDs
+    effect_id = str(uuid.uuid4())
 
     # Apply immediate numeric mutation when appropriate
+    # CRITICAL: Always calculate delta for ALL stats (needed for reconstructor)
     delta = None
     try:
         if stat in ('attack', 'defense'):
             if value_type == 'percentage':
-                delta = int(getattr(recipient, stat, 0) * (float(value) / 100.0))
+                delta = int(round(getattr(recipient, stat, 0) * (float(value) / 100.0)))
             else:
-                delta = int(value)
+                delta = int(round(value))
             if permanent:
                 setattr(recipient, stat, getattr(recipient, stat, 0) + delta)
             else:
@@ -62,7 +65,10 @@ def emit_stat_buff(
                 setattr(recipient, stat, getattr(recipient, stat, 0) + delta)
         elif stat == 'hp':
             # delegate hp changes to emit_heal for canonical emission
-            delta = int(value)
+            if value_type == 'percentage':
+                delta = int(round(getattr(recipient, 'hp', 0) * (float(value) / 100.0)))
+            else:
+                delta = int(round(value))
             try:
                 emit_heal(event_callback, recipient, delta, source=source, side=side, timestamp=ts)
             except Exception:
@@ -72,18 +78,36 @@ def emit_stat_buff(
             # float fields
             cur = float(getattr(recipient, stat, 0.0))
             if value_type == 'percentage' and stat == 'attack_speed':
-                delta = cur * (float(value) / 100.0)
+                delta = int(round(cur * (float(value) / 100.0)))
             else:
-                delta = float(value)
+                delta = int(round(float(value)))
             setattr(recipient, stat, cur + delta)
+        elif stat in ('max_hp', 'max_mana', 'current_mana'):
+            # int fields
+            if value_type == 'percentage':
+                delta = int(round(getattr(recipient, stat, 0) * (float(value) / 100.0)))
+            else:
+                delta = int(round(value))
+            setattr(recipient, stat, getattr(recipient, stat, 0) + delta)
+        else:
+            # Unknown/custom stats - still calculate delta for event
+            if value_type == 'percentage':
+                # Try to get base value, default to 0
+                base = getattr(recipient, stat, 0) or 0
+                delta = int(round(float(base) * (float(value) / 100.0)))
+            else:
+                delta = int(round(value)) if isinstance(value, (int, float)) else 0
         # other stats are stored as-is in effects and may be applied by UI recompute
     except Exception:
         # Best-effort mutation; don't break emitter on unexpected recipient shapes
-        pass
+        # But still try to set delta to value as fallback
+        try:
+            delta = int(round(value)) if isinstance(value, (int, float)) else 0
+        except Exception:
+            delta = 0
 
     # Attach effect entry if duration provided or if permanent flag indicates persistent buff
     if duration is not None or permanent:
-        effect_id = str(uuid.uuid4())
         effect = {
             'id': effect_id,
             'type': 'buff' if (value is None or value >= 0) else 'debuff',
@@ -359,7 +383,11 @@ def emit_unit_heal(
         if getattr(target, 'id', None) == 'mrozu':
             import sys
             print(f"[emit_unit_heal DEBUG] target={target.id} current_hp={current_hp} cur={cur} amount={amount} add={add} max_hp={max_hp} new={new}", file=sys.stderr)
+            print(f"[emit_unit_heal DEBUG] BEFORE: target.hp={target.hp}", file=sys.stderr)
         target.hp = new
+        if getattr(target, 'id', None) == 'mrozu':
+            import sys
+            print(f"[emit_unit_heal DEBUG] AFTER: target.hp={target.hp}", file=sys.stderr)
     except Exception:
         new = getattr(target, 'hp', None)
         max_hp = getattr(target, 'max_hp', None)
@@ -392,6 +420,65 @@ def emit_unit_heal(
     if event_callback:
         try:
             event_callback('unit_heal', payload)
+        except Exception:
+            pass
+    return payload
+
+
+def emit_hp_regen(
+    event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    recipient: Any,
+    amount: float,
+    side: Optional[str] = None,
+    timestamp: Optional[float] = None,
+    cause: Optional[str] = None,
+    current_hp: Optional[int] = None,
+):
+    """Apply hp regen to recipient and emit canonical `hp_regen` event.
+
+    Args:
+        current_hp: If provided, use this as the authoritative current HP instead of reading from recipient.hp.
+                   This is critical when HP lists are updated before calling emit_hp_regen.
+    """
+    ts = timestamp if timestamp is not None else _now_ts()
+    try:
+        # Use current_hp if provided (authoritative from hp_list), otherwise read from unit
+        if current_hp is not None:
+            cur = int(current_hp)
+        else:
+            cur = int(getattr(recipient, 'hp', 0))
+        max_hp = int(getattr(recipient, 'max_hp', cur))
+        add = int(amount)
+        new = min(max_hp, cur + add)
+        # apply mutation to recipient.hp
+        recipient.hp = new
+    except Exception:
+        # best-effort
+        new = getattr(recipient, 'hp', None)
+        max_hp = getattr(recipient, 'max_hp', None)
+        if current_hp is not None:
+            cur = current_hp
+        else:
+            cur = getattr(recipient, 'hp', None)
+
+    payload = {
+        'unit_id': getattr(recipient, 'id', None),
+        'unit_name': getattr(recipient, 'name', None),
+        'amount': int(amount) if amount is not None else None,
+        'pre_hp': cur,
+        'post_hp': new,
+        'unit_hp': new,  # Authoritative HP after regen
+        'unit_max_hp': max_hp,
+        'side': side,
+        'timestamp': ts,
+        'cause': cause,
+    }
+    # If the recipient is dead, do not emit hp_regen events for it
+    if getattr(recipient, '_dead', False):
+        return None
+    if event_callback:
+        try:
+            event_callback('hp_regen', payload)
         except Exception:
             pass
     return payload
@@ -495,7 +582,12 @@ def emit_unit_stunned(
         # attach effect object for client recompute
         if not hasattr(target, 'effects') or target.effects is None:
             target.effects = []
+        # Generate unique effect ID for tracking
+        import uuid
+        effect_id = str(uuid.uuid4())
+
         eff = {
+            'id': effect_id,
             'type': 'stun',
             'duration': duration,
             'source': getattr(source, 'id', None) if source is not None else None,
@@ -512,6 +604,8 @@ def emit_unit_stunned(
         'side': side,
         'timestamp': ts,
         'source_id': getattr(source, 'id', None) if source is not None else None,
+        'effect_id': effect_id,  # CRITICAL: Include effect_id for frontend tracking
+        'caster_name': getattr(source, 'name', None) if source is not None else None,
     }
     if getattr(target, '_dead', False):
         return None
@@ -537,6 +631,10 @@ def emit_shield_applied(
     - If `event_callback` is provided, calls it; otherwise returns payload for callers to forward.
     """
     ts = timestamp if timestamp is not None else _now_ts()
+
+    # CRITICAL: Generate effect_id for ALL shield effects (same as stat_buff fix)
+    effect_id = str(uuid.uuid4())
+
     try:
         cur = int(getattr(recipient, 'shield', 0) or 0)
         recipient.shield = cur + int(amount)
@@ -545,6 +643,7 @@ def emit_shield_applied(
             recipient.effects = []
         expires_at = ts + float(duration) if duration and duration > 0 else None
         eff = {
+            'id': effect_id,  # CRITICAL: Include effect_id in effect object
             'type': 'shield',
             'amount': int(amount),
             'duration': duration,
@@ -566,6 +665,7 @@ def emit_shield_applied(
         'source_id': getattr(source, 'id', None) if source is not None else None,
         'caster_id': getattr(source, 'id', None) if source is not None else None,
         'caster_name': getattr(source, 'name', None) if source is not None else None,
+        'effect_id': effect_id,  # CRITICAL: Include effect_id for frontend tracking
     }
     if event_callback:
         try:

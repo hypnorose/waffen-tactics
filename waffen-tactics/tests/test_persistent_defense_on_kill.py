@@ -2,11 +2,37 @@ import pytest
 
 from waffen_tactics.services.combat_unit import CombatUnit
 from waffen_tactics.services.combat_effect_processor import CombatEffectProcessor
+from waffen_tactics.services.modular_effect_processor import ModularEffectProcessor
+from waffen_tactics.services.trait_converter import TraitConverter
 
 
 def test_on_enemy_death_grants_persistent_defense():
     """When an enemy dies, units with kill_buff(defense) gain permanent defense and it's recorded."""
-    # Killer has an on_enemy_death effect granting permanent +10 defense per kill
+    # Create modular effect processor and register the effect
+    converter = TraitConverter()
+    modular_processor = converter.get_processor()
+    
+    # Create a mock trait effect for the killer
+    test_trait = {
+        'name': 'Test Kill Buff',
+        'type': 'trait',
+        'thresholds': [1],
+        'effects': [
+            {
+                'type': 'on_enemy_death',
+                'actions': [
+                    {
+                        'type': 'kill_buff',
+                        'stat': 'defense',
+                        'value': 10,
+                        'is_percentage': False
+                    }
+                ]
+            }
+        ]
+    }
+    
+    # Register the trait effect for the killer unit
     killer = CombatUnit(
         id="killer",
         name="Killer",
@@ -14,16 +40,10 @@ def test_on_enemy_death_grants_persistent_defense():
         attack=25,
         defense=15,
         attack_speed=1.0,
-        effects=[{
-            "type": "on_enemy_death",
-            "actions": [{
-                "type": "kill_buff",
-                "stat": "defense",
-                "value": 10,
-                "is_percentage": False
-            }]
-        }]
+        effects=[]  # Effects will be handled by modular processor
     )
+    
+    converter.register_trait_effects_for_unit(killer, test_trait, 1, killer.id)
 
     # Victim that will be killed
     victim = CombatUnit(
@@ -36,7 +56,7 @@ def test_on_enemy_death_grants_persistent_defense():
         effects=[]
     )
 
-    processor = CombatEffectProcessor()
+    processor = CombatEffectProcessor(modular_processor)
     log = []
 
     # Simulate death processing: attacking_team contains the killer

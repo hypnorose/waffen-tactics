@@ -885,6 +885,194 @@ class TestCombatService(unittest.TestCase):
 
         print("All 10000 seeds tested successfully!")
 
+    def test_failing_seeds_detailed_debug(self):
+        """Test specific failing seeds with detailed HP change logging"""
+        import random
+        from waffen_tactics.services.combat_shared import CombatUnit
+
+        # Load real game data
+        game_data = load_game_data()
+
+        # Prepare helper and id list once; teams will be sampled per-seed below
+        all_unit_ids = [u.id for u in game_data.units]
+        def get_unit(unit_id):
+            return next(u for u in game_data.units if u.id == unit_id)
+        
+        # Test only the failing seeds
+        failing_seeds = [205, 211, 213, 315, 394]  # Start with just one seed for debugging
+        
+        # Collect team compositions for analysis
+        team_compositions = {}
+        
+        for seed in failing_seeds:
+            error_print(f"\n=== Testing failing seed {seed} ===")
+
+            random.seed(seed)
+
+            # Sample 20 unique unit ids and split into two teams (10/10)
+            sample_20 = random.sample(all_unit_ids, 20)
+            player_unit_ids = sample_20[:10]
+            opponent_unit_ids = sample_20[10:]
+
+            # Store team composition
+            team_compositions[seed] = {
+                'player': player_unit_ids,
+                'opponent': opponent_unit_ids
+            }
+
+            error_print(f"Player units: {player_unit_ids}")
+            error_print(f"Opponent units: {opponent_unit_ids}")
+
+            # Create player team (10 units)
+            player_units = []
+            for unit_id in player_unit_ids:
+                unit = get_unit(unit_id)
+                player_units.append(CombatUnit(
+                    id=unit.id, name=unit.name, hp=unit.stats.hp, attack=unit.stats.attack,
+                    defense=unit.stats.defense, attack_speed=unit.stats.attack_speed,
+                    position='front' if len(player_units) < 5 else 'back',
+                    stats=unit.stats, skill=unit.skill, max_mana=unit.stats.max_mana
+                ))
+
+            # Create opponent team (10 units)
+            opponent_units = []
+            for unit_id in opponent_unit_ids:
+                unit = get_unit(unit_id)
+                opponent_units.append(CombatUnit(
+                    id=unit.id, name=unit.name, hp=unit.stats.hp, attack=unit.stats.attack,
+                    defense=unit.stats.defense, attack_speed=unit.stats.attack_speed,
+                    position='front' if len(opponent_units) < 5 else 'back',
+                    stats=unit.stats, skill=unit.skill, max_mana=unit.stats.max_mana
+                ))
+
+            try:
+                # Run simulation
+                result = run_combat_simulation(player_units, opponent_units)
+
+                # Verify simulation completed
+                self.assertIn('winner', result)
+                self.assertIn('duration', result)
+                self.assertIn('events', result)
+                self.assertIsInstance(result['events'], list)
+                self.assertGreater(len(result['events']), 0)
+
+                # Sort events by sequence and timestamp
+                events = result['events']
+                events.sort(key=lambda x: (x[1]['seq'], 0 if x[0] == 'state_snapshot' else 1, x[1]['timestamp']))
+                
+                # Find state_snapshots
+                state_snapshots = [event for event in events if event[0] == 'state_snapshot']
+                self.assertGreater(len(state_snapshots), 0, f"No state_snapshots found for seed {seed}")
+
+                # Initialize reconstruction from first snapshot
+                reconstructor = CombatEventReconstructor()
+                first_snapshot = state_snapshots[0][1]
+                reconstructor.initialize_from_snapshot(first_snapshot)
+
+                # Process all events with detailed logging
+                error_print(f"Processing {len(events)} events...")
+                hp_change_events = []
+                
+                for event_type, event_data in events:
+                    if event_type in ['hp_regen', 'unit_heal', 'damage_over_time_tick', 'stat_buff']:
+                        hp_change_events.append((event_type, event_data))
+                    
+                    reconstructor.process_event(event_type, event_data)
+
+                # Get final reconstructed state
+                reconstructed_player_units, reconstructed_opponent_units = reconstructor.get_reconstructed_state()
+
+                # Compare final state with simulation results and log differences
+                error_print("Checking player units:")
+                for unit in player_units:
+                    recon_hp = reconstructed_player_units[unit.id]['hp']
+                    sim_hp = unit.hp
+                    if sim_hp != recon_hp:
+                        error_print(f"  ❌ HP mismatch for player unit {unit.name} ({unit.id}): sim={sim_hp}, recon={recon_hp}")
+                        
+                        # Find relevant HP change events for this unit
+                        unit_hp_events = [e for e in hp_change_events if e[1].get('unit_id') == unit.id]
+                        error_print(f"    HP change events for {unit.id}: {len(unit_hp_events)}")
+                        for et, ed in unit_hp_events[-5:]:  # Last 5 events
+                            error_print(f"      {et}: {ed}")
+                    else:
+                        error_print(f"  ✅ HP match for player unit {unit.name} ({unit.id}): {sim_hp}")
+
+                error_print("Checking opponent units:")
+                for unit in opponent_units:
+                    recon_hp = reconstructed_opponent_units[unit.id]['hp']
+                    sim_hp = unit.hp
+                    if sim_hp != recon_hp:
+                        error_print(f"  ❌ HP mismatch for opponent unit {unit.name} ({unit.id}): sim={sim_hp}, recon={recon_hp}")
+                        
+                        # Find relevant HP change events for this unit
+                        unit_hp_events = [e for e in hp_change_events if e[1].get('unit_id') == unit.id]
+                        error_print(f"    HP change events for {unit.id}: {len(unit_hp_events)}")
+                        for et, ed in unit_hp_events[-5:]:  # Last 5 events
+                            error_print(f"      {et}: {ed}")
+                    else:
+                        error_print(f"  ✅ HP match for opponent unit {unit.name} ({unit.id}): {sim_hp}")
+
+                # Check if any mismatches found
+                mismatches = []
+                for unit in player_units:
+                    if unit.hp != reconstructed_player_units[unit.id]['hp']:
+                        mismatches.append(f"player {unit.name} ({unit.id})")
+                for unit in opponent_units:
+                    if unit.hp != reconstructed_opponent_units[unit.id]['hp']:
+                        mismatches.append(f"opponent {unit.name} ({unit.id})")
+                
+                if mismatches:
+                    error_print(f"Seed {seed} has mismatches: {mismatches}")
+                else:
+                    error_print(f"Seed {seed} actually passes!")
+
+            except Exception as e:
+                error_print(f"Error at seed {seed}: {e}")
+                import traceback
+                error_print(traceback.format_exc())
+
+        # Analyze common units between failing seeds
+        error_print("\n=== TEAM COMPOSITION ANALYSIS ===")
+        
+        # Find units that appear in multiple failing seeds
+        from collections import Counter
+        
+        all_player_units = []
+        all_opponent_units = []
+        
+        for seed, teams in team_compositions.items():
+            all_player_units.extend(teams['player'])
+            all_opponent_units.extend(teams['opponent'])
+        
+        player_unit_counts = Counter(all_player_units)
+        opponent_unit_counts = Counter(all_opponent_units)
+        
+        error_print("Player units appearing in multiple failing seeds:")
+        for unit, count in sorted(player_unit_counts.items(), key=lambda x: x[1], reverse=True):
+            if count > 1:
+                seeds_with_unit = [seed for seed, teams in team_compositions.items() if unit in teams['player']]
+                error_print(f"  {unit}: {count} seeds ({seeds_with_unit})")
+        
+        error_print("Opponent units appearing in multiple failing seeds:")
+        for unit, count in sorted(opponent_unit_counts.items(), key=lambda x: x[1], reverse=True):
+            if count > 1:
+                seeds_with_unit = [seed for seed, teams in team_compositions.items() if unit in teams['opponent']]
+                error_print(f"  {unit}: {count} seeds ({seeds_with_unit})")
+        
+        # Check for any units that appear in all failing seeds
+        all_player_common = set(team_compositions[failing_seeds[0]]['player'])
+        all_opponent_common = set(team_compositions[failing_seeds[0]]['opponent'])
+        
+        for seed in failing_seeds[1:]:
+            all_player_common &= set(team_compositions[seed]['player'])
+            all_opponent_common &= set(team_compositions[seed]['opponent'])
+        
+        if all_player_common:
+            error_print(f"Units in ALL player teams: {list(all_player_common)}")
+        if all_opponent_common:
+            error_print(f"Units in ALL opponent teams: {list(all_opponent_common)}")
+
     def test_game_state_snapshots_always_accurate(self):
         """Verify that game_state snapshots match simulator state (Phase 1.4)"""
         import random

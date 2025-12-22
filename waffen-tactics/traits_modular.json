@@ -1,0 +1,3033 @@
+{
+  "traits": [
+    {
+      "name": "Srebrna Gwardia",
+      "type": "faction",
+      "description": "Zesp\u00f3\u0142 zyskuje obron\u0119 co sekund\u0119 walki",
+      "target": "team",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "threshold_descriptions": [
+        "+<v> obrony co sekund\u0119 walki",
+        "+<v> obrony co sekund\u0119 walki",
+        "+<v> obrony co sekund\u0119 walki"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "per_second",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 3,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Srebrna Gwardia",
+      "type": "faction",
+      "description": "Zesp\u00f3\u0142 zyskuje obron\u0119 co sekund\u0119 walki",
+      "target": "team",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "threshold_descriptions": [
+        "+<v> obrony co sekund\u0119 walki",
+        "+<v> obrony co sekund\u0119 walki",
+        "+<v> obrony co sekund\u0119 walki"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "per_second",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 4,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Srebrna Gwardia",
+      "type": "faction",
+      "description": "Zesp\u00f3\u0142 zyskuje obron\u0119 co sekund\u0119 walki",
+      "target": "team",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "threshold_descriptions": [
+        "+<v> obrony co sekund\u0119 walki",
+        "+<v> obrony co sekund\u0119 walki",
+        "+<v> obrony co sekund\u0119 walki"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "per_second",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 6,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Streamer",
+      "type": "faction",
+      "description": "Za ka\u017cdego pokonanego wroga zesp\u00f3\u0142 zyskuje atak i obron\u0119",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 3,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 3,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Streamer",
+      "type": "faction",
+      "description": "Za ka\u017cdego pokonanego wroga zesp\u00f3\u0142 zyskuje atak i obron\u0119",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 5,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 5,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Streamer",
+      "type": "faction",
+      "description": "Za ka\u017cdego pokonanego wroga zesp\u00f3\u0142 zyskuje atak i obron\u0119",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 7,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 7,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Streamer",
+      "type": "faction",
+      "description": "Za ka\u017cdego pokonanego wroga zesp\u00f3\u0142 zyskuje atak i obron\u0119",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga",
+        "+<v> ataku i obrony za zabitego wroga"
+      ],
+      "tier": 4,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 12,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 12,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN Waffen",
+      "type": "faction",
+      "description": "Zwi\u0119kszona pr\u0119dko\u015b\u0107 ataku dla ca\u0142ego zespo\u0142u",
+      "thresholds": [
+        3,
+        5,
+        7,
+        10
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack_speed",
+              "stats": [],
+              "value": 25,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN Waffen",
+      "type": "faction",
+      "description": "Zwi\u0119kszona pr\u0119dko\u015b\u0107 ataku dla ca\u0142ego zespo\u0142u",
+      "thresholds": [
+        3,
+        5,
+        7,
+        10
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack_speed",
+              "stats": [],
+              "value": 35,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN Waffen",
+      "type": "faction",
+      "description": "Zwi\u0119kszona pr\u0119dko\u015b\u0107 ataku dla ca\u0142ego zespo\u0142u",
+      "thresholds": [
+        3,
+        5,
+        7,
+        10
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack_speed",
+              "stats": [],
+              "value": 50,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN Waffen",
+      "type": "faction",
+      "description": "Zwi\u0119kszona pr\u0119dko\u015b\u0107 ataku dla ca\u0142ego zespo\u0142u",
+      "thresholds": [
+        3,
+        5,
+        7,
+        10
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku",
+        "+<v> pr\u0119dko\u015bci ataku"
+      ],
+      "tier": 4,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack_speed",
+              "stats": [],
+              "value": 75,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN KGB",
+      "type": "faction",
+      "description": "Bonus do ataku dla ca\u0142ego zespo\u0142u",
+      "thresholds": [
+        3,
+        5,
+        7,
+        9
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> ataku",
+        "+<v> ataku",
+        "+<v> ataku",
+        "+<v> ataku"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 30,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN KGB",
+      "type": "faction",
+      "description": "Bonus do ataku dla ca\u0142ego zespo\u0142u",
+      "thresholds": [
+        3,
+        5,
+        7,
+        9
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> ataku",
+        "+<v> ataku",
+        "+<v> ataku",
+        "+<v> ataku"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 40,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN KGB",
+      "type": "faction",
+      "description": "Bonus do ataku dla ca\u0142ego zespo\u0142u",
+      "thresholds": [
+        3,
+        5,
+        7,
+        9
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> ataku",
+        "+<v> ataku",
+        "+<v> ataku",
+        "+<v> ataku"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 50,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN KGB",
+      "type": "faction",
+      "description": "Bonus do ataku dla ca\u0142ego zespo\u0142u",
+      "thresholds": [
+        3,
+        5,
+        7,
+        9
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> ataku",
+        "+<v> ataku",
+        "+<v> ataku",
+        "+<v> ataku"
+      ],
+      "tier": 4,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 70,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Denciak",
+      "type": "faction",
+      "description": "Kiedy sojusznik umiera, zyskujesz z\u0142oto",
+      "thresholds": [
+        2,
+        4,
+        6
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<c>% szansy na <v> z\u0142ota za \u015bmier\u0107 sojusznika",
+        "+<c>% szansy na <v> z\u0142ota za \u015bmier\u0107 sojusznika",
+        "<v> z\u0142ota za \u015bmier\u0107 sojusznika"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_ally_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": true,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "resource",
+              "stat": null,
+              "stats": [],
+              "value": 1,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": "gold",
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Denciak",
+      "type": "faction",
+      "description": "Kiedy sojusznik umiera, zyskujesz z\u0142oto",
+      "thresholds": [
+        2,
+        4,
+        6
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<c>% szansy na <v> z\u0142ota za \u015bmier\u0107 sojusznika",
+        "+<c>% szansy na <v> z\u0142ota za \u015bmier\u0107 sojusznika",
+        "<v> z\u0142ota za \u015bmier\u0107 sojusznika"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_ally_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": true,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "resource",
+              "stat": null,
+              "stats": [],
+              "value": 2,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": "gold",
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Denciak",
+      "type": "faction",
+      "description": "Kiedy sojusznik umiera, zyskujesz z\u0142oto",
+      "thresholds": [
+        2,
+        4,
+        6
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<c>% szansy na <v> z\u0142ota za \u015bmier\u0107 sojusznika",
+        "+<c>% szansy na <v> z\u0142ota za \u015bmier\u0107 sojusznika",
+        "<v> z\u0142ota za \u015bmier\u0107 sojusznika"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_ally_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": true,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "resource",
+              "stat": null,
+              "stats": [],
+              "value": 2,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": "gold",
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Starokurwy",
+      "type": "faction",
+      "description": "Z ka\u017cd\u0105 rund\u0119 zesp\u00f3\u0142 staje si\u0119 silniejszy - bonus HP co rund\u0119",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "per_round",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "hp",
+              "stats": [],
+              "value": 3,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Starokurwy",
+      "type": "faction",
+      "description": "Z ka\u017cd\u0105 rund\u0119 zesp\u00f3\u0142 staje si\u0119 silniejszy - bonus HP co rund\u0119",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "per_round",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "hp",
+              "stats": [],
+              "value": 4,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Starokurwy",
+      "type": "faction",
+      "description": "Z ka\u017cd\u0105 rund\u0119 zesp\u00f3\u0142 staje si\u0119 silniejszy - bonus HP co rund\u0119",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "per_round",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "hp",
+              "stats": [],
+              "value": 5,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Starokurwy",
+      "type": "faction",
+      "description": "Z ka\u017cd\u0105 rund\u0119 zesp\u00f3\u0142 staje si\u0119 silniejszy - bonus HP co rund\u0119",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "target": "team",
+      "threshold_descriptions": [
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119",
+        "+<v> HP co rund\u0119"
+      ],
+      "tier": 4,
+      "modular_effects": [
+        {
+          "trigger": "per_round",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "hp",
+              "stats": [],
+              "value": 7,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Prostaczka",
+      "type": "class",
+      "description": "Os\u0142abiaj\u0105 przeciwnik\u00f3w - zmniejszaj\u0105 ich atak",
+      "thresholds": [
+        2,
+        4,
+        5
+      ],
+      "threshold_descriptions": [
+        "-<v> ataku przeciwnikom",
+        "-<v> ataku przeciwnikom",
+        "-<v> ataku przeciwnikom"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "enemy_debuff",
+              "stat": "attack",
+              "stats": [],
+              "value": 4,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Prostaczka",
+      "type": "class",
+      "description": "Os\u0142abiaj\u0105 przeciwnik\u00f3w - zmniejszaj\u0105 ich atak",
+      "thresholds": [
+        2,
+        4,
+        5
+      ],
+      "threshold_descriptions": [
+        "-<v> ataku przeciwnikom",
+        "-<v> ataku przeciwnikom",
+        "-<v> ataku przeciwnikom"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "enemy_debuff",
+              "stat": "attack",
+              "stats": [],
+              "value": 15,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Prostaczka",
+      "type": "class",
+      "description": "Os\u0142abiaj\u0105 przeciwnik\u00f3w - zmniejszaj\u0105 ich atak",
+      "thresholds": [
+        2,
+        4,
+        5
+      ],
+      "threshold_descriptions": [
+        "-<v> ataku przeciwnikom",
+        "-<v> ataku przeciwnikom",
+        "-<v> ataku przeciwnikom"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "enemy_debuff",
+              "stat": "attack",
+              "stats": [],
+              "value": 30,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Femboy",
+      "type": "class",
+      "description": "Po zabiciu wroga zesp\u00f3\u0142 regeneruje HP przez 5 sekund",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "threshold_descriptions": [
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "special",
+              "stat": null,
+              "stats": [],
+              "value": 5,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Femboy",
+      "type": "class",
+      "description": "Po zabiciu wroga zesp\u00f3\u0142 regeneruje HP przez 5 sekund",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "threshold_descriptions": [
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "special",
+              "stat": null,
+              "stats": [],
+              "value": 8,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Femboy",
+      "type": "class",
+      "description": "Po zabiciu wroga zesp\u00f3\u0142 regeneruje HP przez 5 sekund",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "threshold_descriptions": [
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "special",
+              "stat": null,
+              "stats": [],
+              "value": 12,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Femboy",
+      "type": "class",
+      "description": "Po zabiciu wroga zesp\u00f3\u0142 regeneruje HP przez 5 sekund",
+      "thresholds": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "threshold_descriptions": [
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu",
+        "regeneracja <v> max HP przez <d>s po zabiciu"
+      ],
+      "tier": 4,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "special",
+              "stat": null,
+              "stats": [],
+              "value": 16,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Szachista",
+      "type": "class",
+      "description": "Bonus do ataku i HP za ka\u017cd\u0105 aktywn\u0105 synergi\u0119",
+      "thresholds": [
+        2,
+        3,
+        4
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> ataku i HP za ka\u017cd\u0105 synergi\u0119",
+        "+<v> ataku i HP za ka\u017cd\u0105 synergi\u0119",
+        "+<v> ataku i HP za ka\u017cd\u0105 synergi\u0119"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "per_trait",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 4,
+              "value_type": "per_active_trait",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "hp",
+              "stats": [],
+              "value": 4,
+              "value_type": "per_active_trait",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Szachista",
+      "type": "class",
+      "description": "Bonus do ataku i HP za ka\u017cd\u0105 aktywn\u0105 synergi\u0119",
+      "thresholds": [
+        2,
+        3,
+        4
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> ataku i HP za ka\u017cd\u0105 synergi\u0119",
+        "+<v> ataku i HP za ka\u017cd\u0105 synergi\u0119",
+        "+<v> ataku i HP za ka\u017cd\u0105 synergi\u0119"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "per_trait",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 6,
+              "value_type": "per_active_trait",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "hp",
+              "stats": [],
+              "value": 6,
+              "value_type": "per_active_trait",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Szachista",
+      "type": "class",
+      "description": "Bonus do ataku i HP za ka\u017cd\u0105 aktywn\u0105 synergi\u0119",
+      "thresholds": [
+        2,
+        3,
+        4
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> ataku i HP za ka\u017cd\u0105 synergi\u0119",
+        "+<v> ataku i HP za ka\u017cd\u0105 synergi\u0119",
+        "+<v> ataku i HP za ka\u017cd\u0105 synergi\u0119"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "per_trait",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 10,
+              "value_type": "per_active_trait",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "hp",
+              "stats": [],
+              "value": 10,
+              "value_type": "per_active_trait",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Spell",
+      "type": "class",
+      "description": "Szybciej \u0142aduj\u0105 man\u0119 do umiej\u0119tno\u015bci",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> many na sekund\u0119",
+        "+<v> many na sekund\u0119",
+        "+<v> many na sekund\u0119"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "mana_regen",
+              "stat": null,
+              "stats": [],
+              "value": 3,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Spell",
+      "type": "class",
+      "description": "Szybciej \u0142aduj\u0105 man\u0119 do umiej\u0119tno\u015bci",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> many na sekund\u0119",
+        "+<v> many na sekund\u0119",
+        "+<v> many na sekund\u0119"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "mana_regen",
+              "stat": null,
+              "stats": [],
+              "value": 5,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Spell",
+      "type": "class",
+      "description": "Szybciej \u0142aduj\u0105 man\u0119 do umiej\u0119tno\u015bci",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> many na sekund\u0119",
+        "+<v> many na sekund\u0119",
+        "+<v> many na sekund\u0119"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "mana_regen",
+              "stat": null,
+              "stats": [],
+              "value": 9,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Konfident",
+      "type": "class",
+      "description": "Konfidenci zyskuj\u0105 dodatkow\u0105 obron\u0119",
+      "thresholds": [
+        2,
+        4,
+        6
+      ],
+      "threshold_descriptions": [
+        "+<v> obrony",
+        "+<v> obrony",
+        "+<v> obrony"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 15,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Konfident",
+      "type": "class",
+      "description": "Konfidenci zyskuj\u0105 dodatkow\u0105 obron\u0119",
+      "thresholds": [
+        2,
+        4,
+        6
+      ],
+      "threshold_descriptions": [
+        "+<v> obrony",
+        "+<v> obrony",
+        "+<v> obrony"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 30,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Konfident",
+      "type": "class",
+      "description": "Konfidenci zyskuj\u0105 dodatkow\u0105 obron\u0119",
+      "thresholds": [
+        2,
+        4,
+        6
+      ],
+      "threshold_descriptions": [
+        "+<v> obrony",
+        "+<v> obrony",
+        "+<v> obrony"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 50,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Haker",
+      "type": "class",
+      "target": "trait",
+      "description": "Po zabiciu wroga permanentnie zyskuj\u0105 obron\u0119",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "threshold_descriptions": [
+        "+<v>% obrony zabitego wroga permanentnie",
+        "+<v>% obrony zabitego wroga permanentnie",
+        "+<v>% obrony zabitego wroga permanentnie"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 10,
+              "value_type": "percentage_of_collected",
+              "collect_stat": "defense",
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Haker",
+      "type": "class",
+      "target": "trait",
+      "description": "Po zabiciu wroga permanentnie zyskuj\u0105 obron\u0119",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "threshold_descriptions": [
+        "+<v>% obrony zabitego wroga permanentnie",
+        "+<v>% obrony zabitego wroga permanentnie",
+        "+<v>% obrony zabitego wroga permanentnie"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 20,
+              "value_type": "percentage_of_collected",
+              "collect_stat": "defense",
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Haker",
+      "type": "class",
+      "target": "trait",
+      "description": "Po zabiciu wroga permanentnie zyskuj\u0105 obron\u0119",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "threshold_descriptions": [
+        "+<v>% obrony zabitego wroga permanentnie",
+        "+<v>% obrony zabitego wroga permanentnie",
+        "+<v>% obrony zabitego wroga permanentnie"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "defense",
+              "stats": [],
+              "value": 40,
+              "value_type": "percentage_of_collected",
+              "collect_stat": "defense",
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gamer",
+      "type": "class",
+      "description": "Bonus do ataku i pr\u0119dko\u015bci ataku",
+      "thresholds": [
+        3,
+        5,
+        7,
+        9
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 20,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "attack_speed",
+              "stats": [],
+              "value": 20,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gamer",
+      "type": "class",
+      "description": "Bonus do ataku i pr\u0119dko\u015bci ataku",
+      "thresholds": [
+        3,
+        5,
+        7,
+        9
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 25,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "attack_speed",
+              "stats": [],
+              "value": 25,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gamer",
+      "type": "class",
+      "description": "Bonus do ataku i pr\u0119dko\u015bci ataku",
+      "thresholds": [
+        3,
+        5,
+        7,
+        9
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 30,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "attack_speed",
+              "stats": [],
+              "value": 30,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gamer",
+      "type": "class",
+      "description": "Bonus do ataku i pr\u0119dko\u015bci ataku",
+      "thresholds": [
+        3,
+        5,
+        7,
+        9
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku",
+        "+<v> ataku i pr\u0119dko\u015bci ataku"
+      ],
+      "tier": 4,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "attack",
+              "stats": [],
+              "value": 45,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            },
+            {
+              "type": "stat_buff",
+              "stat": "attack_speed",
+              "stats": [],
+              "value": 45,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Normik",
+      "type": "class",
+      "description": "Zwykli ludzie z dodatkowym HP",
+      "thresholds": [
+        2,
+        4,
+        5
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> HP",
+        "+<v> HP",
+        "+<v> HP"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "hp",
+              "stats": [],
+              "value": 30,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Normik",
+      "type": "class",
+      "description": "Zwykli ludzie z dodatkowym HP",
+      "thresholds": [
+        2,
+        4,
+        5
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> HP",
+        "+<v> HP",
+        "+<v> HP"
+      ],
+      "tier": 2,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "hp",
+              "stats": [],
+              "value": 50,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Normik",
+      "type": "class",
+      "description": "Zwykli ludzie z dodatkowym HP",
+      "thresholds": [
+        2,
+        4,
+        5
+      ],
+      "target": "trait",
+      "threshold_descriptions": [
+        "+<v> HP",
+        "+<v> HP",
+        "+<v> HP"
+      ],
+      "tier": 3,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "hp",
+              "stats": [],
+              "value": 70,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Hitman",
+      "type": "class",
+      "description": "Priorytetyzuje lini\u0119 tyln\u0105",
+      "thresholds": [
+        1
+      ],
+      "target": "self",
+      "threshold_descriptions": [
+        "Priorytetyzuje lini\u0119 tyln\u0105"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "targeting_preference",
+              "stat": null,
+              "stats": [],
+              "value": 0,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": "backline",
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wygnaniec",
+      "type": "class",
+      "description": "Leczy pierwszego sojusznika, kt\u00f3ry spadnie poni\u017cej progu HP",
+      "thresholds": [
+        1
+      ],
+      "threshold_descriptions": [
+        "Leczy pierwszego sojusznika poni\u017cej 30% HP o 50% jego max HP"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_ally_hp_below",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": true,
+            "threshold_percent": 30
+          },
+          "rewards": [
+            {
+              "type": "healing",
+              "stat": null,
+              "stats": [],
+              "value": 50,
+              "value_type": "percentage_of_max",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN Jugend",
+      "type": "class",
+      "description": "Wzmacnia wszystkie buffy na tej jednostce (x2)",
+      "thresholds": [
+        1
+      ],
+      "threshold_descriptions": [
+        "Podwaja wszystkie buffy na tej jednostce"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "buff_amplifier",
+              "stat": null,
+              "stats": [],
+              "value": 0,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 2,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN Mod",
+      "type": "class",
+      "description": "30% szans na darmowy reroll gdy aktywne",
+      "thresholds": [
+        1
+      ],
+      "threshold_descriptions": [
+        "30% szans na darmowy reroll"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "reroll_chance",
+              "stat": null,
+              "stats": [],
+              "value": 0,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": 30,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN Monter",
+      "type": "class",
+      "description": "Daje procentowy bonus do HP za ka\u017cd\u0105 przegran\u0105 rund\u0119",
+      "thresholds": [
+        1
+      ],
+      "threshold_descriptions": [
+        "Daje 5% bonusu do HP za ka\u017cd\u0105 przegran\u0105 rund\u0119"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_loss",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "dynamic_scaling",
+              "stat": null,
+              "stats": [],
+              "value": 0,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN HomoKomando",
+      "type": "class",
+      "description": "XN HomoKomando dostaje lifesteal",
+      "thresholds": [
+        1
+      ],
+      "threshold_descriptions": [
+        "Dostaje <v>% lifesteala"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_enemy_death",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "stat_buff",
+              "stat": "lifesteal",
+              "stats": [],
+              "value": 15,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": null,
+              "def_per_win": null,
+              "hp_percent_per_win": null,
+              "as_per_win": null,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "XN Yakuza",
+      "type": "class",
+      "description": "Za ka\u017cd\u0105 wygran\u0105 rund\u0119 zyskujesz sta\u0142e i procentowe bonusy",
+      "thresholds": [
+        1
+      ],
+      "threshold_descriptions": [
+        "Za ka\u017cd\u0105 wygran\u0105 rund\u0119 +1 ataku, +1 obrony, +1% HP, +0.01 pr\u0119dko\u015bci ataku"
+      ],
+      "tier": 1,
+      "modular_effects": [
+        {
+          "trigger": "on_win",
+          "conditions": {
+            "chance_percent": 100,
+            "once_per_round": false,
+            "max_triggers": null,
+            "trigger_once": false,
+            "threshold_percent": null
+          },
+          "rewards": [
+            {
+              "type": "dynamic_scaling",
+              "stat": null,
+              "stats": [],
+              "value": 0,
+              "value_type": "flat",
+              "collect_stat": null,
+              "duration": "permanent",
+              "resource": null,
+              "multiplier": 1.0,
+              "chance_percent": null,
+              "threshold_percent": null,
+              "heal_percent": null,
+              "target_preference": null,
+              "atk_per_win": 1,
+              "def_per_win": 1,
+              "hp_percent_per_win": 1,
+              "as_per_win": 0.01,
+              "percent_per_loss": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -4,63 +4,39 @@ Heal Effect Handler - Handles healing effects in skills
 from typing import Dict, Any, List
 from waffen_tactics.models.skill import Effect, SkillExecutionContext, EffectType
 from waffen_tactics.services.effects import EffectHandler, register_effect_handler
+from waffen_tactics.services.event_canonicalizer import emit_unit_heal
 
 
 class HealHandler(EffectHandler):
     """Handles heal effects"""
 
     def execute(self, effect: Effect, context: SkillExecutionContext, target) -> List[Dict[str, Any]]:
-        """Execute heal effect"""
+        """Execute heal effect using canonical emit_unit_heal"""
         amount = effect.params.get('amount', 0)
 
         if amount <= 0:
             return []
 
-        # Calculate actual healing (do not mutate target here; emitters will
-        # perform authoritative in-memory updates when the simulator processes
-        # returned events)
+        # Get current HP before heal
         old_hp = int(getattr(target, 'hp', 0))
-        max_hp = int(getattr(target, 'max_hp', old_hp))
-        new_hp = min(max_hp, old_hp + int(amount))
-        actual_heal = new_hp - old_hp
 
-        if actual_heal <= 0:
+        # Use canonical emitter to apply heal and emit event
+        cb = getattr(context, 'event_callback', None)
+        payload = emit_unit_heal(
+            cb,
+            target=target,
+            healer=context.caster,
+            amount=amount,
+            side=None,  # Side will be determined by simulator
+            timestamp=getattr(context, 'combat_time', None),
+            current_hp=old_hp,  # Pass current HP so emitter can calculate authoritative new HP
+        )
+
+        # If event_callback exists, emitter already called it, so return empty list
+        # Otherwise return the payload for tests/dry-runs
+        if cb:
             return []
-
-        # If we have an event_callback in context, return an event for the
-        # simulator to forward (the simulator will call canonical emitters).
-        # Otherwise (dry-run/test mode), apply the mutation directly.
-        if getattr(context, 'event_callback', None) is None:
-            # Apply directly for tests/dry-runs
-            target.hp = new_hp
-            # also ensure shield/defaults exist
-            return [(
-                'unit_heal', {
-                    'unit_id': target.id,
-                    'unit_name': target.name,
-                    'healer_id': context.caster.id,
-                    'healer_name': context.caster.name,
-                    'amount': actual_heal,
-                    'pre_hp': old_hp,
-                    'post_hp': new_hp,
-                    'unit_max_hp': max_hp,
-                    'timestamp': context.combat_time,
-                }
-            )]
-
-        event = ('unit_heal', {
-            'unit_id': target.id,
-            'unit_name': target.name,
-            'healer_id': context.caster.id,
-            'healer_name': context.caster.name,
-            'amount': actual_heal,
-            'pre_hp': old_hp,
-            'post_hp': new_hp,
-            'unit_max_hp': max_hp,
-            'timestamp': context.combat_time,
-        })
-
-        return [event]
+        return [('unit_heal', payload)]
 
     def validate_params(self, effect: Effect) -> bool:
         """Validate heal parameters"""

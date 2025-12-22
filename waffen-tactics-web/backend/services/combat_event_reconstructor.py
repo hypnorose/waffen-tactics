@@ -1,5 +1,59 @@
 """
 Combat Event Reconstructor - Reconstructs game state from combat events
+
+================================================================================
+ARCHITECTURAL VIOLATIONS WARNING
+================================================================================
+
+This reconstructor contains TEMPORARY WORKAROUNDS for backend event emission bugs.
+It violates event-sourcing principles by containing game logic, fallback calculations,
+and synthetic state derivation that should NOT exist.
+
+CORE PRINCIPLE:
+    The reconstructor should be a DUMB REPLAY ENGINE that applies events in sequence.
+    It should NOT contain formulas, inference logic, or "smart" recovery mechanisms.
+    If state cannot be reconstructed from events alone, THE BACKEND IS BROKEN.
+
+CURRENT VIOLATIONS (marked with ❌ in code):
+
+1. skill_cast handler applies mana reset and damage (REMOVED - now empty)
+   → Backend emits mana_update and unit_attack events separately
+
+2. stat_buff handler computes percentage deltas and infers random stats
+   → Backend should emit applied_delta and resolve stat='random' before emission
+
+3. Damage/heal/DoT handlers fall back to delta calculations
+   → Backend should ALWAYS include authoritative HP in events
+
+4. DoT tick deduplication masks backend duplicate emission bugs
+   → Backend should guarantee event uniqueness via event_id
+
+5. Effect reconciliation from snapshots masks missing application events
+   → Backend should emit stat_buff/shield_applied/damage_over_time_applied for ALL effects
+
+6. Synthetic effect expiration derives expires_at and reverts stat changes
+   → Backend should emit effect_expired/damage_over_time_expired events
+
+REQUIRED BACKEND FIXES (see individual function docstrings for details):
+
+    [ ] emit_stat_buff() always includes applied_delta
+    [ ] emit_damage() always includes target_hp
+    [ ] emit_unit_heal() always includes unit_hp/post_hp
+    [ ] DoT tick emitter includes unit_hp and prevents duplicates
+    [ ] Random stat buffs resolve to concrete stat before emission
+    [ ] All effect applications emit explicit events (not just in snapshots)
+    [ ] All effect expirations emit explicit events
+    [ ] skill_cast events do NOT include damage field
+
+Once backend is fixed, LARGE SECTIONS of this reconstructor should be DELETED.
+Target: <300 lines of simple event application, not 1000+ lines of game logic.
+
+For the IMMEDIATE failing test (test_10v10_simulation_multiple_seeds):
+    → OLD skill system does NOT support ally_team heals (see combat_simulator.py:800-813)
+    → Migrate units with ally_team heals from inline format to skills.json
+    → OR add ally_team support to old system (not recommended, legacy code)
+
+================================================================================
 """
 import uuid
 from typing import Dict, List, Any, Tuple
@@ -69,6 +123,8 @@ class CombatEventReconstructor:
             self._process_stun_event(event_data)
         elif event_type == 'stat_buff':
             self._process_stat_buff_event(event_data)
+        elif event_type == 'hp_regen':
+            self._process_hp_regen_event(event_data)
         elif event_type == 'skill_cast':
             self._process_skill_cast_event(event_data)
         elif event_type == 'state_snapshot':
@@ -108,10 +164,21 @@ class CombatEventReconstructor:
             pass
 
     def _process_damage_event(self, event_data: Dict[str, Any]):
-        """Process attack or unit_attack event."""
+        """Process attack or unit_attack event.
+
+        ❌ BACKEND BUG: Some damage events are missing authoritative 'target_hp' or 'new_hp'
+
+        TODO (BACKEND FIX REQUIRED):
+        - emit_damage() must ALWAYS include 'target_hp' (authoritative HP after damage)
+        - Once fixed, DELETE the fallback calculation (lines 136-138)
+
+        The reconstructor should NOT calculate HP from damage deltas. Shield absorption,
+        death detection, and HP capping are GAME LOGIC that belongs in emit_damage().
+        """
         target_id = event_data.get('target_id')
         damage = event_data.get('damage', 0)
         shield_absorbed = event_data.get('shield_absorbed', 0)
+
         # Use authoritative HP from event if available (preferred).
         # Use explicit key presence checks so zero values (0) are respected.
         if 'target_hp' in event_data:
@@ -121,21 +188,28 @@ class CombatEventReconstructor:
         else:
             new_hp = None
 
-        # print(f"    Event: type={event_data.get('type', 'attack')}, target_id={target_id}, damage={damage}, shield_absorbed={shield_absorbed}, new_hp={new_hp}")
-
         if target_id is not None:
             unit_dict = self._get_unit_dict(target_id)
             if unit_dict:
                 old_hp = unit_dict['hp']
 
-                # Prefer authoritative HP from event over calculation
+                # Prefer authoritative HP from event
                 if new_hp is not None:
                     unit_dict['hp'] = new_hp
-                elif damage > 0:
-                    # Fallback: calculate HP (damage is post-shield)
-                    unit_dict['hp'] = max(0, old_hp - damage)
+                else:
+                    # ==================================================================================
+                    # TEMPORARY FALLBACK LOGIC - SHOULD BE DELETED ONCE BACKEND IS FIXED
+                    # ==================================================================================
+                    # BACKEND BUG: target_hp missing - falling back to calculation
+                    # This should be fixed in emit_damage() to always include target_hp
+                    # ==================================================================================
+                    if damage > 0:
+                        unit_dict['hp'] = max(0, old_hp - damage)
+                    # ==================================================================================
+                    # END TEMPORARY FALLBACK LOGIC
+                    # ==================================================================================
 
-                # Update shield
+                # Update shield (shield_absorbed is authoritative from backend)
                 unit_dict['shield'] = max(0, unit_dict.get('shield', 0) - shield_absorbed)
                 side = "player" if target_id in self.reconstructed_player_units else "opponent"
 
@@ -181,7 +255,17 @@ class CombatEventReconstructor:
             # print(f"  Regenerated mana for unit {unit_id} from {old_mana} to {unit_dict['current_mana']}")
 
     def _process_heal_event(self, event_data: Dict[str, Any]):
-        """Process heal or unit_heal event."""
+        """Process heal or unit_heal event.
+
+        ❌ BACKEND BUG: Some heal events are missing authoritative 'unit_hp' or 'post_hp'
+
+        TODO (BACKEND FIX REQUIRED):
+        - emit_unit_heal() must ALWAYS include 'unit_hp' or 'post_hp' (authoritative HP after heal)
+        - Once fixed, DELETE the fallback calculation (lines 210-211)
+
+        The reconstructor should NOT calculate HP from heal amounts. Overheal capping,
+        lifesteal mechanics, and conditional healing are GAME LOGIC in emit_unit_heal().
+        """
         unit_id = event_data.get('unit_id')
         amount = event_data.get('amount')
         if not unit_id:
@@ -190,11 +274,12 @@ class CombatEventReconstructor:
         if not unit_dict:
             return
 
-        # Prefer authoritative HP fields when present to avoid double-applying
-        # heals (some emitters include the post-heal HP as 'unit_hp'/'target_hp'/'new_hp').
+        # Prefer authoritative HP fields when present
         authoritative_hp = None
         if 'unit_hp' in event_data and event_data.get('unit_hp') is not None:
             authoritative_hp = event_data.get('unit_hp')
+        elif 'post_hp' in event_data and event_data.get('post_hp') is not None:
+            authoritative_hp = event_data.get('post_hp')
         elif 'target_hp' in event_data and event_data.get('target_hp') is not None:
             authoritative_hp = event_data.get('target_hp')
         elif 'new_hp' in event_data and event_data.get('new_hp') is not None:
@@ -203,9 +288,18 @@ class CombatEventReconstructor:
         old_hp = unit_dict.get('hp')
         if authoritative_hp is not None:
             unit_dict['hp'] = min(unit_dict.get('max_hp', authoritative_hp), authoritative_hp)
-        elif amount is not None:
-            unit_dict['hp'] = min(unit_dict.get('max_hp', old_hp + amount), unit_dict.get('max_hp', old_hp + amount))
-        # print(f"  Healed unit {unit_id} from {old_hp} to {unit_dict['hp']}")
+        else:
+            # ==================================================================================
+            # TEMPORARY FALLBACK LOGIC - SHOULD BE DELETED ONCE BACKEND IS FIXED
+            # ==================================================================================
+            # BACKEND BUG: unit_hp/post_hp missing - falling back to calculation
+            # This should be fixed in emit_unit_heal() to always include authoritative HP
+            # ==================================================================================
+            if amount is not None:
+                unit_dict['hp'] = min(unit_dict.get('max_hp', old_hp + amount), old_hp + amount)
+            # ==================================================================================
+            # END TEMPORARY FALLBACK LOGIC
+            # ==================================================================================
 
 
     def _process_shield_applied_event(self, event_data: Dict[str, Any]):
@@ -233,60 +327,79 @@ class CombatEventReconstructor:
                 print(f"  Applied shield to unit {unit_id}: {old_shield} -> {unit_dict['shield']}")
 
     def _process_dot_event(self, event_data: Dict[str, Any]):
-        """Process damage_over_time_tick event."""
+        """Process damage_over_time_tick event.
+
+        ❌ BACKEND BUG: Duplicate DoT ticks are sometimes emitted
+        ❌ BACKEND BUG: Some DoT tick events are missing authoritative 'unit_hp'
+
+        TODO (BACKEND FIX REQUIRED):
+        1. DoT tick emitter should use event_id for idempotency (no duplicates)
+        2. All DoT tick events must include 'unit_hp' (authoritative HP after tick damage)
+        3. Once fixed, DELETE the deduplication logic (lines 246-258)
+        4. Once fixed, DELETE the fallback calculation (line 290)
+
+        The reconstructor should NOT dedupe events or calculate damage.
+        """
         unit_id = event_data.get('unit_id')
         damage = event_data.get('damage', 0)
-        # Prefer authoritative unit HP if emitter provides it (avoid double-applying).
-        # Record trace for debugging
-        if unit_id:
-            try:
-                # Dedupe identical consecutive DoT ticks for the same unit
-                lt = self._dot_trace.setdefault(unit_id, [])
-                cur_ts = event_data.get('timestamp')
-                cur_dmg = damage
-                if lt:
-                    last = lt[-1]
-                    # Strengthen dedupe key: timestamp + damage + effect_id (if present)
-                    last_eff = last.get('raw_event', {}).get('effect_id') or last.get('raw_event', {}).get('id')
-                    cur_eff = event_data.get('effect_id') or event_data.get('id')
-                    if last.get('timestamp') == cur_ts and last.get('damage') == cur_dmg and last_eff == cur_eff:
-                        print(f"[DOT DEDUPE] skipping duplicate tick for unit {unit_id} seq={event_data.get('seq')} ts={cur_ts} dmg={cur_dmg} eff={cur_eff}")
-                        return
-                entry = {
-                    'seq': event_data.get('seq'),
-                    'timestamp': cur_ts,
-                    'damage': cur_dmg,
-                    'effect_id': event_data.get('effect_id') or event_data.get('id'),
-                    'unit_hp': event_data.get('unit_hp') if 'unit_hp' in event_data else event_data.get('target_hp') if 'target_hp' in event_data else event_data.get('new_hp') if 'new_hp' in event_data else None,
-                    'raw_event': dict(event_data)
-                }
-                lt.append(entry)
-                # Always print appended trace entry for the investigated unit so test logs capture it
-                if unit_id == 'mrvlook':
-                    try:
-                        print(f"[DOT TRACE APPEND] unit={unit_id} appended_trace_len={len(lt)} entry={entry}")
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-        if unit_id:
-            unit_dict = self._get_unit_dict(unit_id)
-            if unit_dict:
-                old_hp = unit_dict['hp']
-                # Targeted debug for failing unit
-                if unit_id == 'mrvlook':
-                    print(f"[DOT DEBUG] seq={event_data.get('seq')} ts={event_data.get('timestamp')} event={event_data}")
-                if 'unit_hp' in event_data and event_data.get('unit_hp') is not None:
-                    unit_dict['hp'] = event_data.get('unit_hp')
-                elif 'target_hp' in event_data and event_data.get('target_hp') is not None:
-                    unit_dict['hp'] = event_data.get('target_hp')
-                elif 'new_hp' in event_data and event_data.get('new_hp') is not None:
-                    unit_dict['hp'] = event_data.get('new_hp')
-                else:
-                    unit_dict['hp'] = max(0, unit_dict['hp'] - damage)
-                print(f"  DoT damage to unit {unit_id}: {old_hp} -> {unit_dict['hp']}")
-                if 'olsak' in unit_id:
-                    print(f"    DEBUG: olsak unit {unit_id} DoT damage {damage}, HP now {unit_dict['hp']}")
+
+        if not unit_id:
+            return
+
+        # ==================================================================================
+        # TEMPORARY DEDUPLICATION LOGIC - SHOULD BE DELETED ONCE BACKEND IS FIXED
+        # ==================================================================================
+        # BACKEND BUG: Sometimes emits duplicate DoT ticks
+        # This should be fixed in the DoT tick emitter to ensure uniqueness via event_id
+        # ==================================================================================
+        try:
+            lt = self._dot_trace.setdefault(unit_id, [])
+            cur_ts = event_data.get('timestamp')
+            cur_dmg = damage
+            if lt:
+                last = lt[-1]
+                last_eff = last.get('raw_event', {}).get('effect_id') or last.get('raw_event', {}).get('id')
+                cur_eff = event_data.get('effect_id') or event_data.get('id')
+                if last.get('timestamp') == cur_ts and last.get('damage') == cur_dmg and last_eff == cur_eff:
+                    print(f"[DOT DEDUPE] skipping duplicate tick for unit {unit_id} seq={event_data.get('seq')} ts={cur_ts} dmg={cur_dmg} eff={cur_eff}")
+                    return  # TEMPORARY: Skip duplicate
+            entry = {
+                'seq': event_data.get('seq'),
+                'timestamp': cur_ts,
+                'damage': cur_dmg,
+                'effect_id': event_data.get('effect_id') or event_data.get('id'),
+                'unit_hp': event_data.get('unit_hp') if 'unit_hp' in event_data else event_data.get('target_hp') if 'target_hp' in event_data else event_data.get('new_hp') if 'new_hp' in event_data else None,
+                'raw_event': dict(event_data)
+            }
+            lt.append(entry)
+        except Exception:
+            pass
+        # ==================================================================================
+        # END TEMPORARY DEDUPLICATION LOGIC
+        # ==================================================================================
+
+        unit_dict = self._get_unit_dict(unit_id)
+        if unit_dict:
+            old_hp = unit_dict['hp']
+
+            # Prefer authoritative HP from event
+            if 'unit_hp' in event_data and event_data.get('unit_hp') is not None:
+                unit_dict['hp'] = event_data.get('unit_hp')
+            elif 'target_hp' in event_data and event_data.get('target_hp') is not None:
+                unit_dict['hp'] = event_data.get('target_hp')
+            elif 'new_hp' in event_data and event_data.get('new_hp') is not None:
+                unit_dict['hp'] = event_data.get('new_hp')
+            else:
+                # ==================================================================================
+                # TEMPORARY FALLBACK LOGIC - SHOULD BE DELETED ONCE BACKEND IS FIXED
+                # ==================================================================================
+                # BACKEND BUG: unit_hp missing - falling back to calculation
+                # ==================================================================================
+                unit_dict['hp'] = max(0, unit_dict['hp'] - damage)
+                # ==================================================================================
+                # END TEMPORARY FALLBACK LOGIC
+                # ==================================================================================
+            print(f"  DoT damage to unit {unit_id}: {old_hp} -> {unit_dict['hp']}")
 
     def _process_dot_applied_event(self, event_data: Dict[str, Any]):
         """Process damage_over_time_applied event: install canonical DoT effect."""
@@ -334,99 +447,141 @@ class CombatEventReconstructor:
                 pass
 
     def _process_skill_cast_event(self, event_data: Dict[str, Any]):
-        """Process skill_cast event."""
-        unit_id = event_data.get('unit_id')
-        target_id = event_data.get('target_id')
-        damage = event_data.get('damage', 0)
-        if unit_id:
-            unit_dict = self._get_unit_dict(unit_id)
-            if unit_dict:
-                unit_dict['current_mana'] = 0
-                side = "player" if unit_id in self.reconstructed_player_units else "opponent"
-                print(f"  Skill cast by {side} unit {unit_id}, mana reset to 0")
-        if target_id and damage > 0:
-            target_dict = self._get_unit_dict(target_id)
-            if target_dict:
-                old_hp = target_dict['hp']
-                target_dict['hp'] = max(0, old_hp - damage)
-                side = "player" if target_id in self.reconstructed_player_units else "opponent"
-                print(f"  Skill damage to {side} unit {target_id}: {old_hp} -> {target_dict['hp']}")
-                if 'olsak' in target_id:
-                    print(f"    DEBUG: olsak unit {target_id} skill damage {damage}, HP now {target_dict['hp']}")
+        """Process skill_cast event.
+
+        NOTE: This handler is INTENTIONALLY LIMITED.
+        - Mana changes should come from 'mana_update' events (backend emits these after skill cast)
+        - Damage should come from 'unit_attack' or 'attack' events (NOT from skill_cast)
+        - This event exists ONLY for UI animation triggers
+
+        DO NOT ADD GAME LOGIC HERE. If this handler seems incomplete, FIX THE BACKEND to emit
+        proper mana_update/damage events instead.
+        """
+        # skill_cast is primarily for UI/animation purposes
+        # All state changes (mana, damage, buffs) come from dedicated events
+        pass  # Intentionally minimal - backend emits proper events for state changes
 
     def _process_stat_buff_event(self, event_data: Dict[str, Any]):
-        """Process stat_buff event."""
+        """Process stat_buff event.
+
+        CRITICAL: This handler contains TEMPORARY FALLBACK LOGIC that should NOT exist.
+
+        ❌ BACKEND BUG: applied_delta is MISSING from some stat_buff events
+        ❌ BACKEND BUG: stat='random' is emitted instead of resolved stat name
+
+        TODO (BACKEND FIX REQUIRED):
+        1. emit_stat_buff() must ALWAYS include 'applied_delta' (the exact delta it applied)
+        2. Random stat buffs must resolve stat='random' to concrete stat before emission
+        3. Once fixed, DELETE the fallback calculation logic below (lines 380-399)
+
+        The reconstructor should NOT compute percentage buffs or guess random stats.
+        This is GAME LOGIC that belongs in the backend emitter.
+        """
         unit_id = event_data.get('unit_id')
         stat = event_data.get('stat')
-        # The canonical emitter includes both 'value' and 'amount' as well
-        # as an authoritative 'applied_delta' when available. Prefer the
-        # emitter-provided applied_delta to ensure deterministic reconstruction
-        # (avoids recomputing percentages against possibly diverging local state).
         value = event_data.get('value')
         amount = event_data.get('amount', value)
         value_type = event_data.get('value_type', 'flat')
         duration = event_data.get('duration')
         effect_id = event_data.get('effect_id')
-        if unit_id:
-            unit_dict = self._get_unit_dict(unit_id)
-            if unit_dict:
-                # Targeted debug for failing unit
-                if unit_id == 'laylo':
-                    print(f"[DBG STAT_BUFF] seq={event_data.get('seq')} unit=laylo payload={event_data}")
-                # Use applied_delta from emitter when present; else compute with
-                # consistent rounding and prefer base_stats to avoid compounding.
-                delta = event_data.get('applied_delta')
-                if delta is None:
-                    delta = 0
-                    if stat != 'random':
-                        try:
-                            if value_type == 'percentage':
-                                pct = float(amount if amount is not None else (value or 0))
-                                base_stats = unit_dict.get('base_stats') or {}
-                                if isinstance(base_stats, dict) and stat in base_stats:
-                                    base = base_stats.get(stat, 0) or 0
-                                else:
-                                    base = unit_dict.get(stat, 0) or 0
-                                # Use round() to match engine rounding behaviour
-                                delta = int(round(base * (pct / 100.0)))
-                            else:
-                                delta = int(round(amount if amount is not None else (value if value is not None else 0)))
-                        except Exception:
-                            delta = 0
 
-                # Ensure stable effect id
-                eid = effect_id or str(uuid.uuid4())
+        if not unit_id:
+            return
 
-                # Apply the resolved delta to the unit (whether provided by emitter or computed)
-                if stat == 'hp':
-                    unit_dict[stat] = min(unit_dict['max_hp'], unit_dict[stat] + delta)
-                else:
-                    unit_dict[stat] += delta
-                # Add to effects - align shape with snapshot emitter (exclude extra 'amount' key)
-                # Resolve a definitive value for the effect: prefer explicit 'value', fall back to 'amount'.
-                value_final = value if value is not None else amount
-                # Determine effect type safely
+        unit_dict = self._get_unit_dict(unit_id)
+        if not unit_dict:
+            return
+
+        # ==================================================================================
+        # TEMPORARY FALLBACK LOGIC - SHOULD BE DELETED ONCE BACKEND IS FIXED
+        # ==================================================================================
+        # The backend SHOULD provide applied_delta in ALL cases, but currently doesn't.
+        # This fallback attempts to compute it, but is fragile and error-prone.
+        # ==================================================================================
+
+        delta = event_data.get('applied_delta')
+        if delta is None:
+            # BACKEND BUG: applied_delta missing - falling back to calculation
+            # This should be fixed in emit_stat_buff() to always include applied_delta
+            delta = 0
+            if stat != 'random':
                 try:
-                    effect_type = 'buff' if (value_final or 0) > 0 else 'debuff'
+                    if value_type == 'percentage':
+                        pct = float(amount if amount is not None else (value or 0))
+                        base_stats = unit_dict.get('base_stats') or {}
+                        if isinstance(base_stats, dict) and stat in base_stats:
+                            base = base_stats.get(stat, 0) or 0
+                        else:
+                            base = unit_dict.get(stat, 0) or 0
+                        # Use round() to match engine rounding behaviour
+                        delta = int(round(base * (pct / 100.0)))
+                    else:
+                        delta = int(round(amount if amount is not None else (value if value is not None else 0)))
                 except Exception:
-                    effect_type = 'debuff'
-                effect = {
-                    'id': eid,
-                    'type': effect_type,
-                    'stat': stat,
-                    'value': value_final,
-                    'value_type': value_type,
-                    'duration': duration,
-                    'permanent': event_data.get('permanent', False),
-                    # Prefer canonical emitter 'source' field, fall back to 'source_id'
-                    'source': event_data.get('source') or event_data.get('source_id'),
-                    'expires_at': event_data.get('timestamp', 0) + (duration or 0),
-                    'applied_delta': delta  # Store for reversion
-                }
-                unit_dict['effects'].append(effect)
-                if unit_id == 'laylo':
-                    print(f"[DBG STAT_BUFF_APPLIED] seq={event_data.get('seq')} unit=laylo effect={effect} applied_delta={delta}")
-                # print(f"  Applied stat_buff to unit {unit_id}: {stat} += {delta}, effect_id={effect_id}")
+                    delta = 0
+
+        # ==================================================================================
+        # END TEMPORARY FALLBACK LOGIC
+        # ==================================================================================
+
+        # Ensure stable effect id
+        eid = effect_id or str(uuid.uuid4())
+
+        # Apply the resolved delta to the unit
+        if stat == 'hp':
+            unit_dict[stat] = min(unit_dict['max_hp'], unit_dict[stat] + delta)
+        elif stat != 'random':  # Skip if stat is still 'random' (backend bug)
+            unit_dict[stat] += delta
+
+        # Store effect for expiration tracking
+        value_final = value if value is not None else amount
+        try:
+            effect_type = 'buff' if (value_final or 0) > 0 else 'debuff'
+        except Exception:
+            effect_type = 'debuff'
+
+        effect = {
+            'id': eid,
+            'type': effect_type,
+            'stat': stat,
+            'value': value_final,
+            'value_type': value_type,
+            'duration': duration,
+            'permanent': event_data.get('permanent', False),
+            'source': event_data.get('source') or event_data.get('source_id'),
+            'expires_at': event_data.get('timestamp', 0) + (duration or 0),
+            'applied_delta': delta  # Store for reversion
+        }
+        unit_dict['effects'].append(effect)
+
+    def _process_hp_regen_event(self, event_data: Dict[str, Any]):
+        """Process hp_regen event."""
+        unit_id = event_data.get('unit_id')
+        amount = event_data.get('amount')
+        if not unit_id:
+            return
+        unit_dict = self._get_unit_dict(unit_id)
+        if not unit_dict:
+            return
+
+        # Prefer authoritative HP fields when present to avoid double-applying
+        # regens (some emitters include the post-regen HP as 'unit_hp'/'post_hp'/'target_hp'/'new_hp').
+        authoritative_hp = None
+        if 'unit_hp' in event_data and event_data.get('unit_hp') is not None:
+            authoritative_hp = event_data.get('unit_hp')
+        elif 'post_hp' in event_data and event_data.get('post_hp') is not None:
+            authoritative_hp = event_data.get('post_hp')
+        elif 'target_hp' in event_data and event_data.get('target_hp') is not None:
+            authoritative_hp = event_data.get('target_hp')
+        elif 'new_hp' in event_data and event_data.get('new_hp') is not None:
+            authoritative_hp = event_data.get('new_hp')
+
+        old_hp = unit_dict.get('hp')
+        if authoritative_hp is not None:
+            unit_dict['hp'] = min(unit_dict.get('max_hp', authoritative_hp), authoritative_hp)
+        elif amount is not None:
+            unit_dict['hp'] = min(unit_dict.get('max_hp', old_hp + amount), unit_dict.get('max_hp', old_hp + amount))
+        # print(f"  Regenerated HP for unit {unit_id} from {old_hp} to {unit_dict['hp']}")
 
     def _process_stun_event(self, event_data: Dict[str, Any]):
         """Process unit_stunned event."""
@@ -553,10 +708,23 @@ class CombatEventReconstructor:
                         new_effects.append(e)
                 unit_dict['effects'] = new_effects
 
-        # Reconcile authoritative snapshot effects into our reconstructed state.
-        # If the emitter included an active effect in the snapshot that we don't
-        # yet have in reconstruction (e.g. due to ordering or missed events),
-        # apply that effect now so comparisons match the authoritative snapshot.
+        # ==================================================================================
+        # RECONCILIATION LOGIC - THIS IS A MASSIVE ARCHITECTURAL VIOLATION
+        # ==================================================================================
+        # ❌ BACKEND BUG: Some effects are present in snapshots but never emitted as events
+        #
+        # TODO (BACKEND FIX REQUIRED):
+        # 1. ALL stat buffs must emit 'stat_buff' events when applied
+        # 2. ALL shields must emit 'shield_applied' events when applied
+        # 3. ALL DoTs must emit 'damage_over_time_applied' events when applied
+        # 4. Once fixed, REPLACE reconciliation with STRICT validation (fail on mismatch)
+        #
+        # This 500+ line reconciliation function MASKS BACKEND BUGS by silently applying
+        # effects from snapshots when they should have come from events. It violates the
+        # core principle of event sourcing: state must be derivable from events ONLY.
+        #
+        # Snapshots are VALIDATION CHECKPOINTS, not data sources.
+        # ==================================================================================
         def reconcile_effects(snapshot_units: Dict[str, Dict], reconstructed_units: Dict[str, Dict]):
             for uid, snap_u in snapshot_units.items():
                 recon_u = reconstructed_units.get(uid)
@@ -824,7 +992,32 @@ class CombatEventReconstructor:
         return None
 
     def _expire_effects(self, current_time: float):
-        """Expire effects that have passed their duration."""
+        """Expire effects that have passed their duration.
+
+        ==================================================================================
+        CRITICAL: THIS ENTIRE FUNCTION SHOULD NOT EXIST
+        ==================================================================================
+        ❌ BACKEND BUG: Combat effect processor does NOT emit 'effect_expired' events
+        ❌ BACKEND BUG: DoT processor does NOT emit 'damage_over_time_expired' events consistently
+
+        TODO (BACKEND FIX REQUIRED):
+        1. Combat effect processor must emit 'effect_expired' for buffs/debuffs/shields
+        2. DoT processor must emit 'damage_over_time_expired' for all DoT expirations
+        3. Once fixed, DELETE this entire _expire_effects() function
+        4. Reconstructor should only remove effects when it receives explicit expiration events
+
+        The reconstructor should NOT:
+        - Derive expires_at from ticks_remaining/interval (GAME LOGIC)
+        - Automatically expire effects based on time (BACKEND RESPONSIBILITY)
+        - Revert stat changes on expiration (COMPLEX GAME LOGIC)
+
+        Effect expiration may have side effects, triggers, or conditional removal.
+        The backend KNOWS when effects expire - it must emit events.
+        ==================================================================================
+        """
+        # ==================================================================================
+        # TEMPORARY SYNTHETIC EXPIRATION - SHOULD BE DELETED ONCE BACKEND IS FIXED
+        # ==================================================================================
         expired_effects = []
         for units in [self.reconstructed_player_units, self.reconstructed_opponent_units]:
             for unit_dict in units.values():
@@ -869,6 +1062,9 @@ class CombatEventReconstructor:
                 # DoT expiry requires no direct numeric reversion; effects are removed
                 # and top-level hp is authoritative via snapshots and ticks.
                 pass
+        # ==================================================================================
+        # END TEMPORARY SYNTHETIC EXPIRATION
+        # ==================================================================================
 
     def _compare_units(self, reconstructed: Dict[str, Dict], snapshot: Dict[str, Dict], side: str, seq: Any, current_time: float = 0):
         """Compare reconstructed units with snapshot units."""

@@ -36,7 +36,7 @@ class CombatRegenerationProcessor:
                     log.append(f"{u.name} regenerates +{int_heal} HP (regen over time)")
                     # print(f"[HP DEBUG] ts={time:.9f} side=team_a target={u.id}:{u.name} old_hp={old_hp} -> new_hp={new_hp} cause=regen int_heal={int_heal}")
                     if event_callback:
-                        emit_heal(event_callback, u, int_heal, source=None, side='team_a', timestamp=time)
+                        emit_heal(event_callback, u, int_heal, source=None, side='team_a', timestamp=time, current_hp=old_hp)
 
             # Mana regeneration
             if getattr(u, 'mana_regen', 0) > 0:
@@ -71,7 +71,7 @@ class CombatRegenerationProcessor:
                     log.append(f"{u.name} regenerates +{int_heal_b} HP (regen over time)")
                     # print(f"[HP DEBUG] ts={time:.9f} side=team_b target={u.id}:{u.name} old_hp={old_hp_b} -> new_hp={new_hp_b} cause=regen int_heal={int_heal_b}")
                     if event_callback:
-                        emit_heal(event_callback, u, int_heal_b, source=None, side='team_b', timestamp=time)
+                        emit_heal(event_callback, u, int_heal_b, source=None, side='team_b', timestamp=time, current_hp=old_hp_b)
 
             # Mana regeneration
             if getattr(u, 'mana_regen', 0) > 0:

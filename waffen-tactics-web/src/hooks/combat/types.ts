@@ -59,6 +59,9 @@ export interface CombatEvent {
   target_hp?: number
   target_max_hp?: number
   unit_id?: string
+  post_hp?: number  // Authoritative HP after event (for heals, damage)
+  pre_hp?: number   // HP before event
+  new_hp?: number   // Alternative authoritative HP field (legacy)
   round?: number
   state?: any // PlayerState
   amount_per_sec?: number
@@ -92,6 +95,9 @@ export interface CombatEvent {
   unit_defense?: number
   permanent?: boolean
   source_id?: string
+  effect_id?: string
+  effect?: any
+  applied_delta?: number  // Authoritative delta applied by backend (for stat_buff events)
 }
 
 export interface EffectSummary {

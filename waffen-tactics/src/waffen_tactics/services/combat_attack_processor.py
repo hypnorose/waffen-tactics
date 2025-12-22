@@ -81,7 +81,17 @@ class CombatAttackProcessor:
                 if ls and damage > 0:
                     heal = int(damage * (ls / 100.0))
                     if heal > 0:
-                        attacking_hp[i] = min(unit.max_hp, int(attacking_hp[i] + heal))
+                        # Use canonical emitter for lifesteal healing
+                        from .event_canonicalizer import emit_unit_heal
+                        emit_unit_heal(
+                            event_callback,
+                            target=unit,
+                            healer=unit,
+                            amount=heal,
+                            side=side,
+                            timestamp=time,
+                            current_hp=attacking_hp[i]  # Use authoritative HP from list
+                        )
                         log.append(f"{unit.name} lifesteals {heal}")
 
                 # Mana gain: per attack

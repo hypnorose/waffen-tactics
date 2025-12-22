@@ -349,8 +349,9 @@ def start_combat():
             orig_opp_info_map = {u['id']: u for u in opponent_unit_info} if opponent_unit_info else {}
 
             player_unit_info = []
-            for u in player_units:
-                d = u.to_dict()
+            for i, u in enumerate(player_units):
+                # CRITICAL: Use a_hp[i] to get HP after per-round buffs were applied
+                d = u.to_dict(current_hp=a_hp[i])
                 orig = orig_player_info_map.get(d.get('id'))
                 if orig:
                     # preserve template_id and avatar if present
@@ -361,8 +362,9 @@ def start_combat():
                 player_unit_info.append(d)
 
             opponent_unit_info = []
-            for u in opponent_units:
-                d = u.to_dict()
+            for i, u in enumerate(opponent_units):
+                # CRITICAL: Use b_hp[i] to get HP after per-round buffs were applied
+                d = u.to_dict(current_hp=b_hp[i])
                 orig = orig_opp_info_map.get(d.get('id'))
                 if orig:
                     if 'template_id' in orig and orig.get('template_id'):
@@ -393,17 +395,31 @@ def start_combat():
 
             # Collect events with timestamps
             events = []  # (event_type, data, event_time)
+            all_events_for_debug = []  # For debugging desyncs
             def event_collector(event_type: str, data: dict):
                 # No manual syncing needed! Simulator already updated its units.
                 # Read authoritative state directly from simulator when available,
                 # otherwise fall back to the prepared player/opponent unit lists.
                 event_time = data.get('timestamp', 0.0)
                 try:
-                    player_state = [u.to_dict() for u in simulator.team_a]
-                    opponent_state = [u.to_dict() for u in simulator.team_b]
-                except Exception:
-                    # Some fake/test simulators don't set team_a/team_b; use the
-                    # prepared units instead to avoid crashing the stream.
+                    # CRITICAL: Use simulator's authoritative HP arrays (a_hp, b_hp)
+                    # The simulator tracks HP separately from unit objects to avoid state mutation
+                    # We must pass current_hp to to_dict() to get the correct combat-damaged HP
+                    player_state = [u.to_dict(current_hp=simulator.a_hp[i]) for i, u in enumerate(simulator.team_a)]
+                    opponent_state = [u.to_dict(current_hp=simulator.b_hp[i]) for i, u in enumerate(simulator.team_b)]
+
+                    # DEBUG: Log effects in snapshots
+                    for u_dict in player_state + opponent_state:
+                        if u_dict.get('effects'):
+                            print(f"[SNAPSHOT DEBUG] Unit {u_dict['id']} has {len(u_dict['effects'])} effects in snapshot")
+                        else:
+                            print(f"[SNAPSHOT DEBUG] Unit {u_dict['id']} has EMPTY effects in snapshot")
+                except Exception as e:
+                    # FALLBACK: Some fake/test simulators don't set team_a/team_b
+                    # Log this to detect if we're hitting the buggy fallback path
+                    print(f"WARNING: event_collector falling back to stale HP! Exception: {e}")
+                    import traceback
+                    traceback.print_exc()
                     player_state = [u.to_dict() for u in player_units]
                     opponent_state = [u.to_dict() for u in opponent_units]
 
@@ -413,6 +429,13 @@ def start_combat():
                     'opponent_units': opponent_state,
                 }
                 events.append((event_type, data, event_time))
+
+                # Save for debugging (will be written to file after combat)
+                debug_event = {
+                    'type': event_type,
+                    **data
+                }
+                all_events_for_debug.append(debug_event)
 
             # Run combat simulation using shared logic
             result = simulator.simulate(player_units, opponent_units, event_collector, skip_per_round_buffs=True)

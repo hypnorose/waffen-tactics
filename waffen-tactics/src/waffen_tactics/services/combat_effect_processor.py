@@ -4,6 +4,7 @@ Combat effect processor - handles trait effects, buffs, and death triggers
 import random
 from typing import List, Dict, Any, Callable, Optional
 from .effect_processor import EffectProcessor
+from .modular_effect_processor import TriggerType
 from .event_canonicalizer import (
     emit_stat_buff,
     emit_regen_gain,
@@ -17,8 +18,9 @@ from .event_canonicalizer import (
 class CombatEffectProcessor:
     """Handles combat effects, buffs, and death triggers"""
 
-    def __init__(self):
+    def __init__(self, modular_effect_processor=None):
         self.effect_processor = EffectProcessor()
+        self.modular_effect_processor = modular_effect_processor
 
     def _process_unit_death(
         self,
@@ -155,31 +157,57 @@ class CombatEffectProcessor:
         except Exception:
             pass
 
-        # Ensure on_enemy_death stat effects are applied even if prior logic skipped them
-        try:
-            for unit in (attacking_team or []):
-                for eff in getattr(unit, 'effects', []):
-                    if eff.get('type') == 'on_enemy_death':
-                        try:
-                            self._apply_stat_buff(unit, eff, attacking_hp, (attacking_team or []).index(unit), time, log, event_callback, side, attacking_team, defending_team, attacking_hp, defending_hp)
-                        except Exception:
-                            pass
-        except Exception:
-            pass
+        # Use modular effect processor for ON_ENEMY_DEATH triggers
+        if hasattr(self, 'modular_effect_processor') and self.modular_effect_processor and killer:
+            # Prepare context for enemy death
+            context = {
+                'current_unit': killer,
+                'all_units': attacking_team + defending_team,
+                'enemy_units': defending_team,
+                'ally_units': attacking_team,
+                'collected_stats': getattr(killer, 'collected_stats', {}),
+                'current_time': time,
+                'side': side,
+                'target_unit': target,
+                'killer_unit': killer
+            }
 
-        # Trigger on_enemy_death effects for attacking team
-        print(f"[DEATH LOOP] attacking_team_len={len(attacking_team) if attacking_team is not None else 'None'}")
+            # Process ON_ENEMY_DEATH effects
+            self.modular_effect_processor.process_trigger(
+                TriggerType.ON_ENEMY_DEATH,
+                context,
+                event_callback
+            )
+
+        # Use modular effect processor for ON_ALLY_DEATH triggers
+        if hasattr(self, 'modular_effect_processor') and self.modular_effect_processor:
+            # Process ON_ALLY_DEATH effects for surviving allies on defending team
+            for i, unit in enumerate(defending_team):
+                if defending_hp[i] <= 0:
+                    continue
+
+                context = {
+                    'current_unit': unit,
+                    'all_units': attacking_team + defending_team,
+                    'enemy_units': attacking_team,
+                    'ally_units': defending_team,
+                    'collected_stats': getattr(unit, 'collected_stats', {}),
+                    'current_time': time,
+                    'side': defending_side,
+                    'dead_ally': target
+                }
+
+                self.modular_effect_processor.process_trigger(
+                    TriggerType.ON_ALLY_DEATH,
+                    context,
+                    event_callback
+                )
+
+        # Fallback: Handle legacy effects for backward compatibility
+        # Trigger on_enemy_death effects for attacking team (legacy format)
         for idx_unit, unit in enumerate(attacking_team or []):
-            try:
-                print(f"[DEATH LOOP] idx={idx_unit} unit_id={getattr(unit,'id',None)} effects={getattr(unit,'effects',None)}")
-            except Exception:
-                pass
             for eff in getattr(unit, 'effects', []):
                 if eff.get('type') == 'on_enemy_death':
-                    try:
-                        print(f"[DEATH LOOP] applying on_enemy_death for unit={getattr(unit,'id',None)} eff={eff}")
-                    except Exception:
-                        pass
                     actions = eff.get('actions', [])
                     if actions:
                         self._apply_actions(unit, actions, attacking_hp, attacking_team.index(unit), time, log, event_callback, side, attacking_team, attacking_hp, defending_team, defending_hp)
@@ -189,7 +217,7 @@ class CombatEffectProcessor:
                             self._apply_reward(unit, eff, attacking_hp, attacking_team.index(unit), time, log, event_callback, side, attacking_team, attacking_hp)
                         self._apply_stat_buff(unit, eff, attacking_hp, attacking_team.index(unit), time, log, event_callback, side, attacking_team, defending_team, attacking_hp, defending_hp)
 
-        # Trigger on_ally_death effects for surviving allies on defending team
+        # Trigger on_ally_death effects for surviving allies on defending team (legacy format)
         triggered_rewards = set()  # Track which reward types have been triggered for this death
         for i, unit in enumerate(defending_team):
             if defending_hp[i] <= 0:
