@@ -49,7 +49,7 @@ class TestCombat(unittest.TestCase):
         
         # Combat should end before timeout
         self.assertLess(result["duration"], 120, "Combat should end before timeout")
-        self.assertNotIn("timeout", result, "Combat should not timeout with normal units")
+        self.assertFalse(result.get("timeout", False), "Combat should not timeout with normal units")
 
     def test_combat_damage_reduces_hp(self):
         """Test that attacks actually reduce HP in the log"""

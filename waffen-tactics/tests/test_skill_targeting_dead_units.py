@@ -63,7 +63,7 @@ def test_dot_not_applied_to_dead_unit():
     hp_list = [0]
 
     # Process DoT for team containing the dead unit at time > next_tick_time
-    sim._process_dot_for_team([dead], hp_list, time=0.5, log=[], event_callback=cb, side='team_a')
+    sim._process_dot_for_team([dead], time=0.5, log=[], event_callback=cb, side='team_a')
 
     types = [t for t, d in events]
     assert 'damage_over_time_tick' not in types, f"DoT tick applied to dead unit: {types}"
@@ -94,8 +94,7 @@ def test_skill_does_not_apply_effects_to_dead_target():
         events.append((et, data))
 
     # Call internal skill processor with target already dead
-    target_hp_list = [0]
-    sim._process_skill_cast(caster, dead_target, target_hp_list, 0, time=0.5, log=[], event_callback=cb, side='team_a')
+    sim._process_skill_cast(caster, dead_target, time=0.5, log=[], event_callback=cb, side='team_a')
 
     types = [t for t, d in events]
     # We may still see mana_update/skill_cast meta events, but no actual effects targeting the dead unit

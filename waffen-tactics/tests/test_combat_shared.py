@@ -25,11 +25,15 @@ def test_lifesteal_and_on_enemy_death_effects():
     sim = CombatSimulator(dt=0.05, timeout=5)
 
     # Attacker has lifesteal and on_enemy_death buff
-    effects_att = [
-        {"type": "lifesteal", "value": 50},
-        {"type": "on_enemy_death", "stats": ["attack"], "value": 5}
-    ]
-    a = [make_unit("a1", "Att", hp=150, attack=40, defense=5, attack_speed=1.2, effects=effects_att)]
+    # Lifesteal is a persistent computed stat; set it directly on the unit's computed cache.
+    modular_on_enemy = {
+        "trigger": "on_enemy_death",
+        "conditions": {"chance_percent": 100},
+        "rewards": [{"type": "stat_buff", "stats": ["attack"], "value": 5, "value_type": "flat", "duration": "permanent"}]
+    }
+    a = [make_unit("a1", "Att", hp=150, attack=40, defense=5, attack_speed=1.2, effects=[modular_on_enemy, {'type': 'lifesteal', 'value': 50}])]
+    # Give lifesteal directly (computed stat) so the simulator's lifesteal logic picks it up
+    # a[0]._computed_stats.lifesteal = 50.0
     # Defender single weak unit
     b = [make_unit("b1", "Def", hp=30, attack=5, defense=1, attack_speed=0.5)]
 
@@ -47,7 +51,11 @@ def test_on_enemy_death_event_callback():
 
     # Attacker has on_enemy_death buff (like Streamer)
     effects_att = [
-        {"type": "on_enemy_death", "stats": ["attack", "defense"], "value": 2}
+        {
+            "trigger": "on_enemy_death",
+            "conditions": {"chance_percent": 100},
+            "rewards": [{"type": "stat_buff", "stats": ["attack", "defense"], "value": 2, "value_type": "flat", "duration": "permanent"}]
+        }
     ]
     a = [make_unit("a1", "StreamerUnit", hp=100, attack=50, defense=10, attack_speed=1.0, effects=effects_att)]
     # Defender weak unit that will die
@@ -91,7 +99,11 @@ def test_on_ally_death_trigger_once():
 
     # Two units with on_ally_death gold reward (like Denciak)
     effects_denciak = [
-        {"type": "on_ally_death", "reward": "gold", "value": 2, "trigger_once": True}
+        {
+            "trigger": "on_ally_death",
+            "conditions": {"chance_percent": 100, "trigger_once": True},
+            "rewards": [{"type": "resource", "resource": "gold", "value": 2}]
+        }
     ]
     # Attacking team: one strong unit
     a = [make_unit("a1", "Killer", hp=100, attack=100, defense=10, attack_speed=2.0)]
@@ -131,7 +143,11 @@ def test_on_ally_death_without_trigger_once():
 
     # Two units with on_ally_death gold reward but WITHOUT trigger_once
     effects_denciak_no_trigger = [
-        {"type": "on_ally_death", "reward": "gold", "value": 2}  # No trigger_once
+        {
+            "trigger": "on_ally_death",
+            "conditions": {"chance_percent": 100},
+            "rewards": [{"type": "resource", "resource": "gold", "value": 2}]
+        }
     ]
     # Attacking team: one strong unit
     a = [make_unit("a1", "Killer", hp=100, attack=100, defense=10, attack_speed=2.0)]
@@ -165,10 +181,65 @@ def test_on_ally_death_without_trigger_once():
     assert amounts == [2, 2]
 
 
+def test_on_ally_death_stat_buff():
+    """Test that on_ally_death with stat_buff rewards applies buffs to surviving units"""
+    random.seed(42)
+    sim = CombatSimulator(dt=0.1, timeout=10)
+
+    # Two units with on_ally_death stat_buff effect
+    effects_stat_buff = [
+        {
+            "trigger": "on_ally_death",
+            "conditions": {"chance_percent": 100},
+            "rewards": [{"type": "stat_buff", "stats": ["attack", "defense"], "value": 5, "value_type": "flat", "duration": "permanent"}]
+        }
+    ]
+    # Attacking team: one strong unit
+    a = [make_unit("a1", "Killer", hp=100, attack=100, defense=10, attack_speed=2.0)]
+    # Defending team: one weak unit that dies, two survivors with stat_buff effect
+    b = [
+        make_unit("b1", "WeakAlly", hp=10, attack=1, defense=1, attack_speed=0.5),  # Dies
+        make_unit("b2", "Buffed1", hp=50, attack=5, defense=1, attack_speed=0.5, effects=effects_stat_buff),  # Survives
+        make_unit("b3", "Buffed2", hp=50, attack=5, defense=1, attack_speed=0.5, effects=effects_stat_buff)   # Survives
+    ]
+
+    events = []
+    def event_callback(event_type, data):
+        events.append((event_type, data))
+
+    res = sim.simulate(a, b, event_callback=event_callback)
+
+    print("Events:", events)
+    print("Log:", res.get("log", []))
+
+    # Check that WeakAlly died
+    unit_died_events = [e for e in events if e[0] == 'unit_died']
+    weak_ally_died = any(e[1]['unit_name'] == 'WeakAlly' for e in unit_died_events)
+    assert weak_ally_died
+
+    # Check stat_buff events - should be 4 (2 units * 2 stats each)
+    stat_buff_events = [e for e in events if e[0] == 'stat_buff' and abs(e[1]['timestamp'] - 0.5) < 0.1]  # Only buffs around WeakAlly death time
+    assert len(stat_buff_events) == 4  # Two units, each getting attack and defense buffs
+
+    # Check the buff details
+    attack_buffs = [e for e in stat_buff_events if e[1]['stat'] == 'attack']
+    defense_buffs = [e for e in stat_buff_events if e[1]['stat'] == 'defense']
+    assert len(attack_buffs) == 2
+    assert len(defense_buffs) == 2
+
+    for buff in attack_buffs + defense_buffs:
+        assert buff[1]['value'] == 5
+        assert buff[1]['value_type'] == 'flat'
+        assert buff[1]['permanent'] == True
+
+
 def test_per_round_buff_applies():
     random.seed(3)
     sim = CombatSimulator(dt=0.1, timeout=4)
     # Per-round buff increases attack each full second
+    # NOTE: per-second buffs are currently handled by the per-second processor
+    # which expects legacy-shaped effects. Keep that shape here until the
+    # per-second processor is migrated to modular triggers.
     effects = [{"type": "per_second_buff", "stat": "attack", "value": 10, "is_percentage": False}]
     a = [make_unit("a1", "P1", hp=200, attack=20, defense=5, attack_speed=0.5, effects=effects)]
     b = [make_unit("b1", "E1", hp=150, attack=15, defense=3, attack_speed=0.6)]

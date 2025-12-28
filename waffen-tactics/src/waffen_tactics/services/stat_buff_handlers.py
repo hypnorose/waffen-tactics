@@ -78,10 +78,7 @@ class AttackBuffHandler(StatBuffHandler):
         added = buffed_value
         log.append(f"{unit.name} gains +{buffed_value:.0f} Atak (stat_buff)")
         if event_callback:
-            try:
-                print(f"[STAT_BUFF DEBUG] Emitting attack buff for {unit.id} +{buffed_value}")
-            except Exception:
-                pass
+            # emit canonical stat_buff without noisy debug prints
             emit_stat_buff(event_callback, unit, 'attack', added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
         else:
             self.set_value(unit, final_value)
@@ -119,10 +116,7 @@ class DefenseBuffHandler(StatBuffHandler):
         added = buffed_value
         log.append(f"{unit.name} gains +{buffed_value:.0f} {self.stat_name.capitalize()} (stat_buff)")
         if event_callback:
-            try:
-                print(f"[STAT_BUFF DEBUG] Emitting defense buff for {unit.id} +{buffed_value}")
-            except Exception:
-                pass
+            # emit canonical stat_buff without noisy debug prints
             emit_stat_buff(event_callback, unit, self.stat_name, added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
         else:
             self.set_value(unit, final_value)
@@ -161,8 +155,12 @@ class HpBuffHandler(StatBuffHandler):
         log.append(f"{unit.name} gains +{buffed_value:.0f} HP (stat_buff)")
         if event_callback:
             emit_stat_buff(event_callback, unit, 'hp', added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+            # Sync hp_list with unit's updated HP
+            hp_list[unit_idx] = unit.hp
         else:
             self.set_value(unit, final_value)
+            # Sync hp_list with unit's updated HP
+            hp_list[unit_idx] = unit.hp
 
 
 class AttackSpeedBuffHandler(StatBuffHandler):

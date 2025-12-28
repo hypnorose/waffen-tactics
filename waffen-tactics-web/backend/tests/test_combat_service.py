@@ -461,7 +461,7 @@ class TestCombatService(unittest.TestCase):
             self.assertIsInstance(event_type, str)
             self.assertIsInstance(event_data, dict)
             # Check if seq is present (should be added by simulator)
-            if event_type in ['attack', 'unit_attack', 'unit_died', 'state_snapshot']:
+            if event_type in ['unit_attack', 'unit_died', 'state_snapshot']:
                 self.assertIn('seq', event_data)
                 self.assertIsInstance(event_data['seq'], int)
 
@@ -626,7 +626,7 @@ class TestCombatService(unittest.TestCase):
         for event_type, event_data in result['events']:
             self.assertIsInstance(event_type, str)
             self.assertIsInstance(event_data, dict)
-            if event_type in ['attack', 'unit_attack', 'unit_died', 'state_snapshot']:
+            if event_type in ['unit_attack', 'unit_died', 'state_snapshot']:
                 self.assertIn('seq', event_data)
                 self.assertIsInstance(event_data['seq'], int)
 
@@ -726,7 +726,7 @@ class TestCombatService(unittest.TestCase):
         for event_type, event_data in result['events']:
             self.assertIsInstance(event_type, str)
             self.assertIsInstance(event_data, dict)
-            if event_type in ['attack', 'unit_attack', 'unit_died', 'state_snapshot']:
+            if event_type in ['unit_attack', 'unit_died', 'state_snapshot']:
                 self.assertIn('seq', event_data)
                 self.assertIsInstance(event_data['seq'], int)
 
@@ -833,7 +833,7 @@ class TestCombatService(unittest.TestCase):
                 for event_type, event_data in result['events']:
                     self.assertIsInstance(event_type, str)
                     self.assertIsInstance(event_data, dict)
-                    if event_type in ['attack', 'unit_attack', 'unit_died', 'state_snapshot']:
+                    if event_type in ['unit_attack', 'unit_died', 'state_snapshot']:
                         self.assertIn('seq', event_data)
                         self.assertIsInstance(event_data['seq'], int)
 

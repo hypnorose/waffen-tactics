@@ -55,6 +55,8 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   const [displayedGoldBreakdown, setDisplayedGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number } | null>(null)
 
   const { spawnProjectile } = useProjectileSystem()
+  const [pendingProjectiles, setPendingProjectiles] = useState(0)
+  const [allEventsReplayed, setAllEventsReplayed] = useState(false)
 
   const pushDesync = (entry: DesyncEntry) => {
     setDesyncLogs(prev => [entry, ...prev].slice(0, 200))
@@ -179,20 +181,37 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
       }
     }
 
-    // Trigger projectile VFX for attacks (replaces old card shake / flashes)
+    // Trigger projectile VFX for animation_start events
+    if (event.type === 'animation_start' && event.attacker_id && event.target_id) {
+      const emoji = event.animation_id === 'skill_attack' ? '⚡' : '🗡️'
+      setPendingProjectiles(p => p + 1)
+      spawnProjectile({ 
+        fromId: event.attacker_id, 
+        toId: event.target_id, 
+        emoji,
+        duration: (event.duration || 0.3) * 1000, // convert to ms
+        onComplete: () => {
+          setPendingProjectiles(p => p - 1)
+        }
+      })
+    }
+
+    // NOTE: Projectile VFX now triggered by animation_start events above
+    // Keeping unit_attack trigger commented for reference
+    /*
     if (event.type === 'unit_attack' && event.attacker_id && event.target_id) {
       const emoji = event.is_skill ? '⚡' : '🗡️'
+      setPendingProjectiles(p => p + 1)
       spawnProjectile({ 
         fromId: event.attacker_id, 
         toId: event.target_id, 
         emoji,
         onComplete: () => {
-          // CRITICAL FIX: DO NOT apply pending HP updates here!
-          // applyCombatEvent already set the authoritative HP correctly.
-          // The projectile is purely for visual effect - the state is already correct.
+          setPendingProjectiles(p => p - 1)
         }
       })
     }
+    */
 
     // Compare with server if game_state present
     if (event.game_state) {
@@ -206,9 +225,8 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
       const delay = computeDelayMs(event, nextEvent, combatSpeed, 1)
       setTimeout(() => setPlayhead(playhead + 1), delay)
     } else {
-      // Finished
-      setCombatState(prev => ({ ...prev, isFinished: true }))
-      combatStateRef.current = { ...combatStateRef.current, isFinished: true }
+      // All events have been replayed
+      setAllEventsReplayed(true)
     }
   }, [isBufferedComplete, bufferedEvents, playhead, combatSpeed, overwriteSnapshots, spawnProjectile])
 
@@ -218,6 +236,14 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
       setPlayhead(0)
     }
   }, [isBufferedComplete, bufferedEvents.length])
+
+  // Set isFinished when all events replayed and projectiles done
+  useEffect(() => {
+    if (allEventsReplayed && pendingProjectiles === 0) {
+      setCombatState(prev => ({ ...prev, isFinished: true }))
+      combatStateRef.current = { ...combatStateRef.current, isFinished: true }
+    }
+  }, [allEventsReplayed, pendingProjectiles])
 
   // Regen cleanup only
   // CRITICAL: DO NOT auto-expire effects here! Effects should ONLY be removed when

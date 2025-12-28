@@ -5,6 +5,7 @@ import random
 import os
 from typing import List, Dict, Any, Callable, Optional
 from .event_canonicalizer import emit_mana_update
+from .event_canonicalizer import emit_mana_change
 
 
 class CombatAttackProcessor:
@@ -38,6 +39,40 @@ class CombatAttackProcessor:
             # Attack if enough time has passed since last attack
             attack_interval = 1.0 / unit.attack_speed if unit.attack_speed > 0 else float('inf')
             if time - unit.last_attack_time >= attack_interval:
+                # Determine mana gain from this attack (used to decide casting)
+                mana_gain = int(getattr(unit.stats, 'mana_on_attack', 0))
+
+                # If unit can cast a skill right now (including mana that would be gained from this attack), prefer skill over basic attack
+                effective_mana = int(getattr(unit, 'mana', 0)) + int(mana_gain)
+                if hasattr(unit, 'skill') and unit.skill and effective_mana >= getattr(unit, 'max_mana', float('inf')):
+                    # Apply mana gain first so skill casting has the mana available
+                    emit_mana_change(event_callback, unit, mana_gain, side=side, timestamp=time)
+                    target_idx = self._select_target(attacking_team, defending_team, attacking_hp, defending_hp, i)
+                    if target_idx is None:
+                        return "team_a" if side == "team_a" else "team_b"
+                    # Invoke skill cast using canonical signature
+                    self._process_skill_cast(
+                        caster=unit,
+                        target=defending_team[target_idx],
+                        target_hp_list=defending_hp,
+                        target_idx=target_idx,
+                        time=time,
+                        log=log,
+                        event_callback=event_callback,
+                        side=side,
+                    )
+                    # Update HP list from unit.hp (skills mutate unit.hp)
+                    defending_hp[target_idx] = defending_team[target_idx].hp
+                    # Check if target died from skill
+                    if defending_hp[target_idx] <= 0:
+                        winner = self._process_unit_death(unit, defending_team, defending_hp, attacking_team, attacking_hp, target_idx, time, log, event_callback, side)
+                        if winner:
+                            return winner
+                    # mark last attack time as this time (skill uses the attack slot)
+                    unit.last_attack_time = time
+                    # After skill cast, continue to next unit (no basic attack this tick)
+                    continue
+
                 target_idx = self._select_target(attacking_team, defending_team, attacking_hp, defending_hp, i)
                 if target_idx is None:
                     # Attacking team wins
@@ -55,19 +90,97 @@ class CombatAttackProcessor:
                 msg = f"[{time:.2f}s] {side.upper()[0]}:{unit.name} hits {'A' if side == 'team_b' else 'B'}:{defending_team[target_idx].name} for {damage}, hp={defending_hp[target_idx]}"
                 log.append(msg)
 
-                # Attack callback
+                # Emit animation_start immediately so UI can play animation
                 if event_callback:
-                    event_callback('attack', {
+                    event_callback('animation_start', {
+                        'type': 'animation_start',
+                        'animation_id': 'basic_attack',
                         'attacker_id': unit.id,
                         'attacker_name': unit.name,
                         'target_id': defending_team[target_idx].id,
                         'target_name': defending_team[target_idx].name,
-                        'damage': damage,
-                        'target_hp': defending_hp[target_idx],
-                        'target_max_hp': defending_team[target_idx].max_hp,
-                        'side': side,
+                        'duration': 0.2,
                         'timestamp': time
                     })
+
+                # Schedule unit_attack and mana_update with a UI delay (0.2s)
+                attack_ts = round(time + 0.2, 10)
+                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val):
+                    def action():
+                        from .event_canonicalizer import emit_damage, emit_unit_died
+                        results = []
+                        dmg_payload = None
+                        # Apply canonical damage mutation without emitting the builtin 'attack' event
+                        dmg_payload = emit_damage(None, attacker, target_obj, raw_damage=dmg, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='attack', emit_event=False)
+
+                        # Build unit_attack payload with authoritative HP fields
+                        ua = {
+                            'attacker_id': getattr(attacker, 'id', None),
+                            'attacker_name': getattr(attacker, 'name', None),
+                            'target_id': getattr(target_obj, 'id', None),
+                            'target_name': getattr(target_obj, 'name', None),
+                            'damage': int(dmg) if dmg is not None else 0,
+                            'damage_type': getattr(attacker, 'damage_type', 'physical'),
+                            'pre_hp': None,
+                            'post_hp': None,
+                            'applied_damage': int(dmg) if dmg is not None else 0,
+                            'is_skill': False,
+                            'side': side_val,
+                            'timestamp': deliver_ts,
+                        }
+
+                        # Fill HP info preferentially from dmg_payload
+                        if isinstance(dmg_payload, dict):
+                            ua['pre_hp'] = dmg_payload.get('pre_hp')
+                            ua['post_hp'] = dmg_payload.get('post_hp')
+                            ua['applied_damage'] = dmg_payload.get('applied_damage', ua['applied_damage'])
+                        else:
+                            ua['pre_hp'] = old_hp_val
+                            ua['post_hp'] = getattr(target_obj, 'hp', new_hp_val)
+
+                        results.append(('unit_attack', ua))
+
+                        # If the canonical damage resulted in death, emit unit_died payload
+                        if isinstance(dmg_payload, dict) and dmg_payload.get('post_hp') == 0:
+                            died = emit_unit_died(None, target_obj, side=side_val, timestamp=deliver_ts, unit_hp=dmg_payload.get('pre_hp'))
+                            if died:
+                                results.append(('unit_died', died))
+
+                        # Emit mana_update snapshot for attacker at deliver_ts
+                        mu = {
+                            'unit_id': getattr(attacker, 'id', None),
+                            'unit_name': getattr(attacker, 'name', None),
+                            'current_mana': getattr(attacker, 'mana', None),
+                            'max_mana': getattr(attacker, 'max_mana', None),
+                            'side': side_val,
+                            'timestamp': deliver_ts,
+                        }
+                        results.append(('mana_update', mu))
+                        return results
+                    return action
+
+                # If running under CombatSimulator, use scheduler; otherwise emit immediately
+                if hasattr(self, 'schedule_event') and event_callback:
+                    action_callable = make_action(unit, defending_team[target_idx], damage, side, attack_ts, old_hp, new_hp)
+                    # Schedule for delivery at attack_ts
+                    # note: CombatSimulator.schedule_event will handle the heap
+                    self.schedule_event(attack_ts, action_callable)
+                else:
+                    # No scheduler available - emit immediate unit_attack
+                    if event_callback:
+                        event_callback('unit_attack', {
+                            'attacker_id': unit.id,
+                            'attacker_name': unit.name,
+                            'target_id': defending_team[target_idx].id,
+                            'target_name': defending_team[target_idx].name,
+                            'damage': damage,
+                            'damage_type': getattr(unit, 'damage_type', 'physical'),
+                            'old_hp': old_hp,
+                            'new_hp': new_hp,
+                            'is_skill': False,
+                            'side': side,
+                            'timestamp': attack_ts
+                        })
 
                 # Check if target died
                 if defending_hp[target_idx] <= 0:
@@ -77,7 +190,11 @@ class CombatAttackProcessor:
 
                 # Post-attack effect processing (lifesteal, mana on attack)
                 # Lifesteal: heal attacker by damage * lifesteal%
-                ls = getattr(unit, 'lifesteal', 0.0)
+                ls = getattr(unit, '_computed_stats', None)
+                if ls:
+                    ls = getattr(ls, 'lifesteal', 0.0)
+                else:
+                    ls = 0.0
                 if ls and damage > 0:
                     heal = int(damage * (ls / 100.0))
                     if heal > 0:
@@ -94,19 +211,26 @@ class CombatAttackProcessor:
                         )
                         log.append(f"{unit.name} lifesteals {heal}")
 
-                # Mana gain: per attack
-                unit.mana = min(unit.max_mana, unit.mana + unit.stats.mana_on_attack)
-
-                # Send mana update event (canonicalized)
-                if event_callback:
-                    emit_mana_update(event_callback, unit, current_mana=unit.mana, max_mana=unit.max_mana, side=side, timestamp=time)
+                # Mana gain: per attack — apply via canonical emitter (mutates state)
+                amount = int(getattr(unit.stats, 'mana_on_attack', 0))
+                emit_mana_change(event_callback, unit, amount, side=side, timestamp=attack_ts)
 
                 # Check for skill casting if mana is full (reaches max_mana)
                 skill_was_cast = False
                 target_was_alive_before_skill = defending_hp[target_idx] > 0
                 if hasattr(unit, 'skill') and unit.skill and unit.mana >= unit.max_mana:
                     skill_was_cast = True
-                    self._process_skill_cast(unit, defending_team[target_idx], defending_hp, target_idx, time, log, event_callback, side)
+                    # Call using keyword args so mocks/tests receive named parameters
+                    self._process_skill_cast(
+                        caster=unit,
+                        target=defending_team[target_idx],
+                        target_hp_list=defending_hp,
+                        target_idx=target_idx,
+                        time=time,
+                        log=log,
+                        event_callback=event_callback,
+                        side=side,
+                    )
 
                 # Death callback and on-death effect triggers
                 # Only process death if target died from skill (attack death was already processed above)
@@ -179,47 +303,93 @@ class CombatAttackProcessor:
         self,
         caster: 'CombatUnit',
         target: 'CombatUnit',
-        target_hp_list: List[int],
-        target_idx: int,
-        time: float,
-        log: List[str],
-        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
-        side: str
+        target_hp_list: Optional[List[int]] = None,
+        target_idx: Optional[int] = None,
+        time: float = 0.0,
+        log: Optional[List[str]] = None,
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        side: str = 'team_a'
     ):
         """Process skill casting for a unit."""
+        # Allow callers to invoke with old signature: (caster, target, time=..., log=..., event_callback=..., side=...)
+        # If target_hp_list/target_idx are not provided, build minimal lists so downstream death handling can operate.
+        if target_hp_list is None or target_idx is None:
+            # find target in simulator teams if available
+            if hasattr(self, 'team_a') and hasattr(self, 'team_b'):
+                teams = list(getattr(self, 'team_a', [])) + list(getattr(self, 'team_b', []))
+                if target in teams:
+                    idx = teams.index(target)
+                    if idx < len(getattr(self, 'team_a', [])):
+                        target_hp_list = getattr(self, 'a_hp', [getattr(target, 'hp', 0)])
+                        target_idx = idx
+                    else:
+                        target_hp_list = getattr(self, 'b_hp', [getattr(target, 'hp', 0)])
+                        target_idx = idx - len(getattr(self, 'team_a', []))
+                else:
+                    target_hp_list = [getattr(target, 'hp', 0)]
+                    target_idx = 0
+            else:
+                target_hp_list = [getattr(target, 'hp', 0)]
+                target_idx = 0
+        if log is None:
+            log = []
         skill = caster.skill
-        caster.mana = 0  # Reset mana to 0 after casting
-        log.append(f"[{time:.2f}s] {caster.name} casts {skill['name']}!")
+        log.append(f"[{time:.2f}s] {caster.name} casts {skill.get('name', getattr(skill, 'name', '<skill>'))}!")
 
-        # Send mana update event after reset (canonicalized)
-        if event_callback:
-            emit_mana_update(event_callback, caster, current_mana=caster.mana, max_mana=caster.max_mana, side=side, timestamp=time)
+        # New skill system: if the stored `skill` is a wrapper dict containing
+        # a Skill object under ['effect']['skill'], delegate to the SkillExecutor
+        # so effects like `delay` and `damage_over_time` are executed correctly.
+        new_skill = None
+        if isinstance(skill, dict):
+            if 'effects' in skill:
+                # Convert dict to Skill object
+                from ..models.skill import Skill
+                new_skill = Skill.from_dict(skill)
+            elif 'effect' in skill:
+                # Old format: 'effect' contains a single effect dict
+                # New format: 'effect' contains {'skill': Skill}
+                # Convert to new format
+                effect = skill['effect']
+                if isinstance(effect, dict):
+                    if 'skill' in effect:
+                        # New format
+                        new_skill = effect['skill']
+                    else:
+                        # Old format: convert single effect to list
+                        skill_dict = skill.copy()
+                        skill_dict['effects'] = [effect]
+                        skill_dict['mana_cost'] = skill.get('cost', 0)
+                        del skill_dict['effect']
+                        from ..models.skill import Skill
+                        new_skill = Skill.from_dict(skill_dict)
+                else:
+                    # effect is already a skill object or something else
+                    new_skill = effect
+            else:
+                new_skill = skill.get('effect', {}).get('skill')
+        elif hasattr(skill, 'effects'):
+            new_skill = skill
 
-        # Apply skill effect (basic implementation)
-        effect = skill['effect']
-        if effect.get('type') == 'damage':
-            # Deal damage to target
-            skill_damage = effect.get('amount', 0)
-            target_hp_list[target_idx] -= skill_damage
-            target_hp_list[target_idx] = max(0, int(target_hp_list[target_idx]))
-            log.append(f"[{time:.2f}s] {skill['name']} deals {skill_damage} damage to {target.name}")
+        if new_skill is not None:
+            from .skill_executor import skill_executor
+            from ..models.skill import SkillExecutionContext
+            ctx = SkillExecutionContext(
+                caster=caster,
+                team_a=getattr(self, 'team_a', []) if side == 'team_a' else getattr(self, 'team_b', []),
+                team_b=getattr(self, 'team_b', []) if side == 'team_a' else getattr(self, 'team_a', []),
+                combat_time=time,
+                event_callback=event_callback
+            )
+            skill_events = skill_executor.execute_skill(new_skill, ctx)
+            if event_callback and skill_events:
+                for event_type, event_data in skill_events:
+                    if isinstance(event_data, dict):
+                        merged = {'type': event_type}
+                        merged.update(event_data)
+                        if 'timestamp' not in merged:
+                            merged['timestamp'] = merged.get('timestamp', time)
+                        event_callback(event_type, merged)
+                    else:
+                        event_callback(event_type, {'type': event_type, 'data': event_data, 'timestamp': time})
+            return None
 
-            if event_callback:
-                event_callback('skill_cast', {
-                    'caster_id': caster.id,
-                    'caster_name': caster.name,
-                    'skill_name': skill['name'],
-                    'target_id': target.id,
-                    'target_name': target.name,
-                    'damage': skill_damage,
-                    'target_hp': target_hp_list[target_idx],
-                    'target_max_hp': target.max_hp,
-                    'side': side,
-                    'timestamp': time,
-                    'message': f"{caster.name} casts {skill['name']}!"
-                })
-
-        # Check if target died from skill
-        if target_hp_list[target_idx] <= 0:
-            # Use _process_unit_death to handle trait effects properly
-            self._process_unit_death(caster, [target], target_hp_list, [caster], [caster.max_hp], target_idx, time, log, event_callback, side)

@@ -16,13 +16,21 @@ def test_team_target_trait_applies_to_non_trait_units():
             "type": "faction",
             "thresholds": [3],
             "target": "team",
-            "effects": [
-                {
-                    "type": "stat_buff",
-                    "stat": "attack_speed",
-                    "value": 10,
-                    "is_percentage": True
-                }
+            "modular_effects": [
+                [
+                    {
+                        "trigger": "on_enemy_death",
+                        "conditions": {},
+                        "rewards": [
+                            {
+                                "type": "stat_buff",
+                                "stat": "attack_speed",
+                                "value": 10,
+                                "is_percentage": True
+                            }
+                        ]
+                    }
+                ]
             ]
         }
     ]

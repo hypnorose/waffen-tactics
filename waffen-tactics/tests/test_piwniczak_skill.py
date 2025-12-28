@@ -57,8 +57,7 @@ def test_piwniczak_stun_and_dot_applied_events():
     def cb(et, data):
         events.append((et, data))
 
-    target_hp_list = [enemy.hp]
-    sim._process_skill_cast(caster, enemy, target_hp_list, 0, 0.2, [], cb, 'team_a')
+    sim._process_skill_cast(caster, enemy, time=0.2, log=[], event_callback=cb, side='team_a')
 
     # After skill cast we should have a stun event and a damage_over_time_applied
     types = [t for t, d in events]

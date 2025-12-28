@@ -216,11 +216,11 @@ export default function CombatUnitCard({ unit, isOpponent, regen }: Props) {
             </div>
           )}
           <div className="grid grid-cols-3 gap-3 text-sm">
-            <div>❤️ HP: {Math.floor(displayHp)}/{Math.floor(displayMaxHp)}</div>
+            <div>❤️ HP: {Math.round(displayHp)}/{Math.round(displayMaxHp)}</div>
             <div>⚔️ ATK: {Math.round(displayAttack)}</div>
             <div>🛡️ DEF: {Math.round(displayDefense)}</div>
             <div>⚡ SPD: {displayAS.toFixed(2)}</div>
-            <div>🔮 Mana: {Math.floor(displayMana)}/{Math.floor(displayMaxMana)}</div>
+            <div>🔮 Mana: {Math.round(displayMana)}/{Math.round(displayMaxMana)}</div>
             {displayHpRegen > 0 && <div>💚 Regen: +{Math.round(displayHpRegen)}/s</div>}
           </div>
           

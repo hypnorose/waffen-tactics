@@ -22,7 +22,8 @@ def test_target_backline_prefers_back_unit():
     # Simulate; with very high attack_speed attacker should attack immediately
     sim.simulate([attacker], [front, back], event_callback=cb)
 
-    attacks = [e for e in events if e[0] == 'attack']
+    # Require canonical 'unit_attack' events only
+    attacks = [e for e in events if e[0] == 'unit_attack']
     assert len(attacks) >= 1, f"expected at least one attack, got events: {events}"
     first_target = attacks[0][1].get('target_id')
     assert first_target == 'b1', f"Expected backline target 'b1', got {first_target}"

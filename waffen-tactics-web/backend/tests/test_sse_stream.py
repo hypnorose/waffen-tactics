@@ -45,7 +45,7 @@ def test_skill_cast_emits_skill_and_effect_events(monkeypatch):
         defense=0,
         attack_speed=1.0,
         max_mana=100,
-        skill={'name': 'BigStrike', 'description': 'Test', 'mana_cost': 0, 'effect': {'type': 'damage', 'amount': 150}},
+        skill={'name': 'BigStrike', 'description': 'Test', 'mana_cost': 0, 'effect': {'type': 'damage', 'amount': 150, 'target': 'single_enemy'}},
         stats=caster_stats
     )
     # Fill mana so the next attack will trigger the skill

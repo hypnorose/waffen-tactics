@@ -85,10 +85,8 @@ class RepeatHandler(EffectHandler):
             if not alive_enemies:
                 return []
             
-            # Use random_seed for deterministic behavior if provided
-            if context.random_seed is not None:
-                random.seed(context.random_seed)
-            return [random.choice(alive_enemies)]
+            rng = random.Random(context.random_seed) if getattr(context, 'random_seed', None) is not None else random
+            return [rng.choice(alive_enemies)]
 
         elif target_enum == TargetType.SINGLE_ENEMY_PERSISTENT:
             # Same enemy for all effects in this skill execution
@@ -105,10 +103,8 @@ class RepeatHandler(EffectHandler):
             if not alive_enemies:
                 return []
             
-            # Use random_seed for deterministic behavior if provided
-            if context.random_seed is not None:
-                random.seed(context.random_seed)
-            context.persistent_target = random.choice(alive_enemies)
+            rng = random.Random(context.random_seed) if getattr(context, 'random_seed', None) is not None else random
+            context.persistent_target = rng.choice(alive_enemies)
             return [context.persistent_target]
 
         elif target_enum == TargetType.ENEMY_TEAM:

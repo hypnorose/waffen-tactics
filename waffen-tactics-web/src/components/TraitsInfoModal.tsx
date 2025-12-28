@@ -52,6 +52,52 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
 
   const replacePlaceholders = (description: string, effect: any) => {
     let desc = description
+
+    // Handle modular effects - new structure where effect is array of effects for that tier
+    if (Array.isArray(effect) && effect.length > 0) {
+      const modularEffect = effect[0] // First effect in the tier's effect array
+      if (modularEffect.rewards && modularEffect.rewards.length > 0) {
+        const reward = modularEffect.rewards[0] // Assume first reward for now
+
+        // Replace modular effect placeholders
+        desc = desc.replace(/<rewards\.stat>/g, reward.stat || '')
+        desc = desc.replace(/<rewards\.value>/g, reward.value || '')
+        desc = desc.replace(/<rewards\.value_type>/g, reward.value_type || '')
+        desc = desc.replace(/<rewards\.resource>/g, reward.resource || '')
+        desc = desc.replace(/<rewards\.duration>/g, reward.duration || '')
+        desc = desc.replace(/<rewards\.duration_seconds>/g, reward.duration_seconds || '')
+        desc = desc.replace(/<rewards\.collect_stat>/g, reward.collect_stat || '')
+
+        // Handle conditions placeholders
+        if (modularEffect.conditions) {
+          desc = desc.replace(/<conditions\.chance_percent>/g, modularEffect.conditions.chance_percent || '')
+          desc = desc.replace(/<conditions\.threshold_percent>/g, modularEffect.conditions.threshold_percent || '')
+          desc = desc.replace(/<conditions\.max_triggers>/g, modularEffect.conditions.max_triggers || '')
+        }
+
+        // Handle trigger placeholder
+        desc = desc.replace(/<trigger>/g, modularEffect.trigger || '')
+
+        // Also handle legacy <v> placeholder for traits that use it with modular effects
+        // For traits with multiple rewards of the same value, use that value
+        const allValues = modularEffect.rewards.map((r: any) => r.value).filter((v: any) => v !== undefined)
+        const uniqueValues = [...new Set(allValues)]
+        if (uniqueValues.length === 1) {
+          // All rewards have the same value
+          const value = uniqueValues[0] as number
+          const isPercentage = modularEffect.rewards.some((r: any) => r.value_type === 'percentage_of_max' || r.is_percentage)
+          desc = desc.replace(/<v>/g, isPercentage ? `${value}%` : value.toString())
+        } else {
+          // Different values - use the first one for <v> (fallback)
+          const isPercentage = reward.value_type === 'percentage_of_max' || reward.is_percentage
+          desc = desc.replace(/<v>/g, isPercentage ? `${reward.value}%` : (reward.value as number)?.toString() || '')
+        }
+
+        return desc
+      }
+    }
+
+    // Fallback to legacy effect handling
     if (effect && effect.actions && effect.actions[0]) {
       const action = effect.actions[0]
       desc = desc.replace(/<v>/g, action.value || '')

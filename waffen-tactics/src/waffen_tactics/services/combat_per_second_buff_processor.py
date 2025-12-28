@@ -48,6 +48,22 @@ class CombatPerSecondBuffProcessor:
                             add = int(val * mult)
                         log.append(f"{u.name} +{add} Defense (per second)")
                         emit_stat_buff(event_callback, u, 'defense', add, value_type='flat', duration=None, permanent=False, source=None, side='team_a', timestamp=time, cause='per_second_buff')
+                    if stat == 'attack_speed':
+                        if is_pct:
+                            add = u.attack_speed * (val / 100.0) * mult
+                        else:
+                            add = float(val)
+                        # apply any buff amplifier present
+                        amp = 1.0
+                        for beff in getattr(u, 'effects', []):
+                            if beff.get('type') == 'buff_amplifier':
+                                try:
+                                    amp = max(amp, float(beff.get('multiplier', 1)))
+                                except Exception:
+                                    pass
+                        add = add * amp
+                        log.append(f"{u.name} gains +{add:.2f} Attack Speed (per second)")
+                        emit_stat_buff(event_callback, u, 'attack_speed', add, value_type='flat', duration=None, permanent=False, source=None, side='team_a', timestamp=time, cause='per_second_buff')
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (val / 100.0) * mult)
@@ -71,13 +87,9 @@ class CombatPerSecondBuffProcessor:
                     # Handle mana regeneration
                     regen_amount = eff.get('value', 0)
                     if regen_amount > 0:
-                        old_mana = u.mana
-                        u.mana = min(u.max_mana, u.mana + regen_amount)
-                        gained = u.mana - old_mana
-                        if gained > 0:
-                            log.append(f"{u.name} regenerates +{gained} Mana")
-                            if event_callback:
-                                emit_mana_change(event_callback, u, gained, side='team_a', timestamp=time)
+                        log.append(f"{u.name} regenerates +{regen_amount} Mana")
+                        if event_callback:
+                            emit_mana_change(event_callback, u, regen_amount, side='team_a', timestamp=time)
 
         # Team B buffs
         for idx_u, u in enumerate(team_b):
@@ -122,9 +134,8 @@ class CombatPerSecondBuffProcessor:
                                 except Exception:
                                     pass
                         add = add * amp
-                        u.attack_speed += add
                         log.append(f"{u.name} gains +{add:.2f} Attack Speed (per second)")
-                        # Per-second buffs are direct stat modifications, not effects
+                        emit_stat_buff(event_callback, u, 'attack_speed', add, value_type='flat', duration=None, permanent=False, source=None, side='team_b', timestamp=time, cause='per_second_buff')
                     if stat == 'hp':
                         if is_pct:
                             add = int(u.max_hp * (val / 100.0) * mult_b)
@@ -148,10 +159,6 @@ class CombatPerSecondBuffProcessor:
                     # Handle mana regeneration
                     regen_amount = eff.get('value', 0)
                     if regen_amount > 0:
-                        old_mana = u.mana
-                        u.mana = min(u.max_mana, u.mana + regen_amount)
-                        gained = u.mana - old_mana
-                        if gained > 0:
-                            log.append(f"{u.name} regenerates +{gained} Mana")
-                            if event_callback:
-                                emit_mana_change(event_callback, u, gained, side='team_b', timestamp=time)
+                        log.append(f"{u.name} regenerates +{regen_amount} Mana")
+                        if event_callback:
+                            emit_mana_change(event_callback, u, regen_amount, side='team_b', timestamp=time)

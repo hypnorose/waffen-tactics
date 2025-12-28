@@ -6,6 +6,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'waffen-tactics', 'src'))
 
 from waffen_tactics.services.game_manager import GameManager
+from waffen_tactics.services.combat_shared import CombatSimulator as SharedCombatSimulator, CombatUnit
 from waffen_tactics.services.combat_simulator import CombatSimulator
 import json
 
@@ -13,8 +14,16 @@ import json
 gm = GameManager()
 
 # Create test teams
-player_units = gm._load_starting_units()[:4]  # First 4 units
-opponent_units = gm._load_starting_units()[4:8]  # Next 4 units
+player_units = [CombatUnit(
+    id=u.id, name=u.name, hp=u.stats.hp, attack=u.stats.attack,
+    defense=u.stats.defense, attack_speed=u.stats.attack_speed,
+    position='front', stats=u.stats, skill=u.skill, max_mana=u.stats.max_mana
+) for u in gm.data.units[:4]]
+opponent_units = [CombatUnit(
+    id=u.id, name=u.name, hp=u.stats.hp, attack=u.stats.attack,
+    defense=u.stats.defense, attack_speed=u.stats.attack_speed,
+    position='front', stats=u.stats, skill=u.skill, max_mana=u.stats.max_mana
+) for u in gm.data.units[4:8]]
 
 # Run combat and collect events
 all_events = []

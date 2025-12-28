@@ -36,7 +36,11 @@ class CombatEffectProcessor:
         side: str
     ):
         """Process effects when a unit dies."""
-        target = defending_team[target_idx]
+        try:
+            target = defending_team[target_idx]
+        except Exception:
+            # Defensive: if target mapping is invalid, abort death processing
+            return
         defending_side = 'team_a' if side == 'team_b' else 'team_b'
 
         try:
@@ -47,7 +51,11 @@ class CombatEffectProcessor:
         # Prevent duplicate processing for the same death within a simulation tick
         if getattr(target, '_death_processed', False):
             return
-        target._death_processed = True
+        try:
+            target._death_processed = True
+        except Exception:
+            # If target is malformed, bail out
+            return
 
         # Increment collected stats for the killer if they have relevant effects
         if killer:
@@ -168,9 +176,13 @@ class CombatEffectProcessor:
                 'collected_stats': getattr(killer, 'collected_stats', {}),
                 'current_time': time,
                 'side': side,
+                'player': killer,
                 'target_unit': target,
                 'killer_unit': killer
             }
+
+            # Shared set to deduplicate reward types (per-death)
+            context['triggered_rewards'] = set()
 
             # Process ON_ENEMY_DEATH effects
             self.modular_effect_processor.process_trigger(
@@ -181,62 +193,37 @@ class CombatEffectProcessor:
 
         # Use modular effect processor for ON_ALLY_DEATH triggers
         if hasattr(self, 'modular_effect_processor') and self.modular_effect_processor:
-            # Process ON_ALLY_DEATH effects for surviving allies on defending team
-            for i, unit in enumerate(defending_team):
-                if defending_hp[i] <= 0:
-                    continue
+            # Shared set to deduplicate resource rewards across all ally triggers
+            # for this particular death event.
+            shared_triggered_rewards = set()
 
-                context = {
-                    'current_unit': unit,
-                    'all_units': attacking_team + defending_team,
-                    'enemy_units': attacking_team,
-                    'ally_units': defending_team,
-                    'collected_stats': getattr(unit, 'collected_stats', {}),
-                    'current_time': time,
-                    'side': defending_side,
-                    'dead_ally': target
-                }
+            # Process ON_ALLY_DEATH effects once for the death event
+            context = {
+                'all_units': attacking_team + defending_team,
+                'enemy_units': attacking_team,
+                'ally_units': defending_team,
+                'current_time': time,
+                'side': defending_side,
+                'dead_ally': target,
+                'triggered_rewards': shared_triggered_rewards
+            }
 
-                self.modular_effect_processor.process_trigger(
-                    TriggerType.ON_ALLY_DEATH,
-                    context,
-                    event_callback
-                )
+            self.modular_effect_processor.process_trigger(
+                TriggerType.ON_ALLY_DEATH,
+                context,
+                event_callback
+            )
 
-        # Fallback: Handle legacy effects for backward compatibility
-        # Trigger on_enemy_death effects for attacking team (legacy format)
-        for idx_unit, unit in enumerate(attacking_team or []):
-            for eff in getattr(unit, 'effects', []):
-                if eff.get('type') == 'on_enemy_death':
-                    actions = eff.get('actions', [])
-                    if actions:
-                        self._apply_actions(unit, actions, attacking_hp, attacking_team.index(unit), time, log, event_callback, side, attacking_team, attacking_hp, defending_team, defending_hp)
-                    else:
-                        # Backward compatibility
-                        if 'reward' in eff:
-                            self._apply_reward(unit, eff, attacking_hp, attacking_team.index(unit), time, log, event_callback, side, attacking_team, attacking_hp)
-                        self._apply_stat_buff(unit, eff, attacking_hp, attacking_team.index(unit), time, log, event_callback, side, attacking_team, defending_team, attacking_hp, defending_hp)
-
-        # Trigger on_ally_death effects for surviving allies on defending team (legacy format)
-        triggered_rewards = set()  # Track which reward types have been triggered for this death
-        for i, unit in enumerate(defending_team):
-            if defending_hp[i] <= 0:
-                continue
-            for eff in getattr(unit, 'effects', []):
-                if eff.get('type') == 'on_ally_death':
-                    actions = eff.get('actions', [])
-                    if actions:
-                        self._apply_actions(unit, actions, defending_hp, i, time, log, event_callback, defending_side, attacking_team, attacking_hp, defending_team, defending_hp, triggered_rewards, eff)
-                    else:
-                        # Backward compatibility
-                        if 'reward' in eff:
-                            reward_type = eff.get('reward')
-                            if eff.get('trigger_once', False):
-                                if reward_type in triggered_rewards:
-                                    continue
-                                triggered_rewards.add(reward_type)
-                            self._apply_reward(unit, eff, defending_hp, i, time, log, event_callback, defending_side)
-                        self._apply_stat_buff(unit, eff, defending_hp, i, time, log, event_callback, defending_side, attacking_team, defending_team, attacking_hp, defending_hp)
+        # MARKER: CANONICAL_ONLY — legacy effect fallbacks removed.
+        # Legacy `on_enemy_death` / `on_ally_death` fallback handling has been
+        # removed. Effects must be expressed via the modular effect processor
+        # (`modular_effect_processor`) or via explicit action lists. If you
+        # encounter code relying on legacy effect shapes, migrate the unit
+        # definitions and effects to the modular format instead of restoring
+        # compatibility here.
+        if any(True for _ in () ):
+            # noop placeholder to keep consistent control flow; remove legacy logic.
+            pass
 
         # Note: stat_steal effects have been replaced with on_enemy_death + permanent_stat_buff
 

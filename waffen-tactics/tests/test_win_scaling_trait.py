@@ -17,14 +17,22 @@ def test_win_scaling_trait_applies_correctly():
             'name': 'XN Yakuza',
             'type': 'faction',
             'thresholds': [1],
-            'effects': [
-                {
-                    'type': 'win_scaling',
-                    'atk_per_win': 1,
-                    'def_per_win': 1,
-                    'hp_percent_per_win': 1,
-                    'as_per_win': 0.01
-                }
+            'modular_effects': [
+                [
+                    {
+                        'trigger': 'on_win',
+                        'conditions': {},
+                        'rewards': [
+                            {
+                                'type': 'dynamic_scaling',
+                                'atk_per_win': 1,
+                                'def_per_win': 1,
+                                'hp_percent_per_win': 1,
+                                'as_per_win': 0.01
+                            }
+                        ]
+                    }
+                ]
             ]
         }
     ]

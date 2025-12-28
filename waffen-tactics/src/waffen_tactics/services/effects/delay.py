@@ -16,7 +16,25 @@ class DelayHandler(EffectHandler):
 
         if duration > 0:
             # Advance combat time
+            try:
+                print(f"[DELAY DEBUG] before={getattr(context,'combat_time',None)} dur={duration} target={getattr(target,'id',None)}")
+            except Exception:
+                pass
             context.combat_time += duration
+            # Prevent caster from auto-attacking during the delay window by
+            # moving its last_attack_time forward to the delayed time. This
+            # ensures tests and skills that expect the delayed action to be
+            # the next "attack" do not have interleaving auto-attacks.
+            try:
+                caster = getattr(context, 'caster', None)
+                if caster is not None:
+                    setattr(caster, 'last_attack_time', context.combat_time)
+            except Exception:
+                pass
+            try:
+                print(f"[DELAY DEBUG] after={getattr(context,'combat_time',None)}")
+            except Exception:
+                pass
 
         return []  # Delay doesn't generate events
 

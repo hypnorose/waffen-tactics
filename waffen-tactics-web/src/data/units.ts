@@ -35,14 +35,14 @@ export async function loadUnits(): Promise<void> {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
     const response = await axios.get(`${API_URL}/game/units`)
     const unitsArray: Unit[] = response.data
-    console.log(unitsArray);
+    // console.log(unitsArray);
     UNITS_CACHE = {}
     unitsArray.forEach(unit => {
       UNITS_CACHE[unit.id] = unit
     })
     
     UNITS_LOADED = true
-    console.log(`✅ Loaded ${unitsArray.length} units from API`)
+    // console.log(`✅ Loaded ${unitsArray.length} units from API`)
   } catch (err) {
     console.error('Failed to load units:', err)
   }

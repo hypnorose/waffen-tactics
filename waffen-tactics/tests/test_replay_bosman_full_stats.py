@@ -185,7 +185,7 @@ def test_bosman_replay_full_stats():
             continue
         if last_seq is not None and payload.get('seq') is not None and payload.get('seq') > last_seq:
             break
-        if et in ('attack', 'unit_attack'):
+        if et == 'unit_attack':
             tid = payload.get('target_id')
             if tid and tid in replay:
                 replay[tid].apply_attack(payload)

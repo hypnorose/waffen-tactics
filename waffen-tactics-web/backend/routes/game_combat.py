@@ -108,6 +108,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'duration': data.get('duration'),
             'side': data.get('side'),
             'effect': eff,
+            'effect_id': data.get('effect_id'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -148,9 +149,28 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'amount': data.get('amount'),
             'duration': data.get('duration'),
             'effect': eff,
+            'effect_id': data.get('effect_id'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
+    # DEBUG: Print mapped unit_attack payloads so we can see exactly what
+    # is streamed over SSE (helps debug UI not applying events).
+    try:
+        if res and res.get('type') == 'unit_attack':
+            try:
+                print(f"[SSE_MAPPED_PAYLOAD] type=unit_attack seq={res.get('seq')} is_skill={res.get('is_skill')} attacker={res.get('attacker_id')} target={res.get('target_id')} payload_keys={list(res.keys())}")
+            except Exception:
+                print("[SSE_MAPPED_PAYLOAD] unit_attack mapped (unable to stringify payload)")
+    except Exception:
+        pass
+    try:
+        if res and res.get('type') == 'animation_start':
+            try:
+                print(f"[SSE_MAPPED_PAYLOAD] type=animation_start seq={res.get('seq')} animation_id={res.get('animation_id')} attacker={res.get('attacker_id')} target={res.get('target_id')} duration={res.get('duration')}")
+            except Exception:
+                print("[SSE_MAPPED_PAYLOAD] animation_start mapped (unable to stringify payload)")
+    except Exception:
+        pass
     if event_type == 'unit_stunned':
         eff = {'type': 'stun', 'duration': data.get('duration')}
         res = {
@@ -161,6 +181,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'caster_name': data.get('caster_name'),
             'duration': data.get('duration'),
             'effect': eff,
+            'effect_id': data.get('effect_id'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -233,6 +254,16 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'type': 'state_snapshot',
             'player_units': data.get('player_units'),
             'opponent_units': data.get('opponent_units'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
+        }
+    if event_type == 'animation_start':
+        res = {
+            'type': 'animation_start',
+            'animation_id': data.get('animation_id'),
+            'attacker_id': data.get('attacker_id'),
+            'target_id': data.get('target_id'),
+            'duration': data.get('duration'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -374,7 +405,7 @@ def start_combat():
                 opponent_unit_info.append(d)
 
             # Send initial units state with synergies and trait definitions
-            trait_definitions = [{'name': t['name'], 'type': t['type'], 'description': t.get('description', ''), 'thresholds': t['thresholds'], 'threshold_descriptions': t.get('threshold_descriptions', []), 'effects': t['effects']} for t in game_manager.data.traits]
+            trait_definitions = [{'name': t['name'], 'type': t['type'], 'description': t.get('description', ''), 'thresholds': t['thresholds'], 'threshold_descriptions': t.get('threshold_descriptions', []), 'effects': t.get('modular_effects', t.get('effects', []))} for t in game_manager.data.traits]
             logger.info(f"start_combat: sending units_init for player {user_id}")
             yield f"data: {json.dumps({'type': 'units_init', 'player_units': player_unit_info, 'opponent_units': opponent_unit_info, 'synergies': synergies_data, 'traits': trait_definitions, 'opponent': opponent_info, 'game_state': {'player_units': player_unit_info, 'opponent_units': opponent_unit_info}, 'seq': 0})}\n\n"
 

@@ -25,9 +25,8 @@ class BuffHandler(EffectHandler):
         # and reconstruction are deterministic and consistent.
         if stat == 'random':
             choices = ['defense', 'attack', 'attack_speed']
-            if getattr(context, 'random_seed', None) is not None:
-                random.seed(context.random_seed)
-            stat = random.choice(choices)
+            rng = random.Random(context.random_seed) if getattr(context, 'random_seed', None) is not None else random
+            stat = rng.choice(choices)
 
         # Create buff effect
         buff_effect = {

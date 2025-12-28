@@ -163,7 +163,31 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
         # Compute active synergies for player board
         player_active = game_manager.get_board_synergies(player)
         for unit_instance in player.board:
-            unit = next((u for u in game_manager.data.units if u.id == unit_instance.unit_id), None)
+            # Normalize unit_instance which may be an object, dict, or simple unit id string
+            try:
+                if isinstance(unit_instance, str):
+                    instance_id = unit_instance
+                    unit_id_key = unit_instance
+                    star_level = 1
+                    position = 'front'
+                    persistent_buffs = {}
+                elif isinstance(unit_instance, dict):
+                    instance_id = unit_instance.get('instance_id') or unit_instance.get('id') or unit_instance.get('unit_id')
+                    unit_id_key = unit_instance.get('unit_id') or unit_instance.get('template_id') or unit_instance.get('id')
+                    star_level = unit_instance.get('star_level', 1)
+                    position = unit_instance.get('position', 'front')
+                    persistent_buffs = unit_instance.get('persistent_buffs', {}) or {}
+                else:
+                    instance_id = getattr(unit_instance, 'instance_id', None)
+                    unit_id_key = getattr(unit_instance, 'unit_id', None)
+                    star_level = getattr(unit_instance, 'star_level', 1)
+                    position = getattr(unit_instance, 'position', 'front')
+                    persistent_buffs = getattr(unit_instance, 'persistent_buffs', {}) or {}
+            except Exception as e:
+                # Surface malformed entries as explicit errors so they appear in logs
+                raise RuntimeError(f"Malformed unit entry in player.board: {unit_instance!r}") from e
+
+            unit = next((u for u in game_manager.data.units if u.id == unit_id_key), None)
             if unit:
                 # Prefer authoritative stats from game data (unit.stats)
                 base_stats = getattr(unit, 'stats', None)
@@ -180,8 +204,8 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     attack_speed = 0.8 + (unit.cost * 0.1)
                     base_max_mana = 100
 
-                hp = int(base_hp * (1.6 ** (unit_instance.star_level - 1)))
-                attack = int(base_attack * (1.4 ** (unit_instance.star_level - 1)))
+                hp = int(base_hp * (1.6 ** (star_level - 1)))
+                attack = int(base_attack * (1.4 ** (star_level - 1)))
                 defense = int(base_defense)
                 # Keep mana constant across star levels — do not multiply by star_level
                 max_mana = int(base_max_mana)
@@ -212,14 +236,14 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                 buffed_stats['current_mana'] = 0
 
                 combat_unit = CombatUnit(
-                    id=unit_instance.instance_id,
+                    id=instance_id,
                     name=unit.name,
                     hp=hp,
                     attack=attack,
                     defense=defense,
                     attack_speed=attack_speed,
-                    star_level=unit_instance.star_level,
-                    position=unit_instance.position,
+                    star_level=star_level,
+                    position=position,
                     effects=effects_for_unit,
                     max_mana=max_mana,
                     mana_regen=stat_val(base_stats, 'mana_regen', 5),
@@ -233,6 +257,11 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                 )
                 # Set max_hp to buffed hp to prevent hp > max_hp issues
                 combat_unit.max_hp = hp
+                # Apply persistent buffs from instance if any
+                for stat, value in (persistent_buffs or {}).items():
+                    if stat in buffed_stats:
+                        buffed_stats[stat] += value
+
                 player_units.append(combat_unit)
 
                 # Store for frontend (include buffed stats so UI shows consistent values)
@@ -244,7 +273,7 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     'hp': combat_unit.hp,
                     'max_hp': combat_unit.max_hp,
                     'attack': combat_unit.attack,
-                    'star_level': unit_instance.star_level,
+                    'star_level': star_level,
                     'cost': unit.cost,
                     'factions': unit.factions,
                     'classes': unit.classes,
@@ -259,7 +288,8 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
         return True, "Player units prepared", (player_units, player_unit_info, synergies_data)
 
     except Exception as e:
-        return False, f"Error preparing player units: {str(e)}", None
+        # Raise to ensure caller/logs see full traceback and context
+        raise RuntimeError(f"Error preparing player units: {e}") from e
 
 
 def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatUnit], List[Dict[str, Any]], Dict[str, Any]]:
@@ -514,6 +544,30 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
         import copy
 
         def event_collector(event_type: str, data: dict):
+            # Log incoming events for debugging (do this before deepcopy)
+            try:
+                # Print a concise line so test harness captures it
+                if isinstance(data, dict):
+                    keys = list(data.keys())
+                else:
+                    keys = type(data)
+                print(f"[EVENT_COLLECTOR] type={event_type} keys={keys}")
+                # Flag explicit attack events that are 'true' attacks (cause=='attack')
+                if event_type in ('attack', 'unit_attack') and isinstance(data, dict):
+                    try:
+                        cause = data.get('cause') or data.get('is_skill')
+                        # prefer canonical damage fields
+                        damage = data.get('applied_damage') or data.get('damage') or data.get('amount')
+                        attacker = data.get('attacker_id') or data.get('attacker_name')
+                        target = data.get('target_id') or data.get('unit_id') or data.get('target_name')
+                        # Distinguish skill-caused attacks vs basic attacks
+                        tag = 'SKILL' if (str(cause).lower() in ('skill', 'true') or data.get('is_skill')) else 'TRUE'
+                        print(f"[EVENT_COLLECTOR ATTACK] type={event_type} tag={tag} cause={cause} damage={damage} attacker={attacker} target={target}")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
             # Collected events must be deep-copied to avoid later in-place
             # mutations of nested structures (e.g. unit.effects) by the
             # simulator. Storing references caused snapshots to differ from

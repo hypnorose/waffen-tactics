@@ -105,14 +105,69 @@ def get_units_data():
 def get_traits_data():
     """Pure function to get traits data"""
     traits_data = []
-    for trait in game_manager.data.traits:
+    for trait in game_manager.synergy_engine.trait_effects.values():
+        threshold_descriptions = []
+        modular_effects = trait.get('modular_effects', [])
+        existing_descriptions = trait.get('threshold_descriptions', [])
+        
+        for tier_idx, effects in enumerate(modular_effects):
+            if isinstance(effects, list) and effects:
+                effect = effects[0]
+                rewards = effect.get('rewards', [])
+                conditions = effect.get('conditions', {})
+                
+                if tier_idx < len(existing_descriptions) and existing_descriptions[tier_idx]:
+                    # Use existing template and replace placeholders
+                    desc = existing_descriptions[tier_idx]
+                else:
+                    # Use default template
+                    if rewards:
+                        reward = rewards[0] if rewards else {}
+                        stat = reward.get('stat', '')
+                        desc = f"+<rewards.value> {stat}"
+                    else:
+                        desc = trait.get('description', '')
+                
+                # Replace placeholders
+                # Replace from conditions
+                for key, val in conditions.items():
+                    placeholder = f"<conditions.{key}>"
+                    desc = desc.replace(placeholder, str(val))
+                
+                # Replace from rewards with support for array indexing
+                if rewards:
+                    # Handle array-indexed placeholders like <rewards.value[0]>
+                    import re
+                    reward_placeholders = re.findall(r'<rewards\.(\w+)\[(\d+)\]>', desc)
+                    for prop, idx_str in reward_placeholders:
+                        idx = int(idx_str)
+                        if idx < len(rewards):
+                            reward = rewards[idx]
+                            val = reward.get(prop, '')
+                            placeholder = f"<rewards.{prop}[{idx}]>"
+                            desc = desc.replace(placeholder, str(val))
+                    
+                    # Handle regular placeholders from first reward (backward compatibility)
+                    reward = rewards[0]  # Use first reward
+                    for key, val in reward.items():
+                        placeholder = f"<rewards.{key}>"
+                        desc = desc.replace(placeholder, str(val))
+                    
+                    # Handle legacy <v> placeholder for value
+                    if 'value' in reward:
+                        desc = desc.replace('<v>', str(reward['value']))
+                
+                threshold_descriptions.append(desc)
+            else:
+                threshold_descriptions.append(trait.get('description', ''))
+        
         traits_data.append({
             'name': trait['name'],
             'type': trait['type'],
             'description': trait.get('description', ''),
             'thresholds': trait['thresholds'],
-            'threshold_descriptions': trait.get('threshold_descriptions', []),
-            'effects': trait['effects']
+            'threshold_descriptions': threshold_descriptions,
+            'modular_effects': trait['modular_effects']
         })
     return traits_data
 

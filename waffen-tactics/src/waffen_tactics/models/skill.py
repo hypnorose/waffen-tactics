@@ -65,7 +65,7 @@ class Skill:
 
         return cls(
             name=data['name'],
-            description=data['description'],
+            description=data.get('description', ''),
             mana_cost=data.get('mana_cost'),
             effects=effects
         )

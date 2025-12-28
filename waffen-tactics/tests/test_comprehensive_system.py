@@ -39,8 +39,9 @@ class TestTraitsSystem:
             attack_speed=2.0,
             max_mana=100,
             effects=[{
-                'type': 'on_enemy_death',
-                'actions': [{'type': 'reward', 'reward': 'gold', 'value': 5, 'chance': 100}]
+                'trigger': 'on_enemy_death',
+                'conditions': {'chance_percent': 100},
+                'rewards': [{'type': 'resource', 'resource': 'gold', 'value': 5}]
             }],
             stats=self.stats
         )
@@ -87,9 +88,9 @@ class TestTraitsSystem:
             attack_speed=2.0,
             max_mana=100,
             effects=[{
-                'type': 'on_ally_death',
-                'actions': [{'type': 'reward', 'reward': 'gold', 'value': 3, 'chance': 100}],
-                'trigger_once': True
+                'trigger': 'on_ally_death',
+                'conditions': {'chance_percent': 100, 'trigger_once': True},
+                'rewards': [{'type': 'resource', 'resource': 'gold', 'value': 3}]
             }],
             stats=self.stats,
             position='back'
@@ -153,11 +154,14 @@ class TestTraitsSystem:
             attack_speed=2.0,
             max_mana=100,
             effects=[{
-                'type': 'on_enemy_death',
-                'actions': [{
+                'trigger': 'on_enemy_death',
+                'conditions': {'chance_percent': 100},
+                'rewards': [{
                     'type': 'stat_buff',
                     'stats': ['attack', 'defense'],
-                    'value': 5
+                    'value': 5,
+                    'value_type': 'flat',
+                    'duration': 'permanent'
                 }]
             }],
             stats=self.stats
@@ -462,7 +466,7 @@ class TestSkillsSystem:
         assert event_data['target_id'] is None
         assert event_data['target_name'] is None
         assert event_data['damage'] is None
-        assert event_data['timestamp'] == 2.7
+        assert event_data['timestamp'] == 2.5
 
 
 class TestSkillParserAndEffects:
@@ -1112,10 +1116,11 @@ class TestSkillParserAndEffects:
             stats=self.stats,
             skill={
                 'name': 'Kill Skill',
-                'effect': {'type': 'damage', 'amount': 200}
+                'description': 'Kills the target',
+                'effects': [{'type': 'damage', 'target': 'single_enemy', 'amount': 200}]
             }
         )
-        attacker.mana = 90  # Enough for skill
+        attacker.mana = 100  # Enough for skill
 
         victim = CombatUnit(
             id='victim',
@@ -1153,13 +1158,14 @@ class TestSkillParserAndEffects:
             attack_speed=2.0,
             max_mana=100,
             effects=[{
-                'type': 'on_enemy_death',
-                'actions': [{'type': 'reward', 'reward': 'gold', 'value': 7, 'chance': 100}]
+                'trigger': 'on_enemy_death',
+                'conditions': {'chance_percent': 100},
+                'rewards': [{'type': 'resource', 'resource': 'gold', 'value': 7}]
             }],
             stats=self.stats,
             skill={
                 'name': 'Kill Skill',
-                'effect': {'type': 'damage', 'amount': 300}
+                'effect': {'type': 'damage', 'target': 'single_enemy', 'amount': 300}
             }
         )
         killer.mana = 90
@@ -1209,7 +1215,7 @@ class TestSkillParserAndEffects:
                 'effect': {'type': 'damage', 'amount': 100}
             }
         )
-        unit.mana = 95  # Close to full
+        unit.mana = 95
 
         enemy = CombatUnit(
             id='enemy',

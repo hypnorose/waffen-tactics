@@ -53,6 +53,7 @@ def build_teams_for_seed(seed):
 
 def extract_and_save(seed):
     player_units, opponent_units = build_teams_for_seed(seed)
+    # default: no event callback
     result = run_combat_simulation(player_units, opponent_units)
     events = result.get('events', [])
 
@@ -81,5 +82,44 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, required=True)
+    parser.add_argument('--verbose', action='store_true', help='Print per-event debug lines (type/seq/timestamp)')
     args = parser.parse_args()
-    extract_and_save(args.seed)
+    # If verbose, provide an event callback that prints concise event info
+    if args.verbose:
+        def _dbg_cb(event_type, data):
+            try:
+                seq = None
+                ts = None
+                if isinstance(data, dict):
+                    seq = data.get('seq')
+                    ts = data.get('timestamp')
+                print(f"[EXTRACTOR DEBUG] type={event_type} seq={seq} ts={ts}")
+            except Exception:
+                pass
+        # call extractor with a wrapper that passes the callback into simulation
+        # modify extract_and_save locally to accept a callback by calling run directly
+        player_units, opponent_units = build_teams_for_seed(args.seed)
+        result = run_combat_simulation(player_units, opponent_units, event_callback=_dbg_cb)
+        # reuse saving logic from extract_and_save
+        events = result.get('events', [])
+
+        # Sort by seq then timestamp when present
+        def sort_key(item):
+            etype, data = item
+            return (data.get('seq', 0), data.get('timestamp', 0))
+
+        events.sort(key=sort_key)
+
+        out_jsonl = OUT_DIR / f'seed_{args.seed}.jsonl'
+        out_pretty = OUT_DIR / f'seed_{args.seed}.pretty.json'
+
+        with out_jsonl.open('w') as fh:
+            for etype, data in events:
+                fh.write(json.dumps({'type': etype, 'data': data}, default=str) + "\n")
+
+        with out_pretty.open('w') as fh:
+            json.dump({'seed': args.seed, 'result': {k: v for k, v in result.items() if k != 'events'}, 'events': [{'type': t, 'data': d} for t, d in events]}, fh, indent=2, default=str)
+
+        print(f"Saved {len(events)} events for seed {args.seed} to {out_jsonl} and {out_pretty}")
+    else:
+        extract_and_save(args.seed)

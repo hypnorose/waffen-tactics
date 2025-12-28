@@ -246,7 +246,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
       {/* Construction Notice */}
       <div className="bg-yellow-500/20 border-2 border-yellow-500/50 rounded-lg p-4 text-center">
         <div className="text-xl font-bold text-yellow-600 mb-2">
-          🚧 MENTOR CWEL MIŁEGO GRANIA 🚧
+          🎅 HOŁ HOŁ HOŁ, WESOŁYCH ŚWIĄT BOŻEGO NARODZENIA I BARDZO USZATEGO CWELA 🎅
           {/* 👨‍✈️ MENTOR CWEL MIŁEGO GRANIA 👨‍✈️ */}
         </div>
         {/* <div className="text-sm text-yellow-700">
@@ -328,7 +328,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
                               </span>
                               <div className="flex-1">
                                 <div className="font-bold">[{threshold}] Tier {tierNum}</div>
-                                {traitData.effects && traitData.effects[idx] && (
+                                {traitData.modular_effects && traitData.modular_effects[idx] && (
                                   <div className="text-xs mt-0.5" style={{ color: isActive ? '#d1d5db' : '#9ca3af' }}>
                                     {getTraitDescription(traitData, tierNum)}
                                   </div>

@@ -10,330 +10,493 @@
         5,
         7
       ],
-      "threshold_descriptions": [
-        "+<v> obrony co sekundę walki",
-        "+<v> obrony co sekundę walki",
-        "+<v> obrony co sekundę walki"
-      ],
-      "effects": [
-        {
-          "type": "per_second_buff",
-          "stat": "defense",
-          "value": 3,
-          "is_percentage": false
-        },
-        {
-          "type": "per_second_buff",
-          "stat": "defense",
-          "value": 4,
-          "is_percentage": false
-        },
-        {
-          "type": "per_second_buff",
-          "stat": "defense",
-          "value": 6,
-          "is_percentage": false
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "per_second",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 3
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "per_second",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 4
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "per_second",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 6
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Streamer",
       "type": "faction",
       "description": "Za każdego pokonanego wroga zespół zyskuje atak i obronę",
+      "target": "team",
       "thresholds": [
         2,
         3,
         4,
         5
       ],
-      "target": "team",
       "threshold_descriptions": [
-        "+<v> ataku i obrony za zabitego wroga",
-        "+<v> ataku i obrony za zabitego wroga",
-        "+<v> ataku i obrony za zabitego wroga",
-        "+<v> ataku i obrony za zabitego wroga"
+        "+<rewards.value[0]> ataku i +<rewards.value[1]> obrony po pokaniu wroga  ",
+        "+<rewards.value[0]> ataku i +<rewards.value[1]> obrony po pokaniu wroga  ",
+        "+<rewards.value[0]> ataku i +<rewards.value[1]> obrony po pokaniu wroga  ",
+        "+<rewards.value[0]> ataku i +<rewards.value[1]> obrony po pokaniu wroga  "
       ],
-      "effects": [
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "stat_buff",
-              "stats": [
-                "attack",
-                "defense"
-              ],
-              "value": 3
-            }
-          ]
-        },
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "stat_buff",
-              "stats": [
-                "attack",
-                "defense"
-              ],
-              "value": 5
-            }
-          ]
-        },
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "stat_buff",
-              "stats": [
-                "attack",
-                "defense"
-              ],
-              "value": 7
-            }
-          ]
-        },
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "stat_buff",
-              "stats": [
-                "attack",
-                "defense"
-              ],
-              "value": 12
-            }
-          ]
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 3
+              },
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 3
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 5
+              },
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 5
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 7
+              },
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 7
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 12
+              },
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 12
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "XN Waffen",
       "type": "faction",
       "description": "Zwiększona prędkość ataku dla całego zespołu",
+      "target": "team",
       "thresholds": [
         3,
         5,
         7,
         10
       ],
-      "target": "team",
       "threshold_descriptions": [
-        "+<v> prędkości ataku",
-        "+<v> prędkości ataku",
-        "+<v> prędkości ataku",
-        "+<v> prędkości ataku"
+        "+<rewards.value>% prędkości ataku",
+        "+<rewards.value>% prędkości ataku",
+        "+<rewards.value>% prędkości ataku",
+        "+<rewards.value>% prędkości ataku"
       ],
-      "effects": [
-        {
-          "type": "stat_buff",
-          "stat": "attack_speed",
-          "value": 25,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stat": "attack_speed",
-          "value": 35,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stat": "attack_speed",
-          "value": 50,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stat": "attack_speed",
-          "value": 75,
-          
-          "is_percentage": true
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack_speed",
+                "value": 25,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack_speed",
+                "value": 35,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack_speed",
+                "value": 50,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack_speed",
+                "value": 75,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "XN KGB",
       "type": "faction",
       "description": "Bonus do ataku dla całego zespołu",
+      "target": "team",
       "thresholds": [
         3,
         5,
         7,
         9
       ],
-      "target": "team",
       "threshold_descriptions": [
-        "+<v> ataku",
-        "+<v> ataku",
-        "+<v> ataku",
-        "+<v> ataku"
+        "+<rewards.value>% ataku",
+        "+<rewards.value>% ataku",
+        "+<rewards.value>% ataku",
+        "+<rewards.value>% ataku"
       ],
-      "effects": [
-        {
-          "type": "stat_buff",
-          "stat": "attack",
-          "value": 30,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stat": "attack",
-          "value": 40,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stat": "attack",
-          "value": 50,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stat": "attack",
-          "value": 70,
-          "is_percentage": true
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 30,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 40,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 50,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 70,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Denciak",
       "type": "faction",
       "description": "Kiedy sojusznik umiera, zyskujesz złoto",
+      "target": "team",
       "thresholds": [
         2,
         4,
         6
       ],
-      "target": "team",
       "threshold_descriptions": [
-        "+<c>% szansy na <v> złota za śmierć sojusznika",
-        "+<c>% szansy na <v> złota za śmierć sojusznika",
-        "<v> złota za śmierć sojusznika"
+        "+<rewards.value> <rewards.resource> za śmierć sojusznika",
+        "+<rewards.value> <rewards.resource> za śmierć sojusznika",
+        "<rewards.value> <rewards.resource> za śmierć sojusznika"
       ],
-      "effects": [
-        {
-          "type": "on_ally_death",
-          "actions": [
-            {
-              "type": "reward",
-              "reward": "gold",
-              "value": 1,
-              "chance": 50
-            }
-          ],
-          "trigger_once": true
-        },
-        {
-          "type": "on_ally_death",
-          "actions": [
-            {
-              "type": "reward",
-              "reward": "gold",
-              "value": 2,
-              "chance": 50
-            }
-          ],
-          "trigger_once": true
-        },
-        {
-          "type": "on_ally_death",
-          "actions": [
-            {
-              "type": "reward",
-              "reward": "gold",
-              "value": 2,
-              "chance": 100
-            }
-          ],
-          "trigger_once": true
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_ally_death",
+            "conditions": {
+              "trigger_once": true
+            },
+            "rewards": [
+              {
+                "type": "resource",
+                "value": 1,
+                "resource": "gold"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_ally_death",
+            "conditions": {
+              "trigger_once": true
+            },
+            "rewards": [
+              {
+                "type": "resource",
+                "value": 2,
+                "resource": "gold"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_ally_death",
+            "conditions": {
+              "trigger_once": true
+            },
+            "rewards": [
+              {
+                "type": "resource",
+                "value": 2,
+                "resource": "gold"
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Starokurwy",
       "type": "faction",
       "description": "Z każdą rundę zespół staje się silniejszy - bonus HP co rundę",
+      "target": "team",
       "thresholds": [
         2,
         3,
         4,
         5
       ],
-      "target": "team",
       "threshold_descriptions": [
-        "+<v> HP co rundę",
-        "+<v> HP co rundę",
-        "+<v> HP co rundę",
-        "+<v> HP co rundę"
+        "+<rewards.value>% HP co rundę",
+        "+<rewards.value>% HP co rundę",
+        "+<rewards.value>% HP co rundę",
+        "+<rewards.value>% HP co rundę"
       ],
-      "effects": [
-        {
-          "type": "per_round_buff",
-          "stat": "hp",
-          "value": 3,
-          "is_percentage": true
-        },
-        {
-          "type": "per_round_buff",
-          "stat": "hp",
-          "value": 4,
-          "is_percentage": true
-        },
-        {
-          "type": "per_round_buff",
-          "stat": "hp",
-          "value": 5,
-          "is_percentage": true
-        },
-        {
-          "type": "per_round_buff",
-          "stat": "hp",
-          "value": 7,
-          "is_percentage": true
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "per_round",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "hp",
+                "value": 3,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "per_round",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "hp",
+                "value": 4,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "per_round",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "hp",
+                "value": 5,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "per_round",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "hp",
+                "value": 7,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Prostaczka",
       "type": "class",
       "description": "Osłabiają przeciwników - zmniejszają ich atak",
+      "target": null,
       "thresholds": [
         2,
         4,
         5
       ],
       "threshold_descriptions": [
-        "-<v> ataku przeciwnikom",
-        "-<v> ataku przeciwnikom",
-        "-<v> ataku przeciwnikom"
+        "-<rewards.value> ataku przeciwnikom",
+        "-<rewards.value> ataku przeciwnikom",
+        "-<rewards.value> ataku przeciwnikom"
       ],
-      "effects": [
-        {
-          "type": "enemy_debuff",
-          "stat": "attack",
-          "value": 4,
-          "is_percentage": false
-        },
-        {
-          "type": "enemy_debuff",
-          "stat": "attack",
-          "value": 15,
-          "is_percentage": false
-        },
-        {
-          "type": "enemy_debuff",
-          "stat": "attack",
-          "value": 30,
-          "is_percentage": false
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "enemy_debuff",
+                "stat": "attack",
+                "value": -4
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "enemy_debuff",
+                "stat": "attack",
+                "value": -15
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "enemy_debuff",
+                "stat": "attack",
+                "value": -30
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Femboy",
       "type": "class",
       "description": "Po zabiciu wroga zespół regeneruje HP przez 5 sekund",
+      "target": null,
       "thresholds": [
         2,
         3,
@@ -341,445 +504,668 @@
         5
       ],
       "threshold_descriptions": [
-        "regeneracja <v> max HP przez <d>s po zabiciu",
-        "regeneracja <v> max HP przez <d>s po zabiciu",
-        "regeneracja <v> max HP przez <d>s po zabiciu",
-        "regeneracja <v> max HP przez <d>s po zabiciu"
+        "regeneracja <rewards.value> max HP przez 5 sekund po zabiciu",
+        "regeneracja <rewards.value> max HP przez 5 sekund po zabiciu",
+        "regeneracja <rewards.value> max HP przez 5 sekund po zabiciu",
+        "regeneracja <rewards.value> max HP przez 5 sekund po zabiciu"
       ],
-      "effects": [
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "reward",
-              "reward": "hp_regen",
-              "target": "self",
-              "value": 5,
-              "is_percentage": true,
-              "duration": 5
-            }
-          ]
-        },
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "reward",
-              "reward": "hp_regen",
-              "target": "team",
-              "value": 8,
-              "is_percentage": true,
-              "duration": 5
-            }
-          ]
-        },
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "reward",
-              "reward": "hp_regen",
-              "target": "team",
-              "value": 12,
-              "is_percentage": true,
-              "duration": 5
-            }
-          ]
-        },
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "reward",
-              "reward": "hp_regen",
-              "target": "team",
-              "value": 16,
-              "is_percentage": true,
-              "duration": 2
-            }
-          ]
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "special",
+                "value": 5
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "special",
+                "value": 8
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "special",
+                "value": 12
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "special",
+                "value": 16
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Szachista",
       "type": "class",
       "description": "Bonus do ataku i HP za każdą aktywną synergię",
+      "target": "trait",
       "thresholds": [
         2,
         3,
         4
       ],
-      "target": "trait",
       "threshold_descriptions": [
-        "+<v> ataku i HP za każdą synergię",
-        "+<v> ataku i HP za każdą synergię",
-        "+<v> ataku i HP za każdą synergię"
+        "+<rewards.value> ataku i HP za każdą synergię",
+        "+<rewards.value> ataku i HP za każdą synergię",
+        "+<rewards.value> ataku i HP za każdą synergię"
       ],
-      "effects": [
-        {
-          "type": "per_trait_buff",
-          "stats": [
-            "attack",
-            "hp"
-          ],
-          "value": 4,
-          "is_percentage": true
-        },
-        {
-          "type": "per_trait_buff",
-          "stats": [
-            "attack",
-            "hp"
-          ],
-          "value": 6,
-          "is_percentage": true
-        },
-        {
-          "type": "per_trait_buff",
-          "stats": [
-            "attack",
-            "hp"
-          ],
-          "value": 10,
-          "is_percentage": true
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "per_trait",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 4,
+                "value_type": "per_active_trait"
+              },
+              {
+                "type": "stat_buff",
+                "stat": "hp",
+                "value": 4,
+                "value_type": "per_active_trait"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "per_trait",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 6,
+                "value_type": "per_active_trait"
+              },
+              {
+                "type": "stat_buff",
+                "stat": "hp",
+                "value": 6,
+                "value_type": "per_active_trait"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "per_trait",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 10,
+                "value_type": "per_active_trait"
+              },
+              {
+                "type": "stat_buff",
+                "stat": "hp",
+                "value": 10,
+                "value_type": "per_active_trait"
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Spell",
       "type": "class",
       "description": "Szybciej ładują manę do umiejętności",
+      "target": "trait",
       "thresholds": [
         3,
         5,
         7
       ],
-      "target": "trait",
       "threshold_descriptions": [
-        "+<v> many na sekundę",
-        "+<v> many na sekundę",
-        "+<v> many na sekundę"
+        "+<rewards.value> many na sekundę",
+        "+<rewards.value> many na sekundę",
+        "+<rewards.value> many na sekundę"
       ],
-      "effects": [
-        {
-          "type": "mana_regen",
-          "value": 3
-        },
-        {
-          "type": "mana_regen",
-          "value": 5
-        },
-        {
-          "type": "mana_regen",
-          "value": 9
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "mana_regen",
+                "value": 3
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "mana_regen",
+                "value": 5
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "mana_regen",
+                "value": 9
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Konfident",
       "type": "class",
       "description": "Konfidenci zyskują dodatkową obronę",
+      "target": null,
       "thresholds": [
         2,
         4,
         6
       ],
       "threshold_descriptions": [
-        "+<v> obrony",
-        "+<v> obrony",
-        "+<v> obrony"
+        "+<rewards.value> obrony",
+        "+<rewards.value> obrony",
+        "+<rewards.value> obrony"
       ],
-      "effects": [
-        {
-          "type": "stat_buff",
-          "stat": "defense",
-          "value": 15,
-          "is_percentage": false
-        },
-        {
-          "type": "stat_buff",
-          "stat": "defense",
-          "value": 30,
-          "is_percentage": false
-        },
-        {
-          "type": "stat_buff",
-          "stat": "defense",
-          "value": 50,
-          "is_percentage": false
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 15
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 30
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 50
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Haker",
       "type": "class",
-      "target": "trait",
       "description": "Po zabiciu wroga permanentnie zyskują obronę",
+      "target": "trait",
       "thresholds": [
         3,
         5,
         7
       ],
       "threshold_descriptions": [
-        "+<v>% obrony zabitego wroga permanentnie",
-        "+<v>% obrony zabitego wroga permanentnie",
-        "+<v>% obrony zabitego wroga permanentnie"
+        "+<rewards.value>% obrony zabitego wroga permanentnie",
+        "+<rewards.value>% obrony zabitego wroga permanentnie",
+        "+<rewards.value>% obrony zabitego wroga permanentnie"
       ],
-      "effects": [
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "kill_buff",
-              "stat": "defense",
-              "value": 10,
-              "is_percentage": true,
-              "collect_stat": "defense"
-            }
-          ]
-        },
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "kill_buff",
-              "stat": "defense",
-              "value": 20,
-              "is_percentage": true,
-              "collect_stat": "defense"
-            }
-          ]
-        },
-        {
-          "type": "on_enemy_death",
-          "actions": [
-            {
-              "type": "kill_buff",
-              "stat": "defense",
-              "value": 40,
-              "is_percentage": true,
-              "collect_stat": "defense"
-            }
-          ]
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 10,
+                "value_type": "percentage_of_collected",
+                "collect_stat": "defense"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 20,
+                "value_type": "percentage_of_collected",
+                "collect_stat": "defense"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "defense",
+                "value": 40,
+                "value_type": "percentage_of_collected",
+                "collect_stat": "defense"
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Gamer",
       "type": "class",
       "description": "Bonus do ataku i prędkości ataku",
+      "target": "trait",
       "thresholds": [
         3,
         5,
         7,
         9
       ],
-      "target": "trait",
       "threshold_descriptions": [
-        "+<v> ataku i prędkości ataku",
-        "+<v> ataku i prędkości ataku",
-        "+<v> ataku i prędkości ataku",
-        "+<v> ataku i prędkości ataku"
+        "+<rewards.value>% ataku i prędkości ataku",
+        "+<rewards.value>% ataku i prędkości ataku",
+        "+<rewards.value>% ataku i prędkości ataku",
+        "+<rewards.value>% ataku i prędkości ataku"
       ],
-      "effects": [
-        {
-          "type": "stat_buff",
-          "stats": [
-            "attack",
-            "attack_speed"
-          ],
-          "value": 20,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stats": [
-            "attack",
-            "attack_speed"
-          ],
-          "value": 25,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stats": [
-            "attack",
-            "attack_speed"
-          ],
-          "value": 30,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stats": [
-            "attack",
-            "attack_speed"
-          ],
-          "value": 45,
-          "is_percentage": true
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 20,
+                "value_type": "percentage_of_max"
+              },
+              {
+                "type": "stat_buff",
+                "stat": "attack_speed",
+                "value": 20,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 25,
+                "value_type": "percentage_of_max"
+              },
+              {
+                "type": "stat_buff",
+                "stat": "attack_speed",
+                "value": 25,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 30,
+                "value_type": "percentage_of_max"
+              },
+              {
+                "type": "stat_buff",
+                "stat": "attack_speed",
+                "value": 30,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "attack",
+                "value": 45,
+                "value_type": "percentage_of_max"
+              },
+              {
+                "type": "stat_buff",
+                "stat": "attack_speed",
+                "value": 45,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Normik",
       "type": "class",
       "description": "Zwykli ludzie z dodatkowym HP",
+      "target": "trait",
       "thresholds": [
         2,
         4,
         5
       ],
-      "target": "trait",
       "threshold_descriptions": [
-        "+<v> HP",
-        "+<v> HP",
-        "+<v> HP"
+        "+<rewards.value>% HP",
+        "+<rewards.value>% HP",
+        "+<rewards.value>% HP"
       ],
-      "effects": [
-        {
-          "type": "stat_buff",
-          "stat": "hp",
-          "value": 30,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stat": "hp",
-          "value": 50,
-          "is_percentage": true
-        },
-        {
-          "type": "stat_buff",
-          "stat": "hp",
-          "value": 70,
-          "is_percentage": true
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "hp",
+                "value": 30,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "hp",
+                "value": 50,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "hp",
+                "value": 70,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Hitman",
       "type": "class",
       "description": "Priorytetyzuje linię tylną",
+      "target": "self",
       "thresholds": [
         1
       ],
-      "target": "self",
       "threshold_descriptions": [
         "Priorytetyzuje linię tylną"
       ],
-      "effects": [
-        {
-          "type": "target_backline"
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "targeting_preference",
+                "value": 0,
+                "target_preference": "backline"
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "Wygnaniec",
       "type": "class",
       "description": "Leczy pierwszego sojusznika, który spadnie poniżej progu HP",
+      "target": null,
       "thresholds": [
         1
       ],
       "threshold_descriptions": [
-        "Leczy pierwszego sojusznika poniżej 30% HP o 50% jego max HP"
+        "Leczy pierwszego sojusznika poniżej <conditions.threshold_percent>% HP o <rewards.value>% jego max HP"
       ],
-      "effects": [
-        {
-          "type": "on_ally_hp_below",
-          "threshold_percent": 30,
-          "heal_percent": 50,
-          "once": true
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_ally_hp_below",
+            "conditions": {
+              "trigger_once": true,
+              "threshold_percent": 30
+            },
+            "rewards": [
+              {
+                "type": "healing",
+                "value": 50,
+                "value_type": "percentage_of_max"
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "XN Jugend",
       "type": "class",
       "description": "Wzmacnia wszystkie buffy na tej jednostce (x2)",
+      "target": null,
       "thresholds": [
         1
       ],
       "threshold_descriptions": [
-        "Podwaja wszystkie buffy na tej jednostce"
+        "Podwaja (<rewards.multiplier>x) wszystkie buffy na tej jednostce"
       ],
-      "effects": [
-        {
-          "type": "buff_amplifier",
-          "multiplier": 2
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "buff_amplifier",
+                "value": 0,
+                "multiplier": 2
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "XN Mod",
       "type": "class",
       "description": "30% szans na darmowy reroll gdy aktywne",
+      "target": null,
       "thresholds": [
         1
       ],
       "threshold_descriptions": [
-        "30% szans na darmowy reroll"
+        "<conditions.chance_percent>% szans na darmowy reroll"
       ],
-      "effects": [
-        {
-          "type": "reroll_free_chance",
-          "chance_percent": 30
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "reroll_chance",
+                "value": 0,
+                "chance_percent": 30
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "XN Monter",
       "type": "class",
       "description": "Daje procentowy bonus do HP za każdą przegraną rundę",
+      "target": null,
       "thresholds": [
         1
       ],
       "threshold_descriptions": [
-        "Daje 5% bonusu do HP za każdą przegraną rundę"
+        "Daje <rewards.percent_per_loss>% bonusu do HP za każdą przegraną rundę"
       ],
-      "effects": [
-        {
-          "type": "dynamic_hp_per_loss",
-          "percent_per_loss": 5
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_loss",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "dynamic_scaling",
+                "value": 0,
+                "percent_per_loss": 5
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "XN HomoKomando",
       "type": "class",
       "description": "XN HomoKomando dostaje lifesteal",
+      "target": null,
       "thresholds": [
         1
       ],
       "threshold_descriptions": [
-        "Dostaje <v>% lifesteala"
+        "Dostaje <rewards.value>% lifesteala"
       ],
-      "effects": [
-       {
-          "type": "stat_buff",
-          "stat": "lifesteal",
-          "value": 15
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "stat_buff",
+                "stat": "lifesteal",
+                "value": 15,
+                "is_percentage": true
+              }
+            ]
+          }
+        ]
       ]
     },
     {
       "name": "XN Yakuza",
       "type": "class",
       "description": "Za każdą wygraną rundę zyskujesz stałe i procentowe bonusy",
+      "target": null,
       "thresholds": [
         1
       ],
       "threshold_descriptions": [
-        "Za każdą wygraną rundę +1 ataku, +1 obrony, +1% HP, +0.01 prędkości ataku"
+        "Za każdą wygraną rundę +<rewards.atk_per_win> ataku, +<rewards.def_per_win> obrony, +<rewards.hp_percent_per_win>% HP, +<rewards.as_per_win> prędkości ataku"
       ],
-      "effects": [
-        {
-          "type": "win_scaling",
-          "atk_per_win": 1,
-          "def_per_win": 1,
-          "hp_percent_per_win": 1,
-          "as_per_win": 0.01
-        }
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_win",
+            "conditions": {},
+            "rewards": [
+              {
+                "type": "dynamic_scaling",
+                "value": 0,
+                "atk_per_win": 1,
+                "def_per_win": 1,
+                "hp_percent_per_win": 1,
+                "as_per_win": 0.01
+              }
+            ]
+          }
+        ]
       ]
     }
   ]

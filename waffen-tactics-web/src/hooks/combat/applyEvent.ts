@@ -18,6 +18,19 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       newState.combatLog = [...newState.combatLog, '⚔️ Walka rozpoczyna się!']
       break
 
+    case 'animation_start':
+      // Add animation to active animations list for UI to render
+      const anim = {
+        id: event.event_id || `anim_${Date.now()}`,
+        animation_type: event.animation_id || 'basic_attack',
+        attacker_id: event.attacker_id,
+        target_id: event.target_id,
+        duration: event.duration || 0.3,
+        start: Date.now()
+      }
+      newState.activeAnimations = [...(newState.activeAnimations || []), anim]
+      break
+
     case 'units_init':
       if (event.player_units) {
         const normalizedPlayers = event.player_units.map((u, idx) => ({
@@ -84,13 +97,12 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     case 'attack':
       const targetId = event.target_id
       const targetHp = event.target_hp
-      const shieldAbsorbed = event.shield_absorbed || 0
       const side = event.side
       if (targetId && typeof targetHp === 'number' && side) {
         if (side === 'team_a') {
-          newState.playerUnits = updateUnitById(newState.playerUnits, targetId, u => ({ ...u, hp: targetHp, shield: Math.max(0, (u.shield || 0) - shieldAbsorbed) }))
+          newState.playerUnits = updateUnitById(newState.playerUnits, targetId, u => ({ ...u, hp: targetHp }))
         } else {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, targetId, u => ({ ...u, hp: targetHp, shield: Math.max(0, (u.shield || 0) - shieldAbsorbed) }))
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, targetId, u => ({ ...u, hp: targetHp }))
         }
       }
       break
@@ -164,6 +176,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'stat_buff':
+      console.log('[STAT_BUFF] Event:', event)
       const statName = event.stat === 'attack' ? 'Ataku' : event.stat === 'defense' ? 'Obrony' : event.stat || 'Statystyki'
       const buffType = event.buff_type === 'debuff' ? '⬇️' : '⬆️'
       let reason = ''
@@ -273,7 +286,6 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'end':
-      newState.isFinished = true
       if (event.state) {
         newState.finalState = event.state
         // Update units with final state to ensure UI shows correct final HP values
@@ -535,14 +547,35 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'effect_expired':
-      if (event.unit_id && event.effect_id) {
+      console.log('[EFFECT_EXPIRED] Processing:', event)
+      if (event.unit_id) {
         // Find and remove the effect, reverting its stat changes
         const removeAndRevertFn = (u: Unit) => {
-          const expiredEffect = u.effects?.find(e => e.id === event.effect_id)
-          const remainingEffects = u.effects?.filter(e => e.id !== event.effect_id) || []
+          let expiredEffect: EffectSummary | undefined
+          let remainingEffects = u.effects || []
+
+          if (event.effect_id) {
+            // Remove by ID
+            expiredEffect = u.effects?.find(e => e.id === event.effect_id)
+            remainingEffects = u.effects?.filter(e => e.id !== event.effect_id) || []
+          } else {
+            // Fallback: remove by matching properties (if no ID provided)
+            // This is a hack for backend bugs where effect_id is missing
+            expiredEffect = u.effects?.find(e => 
+              e.stat === event.stat && 
+              e.value === event.amount && 
+              e.duration === event.duration
+            )
+            if (expiredEffect) {
+              remainingEffects = u.effects?.filter(e => e !== expiredEffect) || []
+            }
+          }
+
+          console.log('[EFFECT_EXPIRED] Found effect:', expiredEffect, 'remaining:', remainingEffects.length)
 
           if (!expiredEffect) {
             // Effect not found, just return unchanged
+            console.log('[EFFECT_EXPIRED] Effect not found')
             return u
           }
 
@@ -551,6 +584,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
           if (expiredEffect.stat && expiredEffect.applied_delta !== undefined) {
             const delta = -expiredEffect.applied_delta  // Negative to revert
+            console.log('[EFFECT_EXPIRED] Reverting stat:', expiredEffect.stat, 'delta:', delta)
 
             if (expiredEffect.stat === 'hp') {
               // Don't revert HP - backend sends authoritative HP in game_state

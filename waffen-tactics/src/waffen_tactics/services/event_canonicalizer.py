@@ -222,6 +222,8 @@ def emit_mana_update(
     max_mana: Optional[float] = None,
     side: Optional[str] = None,
     timestamp: Optional[float] = None,
+    amount: Optional[float] = None,
+    regen_rate: Optional[float] = None,
 ):
     ts = timestamp if timestamp is not None else _now_ts()
     try:
@@ -242,6 +244,19 @@ def emit_mana_update(
         'side': side,
         'timestamp': ts,
     }
+    # include optional fields when provided (used by modular effects)
+    try:
+        payload['amount'] = int(amount) if amount is not None else 0
+    except Exception:
+        try:
+            payload['amount'] = int(amount) if amount is not None else 0
+        except Exception:
+            payload['amount'] = 0
+    try:
+        if regen_rate is not None:
+            payload['regen_rate'] = float(regen_rate)
+    except Exception:
+        pass
     if event_callback:
         try:
             event_callback('mana_update', payload)
@@ -256,17 +271,66 @@ def emit_mana_change(
     amount: float,
     side: Optional[str] = None,
     timestamp: Optional[float] = None,
+    include_snapshot: bool = False,
 ):
     ts = timestamp if timestamp is not None else _now_ts()
-    # Note: mana change should be applied by caller, this just emits the event
+    # Apply the mana change to recipient.mana (canonical mutation)
+    try:
+        cur = int(getattr(recipient, 'mana', 0))
+    except Exception:
+        cur = 0
+    try:
+        max_m = int(getattr(recipient, 'max_mana', cur))
+    except Exception:
+        max_m = cur
+    try:
+        new_val = int(max(0, min(max_m, cur + int(amount))))
+    except Exception:
+        try:
+            new_val = int(max(0, min(max_m, cur + float(amount))))
+        except Exception:
+            new_val = cur
+    try:
+        recipient.mana = new_val
+    except Exception:
+        pass
+
+    applied_amount = None
+    try:
+        applied_amount = int(getattr(recipient, 'mana', new_val) - cur)
+    except Exception:
+        try:
+            applied_amount = int(new_val - cur)
+        except Exception:
+            applied_amount = int(amount) if amount is not None else None
 
     payload = {
         'unit_id': getattr(recipient, 'id', None),
         'unit_name': getattr(recipient, 'name', None),
-        'amount': int(amount) if amount is not None else None,
+        'amount': applied_amount,
         'side': side,
         'timestamp': ts,
+        'pre_mana': cur,
+        'post_mana': getattr(recipient, 'mana', None),
     }
+    # Back-compat: allow callers to request a snapshot-style payload
+    # including authoritative HP/mana fields. Tests and callers may pass
+    # include_snapshot=True to cause the emitter to attach those fields.
+    # Keep this optional to avoid duplicating snapshot logic elsewhere.
+    try:
+        if include_snapshot:
+            # if recipient has mana/hp attributes include them
+            if hasattr(recipient, 'mana'):
+                payload['current_mana'] = int(getattr(recipient, 'mana'))
+            if hasattr(recipient, 'max_mana'):
+                payload['max_mana'] = int(getattr(recipient, 'max_mana'))
+            if hasattr(recipient, 'hp'):
+                payload['unit_hp'] = int(getattr(recipient, 'hp'))
+            if hasattr(recipient, 'max_hp'):
+                payload['unit_max_hp'] = int(getattr(recipient, 'max_hp'))
+    except Exception:
+        pass
+
     if event_callback:
         try:
             event_callback('mana_update', payload)
@@ -757,7 +821,8 @@ def emit_damage(
 
     if emit_event and event_callback:
         try:
-            event_callback('attack', payload)
+            # Emit modern canonical event name
+            event_callback('unit_attack', payload)
         except Exception:
             pass
 
@@ -767,5 +832,66 @@ def emit_damage(
             emit_unit_died(event_callback, target, side=side, timestamp=ts, unit_hp=pre_hp)
         except Exception:
             pass
+
+    return payload
+
+
+def emit_effect_expired(
+    event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    target: Any,
+    effect_id: str,
+    unit_hp: Optional[int] = None,
+    side: Optional[str] = None,
+    timestamp: Optional[float] = None,
+):
+    """Emit an `effect_expired` event describing an expired effect on a unit.
+
+    This function MUST raise exceptions on invalid inputs so callers can
+    detect problems early (no silent fallbacks).
+    """
+    ts = timestamp if timestamp is not None else _now_ts()
+
+    payload = {
+        'unit_id': getattr(target, 'id', None),
+        'unit_name': getattr(target, 'name', None),
+        'effect_id': effect_id,
+        'unit_hp': unit_hp if unit_hp is not None else getattr(target, 'hp', None),
+        'side': side,
+        'timestamp': ts,
+    }
+
+    # Do not swallow errors — let them propagate to the caller for visibility
+    if event_callback:
+        event_callback('effect_expired', payload)
+
+    return payload
+
+
+def emit_damage_over_time_expired(
+    event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    target: Any,
+    effect_id: str,
+    unit_hp: Optional[int] = None,
+    side: Optional[str] = None,
+    timestamp: Optional[float] = None,
+):
+    """Emit a `damage_over_time_expired` event when a DoT effect finishes.
+
+    This function intentionally raises on unexpected failures so test
+    harnesses and callers surface errors immediately.
+    """
+    ts = timestamp if timestamp is not None else _now_ts()
+
+    payload = {
+        'unit_id': getattr(target, 'id', None),
+        'unit_name': getattr(target, 'name', None),
+        'effect_id': effect_id,
+        'unit_hp': unit_hp if unit_hp is not None else getattr(target, 'hp', None),
+        'side': side,
+        'timestamp': ts,
+    }
+
+    if event_callback:
+        event_callback('damage_over_time_expired', payload)
 
     return payload

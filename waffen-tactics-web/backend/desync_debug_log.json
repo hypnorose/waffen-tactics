@@ -1,0 +1,65 @@
+[
+  {
+    "seq": 167,
+    "timestamp": 9.099999999999984,
+    "event_type": "state_snapshot",
+    "error": "Effects mismatch for opponent unit opp_3 at seq 167 (seed None): reconstructed=[('shield', None, None, None, 'opp_3', 13.1)], snapshot=[]",
+    "event_index": 166
+  },
+  {
+    "seq": 182,
+    "timestamp": 10.09999999999998,
+    "event_type": "state_snapshot",
+    "error": "Effects mismatch for opponent unit opp_3 at seq 182 (seed None): reconstructed=[('shield', None, None, None, 'opp_3', 13.1)], snapshot=[]",
+    "event_index": 181
+  },
+  {
+    "seq": 201,
+    "timestamp": 11.099999999999977,
+    "event_type": "state_snapshot",
+    "error": "Effects mismatch for opponent unit opp_3 at seq 201 (seed None): reconstructed=[('shield', None, None, None, 'opp_3', 13.1)], snapshot=[]",
+    "event_index": 200
+  },
+  {
+    "seq": 218,
+    "timestamp": 12.099999999999973,
+    "event_type": "state_snapshot",
+    "error": "Effects mismatch for opponent unit opp_3 at seq 218 (seed None): reconstructed=[('shield', None, None, None, 'opp_3', 13.1)], snapshot=[]",
+    "event_index": 217
+  },
+  {
+    "seq": 237,
+    "timestamp": 13.09999999999997,
+    "event_type": "state_snapshot",
+    "error": "Effects mismatch for opponent unit opp_3 at seq 237 (seed None): reconstructed=[('shield', None, None, None, 'opp_3', 13.1)], snapshot=[]",
+    "event_index": 236
+  },
+  {
+    "seq": 278,
+    "timestamp": 15.099999999999962,
+    "event_type": "state_snapshot",
+    "error": "Effects mismatch for opponent unit opp_0 at seq 278 (seed None): reconstructed=[('debuff', 'defense', -15.0, 'percentage', 'yossarian_1', 18.4)], snapshot=[]",
+    "event_index": 277
+  },
+  {
+    "seq": 290,
+    "timestamp": 16.09999999999996,
+    "event_type": "state_snapshot",
+    "error": "Effects mismatch for opponent unit opp_0 at seq 290 (seed None): reconstructed=[('debuff', 'defense', -15.0, 'percentage', 'yossarian_1', 18.4)], snapshot=[]",
+    "event_index": 289
+  },
+  {
+    "seq": 306,
+    "timestamp": 17.099999999999973,
+    "event_type": "state_snapshot",
+    "error": "Effects mismatch for opponent unit opp_0 at seq 306 (seed None): reconstructed=[('debuff', 'defense', -15.0, 'percentage', 'yossarian_1', 18.4)], snapshot=[]",
+    "event_index": 305
+  },
+  {
+    "seq": 316,
+    "timestamp": 18.099999999999987,
+    "event_type": "state_snapshot",
+    "error": "Effects mismatch for opponent unit opp_0 at seq 316 (seed None): reconstructed=[('debuff', 'defense', -15.0, 'percentage', 'yossarian_1', 18.4)], snapshot=[]",
+    "event_index": 315
+  }
+]

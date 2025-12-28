@@ -1,5 +1,31 @@
 // Kopia funkcji pomocniczych z CombatOverlay.tsx do refaktoryzacji
 
+const statDisplayNames: { [key: string]: string } = {
+  'attack': 'ataku',
+  'attack_speed': 'prędkości ataku',
+  'defense': 'obrony',
+  'health': 'życia',
+  'max_health': 'maksymalnego życia',
+  'speed': 'szybkości',
+  'critical_chance': 'szansy na krytyczne uderzenie',
+  'critical_damage': 'obrażeń krytycznych',
+  'dodge_chance': 'szansy na unik',
+  'damage_reduction': 'redukcji obrażeń',
+  'healing_received': 'otrzymywanego leczenia',
+  'mana_regen': 'regeneracji many',
+  'energy_regen': 'regeneracji energii',
+  'lifesteal': 'lifesteala',
+  'resource': 'złota',
+  'special': 'regeneracji HP',
+  'healing': 'leczenia',
+  'buff_amplifier': 'mnożnika buffów',
+  'reroll_chance': 'szansy na reroll',
+  'dynamic_scaling': 'skalowania',
+  'targeting_preference': 'priorytetu celu',
+  'enemy_debuff': 'osłabienia wrogów',
+  // Add more as needed
+}
+
 const getRarityColor = (cost?: number) => {
   if (!cost) return '#6b7280'
   if (cost === 1) return '#6b7280' // gray
@@ -26,37 +52,8 @@ const getTraitDescription = (trait: any, tier: number) => {
   if (!trait.threshold_descriptions || tier < 1 || tier > trait.threshold_descriptions.length) {
     return trait.description || 'Brak opisu'
   }
-  let template = trait.threshold_descriptions[tier - 1]
   
-  // Znajdź wartość z effects
-  const effect = trait.effects[tier - 1]
-  if (!effect) {
-    return template
-  }
-  
-  let params: any = {}
-  
-  if (effect.actions && effect.actions.length > 0) {
-    // Nowy format z actions
-    const action = effect.actions[0]
-    params.value = action.value || 0
-    params.chance = action.chance || 100
-    params.duration = action.duration || 0
-    params.is_percentage = action.is_percentage || false
-  } else {
-    // Stary format
-    params.value = effect.value || 0
-    params.chance = 100
-    params.duration = effect.duration || 0
-    params.is_percentage = effect.is_percentage || false
-  }
-  
-  // Zastąp placeholdery
-  template = template.replace(/<v>/g, params.is_percentage ? `${params.value}%` : params.value.toString())
-  template = template.replace(/<c>/g, params.chance.toString())
-  template = template.replace(/<d>/g, params.duration.toString())
-  
-  return template
+  return trait.threshold_descriptions[tier - 1] || trait.description || 'Brak opisu'
 }
 
 export { getRarityColor, getRarityGlow, getTraitColor, getTraitDescription }

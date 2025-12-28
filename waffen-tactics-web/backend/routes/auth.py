@@ -31,10 +31,34 @@ def verify_token(token: str) -> dict:
     """Verify and decode a JWT token, returning the payload.
 
     Raises the underlying jwt exceptions on failure so callers can handle them.
+    Includes a 10-minute grace period for recently expired tokens to handle
+    long-running operations like battles.
     """
     if not token:
         raise ValueError('Missing token')
-    return jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+
+    try:
+        return jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        # Check if token expired recently (within 10 minutes grace period)
+        # This helps with long-running operations like battles where tokens might expire
+        try:
+            # Decode without verification to check expiration time
+            unverified_payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": False})
+            exp_time = unverified_payload.get('exp')
+            if exp_time:
+                current_time = datetime.datetime.utcnow().timestamp()
+                time_since_expiry = current_time - exp_time
+                grace_period_seconds = 10 * 60  # 10 minutes grace period
+
+                if time_since_expiry <= grace_period_seconds:
+                    print(f"⚠️ Token expired {time_since_expiry:.1f}s ago, within grace period - accepting")
+                    return unverified_payload
+        except Exception:
+            pass  # Fall through to normal expired token handling
+
+        # Re-raise the original exception if outside grace period
+        raise
 
 
 def require_auth(f):
@@ -54,7 +78,7 @@ def require_auth(f):
             print(f"✅ Token valid for user_id: {user_id}")
             return f(user_id, *args, **kwargs)
         except jwt.ExpiredSignatureError:
-            print("❌ Token expired")
+            print("❌ Token expired (outside grace period)")
             return jsonify({'error': 'Token expired'}), 401
         except Exception as e:
             print(f"❌ Token invalid: {e}")

@@ -26,13 +26,17 @@ class DamageHandler(EffectHandler):
             attacker=context.caster,
             target=target,
             raw_damage=amount,
-            shield_absorbed=0,  # Shields are handled inside emit_damage
             damage_type=damage_type,
             side=None,  # Side will be determined by simulator
             timestamp=getattr(context, 'combat_time', None),
             cause='skill',
             emit_event=False,  # Don't auto-emit, we'll emit as unit_attack
         )
+
+        try:
+            print(f"[DAMAGE DEBUG] damage payload timestamp={payload.get('timestamp', None)} attacker={getattr(context.caster,'id',None)} target={getattr(target,'id',None)} amount={amount}")
+        except Exception:
+            raise
 
         # Add is_skill marker to payload
         payload['is_skill'] = True

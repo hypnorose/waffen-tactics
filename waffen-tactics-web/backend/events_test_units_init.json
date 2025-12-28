@@ -1,0 +1,3124 @@
+[
+  {
+    "type": "units_init",
+    "player_units": [
+      {
+        "id": "team_a_0",
+        "name": "Sza\u0142wia",
+        "hp": 900,
+        "max_hp": 900,
+        "attack": 72,
+        "defense": 36,
+        "attack_speed": 1.0,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_1",
+        "name": "Yossarian",
+        "hp": 720,
+        "max_hp": 720,
+        "attack": 54,
+        "defense": 18,
+        "attack_speed": 0.9,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 80,
+        "shield": 0,
+        "base_stats": {
+          "hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 80
+        },
+        "buffed_stats": {
+          "hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 80,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_2",
+        "name": "FalconBalkon",
+        "hp": 600,
+        "max_hp": 600,
+        "attack": 48,
+        "defense": 24,
+        "attack_speed": 1.0,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 50,
+        "shield": 0,
+        "base_stats": {
+          "hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "max_mana": 50
+        },
+        "buffed_stats": {
+          "hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "max_mana": 50,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_3",
+        "name": "Flaminga",
+        "hp": 700,
+        "max_hp": 700,
+        "attack": 56,
+        "defense": 28,
+        "attack_speed": 1.0,
+        "star_level": 1,
+        "position": "back",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_4",
+        "name": "Turbog\u0142owica",
+        "hp": 560,
+        "max_hp": 560,
+        "attack": 42,
+        "defense": 14,
+        "attack_speed": 0.9,
+        "star_level": 1,
+        "position": "back",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      }
+    ],
+    "opponent_units": [
+      {
+        "id": "team_b_0",
+        "name": "Mrvlook",
+        "hp": 1536,
+        "max_hp": 600,
+        "attack": 58,
+        "defense": 30,
+        "attack_speed": 0.8,
+        "star_level": 3,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 30,
+        "shield": 0,
+        "base_stats": {
+          "hp": 1536,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 30
+        },
+        "buffed_stats": {
+          "hp": 600,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 30,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_1",
+        "name": "SzachowyMentor",
+        "hp": 1843,
+        "max_hp": 720,
+        "attack": 105,
+        "defense": 18,
+        "attack_speed": 0.9,
+        "star_level": 3,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 90,
+        "shield": 0,
+        "base_stats": {
+          "hp": 1843,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 90
+        },
+        "buffed_stats": {
+          "hp": 720,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 90,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_2",
+        "name": "Olsak",
+        "hp": 960,
+        "max_hp": 600,
+        "attack": 42,
+        "defense": 30,
+        "attack_speed": 0.8,
+        "star_level": 2,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 35,
+        "shield": 0,
+        "base_stats": {
+          "hp": 960,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 35
+        },
+        "buffed_stats": {
+          "hp": 600,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 35,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_3",
+        "name": "Flaminga",
+        "hp": 1120,
+        "max_hp": 700,
+        "attack": 78,
+        "defense": 28,
+        "attack_speed": 1.0,
+        "star_level": 2,
+        "position": "back",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 1120,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 700,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_4",
+        "name": "Miki",
+        "hp": 630,
+        "max_hp": 630,
+        "attack": 84,
+        "defense": 21,
+        "attack_speed": 1.2,
+        "star_level": 1,
+        "position": "back",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 120,
+        "shield": 0,
+        "base_stats": {
+          "hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "max_mana": 120
+        },
+        "buffed_stats": {
+          "hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "max_mana": 120,
+          "hp_regen_per_sec": 0.0
+        }
+      }
+    ],
+    "synergies": {},
+    "traits": [],
+    "opponent": {
+      "name": "Test Opponent",
+      "wins": 0,
+      "level": 1
+    },
+    "game_state": {
+      "player_units": [
+        {
+          "id": "team_a_0",
+          "name": "Sza\u0142wia",
+          "hp": 900,
+          "max_hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_1",
+          "name": "Yossarian",
+          "hp": 720,
+          "max_hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 80,
+          "shield": 0,
+          "base_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_2",
+          "name": "FalconBalkon",
+          "hp": 600,
+          "max_hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 50,
+          "shield": 0,
+          "base_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_3",
+          "name": "Flaminga",
+          "hp": 700,
+          "max_hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_4",
+          "name": "Turbog\u0142owica",
+          "hp": 560,
+          "max_hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ],
+      "opponent_units": [
+        {
+          "id": "team_b_0",
+          "name": "Mrvlook",
+          "hp": 1536,
+          "max_hp": 600,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 30,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1536,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_1",
+          "name": "SzachowyMentor",
+          "hp": 1843,
+          "max_hp": 720,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 90,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1843,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_2",
+          "name": "Olsak",
+          "hp": 960,
+          "max_hp": 600,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 2,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 35,
+          "shield": 0,
+          "base_stats": {
+            "hp": 960,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_3",
+          "name": "Flaminga",
+          "hp": 1120,
+          "max_hp": 700,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 2,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1120,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_4",
+          "name": "Miki",
+          "hp": 630,
+          "max_hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 120,
+          "shield": 0,
+          "base_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120
+          },
+          "buffed_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ]
+    },
+    "seq": 0,
+    "timestamp": 0
+  },
+  {
+    "player_units": [
+      {
+        "id": "team_a_0",
+        "name": "Sza\u0142wia",
+        "hp": 900,
+        "max_hp": 900,
+        "attack": 72,
+        "defense": 36,
+        "attack_speed": 1.0,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_1",
+        "name": "Yossarian",
+        "hp": 720,
+        "max_hp": 720,
+        "attack": 54,
+        "defense": 18,
+        "attack_speed": 0.9,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 80,
+        "shield": 0,
+        "base_stats": {
+          "hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 80
+        },
+        "buffed_stats": {
+          "hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 80,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_2",
+        "name": "FalconBalkon",
+        "hp": 600,
+        "max_hp": 600,
+        "attack": 48,
+        "defense": 24,
+        "attack_speed": 1.0,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 50,
+        "shield": 0,
+        "base_stats": {
+          "hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "max_mana": 50
+        },
+        "buffed_stats": {
+          "hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "max_mana": 50,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_3",
+        "name": "Flaminga",
+        "hp": 700,
+        "max_hp": 700,
+        "attack": 56,
+        "defense": 28,
+        "attack_speed": 1.0,
+        "star_level": 1,
+        "position": "back",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_4",
+        "name": "Turbog\u0142owica",
+        "hp": 560,
+        "max_hp": 560,
+        "attack": 42,
+        "defense": 14,
+        "attack_speed": 0.9,
+        "star_level": 1,
+        "position": "back",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      }
+    ],
+    "opponent_units": [
+      {
+        "id": "team_b_0",
+        "name": "Mrvlook",
+        "hp": 1536,
+        "max_hp": 600,
+        "attack": 58,
+        "defense": 30,
+        "attack_speed": 0.8,
+        "star_level": 3,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 30,
+        "shield": 0,
+        "base_stats": {
+          "hp": 1536,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 30
+        },
+        "buffed_stats": {
+          "hp": 600,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 30,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_1",
+        "name": "SzachowyMentor",
+        "hp": 1843,
+        "max_hp": 720,
+        "attack": 105,
+        "defense": 18,
+        "attack_speed": 0.9,
+        "star_level": 3,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 90,
+        "shield": 0,
+        "base_stats": {
+          "hp": 1843,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 90
+        },
+        "buffed_stats": {
+          "hp": 720,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 90,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_2",
+        "name": "Olsak",
+        "hp": 960,
+        "max_hp": 600,
+        "attack": 42,
+        "defense": 30,
+        "attack_speed": 0.8,
+        "star_level": 2,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 35,
+        "shield": 0,
+        "base_stats": {
+          "hp": 960,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 35
+        },
+        "buffed_stats": {
+          "hp": 600,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 35,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_3",
+        "name": "Flaminga",
+        "hp": 1120,
+        "max_hp": 700,
+        "attack": 78,
+        "defense": 28,
+        "attack_speed": 1.0,
+        "star_level": 2,
+        "position": "back",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 1120,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 700,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_4",
+        "name": "Miki",
+        "hp": 630,
+        "max_hp": 630,
+        "attack": 84,
+        "defense": 21,
+        "attack_speed": 1.2,
+        "star_level": 1,
+        "position": "back",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 120,
+        "shield": 0,
+        "base_stats": {
+          "hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "max_mana": 120
+        },
+        "buffed_stats": {
+          "hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "max_mana": 120,
+          "hp_regen_per_sec": 0.0
+        }
+      }
+    ],
+    "timestamp": 0.0,
+    "seq": 1,
+    "event_id": "d1b84786-6a7b-4705-9b34-5d2b3032db86",
+    "type": "units_init",
+    "game_state": {
+      "player_units": [
+        {
+          "id": "team_a_0",
+          "name": "Sza\u0142wia",
+          "hp": 900,
+          "max_hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_1",
+          "name": "Yossarian",
+          "hp": 720,
+          "max_hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 80,
+          "shield": 0,
+          "base_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_2",
+          "name": "FalconBalkon",
+          "hp": 600,
+          "max_hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 50,
+          "shield": 0,
+          "base_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_3",
+          "name": "Flaminga",
+          "hp": 700,
+          "max_hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_4",
+          "name": "Turbog\u0142owica",
+          "hp": 560,
+          "max_hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ],
+      "opponent_units": [
+        {
+          "id": "team_b_0",
+          "name": "Mrvlook",
+          "hp": 1536,
+          "max_hp": 600,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 30,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1536,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_1",
+          "name": "SzachowyMentor",
+          "hp": 1843,
+          "max_hp": 720,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 90,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1843,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_2",
+          "name": "Olsak",
+          "hp": 960,
+          "max_hp": 600,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 2,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 35,
+          "shield": 0,
+          "base_stats": {
+            "hp": 960,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_3",
+          "name": "Flaminga",
+          "hp": 1120,
+          "max_hp": 700,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 2,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1120,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_4",
+          "name": "Miki",
+          "hp": 630,
+          "max_hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 120,
+          "shield": 0,
+          "base_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120
+          },
+          "buffed_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "unit_id": "team_a_1",
+    "unit_name": "Yossarian",
+    "amount": 1,
+    "side": "team_a",
+    "timestamp": 0.1,
+    "seq": 2,
+    "event_id": "d9d70cb2-3bc2-44d9-912d-73c97ed12388",
+    "unit_hp": 720,
+    "type": "mana_update",
+    "game_state": {
+      "player_units": [
+        {
+          "id": "team_a_0",
+          "name": "Sza\u0142wia",
+          "hp": 900,
+          "max_hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_1",
+          "name": "Yossarian",
+          "hp": 720,
+          "max_hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 80,
+          "shield": 0,
+          "base_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_2",
+          "name": "FalconBalkon",
+          "hp": 600,
+          "max_hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 50,
+          "shield": 0,
+          "base_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_3",
+          "name": "Flaminga",
+          "hp": 700,
+          "max_hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_4",
+          "name": "Turbog\u0142owica",
+          "hp": 560,
+          "max_hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ],
+      "opponent_units": [
+        {
+          "id": "team_b_0",
+          "name": "Mrvlook",
+          "hp": 1536,
+          "max_hp": 600,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 30,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1536,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_1",
+          "name": "SzachowyMentor",
+          "hp": 1843,
+          "max_hp": 720,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 90,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1843,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_2",
+          "name": "Olsak",
+          "hp": 960,
+          "max_hp": 600,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 2,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 35,
+          "shield": 0,
+          "base_stats": {
+            "hp": 960,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_3",
+          "name": "Flaminga",
+          "hp": 1120,
+          "max_hp": 700,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 2,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1120,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_4",
+          "name": "Miki",
+          "hp": 630,
+          "max_hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 120,
+          "shield": 0,
+          "base_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120
+          },
+          "buffed_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "unit_id": "team_a_4",
+    "unit_name": "Turbog\u0142owica",
+    "amount": 1,
+    "side": "team_a",
+    "timestamp": 0.1,
+    "seq": 3,
+    "event_id": "fd7e6e24-8a2f-427f-8c63-bc2e2411a028",
+    "unit_hp": 560,
+    "type": "mana_update",
+    "game_state": {
+      "player_units": [
+        {
+          "id": "team_a_0",
+          "name": "Sza\u0142wia",
+          "hp": 900,
+          "max_hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_1",
+          "name": "Yossarian",
+          "hp": 720,
+          "max_hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 80,
+          "shield": 0,
+          "base_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_2",
+          "name": "FalconBalkon",
+          "hp": 600,
+          "max_hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 50,
+          "shield": 0,
+          "base_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_3",
+          "name": "Flaminga",
+          "hp": 700,
+          "max_hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_4",
+          "name": "Turbog\u0142owica",
+          "hp": 560,
+          "max_hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ],
+      "opponent_units": [
+        {
+          "id": "team_b_0",
+          "name": "Mrvlook",
+          "hp": 1536,
+          "max_hp": 600,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 30,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1536,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_1",
+          "name": "SzachowyMentor",
+          "hp": 1843,
+          "max_hp": 720,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 90,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1843,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_2",
+          "name": "Olsak",
+          "hp": 960,
+          "max_hp": 600,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 2,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 35,
+          "shield": 0,
+          "base_stats": {
+            "hp": 960,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_3",
+          "name": "Flaminga",
+          "hp": 1120,
+          "max_hp": 700,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 2,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1120,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_4",
+          "name": "Miki",
+          "hp": 630,
+          "max_hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 120,
+          "shield": 0,
+          "base_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120
+          },
+          "buffed_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "unit_id": "team_b_1",
+    "unit_name": "SzachowyMentor",
+    "amount": 1,
+    "side": "team_b",
+    "timestamp": 0.1,
+    "seq": 4,
+    "event_id": "50a4071b-eee4-40f8-a4cd-4589a2daf42a",
+    "unit_hp": 1843,
+    "type": "mana_update",
+    "game_state": {
+      "player_units": [
+        {
+          "id": "team_a_0",
+          "name": "Sza\u0142wia",
+          "hp": 900,
+          "max_hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_1",
+          "name": "Yossarian",
+          "hp": 720,
+          "max_hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 80,
+          "shield": 0,
+          "base_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_2",
+          "name": "FalconBalkon",
+          "hp": 600,
+          "max_hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 50,
+          "shield": 0,
+          "base_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_3",
+          "name": "Flaminga",
+          "hp": 700,
+          "max_hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_4",
+          "name": "Turbog\u0142owica",
+          "hp": 560,
+          "max_hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ],
+      "opponent_units": [
+        {
+          "id": "team_b_0",
+          "name": "Mrvlook",
+          "hp": 1536,
+          "max_hp": 600,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 30,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1536,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_1",
+          "name": "SzachowyMentor",
+          "hp": 1843,
+          "max_hp": 720,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 90,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1843,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_2",
+          "name": "Olsak",
+          "hp": 960,
+          "max_hp": 600,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 2,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 35,
+          "shield": 0,
+          "base_stats": {
+            "hp": 960,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_3",
+          "name": "Flaminga",
+          "hp": 1120,
+          "max_hp": 700,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 2,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1120,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_4",
+          "name": "Miki",
+          "hp": 630,
+          "max_hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 120,
+          "shield": 0,
+          "base_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120
+          },
+          "buffed_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "unit_id": "team_b_4",
+    "unit_name": "Miki",
+    "amount": 1,
+    "side": "team_b",
+    "timestamp": 0.1,
+    "seq": 5,
+    "event_id": "f128a564-9b2b-480a-8a0d-a57e35af872d",
+    "unit_hp": 630,
+    "type": "mana_update",
+    "game_state": {
+      "player_units": [
+        {
+          "id": "team_a_0",
+          "name": "Sza\u0142wia",
+          "hp": 900,
+          "max_hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_1",
+          "name": "Yossarian",
+          "hp": 720,
+          "max_hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 80,
+          "shield": 0,
+          "base_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_2",
+          "name": "FalconBalkon",
+          "hp": 600,
+          "max_hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 50,
+          "shield": 0,
+          "base_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_3",
+          "name": "Flaminga",
+          "hp": 700,
+          "max_hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_4",
+          "name": "Turbog\u0142owica",
+          "hp": 560,
+          "max_hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ],
+      "opponent_units": [
+        {
+          "id": "team_b_0",
+          "name": "Mrvlook",
+          "hp": 1536,
+          "max_hp": 600,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 30,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1536,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_1",
+          "name": "SzachowyMentor",
+          "hp": 1843,
+          "max_hp": 720,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 90,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1843,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_2",
+          "name": "Olsak",
+          "hp": 960,
+          "max_hp": 600,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 2,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 35,
+          "shield": 0,
+          "base_stats": {
+            "hp": 960,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_3",
+          "name": "Flaminga",
+          "hp": 1120,
+          "max_hp": 700,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 2,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1120,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_4",
+          "name": "Miki",
+          "hp": 630,
+          "max_hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 120,
+          "shield": 0,
+          "base_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120
+          },
+          "buffed_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "player_units": [
+      {
+        "id": "team_a_0",
+        "name": "Sza\u0142wia",
+        "hp": 900,
+        "max_hp": 900,
+        "attack": 72,
+        "defense": 36,
+        "attack_speed": 1.0,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_1",
+        "name": "Yossarian",
+        "hp": 720,
+        "max_hp": 720,
+        "attack": 54,
+        "defense": 18,
+        "attack_speed": 0.9,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 1,
+        "max_mana": 80,
+        "shield": 0,
+        "base_stats": {
+          "hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 80
+        },
+        "buffed_stats": {
+          "hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 80,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_2",
+        "name": "FalconBalkon",
+        "hp": 600,
+        "max_hp": 600,
+        "attack": 48,
+        "defense": 24,
+        "attack_speed": 1.0,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 50,
+        "shield": 0,
+        "base_stats": {
+          "hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "max_mana": 50
+        },
+        "buffed_stats": {
+          "hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "max_mana": 50,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_3",
+        "name": "Flaminga",
+        "hp": 700,
+        "max_hp": 700,
+        "attack": 56,
+        "defense": 28,
+        "attack_speed": 1.0,
+        "star_level": 1,
+        "position": "back",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_a_4",
+        "name": "Turbog\u0142owica",
+        "hp": 560,
+        "max_hp": 560,
+        "attack": 42,
+        "defense": 14,
+        "attack_speed": 0.9,
+        "star_level": 1,
+        "position": "back",
+        "effects": [],
+        "current_mana": 1,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      }
+    ],
+    "opponent_units": [
+      {
+        "id": "team_b_0",
+        "name": "Mrvlook",
+        "hp": 1536,
+        "max_hp": 600,
+        "attack": 58,
+        "defense": 30,
+        "attack_speed": 0.8,
+        "star_level": 3,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 30,
+        "shield": 0,
+        "base_stats": {
+          "hp": 1536,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 30
+        },
+        "buffed_stats": {
+          "hp": 600,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 30,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_1",
+        "name": "SzachowyMentor",
+        "hp": 1843,
+        "max_hp": 720,
+        "attack": 105,
+        "defense": 18,
+        "attack_speed": 0.9,
+        "star_level": 3,
+        "position": "front",
+        "effects": [],
+        "current_mana": 1,
+        "max_mana": 90,
+        "shield": 0,
+        "base_stats": {
+          "hp": 1843,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 90
+        },
+        "buffed_stats": {
+          "hp": 720,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "max_mana": 90,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_2",
+        "name": "Olsak",
+        "hp": 960,
+        "max_hp": 600,
+        "attack": 42,
+        "defense": 30,
+        "attack_speed": 0.8,
+        "star_level": 2,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 35,
+        "shield": 0,
+        "base_stats": {
+          "hp": 960,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 35
+        },
+        "buffed_stats": {
+          "hp": 600,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "max_mana": 35,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_3",
+        "name": "Flaminga",
+        "hp": 1120,
+        "max_hp": 700,
+        "attack": 78,
+        "defense": 28,
+        "attack_speed": 1.0,
+        "star_level": 2,
+        "position": "back",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 150,
+        "shield": 0,
+        "base_stats": {
+          "hp": 1120,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150
+        },
+        "buffed_stats": {
+          "hp": 700,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "max_mana": 150,
+          "hp_regen_per_sec": 0.0
+        }
+      },
+      {
+        "id": "team_b_4",
+        "name": "Miki",
+        "hp": 630,
+        "max_hp": 630,
+        "attack": 84,
+        "defense": 21,
+        "attack_speed": 1.2,
+        "star_level": 1,
+        "position": "back",
+        "effects": [],
+        "current_mana": 1,
+        "max_mana": 120,
+        "shield": 0,
+        "base_stats": {
+          "hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "max_mana": 120
+        },
+        "buffed_stats": {
+          "hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "max_mana": 120,
+          "hp_regen_per_sec": 0.0
+        }
+      }
+    ],
+    "timestamp": 0.1,
+    "seq": 6,
+    "event_id": "18ad27bc-a77c-4f3c-bca8-3d477037e3f8",
+    "type": "state_snapshot",
+    "game_state": {
+      "player_units": [
+        {
+          "id": "team_a_0",
+          "name": "Sza\u0142wia",
+          "hp": 900,
+          "max_hp": 900,
+          "attack": 72,
+          "defense": 36,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_1",
+          "name": "Yossarian",
+          "hp": 720,
+          "max_hp": 720,
+          "attack": 54,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 80,
+          "shield": 0,
+          "base_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 80,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_2",
+          "name": "FalconBalkon",
+          "hp": 600,
+          "max_hp": 600,
+          "attack": 48,
+          "defense": 24,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 50,
+          "shield": 0,
+          "base_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 50,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_3",
+          "name": "Flaminga",
+          "hp": 700,
+          "max_hp": 700,
+          "attack": 56,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_a_4",
+          "name": "Turbog\u0142owica",
+          "hp": 560,
+          "max_hp": 560,
+          "attack": 42,
+          "defense": 14,
+          "attack_speed": 0.9,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ],
+      "opponent_units": [
+        {
+          "id": "team_b_0",
+          "name": "Mrvlook",
+          "hp": 1536,
+          "max_hp": 600,
+          "attack": 58,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 30,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1536,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 30,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_1",
+          "name": "SzachowyMentor",
+          "hp": 1843,
+          "max_hp": 720,
+          "attack": 105,
+          "defense": 18,
+          "attack_speed": 0.9,
+          "star_level": 3,
+          "position": "front",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 90,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1843,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90
+          },
+          "buffed_stats": {
+            "hp": 720,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 90,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_2",
+          "name": "Olsak",
+          "hp": 960,
+          "max_hp": 600,
+          "attack": 42,
+          "defense": 30,
+          "attack_speed": 0.8,
+          "star_level": 2,
+          "position": "front",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 35,
+          "shield": 0,
+          "base_stats": {
+            "hp": 960,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35
+          },
+          "buffed_stats": {
+            "hp": 600,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 35,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_3",
+          "name": "Flaminga",
+          "hp": 1120,
+          "max_hp": 700,
+          "attack": 78,
+          "defense": 28,
+          "attack_speed": 1.0,
+          "star_level": 2,
+          "position": "back",
+          "effects": [],
+          "current_mana": 0,
+          "max_mana": 150,
+          "shield": 0,
+          "base_stats": {
+            "hp": 1120,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150
+          },
+          "buffed_stats": {
+            "hp": 700,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 150,
+            "hp_regen_per_sec": 0.0
+          }
+        },
+        {
+          "id": "team_b_4",
+          "name": "Miki",
+          "hp": 630,
+          "max_hp": 630,
+          "attack": 84,
+          "defense": 21,
+          "attack_speed": 1.2,
+          "star_level": 1,
+          "position": "back",
+          "effects": [],
+          "current_mana": 1,
+          "max_mana": 120,
+          "shield": 0,
+          "base_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120
+          },
+          "buffed_stats": {
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 120,
+            "hp_regen_per_sec": 0.0
+          }
+        }
+      ]
+    }
+  }
+]

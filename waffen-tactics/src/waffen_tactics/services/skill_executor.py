@@ -47,38 +47,57 @@ class SkillExecutor:
                 required_mana = 100
 
             # Check if caster has enough mana
-            if context.caster.mana < required_mana:
-                raise SkillExecutionError(f"Insufficient mana: {context.caster.mana} < {required_mana}")
+            if context.caster.get_mana() < required_mana:
+                raise SkillExecutionError(f"Insufficient mana: {context.caster.get_mana()} < {required_mana}")
 
-            # Deduct mana (consume full bar)
-            context.caster.mana = max(0, context.caster.mana - required_mana)
-            # Determine side
+            # Deduct mana (consume full bar) - use canonical emitter
+            from waffen_tactics.services.event_canonicalizer import emit_mana_change
+            print(f"[SKILL_EXEC] casting {skill.name} at combat_time={context.combat_time}")
+            
+            # Use canonical emitter for mana change
+            def event_callback(event_type, payload):
+                events.append((event_type, payload))
+            
             side = 'team_a' if any(u.id == context.caster.id for u in context.team_a) else 'team_b'
-            events.append(('mana_update', {
-                'unit_id': context.caster.id,
-                'unit_name': context.caster.name,
-                'current_mana': context.caster.mana,
-                'max_mana': context.caster.max_mana,
-                'side': side,
-                'timestamp': context.combat_time
-            }))
+            emit_mana_change(event_callback, context.caster, 
+                           -required_mana,  # Negative amount for mana cost
+                           side=side, 
+                           timestamp=context.combat_time,
+                           include_snapshot=True)
 
             # Emit skill_cast first (meta/display) then execute effects so
             # the UI shows the caster using the skill before the effect lines.
-            skill_delay = 0.2  # Fixed delay after last attack
+            # Emit skill_cast at the canonical combat_time (no additional delay)
+            target_id = None
+            target_name = None
+            damage = None
+            if len(skill.effects) == 1:
+                effect = skill.effects[0]
+                if effect.target == TargetType.SINGLE_ENEMY:
+                    # For single enemy target, determine the target
+                    targets = self._get_targets(effect.target, context)
+                    if targets:
+                        target_id = targets[0].id
+                        target_name = targets[0].name
+                        if effect.type == EffectType.DAMAGE:
+                            damage = effect.params.get('amount')
+                elif effect.type == EffectType.DAMAGE:
+                    # For other targets, still include damage if it's a damage effect
+                    damage = effect.params.get('amount')
             events.append(('skill_cast', {
                 'caster_id': context.caster.id,
                 'caster_name': context.caster.name,
                 'skill_name': skill.name,
-                'target_id': None,
-                'target_name': None,
-                'damage': None,
-                'timestamp': context.combat_time + skill_delay
+                'target_id': target_id,
+                'target_name': target_name,
+                'damage': damage,
+                'timestamp': context.combat_time
             }))
 
             # Execute effects sequentially (effects come after skill_cast)
             for effect in skill.effects:
                 effect_events = self._execute_effect(effect, context)
+                print(f"[SKILL_EXEC] effect {effect.type} returned {effect_events}")
                 events.extend(effect_events)
 
         except Exception as e:

@@ -83,8 +83,7 @@ def test_rafcikd_conditional_low_hp_applies_shield_and_big_buff():
     def cb(et, data):
         events.append((et, data))
 
-    target_hp_list = [enemy.hp]
-    sim._process_skill_cast(caster, enemy, target_hp_list, 0, 0.5, [], cb, 'team_a')
+    sim._process_skill_cast(caster, enemy, time=0.5, log=[], event_callback=cb, side='team_a')
 
     types = [e[0] for e in events]
     assert 'shield_applied' in types, f"Expected shield_applied in events, got {types}"
@@ -139,8 +138,7 @@ def test_rafcikd_conditional_high_hp_applies_small_buff_only():
     def cb(et, data):
         events.append((et, data))
 
-    target_hp_list = [enemy.hp]
-    sim._process_skill_cast(caster, enemy, target_hp_list, 0, 0.5, [], cb, 'team_a')
+    sim._process_skill_cast(caster, enemy, time=0.5, log=[], event_callback=cb, side='team_a')
 
     types = [e[0] for e in events]
     # No shield when HP high

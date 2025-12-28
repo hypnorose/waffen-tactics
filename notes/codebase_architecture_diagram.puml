@@ -1,0 +1,513 @@
+@startuml Waffen Tactics Game Architecture
+
+title Waffen Tactics Game - Complete Codebase Architecture
+
+package "Backend (Flask/Python)" as Backend {
+    package "API Layer" as API {
+        class "api.py" as ApiMain {
+            +Flask app
+            +CORS
+            +DatabaseManager db_manager
+            +GameManager game_manager
+        }
+
+        package "Routes" as Routes {
+            class "auth.py" as AuthRoutes {
+                +login()
+                +register()
+                +verify_token()
+            }
+
+            class "game_routes.py" as GameRoutes {
+                +get_game_state()
+                +start_combat()
+                +perform_action()
+            }
+
+            class "admin.py" as AdminRoutes {
+                +admin endpoints
+            }
+        }
+
+        package "Services" as BackendServices {
+            class "combat_service.py" as CombatService {
+                +simulate_combat()
+                +process_events()
+            }
+
+            class "game_management_service.py" as GameManagementService {
+                +create_game()
+                +update_game_state()
+            }
+
+            class "combat_event_reconstructor.py" as CombatEventReconstructor {
+                +reconstruct_events()
+                +validate_sequence()
+            }
+        }
+
+        note right of BackendServices : ⚠️ DUPLICATION: Uses complex CombatSimulator\nfrom core services
+    }
+
+    class "combat.py" as BackendCombatSimulator {
+        +CombatSimulator (simple)
+        +CombatUnit (lightweight)
+        +Basic tick-based simulation
+    }
+
+    note right of BackendCombatSimulator : ⚠️ DUPLICATION: Simple CombatSimulator\nnot used by services (legacy?)
+}
+
+package "Core Game Logic (waffen_tactics)" as CoreGame {
+    package "Models" as Models {
+        class "player.py" as PlayerModel {
+            +Player attributes
+        }
+
+        class "unit.py" as UnitModel {
+            +Unit attributes
+            +stats
+            +traits
+        }
+
+        class "skill.py" as SkillModel {
+            +Skill effects
+            +cooldowns
+        }
+
+        class "player_state.py" as PlayerStateModel {
+            +game state
+            +units
+            +gold
+        }
+    }
+
+    package "Services" as GameServices {
+        class "combat_simulator.py" as ComplexCombatSimulator {
+            +CombatSimulator (complex)
+            +Multiple inheritance from 5 processors
+            +Advanced event system
+            +1269 lines - GOD CLASS
+        }
+
+        note right of ComplexCombatSimulator : ⚠️ ANTIPATTERN: Multiple inheritance\nGod class with 1269 lines
+
+        class "combat.py" as CombatWrapper {
+            +CombatSimulator (wrapper)
+            +Converts Unit → CombatUnit
+            +Delegates to shared simulator
+        }
+
+        note right of CombatWrapper : ⚠️ DUPLICATION: Wrapper around\nshared simulator
+
+        class "combat_shared.py" as CombatShared {
+            +Re-exports CombatSimulator
+            +Re-exports CombatUnit
+        }
+
+        class "combat_attack_processor.py" as AttackProcessor {
+            +CombatAttackProcessor
+        }
+
+        class "combat_effect_processor.py" as EffectProcessor {
+            +CombatEffectProcessor
+        }
+
+        class "combat_regeneration_processor.py" as RegenProcessor {
+            +CombatRegenerationProcessor
+        }
+
+        class "combat_win_conditions.py" as WinProcessor {
+            +CombatWinConditionsProcessor
+        }
+
+        class "combat_per_second_buff_processor.py" as BuffProcessor {
+            +CombatPerSecondBuffProcessor
+        }
+
+        class "database.py" as DatabaseManager {
+            +CRUD operations
+            +connection pooling
+        }
+
+        class "game_manager.py" as GameManager {
+            +manage_games()
+            +handle_events()
+        }
+
+        note right of GameManager : ⚠️ ANTIPATTERN: God Object\nToo many responsibilities
+
+        class "shop.py" as ShopService {
+            +buy_units()
+            +sell_units()
+        }
+
+        class "unit_manager.py" as UnitManager {
+            +create_units()
+            +level_up()
+        }
+
+        class "skill_executor.py" as SkillExecutor {
+            +execute_skills()
+            +resolve_targets()
+        }
+
+        class "effect_processor.py" as ModularEffectProcessor {
+            +process_effects()
+            +apply_buffs()
+        }
+
+        class "stat_calculator.py" as StatCalculator {
+            +calculate_stats()
+            +apply_synergies()
+        }
+
+        class "synergy.py" as SynergyService {
+            +calculate_synergies()
+            +apply_bonuses()
+        }
+
+        class "matchmaking.py" as MatchmakingService {
+            +find_opponents()
+            +rank_players()
+        }
+
+        class "progression.py" as ProgressionService {
+            +level_progression()
+            +experience_system()
+        }
+    }
+
+    package "Core" as Core {
+        class "combat_core.py" as CombatCore {
+            +core combat logic
+        }
+
+        class "types.py" as Types {
+            +type definitions
+        }
+    }
+
+    package "Engine" as Engine {
+        class "combat_state.py" as CombatState {
+            +state management
+        }
+
+        class "event_dispatcher.py" as EventDispatcher {
+            +event handling
+        }
+    }
+
+    package "Emitters" as Emitters {
+        class "mutators.py" as Mutators {
+            +state mutations
+        }
+
+        class "payload.py" as Payload {
+            +event payloads
+        }
+    }
+
+    package "Processors" as Processors {
+        class "attack.py" as AttackProcessor {
+            +attack calculations
+        }
+    }
+
+    package "Animation" as Animation {
+        class "system.py" as AnimationSystem {
+            +animation logic
+        }
+
+        class "renderers.py" as AnimationRenderers {
+            +render animations
+        }
+
+        class "types.py" as AnimationTypes {
+            +animation types
+        }
+    }
+}
+
+package "Frontend (React/TypeScript)" as Frontend {
+    package "Components" as Components {
+        class "GameBoard.tsx" as GameBoard {
+            +main game UI
+        }
+
+        class "CombatUnitCard.tsx" as CombatUnitCard {
+            +unit display
+        }
+
+        class "Shop.tsx" as Shop {
+            +shop interface
+        }
+
+        class "CombatLog.tsx" as CombatLog {
+            +combat events
+        }
+
+        class "SynergiesPanel.tsx" as SynergiesPanel {
+            +synergy display
+        }
+
+        class "CombatOverlay.tsx" as CombatOverlay {
+            +combat visualization
+        }
+
+        class "ProjectileLayer.tsx" as ProjectileLayer {
+            +projectile effects
+        }
+
+        class "HurtEffectLayer.tsx" as HurtEffectLayer {
+            +damage effects
+        }
+    }
+
+    package "Pages" as Pages {
+        class "Game.tsx" as GamePage {
+            +main game page
+        }
+
+        class "Login.tsx" as LoginPage {
+            +authentication
+        }
+
+        class "Admin.tsx" as AdminPage {
+            +admin interface
+        }
+    }
+
+    package "Services" as FrontendServices {
+        class "api.ts" as ApiService {
+            +HTTP requests
+            +API client
+        }
+    }
+
+    package "Store" as Store {
+        class "gameStore.ts" as GameStore {
+            +game state management
+        }
+
+        class "authStore.ts" as AuthStore {
+            +authentication state
+        }
+    }
+
+    class "App.tsx" as App {
+        +main application
+    }
+}
+
+package "Proposed: Unified Combat Architecture" as Proposed {
+    package "Core Game Logic" as CoreProposed {
+        class "CombatEngine" as UnifiedCombatEngine {
+            +Single authoritative combat simulator
+            +All combat logic consolidated
+            +Clean interface for all use cases
+            +Comprehensive event system
+            +No inheritance complexity
+        }
+
+        note right of UnifiedCombatEngine : ✅ **SINGLE SOURCE OF TRUTH**\nNo more duplication!
+
+        class "CombatState" as CombatState {
+            +State management
+        }
+
+        class "EventDispatcher" as EventDispatcher {
+            +Event handling
+        }
+
+        class "CombatProcessors" as CombatProcessors {
+            +Modular processors
+            +Attack, Effects, Regeneration, etc.
+            +Composition over inheritance
+        }
+    }
+
+    package "Backend (Thin Orchestration)" as BackendProposed {
+        class "CombatOrchestrator" as CombatOrchestrator {
+            +Input validation
+            +Persistence coordination
+            +Result formatting
+            +No combat logic
+            +Error handling
+        }
+
+        class "ApiEndpoints" as ApiEndpoints {
+            +HTTP request/response
+            +Authentication
+            +Delegates to orchestrator
+        }
+
+        note right of CombatOrchestrator : 🎯 **ORCHESTRATION ONLY**\nI/O, persistence, auth
+    }
+
+    ' Proposed relationships
+    CombatOrchestrator --> UnifiedCombatEngine : Uses unified engine
+    ApiEndpoints --> CombatOrchestrator : Delegates to
+    UnifiedCombatEngine --> CombatState : Manages
+    UnifiedCombatEngine --> EventDispatcher : Dispatches
+    UnifiedCombatEngine --> CombatProcessors : Uses
+
+    note as ImplementationPlan
+    **Concrete Implementation Steps:**
+
+    **1. Create CombatEngine Interface**
+    ```python
+    class CombatEngine(Protocol):
+        def simulate_combat(self, team_a: List[CombatUnit], 
+                          team_b: List[CombatUnit], 
+                          config: CombatConfig) -> CombatResult:
+            pass
+        
+        def validate_teams(self, team_a: List[CombatUnit], 
+                         team_b: List[CombatUnit]) -> bool:
+            pass
+    ```
+
+    **2. Implement Unified CombatEngine**
+    - Extract logic from ComplexCombatSimulator
+    - Use composition instead of inheritance
+    - Add proper error handling
+
+    **3. Create CombatOrchestrator**
+    ```python
+    class CombatOrchestrator:
+        def __init__(self, combat_engine: CombatEngine, 
+                     db: DatabaseManager):
+            self.combat_engine = combat_engine
+            self.db = db
+        
+        def execute_combat(self, player_id: str, 
+                         opponent_id: str) -> dict:
+            # Validation, persistence, orchestration
+    ```
+
+    **4. Update Backend Routes**
+    - Replace direct combat calls with orchestrator
+    - Add proper error responses
+    - Implement request validation
+    end note
+}
+
+package "Database & Persistence" as Database {
+    class "SQLite Database" as SQLiteDB {
+        +game_data.db
+        +player data
+        +combat logs
+    }
+}
+
+package "Configuration & Assets" as Config {
+    class "units.json" as UnitsConfig {
+        +unit definitions
+    }
+
+    class "traits.json" as TraitsConfig {
+        +trait definitions
+    }
+
+    class "game_config.json" as GameConfig {
+        +game settings
+    }
+}
+
+' Relationships
+ApiMain --> DatabaseManager
+ApiMain --> GameManager
+ApiMain --> BackendCombatSimulator : ⚠️ Uses simple simulator
+
+GameRoutes --> CombatService
+GameRoutes --> GameManagementService
+GameRoutes --> CombatEventReconstructor
+
+CombatService --> ComplexCombatSimulator : Uses complex simulator
+GameManagementService --> GameManager
+
+GameManager --> DatabaseManager
+GameManager --> CombatWrapper : Uses wrapper
+GameManager --> ComplexCombatSimulator : Also uses complex
+
+CombatWrapper --> CombatShared : Delegates to
+CombatShared --> ComplexCombatSimulator : Re-exports
+
+ComplexCombatSimulator --> AttackProcessor : Inherits
+ComplexCombatSimulator --> EffectProcessor : Inherits
+ComplexCombatSimulator --> RegenProcessor : Inherits
+ComplexCombatSimulator --> WinProcessor : Inherits
+ComplexCombatSimulator --> BuffProcessor : Inherits
+
+EffectProcessor --> Mutators
+EffectProcessor --> Payload
+
+SkillExecutor --> AttackProcessor
+SkillExecutor --> AnimationSystem
+
+AnimationSystem --> AnimationRenderers
+
+GameBoard --> ApiService
+CombatUnitCard --> ApiService
+Shop --> ApiService
+
+GamePage --> GameStore
+GamePage --> AuthStore
+LoginPage --> AuthStore
+
+GameStore --> ApiService
+AuthStore --> ApiService
+
+App --> GameStore
+App --> AuthStore
+
+DatabaseManager --> SQLiteDB
+
+ComplexCombatSimulator --> UnitsConfig
+ComplexCombatSimulator --> TraitsConfig
+StatCalculator --> GameConfig
+
+note as DeadCodeCleanup
+🧹 **DEAD CODE CLEANUP COMPLETED:**
+
+**Files Renamed to .old (26 files):**
+- Backend combat.py (unused import)
+- All tmp_*.py debug files (9 files)
+- All debugf/*.py files (8 files)
+- Backup files (.backup → .old) (7 files)
+- combat_shared_old.py, analyze_desync.js
+
+**Status:** Ready for testing → removal
+end note
+
+note as NextSteps
+🎯 **NEXT REFACTORING STEPS:**
+
+**Phase 1: Combat System Unification**
+1. ✅ Analyze current duplication (COMPLETED)
+2. Create unified CombatEngine interface
+3. Implement CombatEngine in core
+4. Update backend to use unified engine
+5. Remove legacy implementations
+
+**Phase 2: Architecture Cleanup**
+1. Remove .old files after testing
+2. Add pre-commit hooks for dead code prevention
+3. Implement test coverage analysis
+4. Set up CI/CD quality gates
+
+**Phase 3: Code Quality**
+1. Fix remaining God Objects (GameManager)
+2. Implement proper Dependency Injection
+3. Add comprehensive error handling
+4. Create API documentation
+
+**Phase 4: Performance & Monitoring**
+1. Add performance benchmarks
+2. Implement structured logging
+3. Add health checks and metrics
+4. Set up monitoring dashboards
+end note
+
+@enduml

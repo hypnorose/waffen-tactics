@@ -249,7 +249,8 @@ class Reward:
                     value_type=value_type,
                     permanent=(self.duration == DurationType.PERMANENT),
                     duration=None if self.duration == DurationType.PERMANENT else 0,
-                    side=context.get('side')
+                    side=context.get('side'),
+                    timestamp=context.get('current_time')
                 )
                 stats_applied.append(stat)
         elif self.stat:  # Single stat
@@ -261,7 +262,8 @@ class Reward:
                 value_type=value_type,
                 permanent=(self.duration == DurationType.PERMANENT),
                 duration=None if self.duration == DurationType.PERMANENT else 0,
-                side=context.get('side')
+                side=context.get('side'),
+                timestamp=context.get('current_time')
             )
             stats_applied.append(self.stat)
 
@@ -293,7 +295,8 @@ class Reward:
                 event_callback=event_callback,
                 recipient=player,
                 amount=self.value,
-                side=context.get('side')
+                side=context.get('side'),
+                timestamp=context.get('current_time')
             )
             return {
                 'type': 'gold_reward',
@@ -309,7 +312,8 @@ class Reward:
                 event_callback=event_callback,
                 recipient=unit,
                 amount=self.value,
-                side=context.get('side')
+                side=context.get('side'),
+                timestamp=context.get('current_time')
             )
             return {'type': 'healing', 'value': self.value}
         return {}
@@ -327,7 +331,8 @@ class Reward:
                 recipient=unit,
                 amount=self.value,
                 duration=self.duration_seconds or 0,
-                side=context.get('side')
+                side=context.get('side'),
+                timestamp=context.get('current_time')
             )
             return {
                 'type': 'hp_regen',
@@ -341,7 +346,8 @@ class Reward:
                 recipient=unit,
                 amount=self.value,
                 duration=self.duration_seconds or 0,
-                side=context.get('side')
+                side=context.get('side'),
+                timestamp=context.get('current_time')
             )
             return {
                 'type': 'shield',
@@ -375,7 +381,8 @@ class Reward:
                 value=actual_value,
                 value_type='flat',
                 permanent=True,  # Enemy debuffs are typically permanent for the combat
-                side=context.get('side')
+                side=context.get('side'),
+                timestamp=context.get('current_time')
             )
 
         return {
@@ -396,7 +403,8 @@ class Reward:
                 recipient=unit,
                 amount=0,  # No immediate mana change, just setting regen rate
                 regen_rate=self.value,
-                side=context.get('side')
+                side=context.get('side'),
+                timestamp=context.get('current_time')
             )
             return {
                 'type': 'mana_regen',
@@ -519,10 +527,158 @@ class ModularEffectProcessor:
     def process_trigger(self, trigger: TriggerType, context: Dict[str, Any], event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None) -> Dict[str, Any]:
         """Process a trigger and return results"""
         results = {"events": []}
+        
+        # First, process registered active effects
         for effect_id, effect in self.active_effects.items():
             if effect.trigger == trigger and effect.should_trigger(context):
+                try:
+                    print(f"[MOD_EFFECT] registered effect candidate id={effect_id} trigger={trigger} context_time={context.get('current_time')}")
+                except Exception:
+                    pass
+                # Respect per-context dedup for trigger_once. Use the trigger
+                # name as the dedup key when the effect's conditions specify
+                # `trigger_once`, so that registered effects and unit-level
+                # effects deduplicate consistently per death event.
+                try:
+                    reg_trigger_once = getattr(effect, 'conditions', None) and getattr(effect.conditions, 'trigger_once', False)
+                except Exception:
+                    reg_trigger_once = False
+
+                if reg_trigger_once:
+                    effect_key = f"{trigger.value}"
+                else:
+                    effect_key = effect_id if effect_id is not None else f"{trigger.value}"
+
+                if context.get('triggered_rewards', set()) and effect_key in context['triggered_rewards']:
+                    continue
+
                 effect_result = effect.execute(context, event_callback)
+                try:
+                    print(f"[MOD_EFFECT] executed registered effect id={effect_id} produced_events={len(effect_result.get('events', []))}")
+                except Exception:
+                    pass
                 results["events"].extend(effect_result.get("events", []))
+                # If effect has trigger_once semantics, mark it in context
+                try:
+                    if effect.conditions.trigger_once:
+                        if 'triggered_rewards' not in context:
+                            context['triggered_rewards'] = set()
+                        context['triggered_rewards'].add(effect_key)
+                except Exception:
+                    pass
+        
+        # Also process effects directly from units in the context
+        all_units = context.get('all_units', [])
+        for unit in all_units:
+            if hasattr(unit, 'effects') and unit.effects:
+                for effect in unit.effects:
+                    if effect.get('trigger') == trigger.value:
+                        # Skip processing effects on the unit that just died for
+                        # on_ally_death / on_enemy_death triggers — only surviving
+                        # units should react to a death event.
+                        try:
+                            dead_ally = context.get('dead_ally') if context is not None else None
+                            target_unit = context.get('target_unit') if context is not None else None
+                            if dead_ally is not None and (unit is dead_ally or getattr(unit, 'id', None) == getattr(dead_ally, 'id', None)):
+                                continue
+                            if target_unit is not None and (unit is target_unit or getattr(unit, 'id', None) == getattr(target_unit, 'id', None)):
+                                continue
+                        except Exception:
+                            pass
+                        # Check conditions
+                        conditions = effect.get('conditions', {})
+                        chance_percent = conditions.get('chance_percent', 100)
+                        trigger_once = conditions.get('trigger_once', False)
+                        
+                        # Check chance
+                        if random.randint(1, 100) > chance_percent:
+                            continue
+                        
+                        # Check trigger_once
+                        # For legacy behavior, trigger_once is deduplicated across
+                        # the entire death event (one reward per death), so use
+                        # the trigger name as the key. This ensures multiple
+                        # surviving units with the same trait don't each emit
+                        # a reward for the same death.
+                        if trigger_once:
+                            effect_key = f"{trigger.value}"
+                        else:
+                            # Non-trigger_once effects are allowed per-unit.
+                            effect_key = f"{unit.id}_{effect.get('trigger')}_{id(effect)}"
+
+                        if trigger_once and context.get('triggered_rewards', set()) and effect_key in context['triggered_rewards']:
+                            continue
+                        
+                        # Process rewards
+                        rewards = effect.get('rewards', [])
+                        original_current_unit = context.get('current_unit')
+                        context['current_unit'] = unit
+                        try:
+                            for reward in rewards:
+                                    try:
+                                        print(f"[MOD_EFFECT] unit={getattr(unit,'id',None)} processing reward={reward.get('type')} trigger_once={trigger_once} effect_key={effect_key}")
+                                    except Exception:
+                                        pass
+                                    reward_result = self._process_reward(reward, context, event_callback)
+                                    results["events"].extend(reward_result.get("events", []))
+                        finally:
+                            if original_current_unit is not None:
+                                context['current_unit'] = original_current_unit
+                            else:
+                                context.pop('current_unit', None)
+                        
+                        # Mark as triggered for trigger_once
+                        if trigger_once:
+                            if 'triggered_rewards' not in context:
+                                context['triggered_rewards'] = set()
+                            context['triggered_rewards'].add(effect_key)
+        
+        return results
+
+    def _process_reward(self, reward: Dict[str, Any], context: Dict[str, Any], event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None) -> Dict[str, Any]:
+        """Process a single reward"""
+        results = {"events": []}
+        reward_type = reward.get('type')
+        
+        if reward_type == 'stat_buff':
+            # Apply stat buff
+            stats = reward.get('stats', [])
+            value = reward.get('value', 0)
+            value_type = reward.get('value_type', 'flat')
+            duration = reward.get('duration', 'permanent')
+            
+            recipient = context.get('current_unit')
+            if recipient:
+                for stat in stats:
+                    if stat in ('attack', 'defense'):
+                        if value_type == 'flat':
+                            delta = value
+                        else:
+                            delta = int(getattr(recipient, stat, 0) * (value / 100.0))
+                        
+                        if duration == 'permanent':
+                            setattr(recipient, stat, getattr(recipient, stat, 0) + delta)
+                        
+                        # Emit event
+                        if event_callback:
+                            emit_stat_buff(
+                                event_callback, recipient, stat, delta, 
+                                value_type=value_type, duration=None if duration == 'permanent' else duration,
+                                permanent=(duration == 'permanent'), side=context.get('side'), 
+                                timestamp=context.get('current_time')
+                            )
+        
+        elif reward_type == 'resource':
+            # Apply resource reward
+            resource = reward.get('resource')
+            value = reward.get('value', 0)
+            
+            if resource == 'gold' and event_callback:
+                emit_gold_reward(
+                    event_callback, context.get('current_unit'), value, 
+                    side=context.get('side'), timestamp=context.get('current_time')
+                )
+        
         return results
 
     def reset_round_state(self):

@@ -4,40 +4,36 @@ Stun Effect Handler - Handles stun/disable effects in skills
 from typing import Dict, Any, List
 from waffen_tactics.models.skill import Effect, SkillExecutionContext, EffectType
 from waffen_tactics.services.effects import EffectHandler, register_effect_handler
+from waffen_tactics.services.event_canonicalizer import emit_unit_stunned
 
 
 class StunHandler(EffectHandler):
     """Handles stun effects"""
 
     async def execute(self, effect: Effect, context: SkillExecutionContext, target) -> List[Dict[str, Any]]:
-        """Execute stun effect"""
+        """Execute stun effect using canonical emit_unit_stunned"""
         duration = effect.params.get('duration', 0)
 
         if duration <= 0:
             return []
 
-        # Create stun effect
-        stun_effect = {
-            'type': 'stun',
-            'duration': duration,
-            'source': f"skill_{context.caster.id}"
-        }
+        # Use canonical emitter to apply stun effect and emit event
+        cb = getattr(context, 'event_callback', None)
+        payload = emit_unit_stunned(
+            cb,
+            target,
+            duration=duration,
+            source=context.caster,
+            side=None,  # Side will be determined by simulator
+            timestamp=getattr(context, 'combat_time', None)
+        )
 
-        # Add to target's effects
-        if not hasattr(target, 'effects'):
-            target.effects = []
-        target.effects.append(stun_effect)
-
-        # Generate event
-        event = ('unit_stunned', {
-            'unit_id': target.id,
-            'unit_name': getattr(target, 'name', None),
-            'caster_id': context.caster.id,
-            'caster_name': getattr(context.caster, 'name', None),
-            'duration': duration
-        })
-
-        return [event]
+        # If event_callback exists, emitter already emitted the event; otherwise return payload
+        if cb:
+            return []
+        if payload is None:
+            return []
+        return [('unit_stunned', payload)]
 
     def validate_params(self, effect: Effect) -> bool:
         """Validate stun parameters"""

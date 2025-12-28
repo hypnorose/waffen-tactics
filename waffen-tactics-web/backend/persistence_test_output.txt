@@ -1,0 +1,170 @@
+
+████████████████████████████████████████████████████████████████████████████████
+COMBAT STATE PERSISTENCE DEBUG TEST
+████████████████████████████████████████████████████████████████████████████████
+
+This test checks if state persists between combat rounds
+when using the same unit objects multiple times.
+
+================================================================================
+STATE PERSISTENCE TEST
+================================================================================
+
+Testing if unit state persists between combat rounds...
+
+Creating teams with 3 units each...
+Team A: ['Szałwia', 'Yossarian', 'FalconBalkon']
+Team B: ['Stalin', 'Buba', 'Beudzik']
+
+📸 Taking initial state snapshots...
+Team A initial state:
+  Szałwia: hp=900, effects=0, stunned=False
+  Yossarian: hp=720, effects=0, stunned=False
+  FalconBalkon: hp=600, effects=0, stunned=False
+
+Team B initial state:
+  Stalin: hp=810, effects=0, stunned=False
+  Buba: hp=600, effects=0, stunned=False
+  Beudzik: hp=600, effects=0, stunned=False
+
+================================================================================
+Running 3 combat rounds with the SAME units...
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+ROUND 1
+────────────────────────────────────────────────────────────────────────────────
+
+Before combat 1:
+Team A: effects=[0, 0, 0], stunned=[False, False, False]
+Team B: effects=[0, 0, 0], stunned=[False, False, False]
+[ATTACK DEBUG] attacker=opp_0 attacking_team_ids=['opp_0', 'opp_1', 'opp_2']
+[ENTER _process_unit_death] killer=opp_0 target=player_2 event_callback_set=True
+[DEATH DEBUG] emitted unit_died for player_2; attacking_team_len=3; attacking_ids=['opp_0', 'opp_1', 'opp_2']
+
+Combat 1 finished: team_b won
+Events captured: 120
+
+After combat 1:
+Team A: effects=[0, 0, 0], stunned=[False, False, False]
+Team B: effects=[0, 0, 0], stunned=[False, False, False]
+
+📊 Comparing with INITIAL state (should be identical for next round):
+
+❌ Round 1 - Team A Unit 0 (Szałwia) - State Changed:
+  hp: 900 -> 488
+
+❌ Round 1 - Team A Unit 1 (Yossarian) - State Changed:
+  hp: 720 -> 178
+
+❌ Round 1 - Team A Unit 2 (FalconBalkon) - State Changed:
+  hp: 600 -> 0
+
+❌ Round 1 - Team B Unit 0 (Stalin) - State Changed:
+  hp: 810 -> 275
+
+❌ Round 1 - Team B Unit 1 (Buba) - State Changed:
+  hp: 600 -> 178
+
+❌ Round 1 - Team B Unit 2 (Beudzik) - State Changed:
+  hp: 600 -> 403
+
+🔄 Resetting units to initial state for next round...
+
+────────────────────────────────────────────────────────────────────────────────
+ROUND 2
+────────────────────────────────────────────────────────────────────────────────
+
+Before combat 2:
+Team A: effects=[0, 0, 0], stunned=[False, False, False]
+Team B: effects=[0, 0, 0], stunned=[False, False, False]
+
+Combat 2 finished: team_a won
+Events captured: 13
+
+After combat 2:
+Team A: effects=[0, 0, 0], stunned=[False, False, False]
+Team B: effects=[0, 0, 0], stunned=[False, False, False]
+
+📊 Comparing with INITIAL state (should be identical for next round):
+✅ Round 2 - Team A Unit 0 (Szałwia) - No state changes
+✅ Round 2 - Team A Unit 1 (Yossarian) - No state changes
+✅ Round 2 - Team A Unit 2 (FalconBalkon) - No state changes
+✅ Round 2 - Team B Unit 0 (Stalin) - No state changes
+
+❌ Round 2 - Team B Unit 1 (Buba) - State Changed:
+  hp: 600 -> 562
+✅ Round 2 - Team B Unit 2 (Beudzik) - No state changes
+
+🔄 Resetting units to initial state for next round...
+
+────────────────────────────────────────────────────────────────────────────────
+ROUND 3
+────────────────────────────────────────────────────────────────────────────────
+
+Before combat 3:
+Team A: effects=[0, 0, 0], stunned=[False, False, False]
+Team B: effects=[0, 0, 0], stunned=[False, False, False]
+
+Combat 3 finished: team_a won
+Events captured: 11
+
+After combat 3:
+Team A: effects=[0, 0, 0], stunned=[False, False, False]
+Team B: effects=[0, 0, 0], stunned=[False, False, False]
+
+📊 Comparing with INITIAL state (should be identical for next round):
+✅ Round 3 - Team A Unit 0 (Szałwia) - No state changes
+✅ Round 3 - Team A Unit 1 (Yossarian) - No state changes
+✅ Round 3 - Team A Unit 2 (FalconBalkon) - No state changes
+✅ Round 3 - Team B Unit 0 (Stalin) - No state changes
+✅ Round 3 - Team B Unit 1 (Buba) - No state changes
+✅ Round 3 - Team B Unit 2 (Beudzik) - No state changes
+
+🔄 Resetting units to initial state for next round...
+
+================================================================================
+FINAL SUMMARY
+================================================================================
+❌ FAILURE: Some units have persistent state between combats
+   This indicates state is NOT properly reset between rounds
+
+   Likely causes:
+   1. Effects list is mutated, not replaced
+   2. Unit objects are reused without proper cleanup
+   3. Stats are modified during combat and not reset
+   4. Flags (_stunned, etc.) persist
+
+================================================================================
+EFFECT CLEARING TEST
+================================================================================
+
+Testing if manually clearing effects prevents persistence...
+
+Team A: ['Szałwia', 'Yossarian']
+Team B: ['Socjopata', 'Wu_hao']
+
+--- First Combat ---
+After combat 1:
+  Team A effects: [0, 0]
+  Team B effects: [0, 0]
+
+🧹 Manually clearing effects...
+After manual clear:
+  Team A effects: [0, 0]
+  Team B effects: [0, 0]
+
+--- Second Combat ---
+
+First snapshot of combat 2 (seq=1):
+  Player effects in snapshot: 0
+  Opponent effects in snapshot: 0
+
+✅ SUCCESS: No effects in first snapshot after clearing
+
+████████████████████████████████████████████████████████████████████████████████
+OVERALL RESULTS
+████████████████████████████████████████████████████████████████████████████████
+
+❌ TESTS FAILED
+   Persistent state issues found - see details above

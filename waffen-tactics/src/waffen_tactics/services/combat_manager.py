@@ -5,6 +5,7 @@ from ..models.unit import Unit
 from ..services.synergy import SynergyEngine
 from ..services.combat_shared import CombatSimulator as SharedCombatSimulator, CombatUnit
 from ..services.combat import CombatSimulator
+from ..services.data_loader import GameData
 import logging
 import copy
 
@@ -14,7 +15,8 @@ bot_logger = logging.getLogger('waffen_tactics')
 class CombatManager:
     """Manages combat simulation between player and opponent"""
 
-    def __init__(self, synergy_engine: SynergyEngine):
+    def __init__(self, data: GameData, synergy_engine: SynergyEngine):
+        self.data = data
         self.synergy_engine = synergy_engine
 
     def start_combat(self, player: PlayerState, opponent_board: List[Unit], opponent_info: Optional[Dict] = None) -> Dict:
@@ -22,68 +24,6 @@ class CombatManager:
         Simulate combat between player board and opponent
         Returns combat result with winner, log, etc.
         """
-        # Convert player board to Units
-        player_units = []
-        for ui in player.board:
-            unit = next((u for u in self.synergy_engine.trait_effects if u.get('id') == ui.unit_id), None)  # Wait, need to fix this
-            # Actually, need GameData, but let's assume it's passed or find another way
-            # For now, assume units are passed correctly, but in practice, need to adjust
-
-        # Wait, this is tricky. In GameManager, it has self.data.units
-        # So CombatManager needs GameData too.
-
-        # Let me adjust: CombatManager needs GameData and SynergyEngine
-
-        # For now, I'll assume the units are passed, but to make it work, let's modify.
-
-        # Actually, looking back, in GameManager, player_units are created from self.data.units
-
-        # So, let's make CombatManager take GameData.
-
-        # I'll update the class.
-
-        # For now, let's copy the logic but use the new methods.
-
-        # To make it work, I need to pass GameData to CombatManager.
-
-        # Let's redefine.
-
-        # Actually, let's make CombatManager take GameData and SynergyEngine.
-
-        # Yes.
-
-        # But since I'm creating the file, let me write it properly.
-
-        # Wait, in the code, it's self.data.units, so CombatManager needs self.data
-
-        # Let's add it.
-
-        # I'll edit the file after creating.
-
-        # For now, create with placeholder.
-
-        # Better: make CombatManager take data: GameData, synergy_engine: SynergyEngine
-
-        # Yes.
-
-        # Let me rewrite the file.
-
-        # Actually, since I can't edit yet, let's create with the logic.
-
-        # The start_combat method needs to be adapted to use the new SynergyEngine methods.
-
-        # Let's write it.
-
-        # First, the class:
-
-from ..services.data_loader import GameData
-
-class CombatManager:
-    def __init__(self, data: GameData, synergy_engine: SynergyEngine):
-        self.data = data
-        self.synergy_engine = synergy_engine
-
-    def start_combat(self, player: PlayerState, opponent_board: List[Unit]) -> Dict:
         # Convert player board to Units
         player_units = []
         for ui in player.board:
@@ -111,33 +51,33 @@ class CombatManager:
                 if not unit:
                     continue
 
-            # Apply buffs using SynergyEngine
-            # Calculate base stats with star scaling
-            base_hp = int(unit.stats.hp * (1.6 ** (ui.star_level - 1)))
-            base_attack = int(unit.stats.attack * (1.4 ** (ui.star_level - 1)))
-            base_defense = int(unit.stats.defense)
-            base_attack_speed = float(unit.stats.attack_speed)
-            
-            base_stats = {'hp': base_hp, 'attack': base_attack, 'defense': base_defense, 'attack_speed': base_attack_speed}
-            buffed_stats = self.synergy_engine.apply_stat_buffs(base_stats, unit, active_synergies)
-            buffed_stats = self.synergy_engine.apply_dynamic_effects(unit, buffed_stats, active_synergies, player)
+                # Apply buffs using SynergyEngine
+                # Calculate base stats with star scaling
+                base_hp = int(unit.stats.hp * (1.6 ** (ui.star_level - 1)))
+                base_attack = int(unit.stats.attack * (1.4 ** (ui.star_level - 1)))
+                base_defense = int(unit.stats.defense)
+                base_attack_speed = float(unit.stats.attack_speed)
+                
+                base_stats = {'hp': base_hp, 'attack': base_attack, 'defense': base_defense, 'attack_speed': base_attack_speed}
+                buffed_stats = self.synergy_engine.apply_stat_buffs(base_stats, unit, active_synergies)
+                buffed_stats = self.synergy_engine.apply_dynamic_effects(unit, buffed_stats, active_synergies, player)
 
-            # Apply persistent buffs after synergies (consistent with UI)
-            if ui.persistent_buffs:
-                buffed_stats['hp'] += int(ui.persistent_buffs.get('hp', 0))
-                buffed_stats['attack'] += int(ui.persistent_buffs.get('attack', 0))
-                buffed_stats['defense'] += int(ui.persistent_buffs.get('defense', 0))
-                buffed_stats['attack_speed'] += ui.persistent_buffs.get('attack_speed', 0)
+                # Apply persistent buffs after synergies (consistent with UI)
+                if ui.persistent_buffs:
+                    buffed_stats['hp'] += int(ui.persistent_buffs.get('hp', 0))
+                    buffed_stats['attack'] += int(ui.persistent_buffs.get('attack', 0))
+                    buffed_stats['defense'] += int(ui.persistent_buffs.get('defense', 0))
+                    buffed_stats['attack_speed'] += ui.persistent_buffs.get('attack_speed', 0)
 
-            hp = buffed_stats['hp']
-            attack = buffed_stats['attack']
-            defense = buffed_stats['defense']
-            attack_speed = buffed_stats['attack_speed']
+                hp = buffed_stats['hp']
+                attack = buffed_stats['attack']
+                defense = buffed_stats['defense']
+                attack_speed = buffed_stats['attack_speed']
 
-            # Get active effects
-            effects_a = self.synergy_engine.get_active_effects(unit, active_synergies)
+                # Get active effects
+                effects_a = self.synergy_engine.get_active_effects(unit, active_synergies)
 
-            team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats, position=ui.position, base_stats=base_stats))
+                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats, position=ui.position, base_stats=base_stats, star_level=ui.star_level))
 
             # Opponent team
             opponent_units = [u for u in opponent_board]
@@ -163,12 +103,15 @@ class CombatManager:
 
                 effects_b = self.synergy_engine.get_active_effects(u, opponent_active)
 
-                team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b, max_mana=u.stats.max_mana, stats=u.stats, position='front', base_stats={'hp': hp_b, 'attack': attack_b, 'defense': defense_b, 'attack_speed': attack_speed_b, 'max_mana': u.stats.max_mana}))
+                team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b, max_mana=u.stats.max_mana, stats=u.stats, position='front', base_stats={'hp': hp_b, 'attack': attack_b, 'defense': defense_b, 'attack_speed': attack_speed_b, 'max_mana': u.stats.max_mana}, star_level=1))
 
             shared = CombatSimulator()
             result = shared.simulate(team_a_combat, team_b_combat, timeout=120, event_callback=None, round_number=player.round_number)
         except Exception as e:
             bot_logger.error(f"[COMBAT] Error in simulation: {e}")
+            # Create empty teams for fallback
+            team_a_combat = []
+            team_b_combat = []
             shared = CombatSimulator()
             result = shared.simulate(team_a_combat, team_b_combat, timeout=120, event_callback=None, round_number=player.round_number)
 
@@ -182,18 +125,20 @@ class CombatManager:
             result['winner'] = 'player'
             
             # Update persistent buffs for surviving units
-            for i, ui in enumerate(player.board):
-                combat_unit = team_a_combat[i]
+            for i, combat_unit in enumerate(team_a_combat):
                 if combat_unit.hp > 0:  # Only for survivors
                     permanent_buffs = getattr(combat_unit, 'permanent_buffs_applied', {})
-                    # Add to existing persistent buffs
-                    for stat, value in permanent_buffs.items():
-                        ui.persistent_buffs[stat] = ui.persistent_buffs.get(stat, 0) + value
+                    # Find corresponding UnitInstance
+                    ui = next((ui for ui in player.board if f"a_{ui.instance_id}" == combat_unit.id), None)
+                    if ui:
+                        # Add to existing persistent buffs
+                        for stat, value in permanent_buffs.items():
+                            ui.persistent_buffs[stat] = ui.persistent_buffs.get(stat, 0) + value
         else:
             player.losses += 1
             player.streak = min(0, player.streak) - 1
             # Calculate damage based on star levels of surviving opponents
-            surviving_stars = sum(team_b_combat[i].star_level for i, unit in enumerate(team_b_combat) if unit.hp > 0)
+            surviving_stars = sum(unit.star_level for unit in team_b_combat if unit.hp > 0)
             opponent_level = opponent_info.get('level', 1) if opponent_info else 1
             damage = surviving_stars + opponent_level
             player.hp -= damage

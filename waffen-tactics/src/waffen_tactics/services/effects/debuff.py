@@ -34,7 +34,7 @@ class DebuffHandler(EffectHandler):
             # ensure value is negative for debuffs
             value = -abs(float(value))
         except Exception:
-            pass
+            raise
 
         # Create debuff effect
         debuff_effect = {

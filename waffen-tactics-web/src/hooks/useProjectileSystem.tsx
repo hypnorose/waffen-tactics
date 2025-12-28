@@ -25,6 +25,7 @@ export function ProjectileProvider({ children }: { children: React.ReactNode }) 
     const id = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`
     const p: Projectile = { id, emoji, fromId, toId, duration, createdAt: Date.now(), onComplete }
     setProjectiles(prev => [...prev, p])
+    console.debug('[PROJECTILE] spawn', { id, fromId, toId, emoji, duration })
     const t = window.setTimeout(() => {
       setProjectiles(prev => prev.filter(pp => pp.id !== id))
       delete timers.current[id]

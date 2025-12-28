@@ -107,16 +107,17 @@ class UnitManager:
                 trait_obj = next((t for t in self.data.traits if t.get('name') == trait_name), None)
                 if not trait_obj:
                     continue
-                effects = trait_obj.get('effects', [])
+                effects = trait_obj.get('modular_effects', [])
                 idx = tier - 1
                 if idx < 0 or idx >= len(effects):
                     continue
-                effect = effects[idx]
-                if effect.get('type') == 'on_sell_bonus':
-                    gold_per_star = effect.get('gold_per_star', 0)
-                    xp_bonus = effect.get('xp', 0)
-                    extra_gold += gold_per_star * unit_instance.star_level
-                    extra_xp += xp_bonus
+                tier_effects = effects[idx]  # effects[idx] is a list of effects for this tier
+                for effect in tier_effects:   # Iterate through effects in this tier
+                    if effect.get('type') == 'on_sell_bonus':
+                        gold_per_star = effect.get('gold_per_star', 0)
+                        xp_bonus = effect.get('xp', 0)
+                        extra_gold += gold_per_star * unit_instance.star_level
+                        extra_xp += xp_bonus
             
             if extra_gold > 0:
                 player.gold += extra_gold

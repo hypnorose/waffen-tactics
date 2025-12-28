@@ -7,7 +7,7 @@ export function useCombatAnimations() {
   const [animatingUnits, setAnimatingUnits] = useState<string[]>([])
   const [skillUnits, setSkillUnits] = useState<string[]>([])
   const [attackDurations, setAttackDurations] = useState<Record<string, number>>({})
-  const activeTimeoutsRef = useRef<number[]>([])
+  const activeTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const animationScale = 1
 
   const triggerAttackAnimation = useCallback((attacker: string, target: string, combatSpeed: number, allUnits: any[]) => {

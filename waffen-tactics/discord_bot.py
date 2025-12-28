@@ -1307,8 +1307,8 @@ class WaffenTacticsBot:
                     
                     # Get current tier effect
                     effect_text = ""
-                    if tier > 0 and tier <= len(trait.get('effects', [])):
-                        effect = trait['effects'][tier - 1]
+                    if tier > 0 and tier <= len(trait.get('modular_effects', [])):
+                        effect = trait['modular_effects'][tier - 1]
                         effect_text = f"\n  ➡️ {self.format_trait_effect(effect)}"
                     
                     synergy_lines.append(f"**{name}** [{count}]{threshold_text}{effect_text}")

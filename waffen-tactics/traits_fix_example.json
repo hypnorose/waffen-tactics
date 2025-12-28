@@ -1,0 +1,89 @@
+{
+  "traits": [
+    {
+      "name": "Srebrna Gwardia",
+      "type": "faction",
+      "description": "Zespół zyskuje obronę co sekundę walki",
+      "target": "team",
+      "thresholds": [3, 5, 7],
+      "modular_effects": [
+        [
+          {
+            "trigger": "per_second",
+            "conditions": {},
+            "rewards": [
+              { "type": "stat_buff", "stat": "defense", "value": 3 }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "per_second",
+            "conditions": {},
+            "rewards": [
+              { "type": "stat_buff", "stat": "defense", "value": 4 }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "per_second",
+            "conditions": {},
+            "rewards": [
+              { "type": "stat_buff", "stat": "defense", "value": 6 }
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Streamer",
+      "type": "faction",
+      "description": "Za każdego pokonanego wroga zespół zyskuje atak i obronę",
+      "target": "team",
+      "thresholds": [2, 3, 4, 5],
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              { "type": "stat_buff", "stat": "attack", "value": 3 },
+              { "type": "stat_buff", "stat": "defense", "value": 3 }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              { "type": "stat_buff", "stat": "attack", "value": 5 },
+              { "type": "stat_buff", "stat": "defense", "value": 5 }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              { "type": "stat_buff", "stat": "attack", "value": 7 },
+              { "type": "stat_buff", "stat": "defense", "value": 7 }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_enemy_death",
+            "conditions": {},
+            "rewards": [
+              { "type": "stat_buff", "stat": "attack", "value": 12 },
+              { "type": "stat_buff", "stat": "defense", "value": 12 }
+            ]
+          }
+        ]
+      ]
+    }
+  ]
+}

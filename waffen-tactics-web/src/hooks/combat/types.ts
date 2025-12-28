@@ -98,6 +98,9 @@ export interface CombatEvent {
   effect_id?: string
   effect?: any
   applied_delta?: number  // Authoritative delta applied by backend (for stat_buff events)
+  // Animation events
+  animation_id?: string
+  event_id?: string
 }
 
 export interface EffectSummary {
@@ -132,4 +135,17 @@ export interface CombatState {
   regenMap: Record<string, { amount_per_sec: number; total_amount: number; expiresAt: number }>
   simTime: number
   defeatMessage?: string
+  // Active animations started by `animation_start` events. UI consumes
+  // these to play animations; authoritative state changes arrive in the
+  // corresponding delayed events (with `ui_delay`). Keeping this in
+  // state allows components to render animations declaratively.
+  activeAnimations?: {
+    id?: string
+    animation_type: string
+    attacker_id?: string
+    target_id?: string
+    skill_name?: string
+    duration: number
+    start: number
+  }[]
 }

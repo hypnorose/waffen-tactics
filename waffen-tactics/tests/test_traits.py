@@ -45,45 +45,49 @@ class TestTraits(unittest.TestCase):
                 "thresholds": [2, 3, 4, 5],
                 "effects": [
                     {
-                        "type": "on_enemy_death",
-                        "actions": [
-                            {
+                            "trigger": "on_enemy_death",
+                            "conditions": {"chance_percent": 100},
+                            "rewards": [{
                                 "type": "stat_buff",
                                 "stats": ["attack", "defense"],
-                                "value": 3
-                            }
-                        ]
-                    },
-                    {
-                        "type": "on_enemy_death",
-                        "actions": [
-                            {
+                                "value": 3,
+                                "value_type": "flat",
+                                "duration": "permanent"
+                            }]
+                        },
+                        {
+                            "trigger": "on_enemy_death",
+                            "conditions": {"chance_percent": 100},
+                            "rewards": [{
                                 "type": "stat_buff",
                                 "stats": ["attack", "defense"],
-                                "value": 5
-                            }
-                        ]
-                    },
-                    {
-                        "type": "on_enemy_death",
-                        "actions": [
-                            {
+                                "value": 5,
+                                "value_type": "flat",
+                                "duration": "permanent"
+                            }]
+                        },
+                        {
+                            "trigger": "on_enemy_death",
+                            "conditions": {"chance_percent": 100},
+                            "rewards": [{
                                 "type": "stat_buff",
                                 "stats": ["attack", "defense"],
-                                "value": 7
-                            }
-                        ]
-                    },
-                    {
-                        "type": "on_enemy_death",
-                        "actions": [
-                            {
+                                "value": 7,
+                                "value_type": "flat",
+                                "duration": "permanent"
+                            }]
+                        },
+                        {
+                            "trigger": "on_enemy_death",
+                            "conditions": {"chance_percent": 100},
+                            "rewards": [{
                                 "type": "stat_buff",
                                 "stats": ["attack", "defense"],
-                                "value": 12
-                            }
-                        ]
-                    }
+                                "value": 12,
+                                "value_type": "flat",
+                                "duration": "permanent"
+                            }]
+                        }
                 ]
             },
             {
@@ -154,53 +158,25 @@ class TestTraits(unittest.TestCase):
                 "thresholds": [2, 3, 4, 5],
                 "effects": [
                     {
-                        "type": "on_ally_death",
-                        "actions": [
-                            {
-                                "type": "reward",
-                                "reward": "gold",
-                                "value": 2,
-                                "chance": 50
-                            }
-                        ],
-                        "trigger_once": True
-                    },
-                    {
-                        "type": "on_ally_death",
-                        "actions": [
-                            {
-                                "type": "reward",
-                                "reward": "gold",
-                                "value": 3,
-                                "chance": 50
-                            }
-                        ],
-                        "trigger_once": True
-                    },
-                    {
-                        "type": "on_ally_death",
-                        "actions": [
-                            {
-                                "type": "reward",
-                                "reward": "gold",
-                                "value": 4,
-                                "chance": 100
-                            }
-                        ],
-                        "trigger_once": True
-                    },
-                    {
-                        "type": "on_ally_death",
-                        "actions": [
-                            {
-                                "type": "reward",
-                                "reward": "gold",
-                                "value": 5,
-                                "chance": 100
-                            }
-                        ],
-                        "trigger_once": True
-                    }
+                            "trigger": "on_ally_death",
+                            "conditions": {"chance_percent": 50, "trigger_once": True},
+                            "rewards": [{"type": "resource", "resource": "gold", "value": 2}]
+                        },
+                        {
+                            "trigger": "on_ally_death",
+                            "conditions": {"chance_percent": 50, "trigger_once": True},
+                            "rewards": [{"type": "resource", "resource": "gold", "value": 3}]
+                        },
+                        {
+                            "trigger": "on_ally_death",
+                            "conditions": {"chance_percent": 100, "trigger_once": True},
+                            "rewards": [{"type": "resource", "resource": "gold", "value": 4}]
+                        },
+                        {
+                            "trigger": "on_ally_death",
+                            "conditions": {"chance_percent": 100, "trigger_once": True},
+                            "rewards": [{"type": "resource", "resource": "gold", "value": 5}]
+                        }
                 ]
             },
             {
@@ -438,15 +414,20 @@ class TestTraits(unittest.TestCase):
         """Test that trait effects have required fields"""
         for trait in self.data.traits:
             for i, effect in enumerate(trait["effects"]):
-                self.assertIn("type", effect, 
-                            f"Trait {trait['name']} effect {i} missing 'type'")
-                
-                # Verify effect-specific fields based on type
-                effect_type = effect["type"]
-                if effect_type in ["stat_buff", "enemy_debuff", "stat_steal"]:
-                    self.assertTrue("stat" in effect or "stats" in effect,
-                                  f"Trait {trait['name']} {effect_type} missing stat field")
-                    self.assertIn("value", effect)
+                # Support both legacy-style effects (have 'type') and
+                # modular-style effects (have 'trigger' + 'rewards').
+                if "type" in effect:
+                    effect_type = effect["type"]
+                    if effect_type in ["stat_buff", "enemy_debuff", "stat_steal"]:
+                        self.assertTrue("stat" in effect or "stats" in effect,
+                                      f"Trait {trait['name']} {effect_type} missing stat field")
+                        self.assertIn("value", effect)
+                elif "trigger" in effect:
+                    # Minimal modular shape checks
+                    self.assertIn("conditions", effect, f"Trait {trait['name']} modular effect {i} missing conditions")
+                    self.assertIn("rewards", effect, f"Trait {trait['name']} modular effect {i} missing rewards")
+                else:
+                    self.fail(f"Trait {trait['name']} effect {i} missing both 'type' and 'trigger'")
 
     def test_synergy_activation_thresholds(self):
         """Test that synergies activate at correct thresholds"""
@@ -536,13 +517,19 @@ class TestTraits(unittest.TestCase):
         gold_reward_trait = None
         for trait in self.data.traits:
             for effect in trait["effects"]:
-                if (effect["type"] == "on_ally_death" and 
-                    "actions" in effect and 
-                    len(effect["actions"]) > 0 and
+                # Legacy format
+                if ("type" in effect and effect.get("type") == "on_ally_death" and
+                    "actions" in effect and len(effect["actions"]) > 0 and
                     effect["actions"][0].get("type") == "reward" and
                     effect["actions"][0].get("reward") == "gold"):
                     gold_reward_trait = trait
                     break
+                # Modular format
+                if ("trigger" in effect and effect.get("trigger") == "on_ally_death"):
+                    rewards = effect.get("rewards", [])
+                    if rewards and rewards[0].get("type") == "resource" and rewards[0].get("resource") == "gold":
+                        gold_reward_trait = trait
+                        break
             if gold_reward_trait:
                 break
         
@@ -550,12 +537,20 @@ class TestTraits(unittest.TestCase):
         
         # Test the effect structure
         effect = gold_reward_trait["effects"][0]
-        self.assertEqual(effect["type"], "on_ally_death")
-        self.assertIn("actions", effect)
-        action = effect["actions"][0]
-        self.assertEqual(action["type"], "reward")
-        self.assertEqual(action["reward"], "gold")
-        self.assertIn("value", action)
+        if "type" in effect:
+            self.assertEqual(effect["type"], "on_ally_death")
+            self.assertIn("actions", effect)
+            action = effect["actions"][0]
+            self.assertEqual(action["type"], "reward")
+            self.assertEqual(action["reward"], "gold")
+            self.assertIn("value", action)
+        else:
+            # modular
+            self.assertEqual(effect.get("trigger"), "on_ally_death")
+            rewards = effect.get("rewards", [])
+            self.assertTrue(rewards)
+            self.assertEqual(rewards[0]["type"], "resource")
+            self.assertEqual(rewards[0]["resource"], "gold")
 
     def test_on_enemy_death_stat_buff_effect(self):
         """Test that on_enemy_death effects with stat buffs work correctly"""
@@ -563,12 +558,18 @@ class TestTraits(unittest.TestCase):
         stat_buff_trait = None
         for trait in self.data.traits:
             for effect in trait["effects"]:
-                if (effect["type"] == "on_enemy_death" and 
-                    "actions" in effect and 
-                    len(effect["actions"]) > 0 and
+                # legacy
+                if ("type" in effect and effect.get("type") == "on_enemy_death" and
+                    "actions" in effect and len(effect["actions"]) > 0 and
                     effect["actions"][0].get("type") == "stat_buff"):
                     stat_buff_trait = trait
                     break
+                # modular
+                if ("trigger" in effect and effect.get("trigger") == "on_enemy_death"):
+                    rewards = effect.get("rewards", [])
+                    if rewards and rewards[0].get("type") == "stat_buff":
+                        stat_buff_trait = trait
+                        break
             if stat_buff_trait:
                 break
         
@@ -576,12 +577,20 @@ class TestTraits(unittest.TestCase):
         
         # Test the effect structure
         effect = stat_buff_trait["effects"][0]
-        self.assertEqual(effect["type"], "on_enemy_death")
-        self.assertIn("actions", effect)
-        action = effect["actions"][0]
-        self.assertEqual(action["type"], "stat_buff")
-        self.assertIn("stats", action)
-        self.assertIn("value", action)
+        if "type" in effect:
+            self.assertEqual(effect["type"], "on_enemy_death")
+            self.assertIn("actions", effect)
+            action = effect["actions"][0]
+            self.assertEqual(action["type"], "stat_buff")
+            self.assertIn("stats", action)
+            self.assertIn("value", action)
+        else:
+            self.assertEqual(effect.get("trigger"), "on_enemy_death")
+            rewards = effect.get("rewards", [])
+            self.assertTrue(rewards)
+            self.assertEqual(rewards[0].get("type"), "stat_buff")
+            self.assertIn("stats", rewards[0])
+            self.assertIn("value", rewards[0])
 
     def test_no_synergy_with_single_unit(self):
         """Test that single unit doesn't activate traits requiring 2+"""
@@ -621,11 +630,20 @@ class TestTraits(unittest.TestCase):
         as_buff_trait = None
         for trait in self.data.traits:
             for effect in trait["effects"]:
-                if (effect["type"] == "stat_buff" and 
-                    effect.get("stat") == "attack_speed" and
-                    effect.get("is_percentage", False)):
+                # legacy
+                if ("type" in effect and effect.get("type") == "stat_buff" and
+                    effect.get("stat") == "attack_speed" and effect.get("is_percentage", False)):
                     as_buff_trait = trait
                     break
+                # modular: check rewards
+                if ("trigger" in effect):
+                    rewards = effect.get("rewards", [])
+                    for r in rewards:
+                        if r.get("type") == "stat_buff" and r.get("stat") == "attack_speed" and r.get("value_type") == "percentage":
+                            as_buff_trait = trait
+                            break
+                    if as_buff_trait:
+                        break
             if as_buff_trait:
                 break
         

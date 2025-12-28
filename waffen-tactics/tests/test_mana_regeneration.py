@@ -120,7 +120,7 @@ class TestManaRegeneration(unittest.TestCase):
         self.assertLessEqual(unit_a.mana, unit_a.max_mana, "Mana should not exceed max_mana")
 
         # Check for mana_regen events
-        mana_regen_events = [e for e in events if e[0] == 'mana_update']
+        mana_regen_events = [e for e in events if e[0] == 'mana_update' and e[1]['amount'] > 0]
         self.assertGreater(len(mana_regen_events), 0, "Should have mana_update events")
 
         # Verify event data
@@ -271,7 +271,7 @@ class TestManaRegeneration(unittest.TestCase):
         result = self.simulator.simulate([unit_a], [unit_b], event_callback)
 
         # Filter mana_regen events
-        mana_regen_events = [e for e in events if e[0] == 'mana_update']
+        mana_regen_events = [e for e in events if e[0] == 'mana_update' and e[1]['amount'] > 0]
 
         # Should have mana_regen events
         self.assertGreater(len(mana_regen_events), 0, "Should have mana_update events for base regeneration")
@@ -319,7 +319,7 @@ class TestManaRegeneration(unittest.TestCase):
         result = self.simulator.simulate([unit], [], event_callback)
 
         # Filter mana_regen events
-        mana_regen_events = [e for e in events if e[0] == 'mana_update']
+        mana_regen_events = [e for e in events if e[0] == 'mana_update' and e[1]['amount'] > 0]
 
         # Should have mana_regen events
         self.assertGreater(len(mana_regen_events), 0, "Should have mana_update events for trait regeneration")

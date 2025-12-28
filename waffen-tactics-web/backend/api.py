@@ -21,10 +21,9 @@ from waffen_tactics.services.game_manager import GameManager
 from waffen_tactics.models.player_state import PlayerState
 
 # Import shared combat system
-from combat import CombatSimulator, CombatUnit
+from waffen_tactics.services.combat_simulator import CombatSimulator
+from waffen_tactics.services.combat_unit import CombatUnit
 
-# Persistent stacking rules
-HP_STACK_PER_STAR = 5  # default: add 5 HP per star level to unit's persistent hp_stacks each round
 
 app = Flask(__name__)
 CORS(app)
