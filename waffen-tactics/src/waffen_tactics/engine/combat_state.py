@@ -26,6 +26,37 @@ class CombatState:
         # Initialize HP lists from unit current HP
         self.a_hp = [u.hp for u in team_a]
         self.b_hp = [u.hp for u in team_b]
+        # Initialize authoritative mana lists from unit current mana
+        try:
+            self.a_mana = [int(getattr(u, 'mana', 0)) for u in team_a]
+            self.b_mana = [int(getattr(u, 'mana', 0)) for u in team_b]
+        except Exception:
+            self.a_mana = [0 for _ in team_a]
+            self.b_mana = [0 for _ in team_b]
+
+    @property
+    def mana_arrays(self) -> Dict[str, List[int]]:
+        return {'team_a': self.a_mana, 'team_b': self.b_mana}
+
+    def sync_mana_lists_from_units(self) -> None:
+        """Sync mana lists to match current unit.mana values.
+
+        This should be called before generating snapshots to ensure mana
+        mirrors reflect any changes made to units through emitters.
+        """
+        for i, u in enumerate(self.team_a):
+            try:
+                new_m = max(0, int(getattr(u, 'mana', self.a_mana[i])))
+            except Exception:
+                new_m = self.a_mana[i]
+            self.a_mana[i] = new_m
+
+        for i, u in enumerate(self.team_b):
+            try:
+                new_m = max(0, int(getattr(u, 'mana', self.b_mana[i])))
+            except Exception:
+                new_m = self.b_mana[i]
+            self.b_mana[i] = new_m
 
     def sync_hp_lists_from_units(self) -> None:
         """Sync HP lists to match current unit.hp values.
@@ -53,10 +84,14 @@ class CombatState:
         """
         # Ensure HP lists are synced before generating snapshot
         self.sync_hp_lists_from_units()
-
+        # Ensure mana lists are synced as well
+        try:
+            self.sync_mana_lists_from_units()
+        except Exception:
+            pass
         return {
-            'player_units': [u.to_dict(self.a_hp[i]) for i, u in enumerate(self.team_a)],
-            'opponent_units': [u.to_dict(self.b_hp[i]) for i, u in enumerate(self.team_b)],
+            'player_units': [u.to_dict(self.a_hp[i], current_mana=self.a_mana[i]) for i, u in enumerate(self.team_a)],
+            'opponent_units': [u.to_dict(self.b_hp[i], current_mana=self.b_mana[i]) for i, u in enumerate(self.team_b)],
             'timestamp': timestamp
         }
 

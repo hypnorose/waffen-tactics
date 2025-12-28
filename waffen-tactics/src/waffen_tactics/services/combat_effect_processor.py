@@ -108,35 +108,6 @@ class CombatEffectProcessor:
             except Exception:
                 pre_hp = None
 
-        # Ensure the authoritative HP list reflects the death BEFORE emitting
-        # the canonical `unit_died` event to avoid snapshot/timing mismatch.
-        try:
-            # If we can map this target to the simulator-level HP lists, update those
-            if hasattr(self, 'team_a') and hasattr(self, 'team_b') and hasattr(self, 'a_hp') and hasattr(self, 'b_hp'):
-                if target in getattr(self, 'team_a', []):
-                    idx = self.team_a.index(target)
-                    old_hp_idx = int(self.a_hp[idx])
-                    self.a_hp[idx] = 0
-                    # print(f"[HP DEBUG] ts={time:.9f} side=team_a target={self.team_a[idx].id}:{self.team_a[idx].name} old_hp={old_hp_idx} -> new_hp=0 cause=unit_death (effect_processor)")
-                elif target in getattr(self, 'team_b', []):
-                    idx = self.team_b.index(target)
-                    old_hp_idx_b = int(self.b_hp[idx])
-                    self.b_hp[idx] = 0
-                    # print(f"[HP DEBUG] ts={time:.9f} side=team_b target={self.team_b[idx].id}:{self.team_b[idx].name} old_hp={old_hp_idx_b} -> new_hp=0 cause=unit_death (effect_processor)")
-                else:
-                    old_def_hp = int(defending_hp[target_idx])
-                    defending_hp[target_idx] = 0
-                    # print(f"[HP DEBUG] ts={time:.9f} side={side} target={defending_team[target_idx].id}:{defending_team[target_idx].name} old_hp={old_def_hp} -> new_hp=0 cause=unit_death (effect_processor)")
-            else:
-                old_def_hp2 = int(defending_hp[target_idx])
-                defending_hp[target_idx] = 0
-                # print(f"[HP DEBUG] ts={time:.9f} side={side} target={defending_team[target_idx].id}:{defending_team[target_idx].name} old_hp={old_def_hp2} -> new_hp=0 cause=unit_death (effect_processor)")
-        except Exception:
-            try:
-                defending_hp[target_idx] = 0
-            except Exception:
-                pass
-
         # Keep the CombatUnit object in sync via canonical emitter
         # Determine the actual side of the dead unit from simulator lists
         target_side = None
@@ -152,11 +123,28 @@ class CombatEffectProcessor:
         if target_side is None:
             target_side = defending_side
 
+        # Prepare HP arrays for canonical emitter to update atomically
+        hp_arrays = None
+        unit_index = None
+        if hasattr(self, 'team_a') and hasattr(self, 'team_b') and hasattr(self, 'a_hp') and hasattr(self, 'b_hp'):
+            hp_arrays = {'team_a': self.a_hp, 'team_b': self.b_hp}
+            try:
+                if target in getattr(self, 'team_a', []):
+                    unit_index = self.team_a.index(target)
+                elif target in getattr(self, 'team_b', []):
+                    unit_index = self.team_b.index(target)
+                else:
+                    # Fallback to defending team index
+                    unit_index = target_idx
+            except Exception:
+                unit_index = target_idx
+
         # Use canonical emitter to mark unit as dead and update in-memory HP.
         # Call emitter regardless of presence of event_callback so in-memory
         # state is normalized even when no callback is provided.
         try:
-            emit_unit_died(event_callback, target, side=target_side, timestamp=time, unit_hp=pre_hp)
+            emit_unit_died(event_callback, target, side=target_side, timestamp=time, unit_hp=pre_hp,
+                          hp_arrays=hp_arrays, unit_index=unit_index, unit_side=target_side)
         except Exception:
             pass
 

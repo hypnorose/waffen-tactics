@@ -42,6 +42,11 @@ class EventDispatcher:
                 if seq_value is not None:
                     payload['seq'] = seq_value
                 payload['event_id'] = str(uuid.uuid4())
+                # Ensure payloads emitted downstream include the event type
+                # so serialized dumps retain the type even when only the
+                # payload dict is recorded.
+                if 'type' not in payload:
+                    payload['type'] = event_type
 
             # Enhance and normalize payloads, but don't let unexpected
             # errors in these helpers silently drop events. Log and re-raise

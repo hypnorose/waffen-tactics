@@ -3,6 +3,7 @@ CombatUnit class - represents a unit in combat
 """
 from typing import List, Dict, Any, Optional, Union
 import copy
+import traceback
 from ..models.unit import CombatUnitStats, CombatUnitState, CombatUnitSkill, ComputedStats, Skill
 
 
@@ -50,11 +51,16 @@ class CombatUnit:
     def effects(self):
         return self._state.effects
 
-    def to_dict(self, current_hp: Optional[int] = None) -> Dict[str, Any]:
-        """Serialize to dict for snapshots"""
+    def to_dict(self, current_hp: Optional[int] = None, current_mana: Optional[int] = None) -> Dict[str, Any]:
+        """Serialize to dict for snapshots
+
+        Args:
+            current_hp: authoritative HP to include instead of unit-local HP
+            current_mana: authoritative mana to include instead of unit-local mana
+        """
         hp = current_hp if current_hp is not None else self._state.current_hp
         # Safety: ensure mana is never None
-        mana = self.get_mana()
+        mana = current_mana if current_mana is not None else self.get_mana()
         if mana is None:
             mana = 0
         return {
@@ -120,6 +126,7 @@ class CombatUnit:
 
     @mana.setter
     def mana(self, value: int):
+        # Direct setter used in non-canonical paths; keep simple and quiet.
         self._state.current_mana = value
 
     @property

@@ -50,6 +50,9 @@ class CombatAttackProcessor:
                     # Attacking team wins - this would be handled by caller
                     continue
 
+                # Convenience: event callback used by emitters (may be None)
+                event_callback = self.event_dispatcher.emit if getattr(self, 'event_dispatcher', None) is not None else None
+
                 # Calculate damage
                 damage = self._calculate_damage(unit, defending_team[target_idx])
                 # Determine if this attack should instead trigger a skill cast.
@@ -172,16 +175,12 @@ class CombatAttackProcessor:
                 # Mana gain
                 mana_gain = unit.stats.mana_on_attack
                 if mana_gain > 0:
-                    mana_event = {
-                        'type': 'mana_update',
-                        'unit_id': unit.id,
-                        'unit_name': unit.name,
-                        'amount': mana_gain,
-                        'side': side,
-                        'timestamp': time,
-                        'cause': 'attack'
-                    }
-                    events.append(mana_event)
+                    from ..services.event_canonicalizer import emit_mana_change
+                    if hasattr(self, 'a_mana') and hasattr(self, 'b_mana'):
+                        mana_arrays = {'team_a': self.a_mana, 'team_b': self.b_mana}
+                        emit_mana_change(event_callback, unit, mana_gain, side=side, timestamp=time, mana_arrays=mana_arrays, unit_index=i, unit_side=side)
+                    else:
+                        emit_mana_change(event_callback, unit, mana_gain, side=side, timestamp=time)
 
                     # Track mana accumulation for skill casting
                     mana_accumulation[unit.id] = mana_accumulation.get(unit.id, 0) + mana_gain
@@ -366,6 +365,11 @@ class CombatAttackProcessor:
         # authoritative `unit_attack` payloads. Always allow the canonical
         # emitter to emit so we avoid legacy/duplicate event types.
         from ..services.event_canonicalizer import emit_damage
+
+        # Prepare HP arrays for canonical emitter to update atomically
+        hp_arrays = {'team_a': combat_state.a_hp, 'team_b': combat_state.b_hp}
+        defending_side = 'team_b' if side == 'team_a' else 'team_a'
+
         emit_damage(
             self.event_dispatcher.emit,
             attacker=attacker,
@@ -375,10 +379,12 @@ class CombatAttackProcessor:
             timestamp=time,
             cause='attack',
             emit_event=True,
+            hp_arrays=hp_arrays,
+            unit_index=target_idx,
+            unit_side=defending_side,
         )
 
-        # Update HP list to match unit's new HP
-        defending_hp[target_idx] = target.hp
+        # HP array is now updated atomically by emit_damage - no manual sync needed
 
         # Log
         msg = f"[{time:.2f}s] {side.upper()[0]}:{attacker.name} hits {'A' if side == 'team_b' else 'B'}:{target.name} for {damage}, hp={defending_hp[target_idx]}"
@@ -434,28 +440,16 @@ class CombatAttackProcessor:
         event: Dict[str, Any],
         combat_state: 'CombatState'
     ):
-        """Apply a mana update event."""
-        unit_id = event['unit_id']
-        amount = event['amount']
-        side = event['side']
-        time = event['timestamp']
-
-        # Find unit
-        unit_team = combat_state.team_a if side == 'team_a' else combat_state.team_b
-        unit = next((u for u in unit_team if u.id == unit_id), None)
-        if not unit:
-            return
-
-        # Apply mana change using canonical emitter
-        from ..services.event_canonicalizer import emit_mana_update
-        current_mana = unit.get_mana() + amount
-        emit_mana_update(
-            self.event_dispatcher.emit,
-            unit,
-            current_mana=current_mana,
-            side=side,
-            timestamp=time
-        )
+        """Apply a mana update event.
+        
+        NOTE: Mana changes are already applied by canonical emitters during compute phase.
+        This method exists only for event processing consistency but does not re-apply changes.
+        """
+        from ..services.error_print import error_print
+        error_print("DEBUG: _apply_mana_update called")
+        # Mana changes already applied by emit_mana_change/emit_mana_update during compute phase
+        # Do not re-apply to avoid double application
+        pass
 
     def _apply_skill_cast(
         self,
@@ -491,13 +485,26 @@ class CombatAttackProcessor:
         # Reset mana to 0
         mana_reset_amount = -caster.mana
         from ..services.event_canonicalizer import emit_mana_change
-        emit_mana_change(
-            self.event_dispatcher.emit,
-            caster,
-            mana_reset_amount,
-            side=side,
-            timestamp=time
-        )
+        if hasattr(self, 'a_mana') and hasattr(self, 'b_mana'):
+            mana_arrays = {'team_a': self.a_mana, 'team_b': self.b_mana}
+            emit_mana_change(
+                self.event_dispatcher.emit,
+                caster,
+                mana_reset_amount,
+                side=side,
+                timestamp=time,
+                mana_arrays=mana_arrays,
+                unit_index=target_idx if target_idx is not None else None,
+                unit_side=side
+            )
+        else:
+            emit_mana_change(
+                self.event_dispatcher.emit,
+                caster,
+                mana_reset_amount,
+                side=side,
+                timestamp=time
+            )
 
         log.append(f"[{time:.2f}s] {caster.name} casts {skill_name}!")
 
@@ -574,6 +581,11 @@ class CombatAttackProcessor:
 
         # Apply damage using canonical emitter
         from ..services.event_canonicalizer import emit_damage
+
+        # Prepare HP arrays for canonical emitter to update atomically
+        hp_arrays = {'team_a': combat_state.a_hp, 'team_b': combat_state.b_hp}
+        defending_side = 'team_b' if side == 'team_a' else 'team_a'
+
         emit_damage(
             self.event_dispatcher.emit,
             attacker=attacker,
@@ -581,11 +593,13 @@ class CombatAttackProcessor:
             raw_damage=damage,
             side=side,
             timestamp=time,
-            cause='skill'
+            cause='skill',
+            hp_arrays=hp_arrays,
+            unit_index=target_idx,
+            unit_side=defending_side,
         )
 
-        # Update HP list to match unit's new HP
-        defending_hp[target_idx] = target.hp
+        # HP array is now updated atomically by emit_damage - no manual sync needed
 
         # Log
         msg = f"[{time:.2f}s] {side.upper()[0]}:{attacker.name} skill hits {'A' if side == 'team_b' else 'B'}:{target.name} for {damage}, hp={defending_hp[target_idx]}"
@@ -789,8 +803,7 @@ class CombatAttackProcessor:
         from ..services.event_canonicalizer import emit_unit_died
         emit_unit_died(
             self.event_dispatcher.emit,
-            unit=target,
-            killer=killer,
+            recipient=target,
             side=side,
             timestamp=time
         )

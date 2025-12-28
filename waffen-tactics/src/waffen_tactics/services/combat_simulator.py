@@ -94,6 +94,10 @@ class _EventSink:
         if isinstance(data, dict):
             if seq_value is not None:
                 data['seq'] = seq_value
+            # Preserve the event type inside the payload so collectors that
+            # only store payloads (without the separate event_type) retain it.
+            if 'type' not in data:
+                data['type'] = event_type
             data['event_id'] = str(uuid.uuid4())
             # Ensure mana_update payloads always include 'amount' for schema consistency
             if event_type == 'mana_update' and 'amount' not in data:
@@ -191,6 +195,10 @@ class _SimpleEventSink:
         if isinstance(data, dict):
             if seq_value is not None:
                 data['seq'] = seq_value
+            # Preserve the event type inside the payload so collectors that
+            # only store payloads (without the separate event_type) retain it.
+            if 'type' not in data:
+                data['type'] = event_type
             data['event_id'] = str(uuid.uuid4())
             # Ensure mana_update payloads always include 'amount' for schema consistency
             if event_type == 'mana_update' and 'amount' not in data:
@@ -409,6 +417,7 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
         self.team_b = list(team_b)
         self.a_hp = [int(getattr(u, 'hp', 0)) for u in self.team_a]
         self.b_hp = [int(getattr(u, 'hp', 0)) for u in self.team_b]
+        # (mana mirrors are managed by CombatState)
 
         # ensure unit runtime fields exist
         for u in self.team_a + self.team_b:
@@ -509,9 +518,31 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
         self._current_time = time
         self._deliver_scheduled_events(sink)
 
+        # Flush remaining scheduled events present at this point only.
+        # Some actions may schedule new events; process only the snapshot
+        # to avoid infinite rescheduling loops during finalization.
+        pending = list(self._scheduled)
+        # Clear the scheduled heap so any new scheduled events are left for
+        # the normal simulator lifecycle (or external inspection).
+        self._scheduled = []
+        for deliver_at, _, action in pending:
+            # Advance current time to the delivery time to avoid re-scheduling
+            # due to floating-point timestamps being slightly greater than
+            # the simulator current time. Let errors propagate so callers
+            # can see problems during finalization.
+            self._current_time = deliver_at
+            results = action()
+            if isinstance(results, dict):
+                results = [('scheduled_event', results)]
+            if results:
+                for ev_type, ev_payload in results:
+                    sink.emit(ev_type, ev_payload)
+
         # Build summary
         team_a_survivors = sum(1 for hp in self.a_hp if hp > 0)
         team_b_survivors = sum(1 for hp in self.b_hp if hp > 0)
+        # Debug: expose final authoritative HP arrays for replay verification
+        print(f"[SIM FINAL HP] a_hp={self.a_hp} b_hp={self.b_hp}")
         return {'winner': winner or 'team_a', 'duration': time, 'team_a_survivors': team_a_survivors, 'team_b_survivors': team_b_survivors, 'log': log, 'timeout': time >= self.timeout}
 
 

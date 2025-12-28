@@ -89,7 +89,11 @@ class CombatPerSecondBuffProcessor:
                     if regen_amount > 0:
                         log.append(f"{u.name} regenerates +{regen_amount} Mana")
                         if event_callback:
-                            emit_mana_change(event_callback, u, regen_amount, side='team_a', timestamp=time)
+                            combat_state = getattr(self, '_combat_state', None)
+                            if combat_state is not None:
+                                emit_mana_change(event_callback, u, regen_amount, side='team_a', timestamp=time, mana_arrays=combat_state.mana_arrays, unit_index=idx_u, unit_side='team_a')
+                            else:
+                                emit_mana_change(event_callback, u, regen_amount, side='team_a', timestamp=time)
 
         # Team B buffs
         for idx_u, u in enumerate(team_b):
@@ -161,4 +165,8 @@ class CombatPerSecondBuffProcessor:
                     if regen_amount > 0:
                         log.append(f"{u.name} regenerates +{regen_amount} Mana")
                         if event_callback:
-                            emit_mana_change(event_callback, u, regen_amount, side='team_b', timestamp=time)
+                            combat_state = getattr(self, '_combat_state', None)
+                            if combat_state is not None:
+                                emit_mana_change(event_callback, u, regen_amount, side='team_b', timestamp=time, mana_arrays=combat_state.mana_arrays, unit_index=idx_u, unit_side='team_b')
+                            else:
+                                emit_mana_change(event_callback, u, regen_amount, side='team_b', timestamp=time)

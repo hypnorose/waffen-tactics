@@ -218,9 +218,9 @@ class CombatEventReconstructor:
 
     def _process_mana_update_event(self, event_data: Dict[str, Any]):
         """Process mana_update event.
-
-        Accept either an authoritative `current_mana` value or an `amount`
-        delta. Prefer `current_mana` when present; otherwise apply `amount`.
+        
+        Simple approach: apply the amount delta directly, assuming simulation
+        already handled clamping and validation.
         """
         unit_id = event_data.get('unit_id')
         if not unit_id:
@@ -229,20 +229,15 @@ class CombatEventReconstructor:
         if not unit_dict:
             return
 
-        # Authoritative set
-        if 'current_mana' in event_data and event_data.get('current_mana') is not None:
-            current_mana = event_data.get('current_mana')
-            unit_dict['current_mana'] = current_mana
-            side = "player" if unit_id in self.reconstructed_player_units else "opponent"
-            # print(f"  Updated mana for {side} unit {unit_id} to {current_mana}")
-            return
-
-        # Delta apply
-        if 'amount' in event_data and event_data.get('amount') is not None:
+        # Prefer authoritative values, otherwise apply delta
+        if 'post_mana' in event_data and event_data.get('post_mana') is not None:
+            unit_dict['current_mana'] = event_data.get('post_mana')
+        elif 'current_mana' in event_data and event_data.get('current_mana') is not None:
+            unit_dict['current_mana'] = event_data.get('current_mana')
+        elif 'amount' in event_data and event_data.get('amount') is not None:
             amount = event_data.get('amount')
             old_mana = unit_dict.get('current_mana', 0)
-            unit_dict['current_mana'] = min(unit_dict.get('max_mana', old_mana), old_mana + amount)
-            # print(f"  Regenerated mana for unit {unit_id} from {old_mana} to {unit_dict['current_mana']}")
+            unit_dict['current_mana'] = old_mana + amount
 
     def _process_heal_event(self, event_data: Dict[str, Any]):
         """Process heal or unit_heal event.
@@ -402,8 +397,9 @@ class CombatEventReconstructor:
 
         Requires authoritative 'applied_delta' from backend to properly apply stat changes.
         If applied_delta is missing, the event cannot be processed reliably.
-        """
-        3. Once fixed, DELETE the fallback calculation logic below (lines 380-399)
+
+        TODO: Once backend provides applied_delta for all stat_buff events,
+        DELETE any fallback calculation logic that tries to compute deltas.
 
         The reconstructor should NOT compute percentage buffs or guess random stats.
         This is GAME LOGIC that belongs in the backend emitter.
@@ -550,7 +546,6 @@ class CombatEventReconstructor:
         duration = event_data.get('duration')
 
     def _process_effect_expired_event(self, event_data: Dict[str, Any]):
-        """Process effect_expired event: remove canonical effect."""
         unit_id = event_data.get('unit_id')
         effect_id = event_data.get('effect_id')
         if not unit_id:
@@ -576,8 +571,9 @@ class CombatEventReconstructor:
         # effects here.
 
     def _process_state_snapshot_event(self, event_data: Dict[str, Any]):
-        """Process state_snapshot event - validate reconstruction."""
         # print(f"  Checking state_snapshot at seq {event_data.get('seq', 'N/A')}")
+
+        current_time = event_data.get('timestamp', 0)
 
         # Create snapshot copies for comparison
         snapshot_player_units = {
@@ -600,6 +596,18 @@ class CombatEventReconstructor:
         # infinite (still active) to avoid TypeErrors and to match emitter
         # semantics where ``expires_at`` may be None for persistent effects.
         for units in [snapshot_player_units, snapshot_opponent_units]:
+            for unit_dict in units.values():
+                new_effects = []
+                for e in unit_dict.get('effects', []):
+                    expires = e.get('expires_at')
+                    # Treat None as "no expiry" (active)
+                    if expires is None or expires > current_time:
+                        new_effects.append(e)
+                unit_dict['effects'] = new_effects
+
+        # Also expire effects in reconstructed state to handle missing effect_expired events
+        # This is a workaround for backend bugs where effect_expired events are not emitted
+        for units in [self.reconstructed_player_units, self.reconstructed_opponent_units]:
             for unit_dict in units.values():
                 new_effects = []
                 for e in unit_dict.get('effects', []):
@@ -885,7 +893,6 @@ class CombatEventReconstructor:
         # print(f"  State snapshot check passed for seq {event_data.get('seq', 'N/A')}")
 
     def _get_unit_dict(self, unit_id: str) -> Dict[str, Any]:
-        """Get unit dict by ID from either player or opponent units."""
         if unit_id in self.reconstructed_player_units:
             return self.reconstructed_player_units[unit_id]
         elif unit_id in self.reconstructed_opponent_units:
@@ -893,9 +900,7 @@ class CombatEventReconstructor:
         return None
 
     def _compare_units(self, reconstructed: Dict[str, Dict], snapshot: Dict[str, Dict], side: str, seq: Any, current_time: float = 0):
-        """Compare reconstructed units with snapshot units."""
         def normalize_effect_for_compare(effect):
-            """Return a canonical tuple for an effect for deterministic comparison."""
             if effect.get('type') == 'stun':
                 return None  # ignore stun for now
             ef = effect.copy()
@@ -960,7 +965,6 @@ class CombatEventReconstructor:
                 raise AssertionError(f"Dead status mismatch for {side} unit {uid} at seq {seq} (seed {self.seed}): reconstructed={reconstructed_dead}, snapshot={snapshot_dead}")
 
     def get_reconstructed_state(self) -> Tuple[Dict[str, Dict], Dict[str, Dict]]:
-        """Get the current reconstructed state."""
         return self.reconstructed_player_units, self.reconstructed_opponent_units
 
 

@@ -46,7 +46,11 @@ class CombatAttackProcessor:
                 effective_mana = int(getattr(unit, 'mana', 0)) + int(mana_gain)
                 if hasattr(unit, 'skill') and unit.skill and effective_mana >= getattr(unit, 'max_mana', float('inf')):
                     # Apply mana gain first so skill casting has the mana available
-                    emit_mana_change(event_callback, unit, mana_gain, side=side, timestamp=time)
+                    combat_state = getattr(self, '_combat_state', None)
+                    if combat_state is not None:
+                        emit_mana_change(event_callback, unit, mana_gain, side=side, timestamp=time, mana_arrays=combat_state.mana_arrays, unit_index=i, unit_side=side)
+                    else:
+                        emit_mana_change(event_callback, unit, mana_gain, side=side, timestamp=time)
                     target_idx = self._select_target(attacking_team, defending_team, attacking_hp, defending_hp, i)
                     if target_idx is None:
                         return "team_a" if side == "team_a" else "team_b"
@@ -105,13 +109,27 @@ class CombatAttackProcessor:
 
                 # Schedule unit_attack and mana_update with a UI delay (0.2s)
                 attack_ts = round(time + 0.2, 10)
-                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val):
+                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val, target_idx_arg=None):
                     def action():
                         from .event_canonicalizer import emit_damage, emit_unit_died
                         results = []
                         dmg_payload = None
+                        # Prepare hp_arrays and unit side/index for atomic updates when running under simulator
+                        hp_arrays = None
+                        unit_index = None
+                        unit_side = None
+                        try:
+                            if hasattr(self, 'a_hp') and hasattr(self, 'b_hp'):
+                                hp_arrays = {'team_a': self.a_hp, 'team_b': self.b_hp}
+                                # target_idx_arg references index inside defending_team
+                                unit_index = int(target_idx_arg) if target_idx_arg is not None else None
+                                # target side is opposite of attacker side
+                                unit_side = 'team_b' if side_val == 'team_a' else 'team_a'
+                        except Exception:
+                            hp_arrays = None
+
                         # Apply canonical damage mutation without emitting the builtin 'attack' event
-                        dmg_payload = emit_damage(None, attacker, target_obj, raw_damage=dmg, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='attack', emit_event=False)
+                        dmg_payload = emit_damage(None, attacker, target_obj, raw_damage=dmg, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='attack', emit_event=False, hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side)
 
                         # Build unit_attack payload with authoritative HP fields
                         ua = {
@@ -142,7 +160,7 @@ class CombatAttackProcessor:
 
                         # If the canonical damage resulted in death, emit unit_died payload
                         if isinstance(dmg_payload, dict) and dmg_payload.get('post_hp') == 0:
-                            died = emit_unit_died(None, target_obj, side=side_val, timestamp=deliver_ts, unit_hp=dmg_payload.get('pre_hp'))
+                            died = emit_unit_died(None, target_obj, side=side_val, timestamp=deliver_ts, unit_hp=dmg_payload.get('pre_hp'), hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side)
                             if died:
                                 results.append(('unit_died', died))
 
@@ -161,7 +179,7 @@ class CombatAttackProcessor:
 
                 # If running under CombatSimulator, use scheduler; otherwise emit immediately
                 if hasattr(self, 'schedule_event') and event_callback:
-                    action_callable = make_action(unit, defending_team[target_idx], damage, side, attack_ts, old_hp, new_hp)
+                    action_callable = make_action(unit, defending_team[target_idx], damage, side, attack_ts, old_hp, new_hp, target_idx_arg=target_idx)
                     # Schedule for delivery at attack_ts
                     # note: CombatSimulator.schedule_event will handle the heap
                     self.schedule_event(attack_ts, action_callable)
@@ -213,7 +231,11 @@ class CombatAttackProcessor:
 
                 # Mana gain: per attack — apply via canonical emitter (mutates state)
                 amount = int(getattr(unit.stats, 'mana_on_attack', 0))
-                emit_mana_change(event_callback, unit, amount, side=side, timestamp=attack_ts)
+                combat_state = getattr(self, '_combat_state', None)
+                if combat_state is not None:
+                    emit_mana_change(event_callback, unit, amount, side=side, timestamp=attack_ts, mana_arrays=combat_state.mana_arrays, unit_index=i, unit_side=side)
+                else:
+                    emit_mana_change(event_callback, unit, amount, side=side, timestamp=attack_ts)
 
                 # Check for skill casting if mana is full (reaches max_mana)
                 skill_was_cast = False

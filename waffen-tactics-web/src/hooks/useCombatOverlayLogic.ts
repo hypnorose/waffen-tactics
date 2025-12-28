@@ -131,6 +131,31 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
       }
     }
     
+    // GUARD: detect unexpected HP restoration (non-heal events that set HP from 0/null -> >0)
+    try {
+      const relevantId: string | undefined = (event as any).unit_id || (event as any).target_id
+      if (relevantId) {
+        const oldUnit = relevantId.startsWith('opp_')
+          ? currentState.opponentUnits.find(u => u.id === relevantId)
+          : currentState.playerUnits.find(u => u.id === relevantId)
+        const newUnit = relevantId.startsWith('opp_')
+          ? newState.opponentUnits.find(u => u.id === relevantId)
+          : newState.playerUnits.find(u => u.id === relevantId)
+
+        const oldHp = oldUnit?.hp
+        const newHp = newUnit?.hp
+
+        const healTypes = new Set(['heal', 'unit_heal', 'hp_regen', 'regen_gain'])
+        if ((oldHp === 0 || oldHp === null || oldHp === undefined) && typeof newHp === 'number' && newHp > 0 && !healTypes.has(event.type)) {
+          console.warn('[HP GUARD] Unexpected HP restoration detected:', { event: { type: event.type, seq: event.seq, id: relevantId }, oldHp, newHp })
+          // also push a desync entry for easier capture
+          pushDesync({ unit_id: relevantId, unit_name: (event as any).unit_name || '', seq: event.seq, timestamp: event.timestamp, diff: { hp: { ui: oldHp, server: newHp } }, pending_events: [], note: `hp guard: ${event.type}` })
+        }
+      }
+    } catch (err) {
+      console.error('[HP GUARD] guard errored', err)
+    }
+    
     // Handle delayed HP updates for projectile timing
     if (event.type === 'unit_attack' && event.target_id) {
       // CRITICAL: Use authoritative HP from backend, NOT local calculations!

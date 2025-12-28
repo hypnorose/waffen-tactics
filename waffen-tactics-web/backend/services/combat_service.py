@@ -257,10 +257,6 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                 )
                 # Set max_hp to buffed hp to prevent hp > max_hp issues
                 combat_unit.max_hp = hp
-                # Apply persistent buffs from instance if any
-                for stat, value in (persistent_buffs or {}).items():
-                    if stat in buffed_stats:
-                        buffed_stats[stat] += value
 
                 player_units.append(combat_unit)
 

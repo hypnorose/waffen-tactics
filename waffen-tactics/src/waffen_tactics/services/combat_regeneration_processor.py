@@ -61,7 +61,11 @@ class CombatRegenerationProcessor:
                     u._mana_regen_accumulator -= int_mana
                     log.append(f"{u.name} regenerates +{int_mana} Mana")
                     # Apply mana change via canonical emitter (it mutates state and emits)
-                    emit_mana_change(event_callback, u, int_mana, side='team_a', timestamp=time)
+                    combat_state = getattr(self, '_combat_state', None)
+                    if combat_state is not None:
+                        emit_mana_change(event_callback, u, int_mana, side='team_a', timestamp=time, mana_arrays=combat_state.mana_arrays, unit_index=idx_u, unit_side='team_a')
+                    else:
+                        emit_mana_change(event_callback, u, int_mana, side='team_a', timestamp=time)
 
         # Team B regen
         for idx_u, u in enumerate(team_b):
@@ -100,7 +104,11 @@ class CombatRegenerationProcessor:
                     u._mana_regen_accumulator -= int_mana_b
                     log.append(f"{u.name} regenerates +{int_mana_b} Mana")
                     # Apply mana change via canonical emitter (it mutates state and emits)
-                    emit_mana_change(event_callback, u, int_mana_b, side='team_b', timestamp=time)
+                    combat_state = getattr(self, '_combat_state', None)
+                    if combat_state is not None:
+                        emit_mana_change(event_callback, u, int_mana_b, side='team_b', timestamp=time, mana_arrays=combat_state.mana_arrays, unit_index=idx_u, unit_side='team_b')
+                    else:
+                        emit_mana_change(event_callback, u, int_mana_b, side='team_b', timestamp=time)
 
         # Sync HP lists to unit.hp for all units to ensure consistency
         for idx_u, u in enumerate(team_a):

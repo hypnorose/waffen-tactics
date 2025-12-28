@@ -1,6 +1,6 @@
 import time as _time
 import uuid
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any, Callable, List
 
 
 def _now_ts():
@@ -272,6 +272,10 @@ def emit_mana_change(
     side: Optional[str] = None,
     timestamp: Optional[float] = None,
     include_snapshot: bool = False,
+    # Optional: authoritative mana arrays for atomic updates during simulation
+    mana_arrays: Optional[Dict[str, List[int]]] = None,
+    unit_index: Optional[int] = None,
+    unit_side: Optional[str] = None,
 ):
     ts = timestamp if timestamp is not None else _now_ts()
     # Apply the mana change to recipient.mana (canonical mutation)
@@ -290,10 +294,30 @@ def emit_mana_change(
             new_val = int(max(0, min(max_m, cur + float(amount))))
         except Exception:
             new_val = cur
+    # If caller provided authoritative mana arrays (from CombatSimulator),
+    # update them atomically to keep snapshots consistent.
     try:
-        recipient.mana = new_val
+        if mana_arrays and unit_index is not None and unit_side:
+            try:
+                if unit_side in mana_arrays and 0 <= unit_index < len(mana_arrays[unit_side]):
+                    mana_arrays[unit_side][unit_index] = new_val
+            except Exception:
+                # best-effort - continue to set unit state even if array update fails
+                pass
     except Exception:
         pass
+
+    # Mutate the unit's canonical mana using internal setter when available
+    try:
+        if hasattr(recipient, '_set_mana'):
+            recipient._set_mana(new_val, caller_module='event_canonicalizer')
+        else:
+            recipient.mana = new_val
+    except Exception:
+        try:
+            recipient.mana = new_val
+        except Exception:
+            pass
 
     applied_amount = None
     try:
@@ -380,6 +404,10 @@ def emit_unit_died(
     side: Optional[str] = None,
     timestamp: Optional[float] = None,
     unit_hp: Optional[int] = None,
+    # NEW: HP array references for atomic updates during death
+    hp_arrays: Optional[Dict[str, List[int]]] = None,  # {'team_a': [...], 'team_b': [...]}
+    unit_index: Optional[int] = None,
+    unit_side: Optional[str] = None,
 ):
     ts = timestamp if timestamp is not None else _now_ts()
     # If already dead, avoid emitting duplicate death events
@@ -396,6 +424,15 @@ def emit_unit_died(
         if hasattr(recipient, 'hp'):
             # enforce HP changes only via canonical helpers
             recipient.hp = 0
+
+        # NEW: Update HP arrays atomically with unit death to prevent desync
+        if hp_arrays and unit_index is not None and unit_side:
+            try:
+                if unit_side in hp_arrays and 0 <= unit_index < len(hp_arrays[unit_side]):
+                    hp_arrays[unit_side][unit_index] = 0
+            except Exception:
+                # If HP array update fails, continue - unit.hp is still correctly set to 0
+                pass
     except Exception:
         pass
 
@@ -750,6 +787,10 @@ def emit_damage(
     timestamp: Optional[float] = None,
     cause: Optional[str] = None,
     emit_event: bool = True,
+    # NEW: HP array references for atomic updates during damage
+    hp_arrays: Optional[Dict[str, List[int]]] = None,  # {'team_a': [...], 'team_b': [...]}
+    unit_index: Optional[int] = None,
+    unit_side: Optional[str] = None,
 ):
     """Canonical damage emitter — centralizes HP mutation and event emission.
 
@@ -790,6 +831,16 @@ def emit_damage(
         post_hp = max(0, (pre_hp or 0) - applied)
         # Mutate HP only here
         target.hp = post_hp
+
+        # NEW: Update HP arrays atomically with damage application to prevent desync
+        if hp_arrays and unit_index is not None and unit_side:
+            try:
+                if unit_side in hp_arrays and 0 <= unit_index < len(hp_arrays[unit_side]):
+                    hp_arrays[unit_side][unit_index] = post_hp
+            except Exception:
+                # If HP array update fails, continue - target.hp is still correctly set
+                pass
+
         # Do NOT mark `_dead` or `_death_processed` here — death handling
         # (effects, rewards) should be performed by the centralized
         # effect processor via `_process_unit_death` to ensure ordering.

@@ -72,5 +72,9 @@ fi
 
 # Print and run
 echo "Running: ${CMD[*]}"
+# Activate venv if it exists
+if [[ -f "waffen-tactics-web/backend/venv/bin/activate" ]]; then
+  source waffen-tactics-web/backend/venv/bin/activate
+fi
 # shellcheck disable=SC2086
 ${CMD[*]}

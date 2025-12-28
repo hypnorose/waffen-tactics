@@ -1,0 +1,41 @@
+[EVENT_COLLECTOR] type=unit_attack keys=['attacker_id', 'attacker_name', 'target_id', 'target_name', 'damage', 'damage_type', 'pre_hp', 'post_hp', 'applied_damage', 'is_skill', 'side', 'timestamp', 'seq', 'event_id']
+[EVENT_COLLECTOR ATTACK] type=unit_attack tag=TRUE cause=False damage=39 attacker=neko target=miki
+[EVENT_COLLECTOR] type=mana_update keys=['unit_id', 'unit_name', 'current_mana', 'max_mana', 'side', 'timestamp', 'seq', 'event_id', 'amount']
+[EVENT_COLLECTOR] type=mana_update keys=['unit_id', 'unit_name', 'amount', 'side', 'timestamp', 'pre_mana', 'post_mana', 'seq', 'event_id']
+[EVENT_COLLECTOR] type=unit_attack keys=['attacker_id', 'attacker_name', 'target_id', 'target_name', 'damage', 'damage_type', 'pre_hp', 'post_hp', 'applied_damage', 'is_skill', 'side', 'timestamp', 'seq', 'event_id']
+[EVENT_COLLECTOR ATTACK] type=unit_attack tag=TRUE cause=False damage=59 attacker=galanonim target=miki
+[EVENT_COLLECTOR] type=mana_update keys=['unit_id', 'unit_name', 'current_mana', 'max_mana', 'side', 'timestamp', 'seq', 'event_id', 'amount']
+[EVENT_COLLECTOR] type=mana_update keys=['unit_id', 'unit_name', 'amount', 'side', 'timestamp', 'pre_mana', 'post_mana', 'seq', 'event_id']
+[EVENT_COLLECTOR] type=state_snapshot keys=['player_units', 'opponent_units', 'timestamp', 'seq', 'event_id']
+[EVENT_COLLECTOR] type=state_snapshot keys=['player_units', 'opponent_units', 'timestamp', 'seq', 'event_id']
+[EVENT_COLLECTOR] type=effect_expired keys=['unit_id', 'unit_name', 'effect_id', 'unit_hp', 'side', 'timestamp', 'seq', 'event_id']
+[EVENT_COLLECTOR] type=effect_expired keys=['unit_id', 'unit_name', 'effect_id', 'unit_hp', 'side', 'timestamp', 'seq', 'event_id']
+[EVENT_COLLECTOR] type=state_snapshot keys=['player_units', 'opponent_units', 'timestamp', 'seq', 'event_id']
+[EVENT_COLLECTOR] type=state_snapshot keys=['player_units', 'opponent_units', 'timestamp', 'seq', 'event_id']
+[EVENT_COLLECTOR] type=animation_start keys=['type', 'animation_id', 'attacker_id', 'attacker_name', 'target_id', 'target_name', 'duration', 'timestamp', 'seq', 'event_id']
+[ENTER _process_unit_death] killer=puszmen12 target=miki event_callback_set=True
+[EVENT_COLLECTOR] type=unit_died keys=['unit_id', 'unit_name', 'side', 'timestamp', 'unit_hp', 'unit_max_hp', 'seq', 'event_id']
+[DEATH DEBUG] emitted unit_died for miki; attacking_team_len=10; attacking_ids=['krasu', 'jaskol95', 'puszmen12', 'rafcikd', 'mrozu', 'fiko', 'wu_hao', 'neko', 'galanonim', 'stalin']
+DEBUG MANA SET: unit=puszmen12 old=70 new=75
+  File "/usr/lib/python3.12/unittest/case.py", line 690, in __call__
+    return self.run(*args, **kwds)
+  File "/usr/lib/python3.12/unittest/case.py", line 634, in run
+    self._callTestMethod(testMethod)
+  File "/usr/lib/python3.12/unittest/case.py", line 589, in _callTestMethod
+    if method() is not None:
+  File "/home/ubuntu/waffen-tactics-game/waffen-tactics-web/backend/tests/test_combat_service.py", line 778, in test_10v10_simulation_seed_300
+    self._test_single_seed_simulation(300)
+  File "/home/ubuntu/waffen-tactics-game/waffen-tactics-web/backend/tests/test_combat_service.py", line 835, in _test_single_seed_simulation
+    result = run_combat_simulation(player_units, opponent_units)
+  File "/home/ubuntu/waffen-tactics-game/waffen-tactics-web/backend/services/combat_service.py", line 581, in run_combat_simulation
+    result = simulator.simulate(player_units, opponent_units, event_collector)
+  File "/home/ubuntu/waffen-tactics-game/waffen-tactics/src/waffen_tactics/services/combat_simulator.py", line 496, in simulate
+    winner = self._process_team_attacks(self.team_a, self.team_b, self.a_hp, self.b_hp, time, log, proc_cb, 'team_a')
+  File "/home/ubuntu/waffen-tactics-game/waffen-tactics/src/waffen_tactics/services/combat_attack_processor.py", line 216, in _process_team_attacks
+    emit_mana_change(event_callback, unit, amount, side=side, timestamp=attack_ts)
+  File "/home/ubuntu/waffen-tactics-game/waffen-tactics/src/waffen_tactics/services/event_canonicalizer.py", line 294, in emit_mana_change
+    recipient.mana = new_val
+  File "/home/ubuntu/waffen-tactics-game/waffen-tactics/src/waffen_tactics/services/combat_unit.py", line 128, in mana
+    stack = ''.join(traceback.format_stack(limit=10))
+
+EVENT[-197]: type=unit_attack data={'attacker_id': 'miki', 'attacker_name': 'Miki', 'target_id': 'puszmen12', 'target_name': 'Puszmen12', 'damage': 67, 'damage_type': 'physical', 'pre_hp': 153, 'post_hp': 86, 'applied_damage': 67, 'is_skill': False, 'side': 'team_b', 'timestamp': 10.1, 'seq': 739, 'event_id': 'd96d8b0c-277e-42d3-a1ce-cd57ce3f61e8'}

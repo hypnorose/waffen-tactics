@@ -86,9 +86,6 @@ def check_direct_hp_manipulation():
             # Skip combat_shared_old.py as it's legacy code
             if 'combat_shared_old.py' in file:
                 continue
-            # Skip combat_effect_processor.py as it handles unit death processing with HP array updates
-            if 'combat_effect_processor.py' in file:
-                continue
             # Skip mutators.py as it's a testing utility for direct state manipulation
             if 'mutators.py' in file:
                 continue
