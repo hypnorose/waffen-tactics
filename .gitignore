@@ -75,3 +75,6 @@ pip-wheel-metadata/
 
 # Database files (local dev)
 waffen_tactics_game.db
+
+# Backend venv
+waffen-tactics-web/backend/venv/
