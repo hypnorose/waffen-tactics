@@ -55,6 +55,7 @@ htmlcov/
 # Temporary replay dumps and debug artifacts
 tmp_replay_runs/
 tmp_replay_runs/*.jsonl
+sim_with_skills.jsonl
 tmp_*.py
 *.old
 *.bak

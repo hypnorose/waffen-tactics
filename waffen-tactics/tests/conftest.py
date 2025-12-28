@@ -42,6 +42,26 @@ def pytest_configure(config):
         return wrapper
 
     EventDispatcher.wrap_callback = new_wrap
+import shutil
+
+
+def _ensure_sim_fixture():
+    """Ensure `sim_with_skills.jsonl` exists at the repo root for tests that expect it.
+    The file is generated/copied at test time and should be git-ignored.
+    """
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    dest = os.path.join(repo_root, 'sim_with_skills.jsonl')
+    if os.path.exists(dest):
+        return
+    src = os.path.join(repo_root, 'waffen-tactics-web', 'backend', 'test_fixtures', 'sim_with_skills.jsonl')
+    try:
+        if os.path.exists(src):
+            shutil.copy(src, dest)
+    except Exception:
+        pass
+
+
+_ensure_sim_fixture()
 import os
 
 # Ensure test runs are deterministic: enable deterministic targeting during pytest
