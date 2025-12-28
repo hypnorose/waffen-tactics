@@ -40,3 +40,38 @@ waffen-tactics/bot_venv/
 # Other
 coverage/
 *.egg-info/
+
+
+# Test / tool caches and coverage
+.pytest_cache/
+.mypy_cache/
+.pytype/
+.cache/
+.tox/
+.coverage
+coverage.xml
+htmlcov/
+
+# Temporary replay dumps and debug artifacts
+tmp_replay_runs/
+tmp_replay_runs/*.jsonl
+tmp_*.py
+*.old
+*.bak
+
+# IDE / editor state
+.idea/
+.vscode/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Misc
+.python-version
+.claude/
+pip-wheel-metadata/
+
+# Database files (local dev)
+waffen_tactics_game.db
