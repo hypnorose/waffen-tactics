@@ -284,9 +284,9 @@ def map_event_to_sse_payload(event_type: str, data: dict):
         # Attach game_state if present. Make a snapshot copy so payloads are
         # independent of later simulator mutations. Allow exceptions to
         # propagate so caller can observe issues rather than silently falling back.
-            if 'game_state' in data:
-                import copy
-                res['game_state'] = copy.deepcopy(data['game_state'])
+        if 'game_state' in data:
+            import copy
+            res['game_state'] = copy.deepcopy(data['game_state'])
         logger.debug(f"Mapped {event_type} to payload with seq={res.get('seq')}")
         return res
 
