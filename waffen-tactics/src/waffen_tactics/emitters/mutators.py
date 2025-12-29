@@ -24,11 +24,19 @@ def apply_damage_mutation(target: Any, raw_damage: int) -> Tuple[int, int, int]:
     post_hp = max(0, pre_hp - damage_to_hp)
     post_shield = max(0, pre_shield - shield_absorbed)
 
-    # Mutate on target
+    # Mutate on target via canonical emitter or central setter. Do not
+    # fall back to direct attribute assignment in production code.
     try:
-        target.hp = post_hp
+        # Always use the canonical emitter to apply damage so internal
+        # invariants, event bookkeeping and side-effects are preserved.
+        from waffen_tactics.services.event_canonicalizer import emit_damage
+
+        # Apply only the portion that should affect HP (after shield absorption)
+        emit_damage(None, None, target, raw_damage=damage_to_hp, shield_absorbed=shield_absorbed, emit_event=False)
     except Exception:
-        pass
+        # Intentionally do not fall back to direct assignment; allow
+        # caller to handle or tests to provide compatible objects.
+        raise
     try:
         target.shield = post_shield
     except Exception:

@@ -63,6 +63,8 @@ class DebuffHandler(EffectHandler):
             timestamp=getattr(context, 'combat_time', None),
         )
 
+        # debug prints removed
+
         if cb:
             return []
         return [('stat_buff', payload)]

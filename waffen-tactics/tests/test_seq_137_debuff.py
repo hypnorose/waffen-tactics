@@ -49,7 +49,11 @@ def _make_unit(id, name, attack=0, hp=600, max_hp=600, shield=0):
     unit = _make_from_template(name, instance_id=id)
     if unit:
         unit.attack = int(attack)
-        unit.hp = int(hp)
+        # Initialize HP via canonical setter for CombatUnit instances
+        try:
+            unit._set_hp(int(hp), caller_module='event_canonicalizer')
+        except Exception:
+            unit.hp = int(hp)
         unit.max_hp = int(max_hp)
         unit.shield = int(shield)
         if not hasattr(unit, 'effects') or unit.effects is None:

@@ -52,7 +52,7 @@ def test_skill_damage_emits_unit_attack_and_is_skill():
     # Find unit_attack event and verify is_skill and damage
     ua = next((data for t, data in events if t == 'unit_attack'), None)
     assert ua is not None
-    assert ua.get('damage') == 40
+    assert ua.get('applied_damage') == 40
     assert ua.get('is_skill') is True
 
 
@@ -61,7 +61,7 @@ def test_skill_heal_buff_and_shield_emit_events():
     ally = make_unit('a1', 'Ally', hp=10, max_mana=100)
     # Ensure ally has room to be healed (max_hp larger than current hp)
     ally.max_hp = 100
-    ally.hp = 10
+    ally._set_hp(10, caller_module='event_canonicalizer')
     enemy = make_unit('e1', 'Enemy', hp=100, max_mana=100)
 
     caster.mana = 100

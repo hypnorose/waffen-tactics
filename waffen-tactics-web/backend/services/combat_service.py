@@ -10,6 +10,7 @@ from waffen_tactics.services.game_manager import GameManager
 from waffen_tactics.services.combat_shared import CombatSimulator, CombatUnit
 from waffen_tactics.models.player_state import PlayerState
 import json
+from waffen_tactics.services.event_canonicalizer import emit_heal, emit_damage
 
 # Load game configuration from JSON (allows easy tuning without code changes)
 CONFIG_PATH = Path(__file__).parent.parent / 'game_config.json'
@@ -520,7 +521,23 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
                         continue
                     # Only reset if dead or over-healed beyond max
                     if u.hp <= 0 or u.hp > max_hp:
-                        u.hp = max_hp
+                        try:
+                            # Use canonical emitters to adjust HP so mutation is centralized.
+                            try:
+                                cur = int(getattr(u, 'hp', 0))
+                            except Exception:
+                                cur = 0
+                            # If under max -> heal up to max
+                            if cur < max_hp:
+                                # Dry-run but apply canonical mutation; do not fall back
+                                # to direct assignment in production.
+                                emit_heal(None, u, max_hp - cur, source=None, side=None)
+                            else:
+                                # cur > max_hp -> remove extra HP using canonical damage path
+                                emit_damage(None, None, u, raw_damage=(cur - max_hp), emit_event=False)
+                        except Exception:
+                            # Do not perform direct HP assignment fallback; skip reset
+                            pass
                         # reset transient combat state
                         if hasattr(u, 'current_mana'):
                             try:
@@ -584,11 +601,42 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
         result = simulator.simulate(player_units, opponent_units, event_collector)
         result['events'] = events
 
-        # Update unit HP with final values from simulation
+        # Update unit HP with final values from simulation via canonical emitters
         for i, unit in enumerate(player_units):
-            unit.hp = simulator.a_hp[i]
+            try:
+                target_hp = int(simulator.a_hp[i])
+                try:
+                    cur = int(getattr(unit, 'hp', 0))
+                except Exception:
+                    cur = 0
+                if target_hp > cur:
+                    emit_heal(None, unit, target_hp - cur, source=None, side=None)
+                elif target_hp < cur:
+                    emit_damage(None, None, unit, raw_damage=(cur - target_hp), emit_event=False)
+                else:
+                    # already equal — nothing to do (keep state authoritative
+                    # and avoid bypassing emitter-based mutation).
+                    pass
+            except Exception:
+                # Do not fall back to direct assignment; skip syncing this unit
+                pass
         for i, unit in enumerate(opponent_units):
-            unit.hp = simulator.b_hp[i]
+            try:
+                target_hp = int(simulator.b_hp[i])
+                try:
+                    cur = int(getattr(unit, 'hp', 0))
+                except Exception:
+                    cur = 0
+                if target_hp > cur:
+                    emit_heal(None, unit, target_hp - cur, source=None, side=None)
+                elif target_hp < cur:
+                    emit_damage(None, None, unit, raw_damage=(cur - target_hp), emit_event=False)
+                else:
+                    # already equal — no-op
+                    pass
+            except Exception:
+                # Do not fall back to direct assignment; skip syncing this unit
+                pass
 
         return result
 
@@ -699,7 +747,8 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
         elif result['winner'] == 'team_b':
             # Defeat - lose HP based on surviving enemy star levels
             hp_loss = (result.get('surviving_star_sum') or 1)  # 1 HP per surviving enemy star
-            player.hp -= hp_loss
+            # Apply player HP loss via canonical emitter to centralize mutation.
+            emit_damage(None, None, player, raw_damage=hp_loss, emit_event=False)
             player.losses += 1
             player.streak = 0
 

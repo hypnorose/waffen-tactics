@@ -390,7 +390,8 @@ class TestSkillsSystem:
         # Check for mana_update event
         mana_updates = [e for e in events if e[0] == 'mana_update']
         assert len(mana_updates) == 1
-        assert mana_updates[0][1]['current_mana'] == 20
+        # Canonical mana payload uses pre_mana/post_mana
+        assert mana_updates[0][1]['post_mana'] == 20
 
     def test_skill_execution_insufficient_mana(self):
         """Test that skills fail with insufficient mana"""
@@ -791,8 +792,8 @@ class TestSkillParserAndEffects:
         # Check for unit_attack event (damage dealt)
         attack_events = [e for e in events if e[0] == 'unit_attack']
         assert len(attack_events) == 1
-        assert attack_events[0][1]['damage'] == 75
-        assert attack_events[0][1]['target_id'] == 'target'
+        assert attack_events[0][1]['applied_damage'] == 75
+        assert attack_events[0][1]['unit_id'] == 'target'
 
     def test_skill_execution_shield_effect(self):
         """Test executing a skill with shield effect"""
@@ -991,7 +992,7 @@ class TestSkillParserAndEffects:
 
         assert len(attack_events) == 1
         assert len(heal_events) == 1
-        assert attack_events[0][1]['damage'] == 50
+        assert attack_events[0][1]['applied_damage'] == 50
         assert heal_events[0][1]['amount'] == 30
 
     def test_skill_execution_with_unit_data(self):
@@ -1056,7 +1057,7 @@ class TestSkillParserAndEffects:
         assert caster.mana == 15  # 50 - 35
         attack_events = [e for e in events if e[0] == 'unit_attack']
         assert len(attack_events) == 1
-        assert attack_events[0][1]['damage'] == 80
+        assert attack_events[0][1]['applied_damage'] == 80
     """Test combat mechanics, death handling, and event processing"""
 
     def setup_method(self):

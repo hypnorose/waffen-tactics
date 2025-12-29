@@ -3,6 +3,7 @@ CombatState class - encapsulates authoritative combat state management
 """
 from typing import List, Dict, Any, Tuple
 import logging
+import os
 
 
 class CombatState:
@@ -76,6 +77,13 @@ class CombatState:
                 print(f"[COMBAT_STATE SYNC] mrozu b_hp[{i}]: {self.b_hp[i]} -> {new_hp} (unit.hp={u.hp})")
             self.b_hp[i] = new_hp
 
+        # Optional debug invariant: raise if unit.hp and hp list diverge
+        try:
+            self.enforce_debug_assertions()
+        except Exception:
+            # Allow caller to catch - do not swallow in production
+            raise
+
     def get_snapshot_data(self, timestamp: float) -> Dict[str, Any]:
         """Generate snapshot data for state_snapshot event.
 
@@ -94,6 +102,18 @@ class CombatState:
             'opponent_units': [u.to_dict(self.b_hp[i], current_mana=self.b_mana[i]) for i, u in enumerate(self.team_b)],
             'timestamp': timestamp
         }
+
+    def enforce_debug_assertions(self) -> None:
+        """If debug invariants enabled via WAFFEN_DEBUG_INVARIANTS=1, raise AssertionError on inconsistencies."""
+        try:
+            enabled = os.getenv('WAFFEN_DEBUG_INVARIANTS', '0')
+        except Exception:
+            enabled = '0'
+        if enabled != '1':
+            return
+        errors = self.validate_state_consistency()
+        if errors:
+            raise AssertionError("CombatState consistency check failed:\n" + "\n".join(errors))
 
     def get_hp_for_unit(self, unit_id: str) -> int:
         """Get current HP for a unit by ID.

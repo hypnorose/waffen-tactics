@@ -36,7 +36,14 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'attacker_name': data.get('attacker_name'),
             'target_id': data.get('target_id'),
             'target_name': data.get('target_name'),
+            # Backwards-compatible aliases: some consumers expect `unit_name`
+            # and `applied_damage` keys. Preserve authoritative values by
+            # preferring the explicit fields when provided.
+            # Prefer `target_name` when present (authoritative), fall back
+            # to `unit_name` for legacy payloads.
+            'unit_name': data.get('target_name', data.get('unit_name')),
             'damage': data.get('damage'),
+            'applied_damage': data.get('applied_damage', data.get('damage')),
             'shield_absorbed': data.get('shield_absorbed', 0),
             # Do NOT silently fallback to `unit_hp` here — preserve the
             # canonical `target_hp` value as provided by the backend.

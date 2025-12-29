@@ -120,3 +120,12 @@ class CombatRegenerationProcessor:
             if b_hp[idx_u] != u.hp:
                 log.append(f"[COMBAT_STATE SYNC] {u.name} b_hp[{idx_u}]: {b_hp[idx_u]} -> {u.hp} (unit.hp={u.hp})")
                 b_hp[idx_u] = u.hp
+
+        # Optional debug invariant: ensure combat_state (if present) is consistent
+        try:
+            combat_state = getattr(self, '_combat_state', None)
+            if combat_state is not None:
+                combat_state.enforce_debug_assertions()
+        except Exception:
+            # Propagate assertion to caller so failures are visible during testing
+            raise

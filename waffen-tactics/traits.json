@@ -362,8 +362,8 @@
     {
       "name": "Starokurwy",
       "type": "faction",
-      "description": "Z każdą rundę zespół staje się silniejszy - bonus HP co rundę",
-      "target": "team",
+      "description": "Z każdą rundę starokurwy stają się silniejsze - bonus HP co rundę",
+      "target": "trait",
       "thresholds": [
         2,
         3,
@@ -1142,7 +1142,7 @@
       "name": "XN Yakuza",
       "type": "class",
       "description": "Za każdą wygraną rundę zyskujesz stałe i procentowe bonusy",
-      "target": null,
+      "target": "self",
       "thresholds": [
         1
       ],

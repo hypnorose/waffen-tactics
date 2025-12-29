@@ -113,26 +113,23 @@ class EventDispatcher:
     def _enhance_mana_payload(self, payload: Dict[str, Any], event_type: str) -> None:
         """Enhance mana_update payloads with delta calculations."""
         try:
+            # Only compute mana delta when the payload supplies an explicit
+            # current mana value. Do not fall back to reading live unit
+            # attributes — that was a backward-compatibility behavior that
+            # obscures the canonical contract between emitters and the
+            # dispatcher.
             if isinstance(payload, dict) and event_type == 'mana_update' and 'amount' not in payload:
                 unit_id = payload.get('unit_id')
-                # Determine current mana from payload or live unit
                 current = payload.get('current_mana')
-                if current is None and unit_id:
-                    for u in self.team_a + self.team_b:
-                        if getattr(u, 'id', None) == unit_id:
-                            current = getattr(u, 'mana', None)
-                            break
                 prev = None
                 if unit_id is not None:
                     prev = self._last_mana.get(unit_id)
-                # If we can compute a numeric non-zero delta, include it
                 if prev is not None and current is not None:
                     try:
                         delta = int(current - prev)
                         if delta != 0:
                             payload['amount'] = delta
                     except Exception:
-                        # ignore failures computing delta
                         pass
         except Exception:
             # best-effort; don't break event emission
@@ -141,37 +138,16 @@ class EventDispatcher:
     def _normalize_hp_payload(self, payload: Dict[str, Any]) -> None:
         """Normalize HP fields in payloads to authoritative values."""
         if isinstance(payload, dict):
-            target_id_ref = payload.get('target_id') or payload.get('unit_id')
+            # Only consider explicit 'target_id' fields. Remove legacy
+            # fallbacks and avoid injecting legacy 'target_hp'/'unit_hp'
+            # fields into the payload. Emitters must provide canonical
+            # HP values explicitly.
+            target_id_ref = payload.get('target_id')
             if target_id_ref:
-                for i, u in enumerate(self.team_a + self.team_b):
-                    if u.id != target_id_ref:
-                        continue
-                    if i < len(self.team_a):
-                        hp_list = self.a_hp
-                        local_idx = i
-                    else:
-                        hp_list = self.b_hp
-                        local_idx = i - len(self.team_a)
-                    try:
-                        authoritative_hp = int(hp_list[local_idx])
-                    except Exception:
-                        authoritative_hp = hp_list[local_idx]
-
-                    # Normalize common payload field names to authoritative value
-                    # ONLY set target_hp/unit_hp if not already present in payload.
-                    # Event handlers (like damage effects) may have already set these
-                    # to the correct post-action HP, which we should preserve.
-                    if 'target_id' in payload and 'target_hp' not in payload:
-                        payload['target_hp'] = authoritative_hp
-                    if 'unit_id' in payload and 'unit_hp' not in payload:
-                        payload['unit_hp'] = authoritative_hp
-
-                    # NOTE: Do NOT overwrite 'old_hp' or 'new_hp' fields.
-                    # These are intentionally set by event handlers to show
-                    # HP transitions (before/after) and should not be modified.
-                    # Only set 'target_hp' and 'unit_hp' if missing from payload.
-
-                    break
+                # No mutation of payload HP fields here; leave any
+                # existing HP fields untouched and require emitters to
+                # provide authoritative values.
+                return
 
     def _update_last_mana(self, payload: Dict[str, Any], event_type: str) -> None:
         """Update last seen mana for delta calculations."""
@@ -179,12 +155,9 @@ class EventDispatcher:
             if isinstance(payload, dict) and payload.get('unit_id') and event_type == 'mana_update':
                 uid = payload.get('unit_id')
                 cur = payload.get('current_mana')
-                # If current_mana missing, attempt to read from unit
-                if cur is None:
-                    for u in self.team_a + self.team_b:
-                        if getattr(u, 'id', None) == uid:
-                            cur = getattr(u, 'mana', None)
-                            break
+                # Only record last-seen mana if the payload explicitly
+                # supplies a numeric `current_mana` value. Do not query
+                # live unit attributes as a fallback.
                 if cur is not None:
                     try:
                         self._last_mana[uid] = int(cur)

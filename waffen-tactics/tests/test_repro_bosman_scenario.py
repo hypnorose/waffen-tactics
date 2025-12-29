@@ -109,9 +109,12 @@ class ReplayUnit:
         if payload.get('target_hp') is not None:
             self.hp = int(payload.get('target_hp'))
         else:
-            # fallback: subtract damage
-            dmg = int(payload.get('damage', 0) or 0)
-            self.hp = max(0, self.hp - dmg)
+            # fallback: prefer post_hp, otherwise subtract applied_damage
+            if payload.get('post_hp') is not None:
+                self.hp = int(payload.get('post_hp'))
+            else:
+                dmg = int(payload.get('applied_damage', 0) or 0)
+                self.hp = max(0, self.hp - dmg)
 
     def apply_unit_died(self):
         self.hp = 0

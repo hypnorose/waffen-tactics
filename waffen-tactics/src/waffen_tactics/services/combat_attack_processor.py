@@ -153,9 +153,14 @@ class CombatAttackProcessor:
                             ua['pre_hp'] = dmg_payload.get('pre_hp')
                             ua['post_hp'] = dmg_payload.get('post_hp')
                             ua['applied_damage'] = dmg_payload.get('applied_damage', ua['applied_damage'])
+                            # Ensure backward-compatible authoritative HP fields
+                            ua['target_hp'] = dmg_payload.get('target_hp', ua.get('post_hp'))
+                            ua['target_max_hp'] = dmg_payload.get('target_max_hp', getattr(target_obj, 'max_hp', None))
                         else:
                             ua['pre_hp'] = old_hp_val
                             ua['post_hp'] = getattr(target_obj, 'hp', new_hp_val)
+                            ua['target_hp'] = ua['post_hp']
+                            ua['target_max_hp'] = getattr(target_obj, 'max_hp', None)
 
                         results.append(('unit_attack', ua))
 

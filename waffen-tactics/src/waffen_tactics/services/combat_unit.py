@@ -87,16 +87,11 @@ class CombatUnit:
             }
         }
 
-    def take_damage(self, damage: int) -> int:
-        """Take damage, applying shield first. Returns actual damage taken."""
-        if self._state.shield > 0:
-            shield_absorbed = min(damage, self._state.shield)
-            self._state.shield -= shield_absorbed
-            damage -= shield_absorbed
-        
-        self._state.current_hp -= damage
-        self._state.current_hp = max(0, self._state.current_hp)
-        return damage
+    # `take_damage` removed — HP mutation must be performed via canonical
+    # emitters (e.g. `emit_damage`) so that `CombatUnit._set_hp` is the
+    # single authoritative path and the event system emits authoritative
+    # payloads. If you relied on `take_damage`, call `emit_damage` from
+    # the appropriate processor instead.
 
     def get_mana(self) -> int:
         """Get the current mana value."""
@@ -112,13 +107,55 @@ class CombatUnit:
         """Update cached values from effects"""
         self._computed_stats = ComputedStats.from_effects(self._state.effects)
 
+    def _set_hp(self, value: int, caller_module: str = None) -> None:
+        """Centralized HP setter — clips value to [0, max_hp].
+
+        Callers should prefer this method when mutating HP so the unit
+        implementation can keep a single place for validation and future
+        instrumentation (logging, invariants, permissions).
+        """
+        try:
+            v = int(value)
+        except Exception:
+            return
+        # Only allow canonical module to set HP in production paths. Tests
+        # and compatibility code may still call the property setter which
+        # routes here without a caller_module; allow that for now.
+        if caller_module is not None and caller_module != 'event_canonicalizer':
+            raise PermissionError("HP can only be set by event_canonicalizer when caller_module is provided")
+
+        # Allow temporarily setting current HP beyond the immutable stats hp
+        # during initialization or when callers set hp before updating max_hp.
+        # Clamping to max_hp should occur when max_hp is explicitly changed.
+        new_hp = max(0, v)
+        self._state.current_hp = new_hp
+
     @property
     def hp(self) -> int:
         return self._state.current_hp
 
     @hp.setter
     def hp(self, value: int):
-        self._state.current_hp = value
+        # Route assignments through centralized setter for validation and
+        # future instrumentation. Only allow direct property assignment
+        # when invoked from the canonical emitter/service (`event_canonicalizer`).
+        # Other call sites must call the canonical emitters so events carry
+        # authoritative HP.
+        import inspect
+
+        stack = inspect.stack()
+        try:
+            for fr in stack[1:6]:
+                mod = inspect.getmodule(fr.frame)
+                if mod and 'event_canonicalizer' in getattr(mod, '__name__', ''):
+                    # Authorized caller — forward caller identity to _set_hp
+                    self._set_hp(value, caller_module='event_canonicalizer')
+                    return
+        finally:
+            # avoid reference cycles
+            del stack
+
+        raise PermissionError('Direct HP assignment is restricted; use canonical emitters (event_canonicalizer) to mutate HP')
 
     @property
     def mana(self) -> int:

@@ -155,7 +155,8 @@ def apply_event_to_units(ev, units):
         uid = data.get('unit_id')
         unit = units.get(uid)
         if unit:
-            canon.emit_damage_over_time_tick(None, unit, data.get('damage'), data.get('damage_type'), side=data.get('side'), timestamp=data.get('timestamp'))
+            dmg = data.get('applied_damage') if data.get('applied_damage') is not None else data.get('damage')
+            canon.emit_damage_over_time_tick(None, unit, dmg, data.get('damage_type'), side=data.get('side'), timestamp=data.get('timestamp'))
     elif typ == 'unit_stunned':
         uid = data.get('unit_id')
         unit = units.get(uid)

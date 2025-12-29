@@ -54,7 +54,7 @@ class TestEventCanonicalizer(unittest.TestCase):
         payload = ec.emit_heal(cb, u, 20, timestamp=1.0)
         self.assertEqual(u.hp, 100)
         self.assertEqual(events[0][0], 'heal')
-        self.assertEqual(events[0][1]['unit_hp'], 100)
+        self.assertEqual(events[0][1]['post_hp'], 100)
 
     def test_emit_mana_update_sets_mana_and_payload(self):
         u = DummyUnit()
@@ -93,7 +93,7 @@ class TestEventCanonicalizer(unittest.TestCase):
         ec.emit_damage_over_time_tick(cb, u, 12, damage_type='magic', side='team_b', timestamp=4.0)
         self.assertEqual(u.hp, 38)
         self.assertEqual(events[0][0], 'damage_over_time_tick')
-        self.assertEqual(events[0][1]['damage'], 12)
+        self.assertEqual(events[0][1]['applied_damage'], 12)
 
     def test_emit_unit_heal_with_healer_payload(self):
         target = DummyUnit(id=10, name='T')

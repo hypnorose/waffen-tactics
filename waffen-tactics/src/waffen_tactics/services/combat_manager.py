@@ -8,6 +8,7 @@ from ..services.combat import CombatSimulator
 from ..services.data_loader import GameData
 import logging
 import copy
+from .event_canonicalizer import emit_damage
 
 bot_logger = logging.getLogger('waffen_tactics')
 
@@ -141,7 +142,14 @@ class CombatManager:
             surviving_stars = sum(unit.star_level for unit in team_b_combat if unit.hp > 0)
             opponent_level = opponent_info.get('level', 1) if opponent_info else 1
             damage = surviving_stars + opponent_level
-            player.hp -= damage
+            # Apply damage to player via canonical emitter so HP mutation is centralized
+            try:
+                emit_damage(None, None, player, raw_damage=damage, emit_event=False)
+            except Exception:
+                try:
+                    player.hp -= damage
+                except Exception:
+                    pass
             result['winner'] = 'opponent'
 
         result['damage_taken'] = damage

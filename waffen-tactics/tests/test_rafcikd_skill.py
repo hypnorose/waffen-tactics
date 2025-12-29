@@ -33,7 +33,8 @@ def make_combat_unit_from_unitdef(unit_def, instance_id='inst', hp=None, max_hp=
 
     # Ensure max_hp attribute exists for conditional checks
     cu.max_hp = max_m
-    cu.hp = cur_hp
+    # Initialize HP via canonical setter to satisfy HP assignment restrictions
+    cu._set_hp(cur_hp, caller_module='event_canonicalizer')
     return cu
 
 

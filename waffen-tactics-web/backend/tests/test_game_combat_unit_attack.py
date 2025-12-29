@@ -20,8 +20,8 @@ def make_attack_payload(target_hp=None, unit_hp=None, damage=10, seq=1, timestam
         'attacker_id': 'a1',
         'attacker_name': 'Att',
         'target_id': 't1',
-        'target_name': 'Tgt',
-        'damage': damage,
+        'unit_name': 'Tgt',
+        'applied_damage': damage,
         'shield_absorbed': 0,
         'target_hp': target_hp,
         'unit_hp': unit_hp,
@@ -80,8 +80,8 @@ def test_map_event_preserves_all_fields_when_provided():
     assert out['attacker_id'] == '4e959bcc'
     assert out['attacker_name'] == 'Piwniczak'
     assert out['target_id'] == 'opp_0'
-    assert out['target_name'] == 'V7'
-    assert out['damage'] == 20
+    assert out.get('unit_name') == 'V7'
+    assert out.get('applied_damage') == 20
     assert out['shield_absorbed'] == 0
     assert out['target_hp'] == 30
     assert out['target_max_hp'] == 964
@@ -106,8 +106,8 @@ def test_map_event_defaults_and_types_when_missing():
     assert out['attacker_id'] == 'a2'
     assert out['attacker_name'] == 'A2'
     assert out['target_id'] == 't2'
-    assert out['target_name'] == 'T2'
-    assert out['damage'] == 5
+    assert out.get('unit_name') == 'T2'
+    assert out.get('applied_damage') == 5
     # Defaults: shield_absorbed -> 0, is_skill -> False
     assert out['shield_absorbed'] == 0
     assert out['is_skill'] is False

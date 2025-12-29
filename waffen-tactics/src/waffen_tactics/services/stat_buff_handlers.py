@@ -132,7 +132,22 @@ class HpBuffHandler(StatBuffHandler):
         return unit.hp
 
     def set_value(self, unit: 'CombatUnit', value: float) -> None:
-        unit.hp = StatCalculator.validate_stat_value(value, 'hp')
+        # Route through central setter for consistency
+        validated = StatCalculator.validate_stat_value(value, 'hp')
+        # Route absolute HP changes through canonical emitters instead of
+        # bypassing the guard with `caller_module` strings. Compute the
+        # delta from the current HP and apply via `emit_heal`/`emit_damage`.
+        try:
+            cur = int(getattr(unit, 'hp', 0))
+        except Exception:
+            cur = 0
+        delta = int(validated) - cur
+        from waffen_tactics.services.event_canonicalizer import emit_heal, emit_damage
+
+        if delta > 0:
+            emit_heal(None, unit, delta, source=None, side=None)
+        elif delta < 0:
+            emit_damage(None, None, unit, raw_damage=abs(delta), emit_event=False)
 
     def apply_buff(
         self,
@@ -153,14 +168,16 @@ class HpBuffHandler(StatBuffHandler):
 
         added = buffed_value
         log.append(f"{unit.name} gains +{buffed_value:.0f} HP (stat_buff)")
-        if event_callback:
-            emit_stat_buff(event_callback, unit, 'hp', added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
-            # Sync hp_list with unit's updated HP
+        # Always route HP changes through the canonical stat/HP emitters.
+        # `emit_stat_buff` will apply HP changes (via emit_heal) even when
+        # `event_callback` is None (dry-run), ensuring a single authoritative
+        # path for HP mutation.
+        emit_stat_buff(event_callback, unit, 'hp', added, value_type='flat', duration=None, permanent=False, source=None, side=side, timestamp=time, cause='effect')
+        # Sync hp_list with unit's updated HP (emitter will keep unit.hp authoritative)
+        try:
             hp_list[unit_idx] = unit.hp
-        else:
-            self.set_value(unit, final_value)
-            # Sync hp_list with unit's updated HP
-            hp_list[unit_idx] = unit.hp
+        except Exception:
+            pass
 
 
 class AttackSpeedBuffHandler(StatBuffHandler):

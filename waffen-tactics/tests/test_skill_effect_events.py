@@ -16,7 +16,8 @@ def test_skill_emits_heal_and_shield_events_and_applies_effects():
     caster = CombatUnit(id='caster', name='Healer', hp=50, attack=10, defense=5, attack_speed=1.0, max_mana=100)
     caster.mana = 100  # full mana
     caster.max_hp = 100
-    caster.hp = 50
+    # Initialize via canonical setter
+    caster._set_hp(50, caller_module='event_canonicalizer')
 
     # No enemies needed for SELF-targeted effects
     team_a = [caster]
@@ -96,7 +97,7 @@ def test_random_vs_persistent_single_enemy_targeting():
     damage_events1 = [e for e in events1 if e[0] == 'unit_attack']
     targets_hit1 = set()
     for event_type, data in damage_events1:
-        targets_hit1.add(data['target_name'])
+        targets_hit1.add(data.get('unit_name'))
     
     # Random targeting should hit multiple enemies (potentially)
     assert len(damage_events1) == 3
@@ -104,7 +105,7 @@ def test_random_vs_persistent_single_enemy_targeting():
     
     # Reset enemy HP and caster mana
     for enemy in enemies:
-        enemy.hp = 200
+        enemy._set_hp(200, caller_module='event_canonicalizer')
         enemy.effects = []
     caster.mana = 120
     
@@ -118,9 +119,9 @@ def test_random_vs_persistent_single_enemy_targeting():
     targets_hit2 = set()
     for event_type, data in damage_events2 + stun_events2:
         if event_type == 'unit_attack':
-            targets_hit2.add(data['target_name'])
+            targets_hit2.add(data.get('unit_name'))
         elif event_type == 'unit_stunned':
-            targets_hit2.add(data['unit_name'])
+            targets_hit2.add(data.get('unit_name'))
     
     # Persistent targeting should hit exactly 1 enemy for all effects
     assert len(damage_events2) == 2
@@ -168,7 +169,7 @@ def test_repeat_effect_with_persistent_targeting():
     # All damage should hit the same target (persistent targeting)
     targets_hit = set()
     for event_type, data in damage_events:
-        targets_hit.add(data['target_name'])
+        targets_hit.add(data.get('unit_name'))
     
     assert len(targets_hit) == 1  # Only one target hit
     
@@ -217,12 +218,12 @@ def test_updated_skill_examples_from_docs():
     assert len(damage_events) == 1
     
     stunned_target = stun_events[0][1]['unit_name']
-    damaged_target = damage_events[0][1]['target_name']
+    damaged_target = damage_events[0][1].get('unit_name')
     assert stunned_target == damaged_target
     
     # Reset for next test
     for enemy in enemies:
-        enemy.hp = 500
+        enemy._set_hp(500, caller_module='event_canonicalizer')
         enemy.effects = []
     caster.mana = 120
     
@@ -238,7 +239,7 @@ def test_updated_skill_examples_from_docs():
     # Both should hit the same target
     targets_hit = set()
     for event_type, data in damage_events2:
-        targets_hit.add(data['target_name'])
+        targets_hit.add(data.get('unit_name'))
     
     assert len(targets_hit) == 1
     

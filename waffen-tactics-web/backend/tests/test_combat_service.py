@@ -514,8 +514,8 @@ class TestCombatService(unittest.TestCase):
         # Test negative damage event (should heal)
         negative_damage_event = ('unit_attack', {
             'target_id': 'opponent1',
-            'new_hp': 120,  # HP increases due to negative damage
-            'damage': -20,  # Negative damage means healing
+            'post_hp': 120,  # HP increases due to negative damage
+            'applied_damage': -20,  # Negative damage means healing
             'shield_absorbed': 0,
             'seq': 1,
             'timestamp': 1.0
@@ -524,9 +524,9 @@ class TestCombatService(unittest.TestCase):
         # Process the event (simulate the test's event processing)
         event_type, event_data = negative_damage_event
         target_id = event_data.get('target_id')
-        new_hp = event_data.get('target_hp') or event_data.get('new_hp')
+        new_hp = event_data.get('target_hp') or event_data.get('post_hp')
         shield_absorbed = event_data.get('shield_absorbed', 0)
-        damage = event_data.get('damage', 0)
+        damage = event_data.get('applied_damage', 0)
 
         print(f"Processing negative damage event: damage={damage}, new_hp={new_hp}")
 
@@ -544,8 +544,8 @@ class TestCombatService(unittest.TestCase):
         # Test positive damage event (should damage)
         positive_damage_event = ('unit_attack', {
             'target_id': 'player1',
-            'new_hp': 80,  # HP decreases
-            'damage': 20,  # Positive damage
+            'post_hp': 80,  # HP decreases
+            'applied_damage': 20,  # Positive damage
             'shield_absorbed': 0,
             'seq': 2,
             'timestamp': 2.0
@@ -553,7 +553,7 @@ class TestCombatService(unittest.TestCase):
 
         event_type, event_data = positive_damage_event
         target_id = event_data.get('target_id')
-        new_hp = event_data.get('target_hp') or event_data.get('new_hp')
+        new_hp = event_data.get('target_hp') or event_data.get('post_hp')
         shield_absorbed = event_data.get('shield_absorbed', 0)
 
         if target_id in reconstructed_player_units:

@@ -35,8 +35,8 @@ def test_seq_advances_and_hp_normalization():
     assert et == 'unit_attack'
     assert payload.get('seq') == 1
     assert 'event_id' in payload
-    # normalized field should be present and equal to authoritative hp
-    assert payload.get('target_hp') == b_hp[0]
+    # dispatcher no longer injects legacy HP fields; emitters must provide them
+    assert 'target_hp' not in payload
 
 
 def test_seq_not_advanced_on_callback_exception():

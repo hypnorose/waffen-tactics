@@ -63,8 +63,10 @@ class ReplayUnit:
     def apply_attack(self, payload: dict):
         if payload.get('target_hp') is not None:
             self.hp = int(payload.get('target_hp'))
+        elif payload.get('post_hp') is not None:
+            self.hp = int(payload.get('post_hp'))
         else:
-            dmg = int(payload.get('damage', 0) or 0)
+            dmg = int(payload.get('applied_damage', 0) or 0)
             shield_absorbed = int(payload.get('shield_absorbed', 0) or 0)
             actual = max(0, dmg - shield_absorbed)
             self.hp = max(0, self.hp - actual)
@@ -119,7 +121,7 @@ class ReplayUnit:
         self.hp = int(min(self.max_hp, self.hp + amt))
 
     def apply_dot(self, payload: dict):
-        dmg = int(payload.get('damage', 0) or 0)
+        dmg = int(payload.get('applied_damage', 0) or 0)
         self.hp = max(0, self.hp - dmg)
 
     def apply_stun(self, payload: dict):

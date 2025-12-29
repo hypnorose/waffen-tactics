@@ -196,7 +196,11 @@ def test_persistence_between_combats():
         print(f"\n🔄 Resetting units to initial state for next round...")
 
         for unit, initial in zip(team_a, initial_a):
-            unit.hp = initial['hp']
+            # Use canonical setter to restore HP
+            try:
+                unit._set_hp(initial['hp'], caller_module='event_canonicalizer')
+            except Exception:
+                unit.hp = initial['hp']
             unit.attack = initial['attack']
             unit.defense = initial['defense']
             unit.attack_speed = initial['attack_speed']
@@ -207,7 +211,10 @@ def test_persistence_between_combats():
             unit.stunned_expires_at = None
 
         for unit, initial in zip(team_b, initial_b):
-            unit.hp = initial['hp']
+            try:
+                unit._set_hp(initial['hp'], caller_module='event_canonicalizer')
+            except Exception:
+                unit.hp = initial['hp']
             unit.attack = initial['attack']
             unit.defense = initial['defense']
             unit.attack_speed = initial['attack_speed']

@@ -95,7 +95,12 @@ class TestHpBuffHandler(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
         self.handler = HpBuffHandler()
-        self.mock_unit = Mock()
+        # Use a lightweight plain object rather than Mock so that
+        # canonical emitters that inspect `_set_hp` behave predictably.
+        class DummyUnit:
+            pass
+
+        self.mock_unit = DummyUnit()
         self.mock_unit.name = "TestHealer"
         self.mock_unit.hp = 500
         self.mock_unit.max_hp = 1000
