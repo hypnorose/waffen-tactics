@@ -381,7 +381,14 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
 
                     # Apply synergies using SynergyEngine
                     buffed_stats_b = game_manager.synergy_engine.apply_stat_buffs(base_stats_dict_b, unit, opponent_active)
-                    buffed_stats_b = game_manager.synergy_engine.apply_dynamic_effects(unit, buffed_stats_b, opponent_active, None)  # No player for opponent
+                    # Construct a lightweight PlayerState-like object for opponent so dynamic effects
+                    # that rely on wins/losses have correct context.
+                    try:
+                        from waffen_tactics.models.player_state import PlayerState as _PS
+                        opponent_player = _PS(user_id=opponent_data.get('user_id', 0), username=opponent_name, level=opponent_level, wins=opponent_wins, losses=opponent_data.get('losses', 0))
+                    except Exception:
+                        opponent_player = None
+                    buffed_stats_b = game_manager.synergy_engine.apply_dynamic_effects(unit, buffed_stats_b, opponent_active, opponent_player)
                     if buffed_stats_b is None:
                         buffed_stats_b = base_stats_dict_b.copy()
 

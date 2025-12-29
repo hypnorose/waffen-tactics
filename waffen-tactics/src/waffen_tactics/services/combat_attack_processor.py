@@ -85,9 +85,10 @@ class CombatAttackProcessor:
                 # Calculate damage
                 damage = self._calculate_damage(unit, defending_team[target_idx])
                 old_hp = int(defending_hp[target_idx])
-                defending_hp[target_idx] -= damage
-                defending_hp[target_idx] = max(0, int(defending_hp[target_idx]))
-                new_hp = int(defending_hp[target_idx])
+                # Compute new_hp but DO NOT mutate defending_hp here when running under
+                # the simulator scheduler. Mutations must happen atomically inside
+                # the scheduled action via the canonical emitter (`emit_damage`).
+                new_hp = max(0, old_hp - int(damage))
                 # print(f"[HP DEBUG] ts={time:.9f} side={side} target={defending_team[target_idx].id}:{defending_team[target_idx].name} old_hp={old_hp} -> new_hp={new_hp} cause=attack damage={damage}")
 
                 # Log and callback
@@ -109,7 +110,7 @@ class CombatAttackProcessor:
 
                 # Schedule unit_attack and mana_update with a UI delay (0.2s)
                 attack_ts = round(time + 0.2, 10)
-                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val, target_idx_arg=None):
+                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val, target_idx_arg=None, compute_ts=None):
                     def action():
                         from .event_canonicalizer import emit_damage, emit_unit_died
                         results = []
@@ -158,11 +159,76 @@ class CombatAttackProcessor:
 
                         results.append(('unit_attack', ua))
 
-                        # If the canonical damage resulted in death, emit unit_died payload
+                        # DEBUG: log dmg_payload contents to help trace missing unit_died
+                        try:
+                            print(f"[MAKE_ACTION DEBUG] dmg_payload={dmg_payload}")
+                        except Exception:
+                            pass
+
+                        # If the canonical damage resulted in death, prepare unit_died
+                        # payload and process on-death effects via the modular effect
+                        # processor into the local results list so they are emitted
+                        # in-order by the simulator sink.
                         if isinstance(dmg_payload, dict) and dmg_payload.get('post_hp') == 0:
-                            died = emit_unit_died(None, target_obj, side=side_val, timestamp=deliver_ts, unit_hp=dmg_payload.get('pre_hp'), hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side)
-                            if died:
-                                results.append(('unit_died', died))
+                            try:
+                                # Mark unit as dead and get canonical died payload
+                                died = emit_unit_died(None, target_obj, side=side_val, timestamp=deliver_ts, unit_hp=dmg_payload.get('pre_hp'), hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side)
+                                print(f"[MAKE_ACTION DEBUG] emit_unit_died returned: {died}")
+                                if died:
+                                    results.append(('unit_died', died))
+
+                                # If we have a modular_effect_processor available on self,
+                                # execute ON_ENEMY_DEATH and ON_ALLY_DEATH triggers using
+                                # a local collector that appends events to results so that
+                                # they are emitted in-order by the sink.
+                                try:
+                                    from .modular_effect_processor import TriggerType
+                                    if hasattr(self, 'modular_effect_processor') and self.modular_effect_processor:
+                                        def _local_collector(ev_type, ev_payload):
+                                            results.append((ev_type, ev_payload))
+
+                                        # Build context similar to CombatEffectProcessor
+                                        context = {
+                                            'current_unit': attacker,
+                                            'all_units': attacking_team + defending_team,
+                                            'enemy_units': defending_team,
+                                            'ally_units': attacking_team,
+                                            'collected_stats': getattr(attacker, 'collected_stats', {}),
+                                            # Use the original compute timestamp so modular triggers
+                                            # see the time the attack was computed (animation_start),
+                                            # matching legacy behavior and test expectations.
+                                            'current_time': compute_ts if compute_ts is not None else deliver_ts,
+                                            'side': side_val,
+                                            'player': attacker,
+                                            'target_unit': target_obj,
+                                            'killer_unit': attacker,
+                                            'triggered_rewards': set(),
+                                        }
+
+                                        # Process ON_ENEMY_DEATH
+                                        try:
+                                            self.modular_effect_processor.process_trigger(TriggerType.ON_ENEMY_DEATH, context, _local_collector)
+                                        except Exception:
+                                            pass
+
+                                        # Process ON_ALLY_DEATH
+                                        try:
+                                            ally_ctx = {
+                                                    'all_units': attacking_team + defending_team,
+                                                    'enemy_units': attacking_team,
+                                                    'ally_units': defending_team,
+                                                    'current_time': compute_ts if compute_ts is not None else deliver_ts,
+                                                    'side': 'team_b' if side_val == 'team_a' else 'team_a',
+                                                    'dead_ally': target_obj,
+                                                    'triggered_rewards': set(),
+                                                }
+                                            self.modular_effect_processor.process_trigger(TriggerType.ON_ALLY_DEATH, ally_ctx, _local_collector)
+                                        except Exception:
+                                            pass
+                                except Exception:
+                                    pass
+                            except Exception as e:
+                                print(f"[MAKE_ACTION ERROR] emit_unit_died raised: {e}")
 
                         # Emit mana_update snapshot for attacker at deliver_ts
                         mu = {
@@ -179,13 +245,17 @@ class CombatAttackProcessor:
 
                 # If running under CombatSimulator, use scheduler; otherwise emit immediately
                 if hasattr(self, 'schedule_event') and event_callback:
-                    action_callable = make_action(unit, defending_team[target_idx], damage, side, attack_ts, old_hp, new_hp, target_idx_arg=target_idx)
+                    action_callable = make_action(unit, defending_team[target_idx], damage, side, attack_ts, old_hp, new_hp, target_idx_arg=target_idx, compute_ts=time)
                     # Schedule for delivery at attack_ts
                     # note: CombatSimulator.schedule_event will handle the heap
                     self.schedule_event(attack_ts, action_callable)
                 else:
                     # No scheduler available - emit immediate unit_attack
                     if event_callback:
+                        # For the non-scheduled path we must apply the HP delta
+                        # immediately so downstream logic observing defending_hp
+                        # sees the authoritative change.
+                        defending_hp[target_idx] = new_hp
                         event_callback('unit_attack', {
                             'attacker_id': unit.id,
                             'attacker_name': unit.name,
@@ -200,11 +270,13 @@ class CombatAttackProcessor:
                             'timestamp': attack_ts
                         })
 
-                # Check if target died
-                if defending_hp[target_idx] <= 0:
-                    self._process_unit_death(
-                        unit, defending_team, defending_hp, attacking_team, attacking_hp, target_idx, time, log, event_callback, side
-                    )
+                # Check if target died (only meaningful for non-scheduled path
+                # because scheduled deliveries will run death-processing later).
+                if not (hasattr(self, 'schedule_event') and event_callback):
+                    if defending_hp[target_idx] <= 0:
+                        self._process_unit_death(
+                            unit, defending_team, defending_hp, attacking_team, attacking_hp, target_idx, time, log, event_callback, side
+                        )
 
                 # Post-attack effect processing (lifesteal, mana on attack)
                 # Lifesteal: heal attacker by damage * lifesteal%

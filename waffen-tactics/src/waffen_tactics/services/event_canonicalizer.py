@@ -877,8 +877,12 @@ def emit_damage(
         except Exception:
             pass
 
-    # If target died as the result, also emit unit_died with authoritative pre_hp
-    if post_hp == 0:
+    # If target died as the result, emit unit_died only when we are
+    # actually emitting events (not during dry-run / emit_event=False).
+    # This prevents emit_damage from marking `_dead` during compute-only
+    # calls and allows callers (e.g. scheduled actions) to control when
+    # death events are emitted to collectors.
+    if post_hp == 0 and emit_event and event_callback:
         try:
             emit_unit_died(event_callback, target, side=side, timestamp=ts, unit_hp=pre_hp)
         except Exception:

@@ -251,10 +251,13 @@ class SynergyEngine:
                 for reward in e.get('rewards', []):
                     rtype = reward.get('type')
                     if rtype == 'dynamic_scaling':
+                        # Safely handle missing player (e.g., opponent construction passes None)
+                        wins = int(getattr(player, 'wins', 0) or 0)
+                        losses = int(getattr(player, 'losses', 0) or 0)
                         if 'percent_per_loss' in reward:
                             # Dynamic HP per loss
                             percent_per_loss = float(reward.get('percent_per_loss', 0))
-                            extra_multiplier = 1.0 + (percent_per_loss * float(player.losses) / 100.0)
+                            extra_multiplier = 1.0 + (percent_per_loss * float(losses) / 100.0)
                             stats['hp'] = int(stats['hp'] * extra_multiplier)
                         else:
                             # Win scaling
@@ -262,11 +265,11 @@ class SynergyEngine:
                             def_per_win = float(reward.get('def_per_win', 0))
                             hp_percent_per_win = float(reward.get('hp_percent_per_win', 0))
                             as_per_win = float(reward.get('as_per_win', 0))
-                            stats['attack'] += int(atk_per_win * player.wins)
-                            stats['defense'] += int(def_per_win * player.wins)
-                            if hp_percent_per_win:
-                                stats['hp'] = int(stats['hp'] * (1 + (hp_percent_per_win * player.wins) / 100.0))
-                            stats['attack_speed'] += as_per_win * player.wins
+                            stats['attack'] += int(atk_per_win * wins)
+                            stats['defense'] += int(def_per_win * wins)
+                            if hp_percent_per_win and wins:
+                                stats['hp'] = int(stats['hp'] * (1 + (hp_percent_per_win * wins) / 100.0))
+                            stats['attack_speed'] += as_per_win * wins
 
         # Return computed dynamic stats after processing all active traits
         return stats

@@ -122,7 +122,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           newHp = event.new_hp
         }
 
-        const shieldAbsorbed = event.shield_absorbed || 0
+        const shieldAbsorbed = event.shield_absorbed ?? 0
 
         if (newHp !== undefined) {
           // Use authoritative HP from backend
@@ -135,23 +135,11 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           } else {
             newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, updateFn)
           }
-        } else if (event.damage !== undefined) {
-          // Fallback: Calculate from delta (TEMPORARY - backend should always provide authoritative HP)
-          // WARNING: This path causes desyncs! Backend should emit unit_hp/target_hp in attack events.
-          console.warn(`⚠️ unit_attack event ${event.seq} missing authoritative HP - using fallback calculation (may desync)`)
-          const damage = event.damage
-          const hpDamage = damage - shieldAbsorbed
-          const updateFn = (u: Unit) => {
-            const oldHp = u.hp
-            const calcHp = Math.max(0, oldHp - hpDamage)
-            const newShield = Math.max(0, (u.shield || 0) - shieldAbsorbed)
-            return { ...u, hp: calcHp, shield: newShield }
-          }
-          if (event.target_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.target_id, updateFn)
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, updateFn)
-          }
+        } else {
+          // No authoritative HP provided — do NOT attempt local fallback calculation.
+          // Preserve event-sourcing: missing fields should surface desyncs so upstream
+          // bugs are fixed rather than masked here.
+          console.warn(`⚠️ unit_attack event ${event.seq} missing authoritative HP - skipping local HP update`)
         }
       }
       const msg = event.is_skill

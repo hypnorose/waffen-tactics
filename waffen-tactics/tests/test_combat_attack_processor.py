@@ -247,6 +247,46 @@ class TestCombatAttackProcessor(unittest.TestCase):
         self.assertIsInstance(event['duration'], (int, float))
         self.assertGreater(event['duration'], 0)
 
+    def test_no_premature_hp_mutation_with_scheduler(self):
+        """If a scheduler is present, defending_hp must not be mutated during compute."""
+        attacker = MockUnit('player_1', 'Warrior')
+        defender = MockUnit('opp_1', 'Goblin')
+
+        # Setup processor and fake scheduler - reuse processor initialized in setUp
+        # to preserve test mocks for internal helper methods.
+        # (setUp already created `self.processor` and attached mocks)
+
+        # Provide a dummy schedule_event attribute to signal simulator mode
+        scheduled = {}
+
+        def dummy_schedule_event(deliver_at, action_callable):
+            # Record that an action was scheduled but do NOT execute it
+            scheduled['called'] = True
+
+        self.processor.schedule_event = dummy_schedule_event
+
+        emitted_events = []
+
+        def mock_event_callback(event_type, event):
+            emitted_events.append((event_type, event))
+
+        defending_hp = [100]
+
+        # Execute compute: should schedule an action and NOT mutate defending_hp
+        self.processor._process_team_attacks(
+            attacking_team=[attacker],
+            defending_team=[defender],
+            attacking_hp=[100],
+            defending_hp=defending_hp,
+            time=1.0,
+            log=[],
+            event_callback=mock_event_callback,
+            side='team_a'
+        )
+
+        assert scheduled.get('called', False) is True
+        assert defending_hp[0] == 100, "defending_hp must not be mutated by compute when scheduler is present"
+
 
 if __name__ == '__main__':
     unittest.main()

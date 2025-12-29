@@ -38,7 +38,11 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'target_name': data.get('target_name'),
             'damage': data.get('damage'),
             'shield_absorbed': data.get('shield_absorbed', 0),
-            'target_hp': data.get('target_hp') or data.get('unit_hp'),
+            # Do NOT silently fallback to `unit_hp` here — preserve the
+            # canonical `target_hp` value as provided by the backend.
+            # If `target_hp` is missing, let that be visible to callers/tests
+            # so we can surface bugs instead of hiding them.
+            'target_hp': data.get('target_hp'),
             'target_max_hp': data.get('target_max_hp'),
             'is_skill': data.get('is_skill', False),
             'timestamp': data.get('timestamp', time.time()),
@@ -277,9 +281,12 @@ def map_event_to_sse_payload(event_type: str, data: dict):
         # Attach event_id if present
         if 'event_id' in data and data.get('event_id'):
             res['event_id'] = data.get('event_id')
-        # Attach game_state if present
-        if 'game_state' in data:
-            res['game_state'] = data['game_state']
+        # Attach game_state if present. Make a snapshot copy so payloads are
+        # independent of later simulator mutations. Allow exceptions to
+        # propagate so caller can observe issues rather than silently falling back.
+            if 'game_state' in data:
+                import copy
+                res['game_state'] = copy.deepcopy(data['game_state'])
         logger.debug(f"Mapped {event_type} to payload with seq={res.get('seq')}")
         return res
 
