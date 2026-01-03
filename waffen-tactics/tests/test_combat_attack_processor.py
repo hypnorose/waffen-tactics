@@ -29,6 +29,12 @@ class MockUnit:
     def get_mana(self):
         return self.mana
 
+    def _set_mana(self, new_val, caller_module=None):
+        try:
+            self.mana = int(new_val)
+        except Exception:
+            self.mana = new_val
+
 
 class TestCombatAttackProcessor(unittest.TestCase):
     """Unit tests for CombatAttackProcessor"""

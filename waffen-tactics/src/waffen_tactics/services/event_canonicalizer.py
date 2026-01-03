@@ -65,15 +65,12 @@ def emit_stat_buff(
             try:
                 emit_heal(event_callback, recipient, delta, source=source, side=side, timestamp=ts)
             except Exception:
-                # best-effort fallback
+                # No silent fallback: require recipient to support canonical setter
                 _val = min(getattr(recipient, 'max_hp', getattr(recipient, 'hp', 0)), getattr(recipient, 'hp', 0) + delta)
-                try:
-                    if hasattr(recipient, '_set_hp'):
-                        recipient._set_hp(_val, caller_module='event_canonicalizer')
-                    else:
-                        recipient.hp = _val
-                except Exception:
-                    pass
+                if hasattr(recipient, '_set_hp'):
+                    recipient._set_hp(_val, caller_module='event_canonicalizer')
+                else:
+                    raise RuntimeError('emit_stat_buff: recipient does not support canonical HP mutation')
         elif stat in ('attack_speed', 'lifesteal', 'damage_reduction', 'hp_regen_per_sec'):
             # float fields
             cur = float(getattr(recipient, stat, 0.0))
@@ -180,14 +177,11 @@ def emit_heal(
         max_hp = int(getattr(recipient, 'max_hp', cur))
         add = int(amount)
         new = min(max_hp, cur + add)
-        # apply mutation to both recipient.hp and return new value
-        try:
-            if hasattr(recipient, '_set_hp'):
-                recipient._set_hp(new, caller_module='event_canonicalizer')
-            else:
-                recipient.hp = new
-        except Exception:
-            pass
+        # apply mutation to recipient via canonical setter only
+        if hasattr(recipient, '_set_hp'):
+            recipient._set_hp(new, caller_module='event_canonicalizer')
+        else:
+            raise RuntimeError('emit_heal: recipient does not support canonical HP mutation')
     except Exception:
         # best-effort
         new = getattr(recipient, 'hp', None)
@@ -235,11 +229,15 @@ def emit_mana_update(
         if current_mana is None:
             current_mana = getattr(recipient, 'mana', None)
         else:
-            recipient.mana = current_mana
+            # Require canonical setter for absolute mana mutation
+            if hasattr(recipient, '_set_mana'):
+                recipient._set_mana(current_mana, caller_module='event_canonicalizer')
+            else:
+                raise RuntimeError('emit_mana_update: recipient does not support canonical mana mutation')
         if max_mana is None:
             max_mana = getattr(recipient, 'max_mana', None)
     except Exception:
-        pass
+        raise
 
     payload = {
         'unit_id': getattr(recipient, 'id', None),
@@ -312,17 +310,11 @@ def emit_mana_change(
     except Exception:
         pass
 
-    # Mutate the unit's canonical mana using internal setter when available
-    try:
-        if hasattr(recipient, '_set_mana'):
-            recipient._set_mana(new_val, caller_module='event_canonicalizer')
-        else:
-            recipient.mana = new_val
-    except Exception:
-        try:
-            recipient.mana = new_val
-        except Exception:
-            pass
+    # Mutate the unit's canonical mana using internal setter only
+    if hasattr(recipient, '_set_mana'):
+        recipient._set_mana(new_val, caller_module='event_canonicalizer')
+    else:
+        raise RuntimeError('emit_mana_change: recipient does not support canonical mana mutation')
 
     applied_amount = None
     try:
@@ -416,7 +408,7 @@ def emit_unit_died(
                 if hasattr(recipient, '_set_hp'):
                     recipient._set_hp(0, caller_module='event_canonicalizer')
                 else:
-                    recipient.hp = 0
+                    raise RuntimeError('emit_unit_died: recipient does not support canonical HP mutation')
             except Exception:
                 pass
 
@@ -476,13 +468,11 @@ def emit_unit_heal(
         add = int(amount)
         new = min(max_hp, cur + add)
         # apply mutation to target (canonical setter when available)
-        try:
-            if hasattr(target, '_set_hp'):
-                target._set_hp(new, caller_module='event_canonicalizer')
-            else:
-                target.hp = new
-        except Exception:
-            pass
+        # apply mutation to target via canonical setter only
+        if hasattr(target, '_set_hp'):
+            target._set_hp(new, caller_module='event_canonicalizer')
+        else:
+            raise RuntimeError('emit_unit_heal: target does not support canonical HP mutation')
         # Debug logging for mrozu
         if getattr(target, 'id', None) == 'mrozu':
             import sys
@@ -550,13 +540,11 @@ def emit_hp_regen(
         add = int(amount)
         new = min(max_hp, cur + add)
         # apply mutation to recipient.hp
-        try:
-            if hasattr(recipient, '_set_hp'):
-                recipient._set_hp(new, caller_module='event_canonicalizer')
-            else:
-                recipient.hp = new
-        except Exception:
-            pass
+        # apply mutation to recipient via canonical setter only
+        if hasattr(recipient, '_set_hp'):
+            recipient._set_hp(new, caller_module='event_canonicalizer')
+        else:
+            raise RuntimeError('emit_hp_regen: recipient does not support canonical HP mutation')
     except Exception:
         # best-effort
         new = getattr(recipient, 'hp', None)
@@ -829,34 +817,22 @@ def emit_damage(
         return payload
 
     applied = int(raw_damage) if raw_damage is not None else 0
-    post_hp = pre_hp
-    try:
-        post_hp = max(0, (pre_hp or 0) - applied)
-        # Mutate HP only here
+    post_hp = max(0, (pre_hp or 0) - applied)
+
+    # Mutate HP only here via canonical setter; let exceptions propagate
+    if hasattr(target, '_set_hp'):
+        target._set_hp(post_hp, caller_module='event_canonicalizer')
+    else:
+        raise RuntimeError('emit_damage: target does not support canonical HP mutation')
+
+    # NEW: Update HP arrays atomically with damage application to prevent desync
+    if hp_arrays and unit_index is not None and unit_side:
         try:
-            if hasattr(target, '_set_hp'):
-                target._set_hp(post_hp, caller_module='event_canonicalizer')
-            else:
-                target.hp = post_hp
+            if unit_side in hp_arrays and 0 <= unit_index < len(hp_arrays[unit_side]):
+                hp_arrays[unit_side][unit_index] = post_hp
         except Exception:
+            # If HP array update fails, continue - target.hp is still correctly set
             pass
-
-        # NEW: Update HP arrays atomically with damage application to prevent desync
-        if hp_arrays and unit_index is not None and unit_side:
-            try:
-                if unit_side in hp_arrays and 0 <= unit_index < len(hp_arrays[unit_side]):
-                    hp_arrays[unit_side][unit_index] = post_hp
-            except Exception:
-                # If HP array update fails, continue - target.hp is still correctly set
-                pass
-    except Exception:
-        pass
-
-        # Do NOT mark `_dead` or `_death_processed` here — death handling
-        # (effects, rewards) should be performed by the centralized
-        # effect processor via `_process_unit_death` to ensure ordering.
-    except Exception:
-        pass
 
     # Canonical damage payload — minimal, unambiguous authoritative fields only.
     payload = {

@@ -162,6 +162,23 @@ class CombatAttackProcessor:
                             ua['target_hp'] = ua['post_hp']
                             ua['target_max_hp'] = getattr(target_obj, 'max_hp', None)
 
+                        # Warn if canonical dmg_payload is missing authoritative fields
+                        try:
+                            missing = []
+                            if isinstance(dmg_payload, dict):
+                                if 'post_hp' not in dmg_payload:
+                                    missing.append('post_hp')
+                                # some emitters may use 'unit_id' rather than 'target_id'
+                                if dmg_payload.get('unit_id') is None and ua.get('target_id') is None:
+                                    missing.append('target_id')
+                            else:
+                                # dmg_payload not a dict (unexpected) — warn
+                                missing.append('dmg_payload_not_dict')
+                            if missing:
+                                print(f"[MAKE_ACTION WARN] missing_fields={missing} attacker={getattr(attacker,'id',None)} target={getattr(target_obj,'id',None)} deliver_ts={deliver_ts} dmg_payload={dmg_payload}")
+                        except Exception:
+                            pass
+
                         results.append(('unit_attack', ua))
 
                         # DEBUG: log dmg_payload contents to help trace missing unit_died

@@ -8,6 +8,12 @@ class DummyUnit:
         self.factions = []
         self.classes = []
 
+    def _set_hp(self, value, caller_module=None):
+        try:
+            self.hp = int(value)
+        except Exception:
+            self.hp = value
+
 
 def test_dynamic_scaling_uses_player_wins_when_provided():
     # Trait that gives +2 attack per win

@@ -147,7 +147,12 @@ class SynergyEngine:
                 if not isinstance(e, dict):
                     raise TypeError(f"Malformed modular_effect for trait '{trait_name}': {e!r}")
                 target_scope = e.get('target', trait_level_target or 'trait')
-                if target_scope == 'team' or (target_scope == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
+                # Normalize target semantics: 'self' behaves like 'trait' for unit-level effects
+                if target_scope == 'self':
+                    target_scope = 'trait'
+
+                # Only apply amplifier when the scope includes this unit (team-wide or unit has the trait)
+                if target_scope == 'team' or (target_scope == 'trait' and (trait_name in unit.factions or trait_name in unit.classes)):
                     for reward in e.get('rewards', []):
                         if reward.get('type') == 'buff_amplifier':
                             amplifier = max(amplifier, float(reward.get('multiplier', 1)))
@@ -167,9 +172,19 @@ class SynergyEngine:
                 if not isinstance(e, dict):
                     raise TypeError(f"Malformed modular_effect for trait '{trait_name}': {e!r}")
                 target_scope = e.get('target', trait_level_target or 'trait')
+                # Treat 'self' as 'trait' (apply only to units with the trait)
+                if target_scope == 'self':
+                    target_scope = 'trait'
+
+                # If scope is 'trait', ensure this unit actually has the trait
                 if target_scope == 'trait':
                     if trait_name not in unit.factions and trait_name not in unit.classes:
                         continue
+                # If scope is neither 'team' nor 'trait', default to trait-scoped behavior
+                if target_scope not in ('team', 'trait'):
+                    if trait_name not in unit.factions and trait_name not in unit.classes:
+                        continue
+
                 for reward in e.get('rewards', []):
                     rtype = reward.get('type')
                     if rtype == 'stat_buff':
@@ -245,9 +260,17 @@ class SynergyEngine:
             if idx < 0 or idx >= len(modular_effects):
                 continue
             threshold_effects = modular_effects[idx]
+            trait_level_target = trait_obj.get('target')
             for e in threshold_effects:
                 if not isinstance(e, dict):
                     raise TypeError(f"Malformed modular_effect for trait '{trait_name}': {e!r}")
+                # Respect target scope for dynamic effects as well (team / trait/self)
+                target_scope = e.get('target', trait_level_target or 'trait')
+                # Note: do not normalize 'self' here; prefer explicit 'trait' in definitions
+                # If dynamic scaling is trait-scoped, skip units that don't have the trait
+                if target_scope == 'trait' and trait_name not in unit.factions and trait_name not in unit.classes:
+                    continue
+
                 for reward in e.get('rewards', []):
                     rtype = reward.get('type')
                     if rtype == 'dynamic_scaling':

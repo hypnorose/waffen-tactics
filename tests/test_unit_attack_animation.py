@@ -43,9 +43,13 @@ def test_unit_attack_animation_flow():
             self.hp = 100
             self.stats = type('Stats', (), {'mana_on_attack': 10})()
             self.max_mana = 100
-
+            # Provide mana state for canonical emitters
+            self.mana = 0
         def get_mana(self):
             return 50
+
+        def _set_mana(self, new_val, caller_module=None):
+            self.mana = int(new_val)
 
     attacker = MockUnit('player_1', 'Warrior')
     defender = MockUnit('opp_1', 'Goblin')

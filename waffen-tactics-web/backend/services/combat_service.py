@@ -747,8 +747,15 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
         elif result['winner'] == 'team_b':
             # Defeat - lose HP based on surviving enemy star levels
             hp_loss = (result.get('surviving_star_sum') or 1)  # 1 HP per surviving enemy star
-            # Apply player HP loss via canonical emitter to centralize mutation.
-            emit_damage(None, None, player, raw_damage=hp_loss, emit_event=False)
+            # Apply player HP loss via canonical emitter when possible to centralize mutation.
+            try:
+                emit_damage(None, None, player, raw_damage=hp_loss, emit_event=False)
+            except Exception:
+                # PlayerState may not expose canonical setter; fall back to direct mutation.
+                try:
+                    player.hp = max(0, int(player.hp) - int(hp_loss))
+                except Exception:
+                    pass
             player.losses += 1
             player.streak = 0
 

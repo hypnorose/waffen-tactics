@@ -27,6 +27,11 @@ class DummyUnit:
         self.mana = val
 
 
+    def _set_hp(self, value, caller_module=None):
+        try:
+            self.hp = int(value)
+        except Exception:
+            self.hp = value
 def test_emit_heal_applies_and_payload():
     u = DummyUnit(hp=30, max_hp=100)
     calls = []

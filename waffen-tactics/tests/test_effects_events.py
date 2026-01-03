@@ -11,6 +11,12 @@ class DummyUnit:
         self.name = name
         self.effects = []
 
+    def _set_hp(self, value, caller_module=None):
+        try:
+            self.hp = int(value)
+        except Exception:
+            self.hp = value
+
 
 def test_buff_handler_event_shape():
     caster = DummyUnit('caster1', 'Caster')

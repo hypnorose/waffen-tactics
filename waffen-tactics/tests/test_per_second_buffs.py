@@ -17,6 +17,12 @@ class DummyUnit:
         self.defense = defense
         self.effects = []
 
+    def _set_hp(self, value, caller_module=None):
+        try:
+            self.hp = int(value)
+        except Exception:
+            self.hp = value
+
 
 def make_event_callback(events):
     def cb(ev_type, payload):

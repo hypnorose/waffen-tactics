@@ -9,6 +9,12 @@ class DummyUnit:
         self.factions = []
         self.classes = []
 
+    def _set_hp(self, value, caller_module=None):
+        try:
+            self.hp = int(value)
+        except Exception:
+            self.hp = value
+
 
 def test_apply_dynamic_effects_with_player_none_does_not_raise_and_uses_zero_wins():
     # Trait that gives +1 attack per win

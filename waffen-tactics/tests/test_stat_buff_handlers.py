@@ -98,7 +98,14 @@ class TestHpBuffHandler(unittest.TestCase):
         # Use a lightweight plain object rather than Mock so that
         # canonical emitters that inspect `_set_hp` behave predictably.
         class DummyUnit:
-            pass
+            def __init__(self):
+                pass
+
+            def _set_hp(self, value, caller_module=None):
+                try:
+                    self.hp = int(value)
+                except Exception:
+                    self.hp = value
 
         self.mock_unit = DummyUnit()
         self.mock_unit.name = "TestHealer"

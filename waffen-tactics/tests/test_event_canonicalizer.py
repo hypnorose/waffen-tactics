@@ -20,6 +20,18 @@ class DummyUnit:
         self.effects = []
         self._hp_regen_accumulator = 0.0
 
+    def _set_hp(self, value, caller_module=None):
+        try:
+            self.hp = int(value)
+        except Exception:
+            self.hp = value
+    
+    def _set_mana(self, value, caller_module=None):
+        try:
+            self.mana = int(value)
+        except Exception:
+            self.mana = value
+
 
 def make_cb(events):
     def cb(ev_type, payload):
