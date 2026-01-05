@@ -43,14 +43,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     return saved ? parseFloat(saved) : 1
   })
   const [desyncLogs, setDesyncLogs] = useState<DesyncEntry[]>([])
-  const [overwriteSnapshots, setOverwriteSnapshots] = useState<boolean>(() => {
-    try {
-      const v = localStorage.getItem('combat.overwriteSnapshots')
-      return v === null ? false : v === 'true'  // Changed default from true to false (Phase 1 makes snapshots accurate)
-    } catch (err) {
-      return false  // Changed default from true to false
-    }
-  })
   const [storedGoldBreakdown, setStoredGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number } | null>(null)
   const [displayedGoldBreakdown, setDisplayedGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number } | null>(null)
 
@@ -74,12 +66,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   }
 
   // Persist settings
-  useEffect(() => {
-    try {
-      localStorage.setItem('combat.overwriteSnapshots', overwriteSnapshots ? 'true' : 'false')
-    } catch (err) {}
-  }, [overwriteSnapshots])
-
   useEffect(() => {
     try {
       localStorage.setItem('combatSpeed', combatSpeed.toString())
@@ -118,7 +104,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
       }
     }
 
-    const newState = applyCombatEvent(currentState, event, { overwriteSnapshots, simTime: currentState.simTime })
+    const newState = applyCombatEvent(currentState, event, { simTime: currentState.simTime })
 
     // DEBUG: Log state AFTER applying event (only if effects present)
     if (event.type === 'mana_update' && event.unit_id) {
@@ -253,7 +239,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
       // All events have been replayed
       setAllEventsReplayed(true)
     }
-  }, [isBufferedComplete, bufferedEvents, playhead, combatSpeed, overwriteSnapshots, spawnProjectile])
+  }, [isBufferedComplete, bufferedEvents, playhead, combatSpeed, spawnProjectile])
 
   // Start replay when buffered
   useEffect(() => {
@@ -328,8 +314,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     defeatMessage: combatState.defeatMessage,
     desyncLogs,
     clearDesyncLogs,
-    exportDesyncJSON,
-    overwriteSnapshots,
-    setOverwriteSnapshots
+    exportDesyncJSON
   }
 }

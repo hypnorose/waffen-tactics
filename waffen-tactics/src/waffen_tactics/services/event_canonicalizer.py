@@ -244,6 +244,7 @@ def emit_mana_update(
         'unit_name': getattr(recipient, 'name', None),
         'current_mana': current_mana,
         'max_mana': max_mana,
+        'unit_hp': getattr(recipient, 'hp', None),  # AUTHORITATIVE: current HP
         'side': side,
         'timestamp': ts,
     }
@@ -328,13 +329,14 @@ def emit_mana_change(
     payload = {
         'unit_id': getattr(recipient, 'id', None),
         'unit_name': getattr(recipient, 'name', None),
-        'amount': applied_amount,
+        'current_mana': getattr(recipient, 'mana', None),  # AUTHORITATIVE: current mana value
+        'max_mana': getattr(recipient, 'max_mana', None),
+        'unit_hp': getattr(recipient, 'hp', None),  # AUTHORITATIVE: current HP (mana_update carries HP state)
+        'amount': applied_amount,  # DEPRECATED: keep for backward compat, but UI should use current_mana
         'side': side,
         'timestamp': ts,
-        'pre_mana': cur,
-        'post_mana': getattr(recipient, 'mana', None),
     }
-    # Emit canonical mana change payload only (no snapshot/back-compat fields)
+    # Emit canonical mana change payload with authoritative current_mana and unit_hp
 
     if event_callback:
         try:

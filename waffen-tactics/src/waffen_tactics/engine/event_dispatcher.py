@@ -73,14 +73,9 @@ class EventDispatcher:
             try:
                 # Debug: show event being emitted and its timestamp
                 # Dispatcher debug logging removed to reduce runtime noise
-                # Suppress emitting mana_update snapshot events that do not
-                # represent an actual mana delta. These snapshot-only
-                # events (they contain `current_mana` but no computed
-                # `amount`) would otherwise show up as zero-delta
-                # mana_update events and break regen tests that expect
-                # only meaningful mana changes.
-                if event_type == 'mana_update' and isinstance(payload, dict) and 'current_mana' in payload and 'amount' not in payload:
-                    return
+                # REMOVED: Suppression of mana_update events with current_mana but no amount.
+                # UI now requires authoritative current_mana in ALL mana_update events.
+                # Incremental amount-only updates cause desyncs due to accumulation drift.
 
                 original_callback(event_type, payload)
             except Exception as e:

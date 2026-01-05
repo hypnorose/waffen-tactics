@@ -258,6 +258,7 @@ class CombatAttackProcessor:
                             'unit_name': getattr(attacker, 'name', None),
                             'current_mana': getattr(attacker, 'mana', None),
                             'max_mana': getattr(attacker, 'max_mana', None),
+                            'unit_hp': getattr(attacker, 'hp', None),  # AUTHORITATIVE: current HP
                             'side': side_val,
                             'timestamp': deliver_ts,
                         }

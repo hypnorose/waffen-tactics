@@ -46,9 +46,7 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     defeatMessage,
     desyncLogs,
     clearDesyncLogs,
-    exportDesyncJSON,
-    overwriteSnapshots,
-    setOverwriteSnapshots
+    exportDesyncJSON
   } = useCombatOverlayLogic({ onClose, logEndRef })
   const [showDesyncInspector, setShowDesyncInspector] = useState(false)
 
@@ -104,12 +102,6 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
           {import.meta.env.DEV && (
             <button onClick={() => setShowDesyncInspector((s) => !s)} style={{ position: 'absolute', top: 56, right: 16, zIndex: 100, background: '#1f2937', color: '#7dd3fc', border: 'none', borderRadius: 6, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
               {showDesyncInspector ? 'Ukryj Desync Inspector' : 'Pokaż Desync Inspector'}
-            </button>
-          )}
-
-          {import.meta.env.DEV && (
-            <button onClick={() => setOverwriteSnapshots((s) => !s)} style={{ position: 'absolute', top: 96, right: 16, zIndex: 100, background: overwriteSnapshots ? '#065f46' : '#4b5563', color: '#e6fffa', border: 'none', borderRadius: 6, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-              {overwriteSnapshots ? 'Snapshot overwrite: ON' : 'Snapshot overwrite: OFF'}
             </button>
           )}
 

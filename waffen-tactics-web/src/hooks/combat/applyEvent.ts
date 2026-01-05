@@ -1,7 +1,6 @@
 import { CombatState, CombatEvent, Unit, EffectSummary } from './types'
 
 interface ApplyEventContext {
-  overwriteSnapshots: boolean
   simTime: number
 }
 
@@ -95,51 +94,34 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'attack':
-      const targetId = event.target_id
-      const targetHp = event.target_hp
-      const side = event.side
-      if (targetId && typeof targetHp === 'number' && side) {
-        if (side === 'team_a') {
-          newState.playerUnits = updateUnitById(newState.playerUnits, targetId, u => ({ ...u, hp: targetHp }))
+      if (event.target_id && event.target_hp !== undefined) {
+        // Use target_id prefix to determine which array, NOT side (side is attacker's side!)
+        if (event.target_id.startsWith('opp_')) {
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.target_id, u => ({ ...u, hp: event.target_hp! }))
         } else {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, targetId, u => ({ ...u, hp: targetHp }))
+          newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, u => ({ ...u, hp: event.target_hp! }))
         }
       }
       break
 
     case 'unit_attack':
       if (event.target_id) {
-        // Priority: Use authoritative HP fields from backend (unit_hp, target_hp, post_hp, new_hp)
-        // Fallback: Calculate from damage delta (less reliable, may desync)
-        let newHp: number | undefined
-        if (event.unit_hp !== undefined) {
-          newHp = event.unit_hp
-        } else if (event.target_hp !== undefined) {
-          newHp = event.target_hp
-        } else if (event.post_hp !== undefined) {
-          newHp = event.post_hp
-        } else if (event.new_hp !== undefined) {
-          newHp = event.new_hp
+        // Backend MUST provide target_hp - no fallback fields
+        if (event.target_hp === undefined) {
+          console.error(`⚠️ unit_attack event ${event.seq} missing required field: target_hp`)
+          break
         }
 
         const shieldAbsorbed = event.shield_absorbed ?? 0
+        const updateFn = (u: Unit) => {
+          const newShield = Math.max(0, (u.shield || 0) - shieldAbsorbed)
+          return { ...u, hp: event.target_hp!, shield: newShield }
+        }
 
-        if (newHp !== undefined) {
-          // Use authoritative HP from backend
-          const updateFn = (u: Unit) => {
-            const newShield = Math.max(0, (u.shield || 0) - shieldAbsorbed)
-            return { ...u, hp: newHp!, shield: newShield }
-          }
-          if (event.target_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.target_id, updateFn)
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, updateFn)
-          }
+        if (event.target_id.startsWith('opp_')) {
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.target_id, updateFn)
         } else {
-          // No authoritative HP provided — do NOT attempt local fallback calculation.
-          // Preserve event-sourcing: missing fields should surface desyncs so upstream
-          // bugs are fixed rather than masked here.
-          console.warn(`⚠️ unit_attack event ${event.seq} missing authoritative HP - skipping local HP update`)
+          newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, updateFn)
         }
       }
       const msg = event.is_skill
@@ -174,20 +156,14 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       newState.combatLog = [...newState.combatLog, buffMsg]
       if (event.unit_id) {
         const amountNum = event.amount ?? 0
-        let delta = 0
 
-        // Priority: Use authoritative applied_delta from backend if available
-        if (event.applied_delta !== undefined) {
-          delta = event.applied_delta
-        } else if (event.stat !== 'random') {
-          // Fallback: Calculate delta locally (TEMPORARY - backend should always provide applied_delta)
-          if (event.value_type === 'percentage') {
-            const baseStat = event.stat === 'hp' ? 0 : (event.stat === 'attack' ? (event.unit_attack ?? 0) : (event.unit_defense ?? 0))
-            delta = Math.floor(baseStat * (amountNum / 100))
-          } else {
-            delta = amountNum
-          }
+        // Backend MUST provide applied_delta - no fallback calculations
+        if (event.applied_delta === undefined) {
+          console.error(`⚠️ stat_buff event ${event.seq} missing required field: applied_delta`)
+          break
         }
+
+        const delta = event.applied_delta
         // CRITICAL: Determine effect type by value sign (negative = debuff)
         // Backend sends type in the effect object itself, but we need to detect it here too
         const effectType = (amountNum < 0 || delta < 0) ? 'debuff' : 'buff'
@@ -230,35 +206,27 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'mana_update':
       if (event.unit_id) {
-        console.log(`[MANA] Event for ${event.unit_id}: current_mana=${event.current_mana}, amount=${event.amount}`)
-        if (event.current_mana !== undefined && event.current_mana !== null) {
-          // Absolute mana update (set to specific value)
-          const updateFn = (u: Unit) => {
-            console.log(`[MANA] Updating ${u.id} from ${u.current_mana} to ${event.current_mana}`)
-            return { ...u, current_mana: event.current_mana }
-          }
-          if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
-          }
-          newState.combatLog = [...newState.combatLog, `🔮 ${event.unit_name} mana: ${event.current_mana}/${event.max_mana}`]
-        } else if (event.amount !== undefined) {
-          // Relative mana update (add/subtract amount)
-          const amountNum = event.amount ?? 0
-          const updateFn = (u: Unit) => {
-            const cur = u.current_mana ?? 0
-            const max = u.max_mana ?? Number.POSITIVE_INFINITY
-            const newMana = Math.min(max, cur + amountNum)
-            console.log(`[MANA] Updating ${u.id} from ${cur} by ${amountNum} to ${newMana}`)
-            return { ...u, current_mana: newMana }
-          }
-          if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
-          }
+        // Backend MUST provide current_mana - no incremental amount fallback
+        if (event.current_mana === undefined || event.current_mana === null) {
+          console.error(`⚠️ mana_update event ${event.seq} missing required field: current_mana (has amount=${event.amount})`)
+          break
         }
+
+        // CRITICAL: Also update HP from unit_hp field (mana_update events carry authoritative HP)
+        const updateFn = (u: Unit) => {
+          const updates: Partial<Unit> = { current_mana: event.current_mana }
+          if (event.unit_hp !== undefined) {
+            updates.hp = event.unit_hp
+          }
+          return { ...u, ...updates }
+        }
+
+        if (event.unit_id.startsWith('opp_')) {
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
+        } else {
+          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
+        }
+        newState.combatLog = [...newState.combatLog, `🔮 ${event.unit_name} mana: ${event.current_mana}/${event.max_mana}`]
       }
       break
 
@@ -304,70 +272,32 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       const healUnitId = event.unit_id
       const healSide = event.side
       if (healUnitId && healSide) {
-        // Priority: Use authoritative HP from backend (unit_hp, post_hp, new_hp)
-        // Fallback: Calculate from delta (amount)
-        let newHealHp: number | undefined
-        if (event.unit_hp !== undefined) {
-          newHealHp = event.unit_hp
-        } else if (event.post_hp !== undefined) {
-          newHealHp = event.post_hp
-        } else if (event.new_hp !== undefined) {
-          newHealHp = event.new_hp
+        // Backend MUST provide post_hp - no fallback calculations
+        if (event.post_hp === undefined) {
+          console.error(`⚠️ heal event ${event.seq} missing required field: post_hp`)
+          break
         }
 
-        if (newHealHp !== undefined) {
-          // Use authoritative HP
-          if (healSide === 'team_a') {
-            newState.playerUnits = updateUnitById(newState.playerUnits, healUnitId, u => ({ ...u, hp: newHealHp! }))
-          } else {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, healUnitId, u => ({ ...u, hp: newHealHp! }))
-          }
-        } else if (event.amount !== undefined) {
-          // Fallback: incremental update
-          const healAmount = event.amount
-          if (healSide === 'team_a') {
-            newState.playerUnits = updateUnitById(newState.playerUnits, healUnitId, u => ({ ...u, hp: Math.min(u.max_hp, u.hp + healAmount) }))
-          } else {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, healUnitId, u => ({ ...u, hp: Math.min(u.max_hp, u.hp + healAmount) }))
-          }
+        if (healSide === 'team_a') {
+          newState.playerUnits = updateUnitById(newState.playerUnits, healUnitId, u => ({ ...u, hp: event.post_hp! }))
+        } else {
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, healUnitId, u => ({ ...u, hp: event.post_hp! }))
         }
       }
       break
 
     case 'unit_heal':
       if (event.unit_id) {
-        let newHp: number
-        // Priority: authoritative HP fields first (unit_hp, post_hp, new_hp), then fallback to incremental (amount)
-        if (event.unit_hp !== undefined) {
-          newHp = event.unit_hp
-          if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: newHp }))
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: newHp }))
-          }
-        } else if (event.post_hp !== undefined) {
-          newHp = event.post_hp
-          if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: newHp }))
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: newHp }))
-          }
-        } else if (event.new_hp !== undefined) {
-          newHp = event.new_hp
-          if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: newHp }))
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: newHp }))
-          }
-        } else if (event.amount !== undefined) {
-          // Fallback: incremental update (less reliable)
-          const updateFn = (u: Unit) => ({ ...u, hp: Math.min(u.max_hp, u.hp + event.amount!) })
-          if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
-          }
-          newHp = 0 // not used
+        // Backend MUST provide post_hp - no fallback calculations
+        if (event.post_hp === undefined) {
+          console.error(`⚠️ unit_heal event ${event.seq} missing required field: post_hp`)
+          break
+        }
+
+        if (event.unit_id.startsWith('opp_')) {
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: event.post_hp! }))
+        } else {
+          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: event.post_hp! }))
         }
       }
       newState.combatLog = [...newState.combatLog, `💚 ${event.unit_name} regeneruje ${(event.amount ?? 0).toFixed(2)} HP`]
@@ -375,20 +305,16 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'hp_regen':
       if (event.unit_id) {
-        // Use authoritative unit_hp field from canonical hp_regen event
-        if (event.unit_hp !== undefined) {
-          if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: event.unit_hp! }))
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: event.unit_hp! }))
-          }
-        } else if (event.post_hp !== undefined) {
-          // Fallback to post_hp
-          if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: event.post_hp! }))
-          } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: event.post_hp! }))
-          }
+        // Backend MUST provide post_hp - no fallback fields
+        if (event.post_hp === undefined) {
+          console.error(`⚠️ hp_regen event ${event.seq} missing required field: post_hp`)
+          break
+        }
+
+        if (event.unit_id.startsWith('opp_')) {
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: event.post_hp! }))
+        } else {
+          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: event.post_hp! }))
         }
       }
       // Only log significant regen amounts to avoid spam
@@ -399,11 +325,17 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'damage_over_time_tick':
       if (event.unit_id) {
-        const updateFn = (u: Unit) => ({ ...u, hp: event.unit_hp ?? u.hp })
+        // Backend MUST provide post_hp (or unit_hp) - no fallback
+        const authHp = event.post_hp ?? event.unit_hp
+        if (authHp === undefined) {
+          console.error(`⚠️ damage_over_time_tick event ${event.seq} missing required field: post_hp or unit_hp`)
+          break
+        }
+
         if (event.unit_id.startsWith('opp_')) {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: authHp }))
         } else {
-          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
+          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: authHp }))
         }
       }
       newState.combatLog = [...newState.combatLog, `🔥 ${event.unit_name} otrzymuje ${event.damage ?? 0} obrażeń (DoT)`]
@@ -512,6 +444,12 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'damage_over_time_expired':
       if (event.unit_id) {
+        // Backend MUST provide effect_id
+        if (!event.effect_id) {
+          console.error(`⚠️ damage_over_time_expired event ${event.seq} missing required field: effect_id`)
+          break
+        }
+
         // Remove the DoT effect by id
         const removeEffectFn = (u: Unit) => ({
           ...u,
@@ -522,13 +460,14 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         } else {
           newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, removeEffectFn)
         }
-        // Update HP if provided
-        if (event.unit_hp !== undefined) {
-          const updateHpFn = (u: Unit) => ({ ...u, hp: event.unit_hp! })
+
+        // Backend should provide post_hp for final HP after DoT expires
+        const authHp = event.post_hp ?? event.unit_hp
+        if (authHp !== undefined) {
           if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateHpFn)
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: authHp }))
           } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateHpFn)
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: authHp }))
           }
         }
       }
@@ -537,33 +476,22 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     case 'effect_expired':
       console.log('[EFFECT_EXPIRED] Processing:', event)
       if (event.unit_id) {
+        // Backend MUST provide effect_id - no property matching fallback
+        if (!event.effect_id) {
+          console.error(`⚠️ effect_expired event ${event.seq} missing required field: effect_id`)
+          break
+        }
+
         // Find and remove the effect, reverting its stat changes
         const removeAndRevertFn = (u: Unit) => {
-          let expiredEffect: EffectSummary | undefined
-          let remainingEffects = u.effects || []
-
-          if (event.effect_id) {
-            // Remove by ID
-            expiredEffect = u.effects?.find(e => e.id === event.effect_id)
-            remainingEffects = u.effects?.filter(e => e.id !== event.effect_id) || []
-          } else {
-            // Fallback: remove by matching properties (if no ID provided)
-            // This is a hack for backend bugs where effect_id is missing
-            expiredEffect = u.effects?.find(e => 
-              e.stat === event.stat && 
-              e.value === event.amount && 
-              e.duration === event.duration
-            )
-            if (expiredEffect) {
-              remainingEffects = u.effects?.filter(e => e !== expiredEffect) || []
-            }
-          }
+          const expiredEffect = u.effects?.find(e => e.id === event.effect_id)
+          const remainingEffects = u.effects?.filter(e => e.id !== event.effect_id) || []
 
           console.log('[EFFECT_EXPIRED] Found effect:', expiredEffect, 'remaining:', remainingEffects.length)
 
           if (!expiredEffect) {
-            // Effect not found, just return unchanged
-            console.log('[EFFECT_EXPIRED] Effect not found')
+            // Effect not found - this indicates a desync or missing effect application
+            console.warn(`[EFFECT_EXPIRED] Effect ${event.effect_id} not found on unit ${u.id}`)
             return u
           }
 
@@ -595,13 +523,13 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, removeAndRevertFn)
         }
 
-        // Update HP if provided (authoritative from backend)
-        if (event.unit_hp !== undefined) {
-          const updateHpFn = (u: Unit) => ({ ...u, hp: event.unit_hp! })
+        // Backend should provide post_hp for final HP after effect expires (optional for stat-only effects)
+        const authHp = event.post_hp ?? event.unit_hp
+        if (authHp !== undefined) {
           if (event.unit_id.startsWith('opp_')) {
-            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateHpFn)
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, u => ({ ...u, hp: authHp }))
           } else {
-            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateHpFn)
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: authHp }))
           }
         }
       }

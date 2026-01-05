@@ -85,7 +85,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 1.0
       }
 
-      const newState = applyCombatEvent(state, event, { overwriteSnapshots: false, simTime: 1.0 })
+      const newState = applyCombatEvent(state, event, { simTime: 1.0 })
 
       const player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player).toBeDefined()
@@ -116,7 +116,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 1.0
       }
 
-      const newState = applyCombatEvent(state, event, { overwriteSnapshots: false, simTime: 1.0 })
+      const newState = applyCombatEvent(state, event, { simTime: 1.0 })
 
       const player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.effects).toHaveLength(1)
@@ -141,7 +141,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 1.0
       }
 
-      const newState = applyCombatEvent(state, event, { overwriteSnapshots: false, simTime: 1.0 })
+      const newState = applyCombatEvent(state, event, { simTime: 1.0 })
 
       const player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.attack).toBe(80) // 50 + 30
@@ -166,11 +166,11 @@ describe('applyCombatEvent - Effect Handling', () => {
       }
 
       // Apply same event twice
-      let newState = applyCombatEvent(state, event, { overwriteSnapshots: false, simTime: 1.0 })
+      let newState = applyCombatEvent(state, event, { simTime: 1.0 })
 
       // CRITICAL: Applying the same effect_id should not duplicate
       // This is a known issue we need to fix - for now, this test documents the bug
-      newState = applyCombatEvent(newState, event, { overwriteSnapshots: false, simTime: 1.0 })
+      newState = applyCombatEvent(newState, event, { simTime: 1.0 })
 
       const player = newState.playerUnits.find(u => u.id === 'player_0')
 
@@ -198,7 +198,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 1.0
       }
 
-      const newState = applyCombatEvent(state, event, { overwriteSnapshots: false, simTime: 1.0 })
+      const newState = applyCombatEvent(state, event, { simTime: 1.0 })
 
       const player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.effects![0].applied_delta).toBe(25)
@@ -224,7 +224,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 1.0
       }
 
-      let newState = applyCombatEvent(state, buffEvent, { overwriteSnapshots: false, simTime: 1.0 })
+      let newState = applyCombatEvent(state, buffEvent, { simTime: 1.0 })
 
       let player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.attack).toBe(80) // 50 + 30
@@ -240,7 +240,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 6.0
       }
 
-      newState = applyCombatEvent(newState, expireEvent, { overwriteSnapshots: false, simTime: 6.0 })
+      newState = applyCombatEvent(newState, expireEvent, { simTime: 6.0 })
 
       player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.effects).toHaveLength(0)
@@ -265,7 +265,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 1.0
       }
 
-      let newState = applyCombatEvent(state, debuffEvent, { overwriteSnapshots: false, simTime: 1.0 })
+      let newState = applyCombatEvent(state, debuffEvent, { simTime: 1.0 })
 
       let player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.defense).toBe(15) // 25 - 10
@@ -280,7 +280,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 4.0
       }
 
-      newState = applyCombatEvent(newState, expireEvent, { overwriteSnapshots: false, simTime: 4.0 })
+      newState = applyCombatEvent(newState, expireEvent, { simTime: 4.0 })
 
       player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.defense).toBe(25) // Back to original
@@ -301,7 +301,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 1.0
       }
 
-      const newState = applyCombatEvent(state, event, { overwriteSnapshots: false, simTime: 1.0 })
+      const newState = applyCombatEvent(state, event, { simTime: 1.0 })
 
       const player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.shield).toBe(100)
@@ -329,7 +329,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 1.0
       }
 
-      const newState = applyCombatEvent(state, event, { overwriteSnapshots: false, simTime: 1.0 })
+      const newState = applyCombatEvent(state, event, { simTime: 1.0 })
 
       const opponent = newState.opponentUnits.find(u => u.id === 'opp_0')
       expect(opponent!.effects).toHaveLength(1)
@@ -363,7 +363,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 1.0
       }
 
-      const newState = applyCombatEvent(state, event, { overwriteSnapshots: false, simTime: 1.0 })
+      const newState = applyCombatEvent(state, event, { simTime: 1.0 })
 
       // Original state should be unchanged
       expect(state.playerUnits[0].effects).toHaveLength(0)
@@ -391,7 +391,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 1.0
       }
 
-      const state1 = applyCombatEvent(state, event1, { overwriteSnapshots: false, simTime: 1.0 })
+      const state1 = applyCombatEvent(state, event1, { simTime: 1.0 })
 
       const event2: CombatEvent = {
         type: 'stat_buff',
@@ -409,7 +409,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         timestamp: 2.0
       }
 
-      const state2 = applyCombatEvent(state1, event2, { overwriteSnapshots: false, simTime: 2.0 })
+      const state2 = applyCombatEvent(state1, event2, { simTime: 2.0 })
 
       // State1 should still have 1 effect, state2 should have 2
       expect(state1.playerUnits[0].effects).toHaveLength(1)
@@ -439,7 +439,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         applied_delta: 20,
         seq: 1,
         timestamp: 1.0
-      }, { overwriteSnapshots: false, simTime: 1.0 })
+      }, { simTime: 1.0 })
 
       // Add defense debuff
       currentState = applyCombatEvent(currentState, {
@@ -456,7 +456,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         applied_delta: -10,
         seq: 2,
         timestamp: 2.0
-      }, { overwriteSnapshots: false, simTime: 2.0 })
+      }, { simTime: 2.0 })
 
       // Add shield
       currentState = applyCombatEvent(currentState, {
@@ -469,7 +469,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         effect_id: 'shield-1',
         seq: 3,
         timestamp: 3.0
-      }, { overwriteSnapshots: false, simTime: 3.0 })
+      }, { simTime: 3.0 })
 
       const player = currentState.playerUnits.find(u => u.id === 'player_0')
 

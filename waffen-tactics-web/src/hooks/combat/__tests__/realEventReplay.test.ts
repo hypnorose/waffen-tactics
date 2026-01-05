@@ -88,7 +88,7 @@ describe('Real Combat Event Replay - events_desync_team.json', () => {
 
       try {
         state = applyCombatEvent(state, event as CombatEvent, {
-          overwriteSnapshots: false,
+          
           simTime
         })
       } catch (error) {
@@ -136,7 +136,7 @@ describe('Real Combat Event Replay - events_desync_team.json', () => {
 
       const stateBefore = state
       state = applyCombatEvent(state, event as CombatEvent, {
-        overwriteSnapshots: false,
+        
         simTime
       })
 
@@ -190,7 +190,7 @@ describe('Real Combat Event Replay - events_desync_team.json', () => {
       simTime = event.timestamp || simTime
 
       state = applyCombatEvent(state, event as CombatEvent, {
-        overwriteSnapshots: false,
+        
         simTime
       })
 
@@ -251,7 +251,7 @@ describe('Real Combat Event Replay - events_desync_team.json', () => {
       simTime = event.timestamp || simTime
 
       state = applyCombatEvent(state, event as CombatEvent, {
-        overwriteSnapshots: false,
+        
         simTime
       })
 
@@ -311,7 +311,7 @@ describe('Real Combat Event Replay - Diverse Team Compositions', () => {
 
         try {
           state = applyCombatEvent(state, event as CombatEvent, {
-            overwriteSnapshots: false,
+            
             simTime
           })
         } catch (error) {
