@@ -34,6 +34,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'type': 'unit_attack',
             'attacker_id': data.get('attacker_id'),
             'attacker_name': data.get('attacker_name'),
+            'attacker_current_mana': data.get('attacker_current_mana'),
+            'attacker_max_mana': data.get('attacker_max_mana'),
             'target_id': data.get('target_id'),
             'target_name': data.get('target_name'),
             # Backwards-compatible aliases: some consumers expect `unit_name`
@@ -75,6 +77,10 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type in ('heal', 'unit_heal'):
+        if data.get('post_hp') is None:
+            raise RuntimeError(
+                f"{event_type} missing required post_hp at seq={data.get('seq')} payload_keys={sorted(list(data.keys()))}"
+            )
         res = {
             'type': 'unit_heal',
             'unit_id': data.get('unit_id'),
@@ -82,7 +88,9 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'amount': data.get('amount'),
             'healer_id': data.get('healer_id') or data.get('caster_id'),
             'healer_name': data.get('healer_name') or data.get('caster_name'),
-            'unit_hp': data.get('unit_hp') or data.get('new_hp'),
+            'pre_hp': data.get('pre_hp'),
+            'post_hp': data.get('post_hp'),
+            'unit_hp': data.get('unit_hp'),
             'unit_max_hp': data.get('unit_max_hp') or data.get('max_hp'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
@@ -99,6 +107,10 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'stat_buff':
+        if data.get('applied_delta') is None:
+            raise RuntimeError(
+                f"stat_buff missing required applied_delta at seq={data.get('seq')} payload_keys={sorted(list(data.keys()))}"
+            )
         # Build an effect summary so the UI can show badges on unit cards
         eff = {
             'type': data.get('buff_type', 'buff'),
@@ -117,6 +129,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'amount': data.get('amount') or data.get('value'),
             'buff_type': data.get('buff_type', 'buff'),
             'duration': data.get('duration'),
+            'applied_delta': data.get('applied_delta'),
             'side': data.get('side'),
             'effect': eff,
             'effect_id': data.get('effect_id'),
@@ -124,15 +137,23 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'mana_update':
+        # Build payload carefully - only include fields that are present and not None
         res = {
             'type': 'mana_update',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
             'amount': data.get('amount'),
+            'current_mana': data.get('current_mana'),  # CRITICAL: Pass authoritative mana value to UI
             'side': data.get('side'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
+        # CRITICAL: Only include unit_hp/max_mana if they are present AND not None
+        # Sending null values would erase UI state!
+        if data.get('max_mana') is not None:
+            res['max_mana'] = data.get('max_mana')
+        if data.get('unit_hp') is not None:
+            res['unit_hp'] = data.get('unit_hp')
     if event_type == 'skill_cast':
         res = {
             'type': 'skill_cast',
@@ -142,6 +163,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'target_id': data.get('target_id'),
             'target_name': data.get('target_name'),
             'damage': data.get('damage'),
+            'target_hp': data.get('target_hp'),
+            'target_max_hp': data.get('target_max_hp'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -257,6 +280,20 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_name': data.get('unit_name'),
             'effect_id': data.get('effect_id'),
             'unit_hp': data.get('unit_hp'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
+        }
+    if event_type == 'hp_regen':
+        res = {
+            'type': 'hp_regen',
+            'unit_id': data.get('unit_id'),
+            'unit_name': data.get('unit_name'),
+            'amount': data.get('amount'),
+            'pre_hp': data.get('pre_hp'),
+            'post_hp': data.get('post_hp'),
+            'unit_hp': data.get('unit_hp'),  # Authoritative HP after regen
+            'unit_max_hp': data.get('unit_max_hp'),
+            'side': data.get('side'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -434,7 +471,9 @@ def start_combat():
                 # Use the mapping helper to standardize payloads
                 payload = map_event_to_sse_payload(event_type, data)
                 if payload is None:
-                    return []
+                    raise RuntimeError(
+                        f"Unmapped combat event type '{event_type}' at seq={data.get('seq')} keys={sorted(list(data.keys()))}"
+                    )
                 payload['timestamp'] = float(event_time)
                 return [json.dumps(payload)]
 
@@ -447,11 +486,12 @@ def start_combat():
                 # otherwise fall back to the prepared player/opponent unit lists.
                 event_time = data.get('timestamp', 0.0)
                 try:
-                    # CRITICAL: Use simulator's authoritative HP arrays (a_hp, b_hp)
-                    # The simulator tracks HP separately from unit objects to avoid state mutation
-                    # We must pass current_hp to to_dict() to get the correct combat-damaged HP
-                    player_state = [u.to_dict(current_hp=simulator.a_hp[i]) for i, u in enumerate(simulator.team_a)]
-                    opponent_state = [u.to_dict(current_hp=simulator.b_hp[i]) for i, u in enumerate(simulator.team_b)]
+                    # Use canonical unit runtime state as authoritative source.
+                    # HP is mutated through canonical emitters (`emit_damage`, `emit_heal`),
+                    # so deriving snapshots from unit objects avoids array/index drift.
+                    import copy
+                    player_state = copy.deepcopy([u.to_dict(current_hp=int(getattr(u, 'hp'))) for u in simulator.team_a])
+                    opponent_state = copy.deepcopy([u.to_dict(current_hp=int(getattr(u, 'hp'))) for u in simulator.team_b])
 
                     # DEBUG: Log effects in snapshots
                     for u_dict in player_state + opponent_state:
@@ -460,13 +500,7 @@ def start_combat():
                         else:
                             print(f"[SNAPSHOT DEBUG] Unit {u_dict['id']} has EMPTY effects in snapshot")
                 except Exception as e:
-                    # FALLBACK: Some fake/test simulators don't set team_a/team_b
-                    # Log this to detect if we're hitting the buggy fallback path
-                    print(f"WARNING: event_collector falling back to stale HP! Exception: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    player_state = [u.to_dict() for u in player_units]
-                    opponent_state = [u.to_dict() for u in opponent_units]
+                    raise RuntimeError(f"Failed to build authoritative event game_state: {e}") from e
 
                 # Add game state to every event
                 data['game_state'] = {

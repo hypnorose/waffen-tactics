@@ -46,7 +46,8 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     defeatMessage,
     desyncLogs,
     clearDesyncLogs,
-    exportDesyncJSON
+    exportDesyncJSON,
+    isPausedOnDesync
   } = useCombatOverlayLogic({ onClose, logEndRef })
   const [showDesyncInspector, setShowDesyncInspector] = useState(false)
 
@@ -112,6 +113,35 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
       <ProjectileLayer />
       <GoldNotification breakdown={displayedGoldBreakdown} onDismiss={handleGoldDismiss} />
       {import.meta.env.DEV && showDesyncInspector && <DesyncInspector desyncLogs={(desyncLogs as any) || []} onClear={(clearDesyncLogs as any) || (() => {})} onExport={(exportDesyncJSON as any) || (() => '[]')} />}
+
+      {/* FAIL FAST: Show desync alert overlay */}
+      {isPausedOnDesync && (
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-70">
+          <div className="bg-red-900/90 border-4 border-red-500 rounded-xl p-8 shadow-2xl max-w-2xl">
+            <div className="text-4xl font-bold text-center text-red-200 mb-4">
+              🛑 DESYNC DETECTED!
+            </div>
+            <div className="text-lg text-red-100 text-center mb-6">
+              Combat paused - UI state diverged from server.<br/>
+              {desyncLogs.length} desync{desyncLogs.length > 1 ? 's' : ''} detected.
+            </div>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => setShowDesyncInspector(true)}
+                className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+              >
+                Open Desync Inspector
+              </button>
+              <button
+                onClick={handleClose}
+                className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+              >
+                Close Combat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-60 transition-all duration-300 ease-out ${showVictoryOverlay ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
         <div className="bg-surface border-4 border-primary/60 rounded-xl p-8 shadow-2xl">

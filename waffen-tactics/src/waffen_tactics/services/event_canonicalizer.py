@@ -20,6 +20,13 @@ def emit_stat_buff(
     timestamp: Optional[float] = None,
     cause: Optional[str] = None,
 ):
+    """Canonicalize a stat_buff event and (optionally) mutate recipient state.
+
+    - Mutates numeric fields on recipient for immediate effects.
+    - Attaches an effect object to recipient.effects when duration provided.
+    - Calls event_callback with canonical payload:
+      { unit_id, unit_name, stat, value, value_type, duration, permanent, effect_id?, side, timestamp, cause, source_id }
+    """
     ts = timestamp if timestamp is not None else _now_ts()
     try:
         print(f"[EMIT_STAT_BUFF] recipient={getattr(recipient,'id',None)} stat={stat} value={value} event_callback_set={event_callback is not None}")
@@ -65,12 +72,8 @@ def emit_stat_buff(
             try:
                 emit_heal(event_callback, recipient, delta, source=source, side=side, timestamp=ts)
             except Exception:
-                # No silent fallback: require recipient to support canonical setter
-                _val = min(getattr(recipient, 'max_hp', getattr(recipient, 'hp', 0)), getattr(recipient, 'hp', 0) + delta)
-                if hasattr(recipient, '_set_hp'):
-                    recipient._set_hp(_val, caller_module='event_canonicalizer')
-                else:
-                    raise RuntimeError('emit_stat_buff: recipient does not support canonical HP mutation')
+                # best-effort fallback
+                recipient.hp = min(getattr(recipient, 'max_hp', getattr(recipient, 'hp', 0)), getattr(recipient, 'hp', 0) + delta)
         elif stat in ('attack_speed', 'lifesteal', 'damage_reduction', 'hp_regen_per_sec'):
             # float fields
             cur = float(getattr(recipient, stat, 0.0))
@@ -95,13 +98,10 @@ def emit_stat_buff(
             else:
                 delta = int(round(value)) if isinstance(value, (int, float)) else 0
         # other stats are stored as-is in effects and may be applied by UI recompute
-    except Exception:
-        # Best-effort mutation; don't break emitter on unexpected recipient shapes
-        # But still try to set delta to value as fallback
-        try:
-            delta = int(round(value)) if isinstance(value, (int, float)) else 0
-        except Exception:
-            delta = 0
+    except Exception as e:
+        raise RuntimeError(
+            f"emit_stat_buff mutation failed for unit={getattr(recipient, 'id', None)} stat={stat}"
+        ) from e
 
     # Attach effect entry if duration provided or if permanent flag indicates persistent buff
     if duration is not None or permanent:
@@ -111,12 +111,19 @@ def emit_stat_buff(
             'stat': stat,
             'value': value,
             'value_type': value_type,
+            'applied_delta': delta,
             'duration': duration,
             'permanent': permanent,
             'source': getattr(source, 'id', None) if source is not None else None,
             'expires_at': (ts + duration) if (duration and duration > 0) else None,
         }
         recipient.effects = list(getattr(recipient, 'effects', [])) + [effect]
+
+        # Fail-fast invariant: active buff effect must be present on recipient.
+        if not any(isinstance(eff, dict) and eff.get('id') == effect_id for eff in (getattr(recipient, 'effects', []) or [])):
+            raise RuntimeError(
+                f"emit_stat_buff postcondition failed: missing effect_id={effect_id} on unit={getattr(recipient, 'id', None)}"
+            )
 
     payload = {
         'unit_id': getattr(recipient, 'id', None),
@@ -139,14 +146,9 @@ def emit_stat_buff(
     payload['applied_delta'] = delta
 
     if event_callback:
-        try:
-            print(f"[EMIT_STAT_BUFF] calling callback for recipient={getattr(recipient,'id',None)}")
-            event_callback('stat_buff', payload)
-            print(f"[EMIT_STAT_BUFF] callback returned for recipient={getattr(recipient,'id',None)}")
-        except Exception:
-            # Don't let event emission break simulation
-            print(f"[EMIT_STAT_BUFF] callback raised for recipient={getattr(recipient,'id',None)}")
-            pass
+        print(f"[EMIT_STAT_BUFF] calling callback for recipient={getattr(recipient,'id',None)}")
+        event_callback('stat_buff', payload)
+        print(f"[EMIT_STAT_BUFF] callback returned for recipient={getattr(recipient,'id',None)}")
 
     return payload
 
@@ -177,11 +179,8 @@ def emit_heal(
         max_hp = int(getattr(recipient, 'max_hp', cur))
         add = int(amount)
         new = min(max_hp, cur + add)
-        # apply mutation to recipient via canonical setter only
-        if hasattr(recipient, '_set_hp'):
-            recipient._set_hp(new, caller_module='event_canonicalizer')
-        else:
-            raise RuntimeError('emit_heal: recipient does not support canonical HP mutation')
+        # apply mutation to both recipient.hp and return new value
+        recipient.hp = new
     except Exception:
         # best-effort
         new = getattr(recipient, 'hp', None)
@@ -197,7 +196,8 @@ def emit_heal(
         'amount': int(amount) if amount is not None else None,
         'pre_hp': cur,
         'post_hp': new,
-        # canonical fields only: pre_hp/post_hp are authoritative
+        'unit_hp': new,  # Authoritative HP after heal
+        'unit_max_hp': max_hp,
         'side': side,
         'timestamp': ts,
         'cause': cause,
@@ -229,15 +229,11 @@ def emit_mana_update(
         if current_mana is None:
             current_mana = getattr(recipient, 'mana', None)
         else:
-            # Require canonical setter for absolute mana mutation
-            if hasattr(recipient, '_set_mana'):
-                recipient._set_mana(current_mana, caller_module='event_canonicalizer')
-            else:
-                raise RuntimeError('emit_mana_update: recipient does not support canonical mana mutation')
+            recipient.mana = current_mana
         if max_mana is None:
             max_mana = getattr(recipient, 'max_mana', None)
     except Exception:
-        raise
+        pass
 
     payload = {
         'unit_id': getattr(recipient, 'id', None),
@@ -311,11 +307,17 @@ def emit_mana_change(
     except Exception:
         pass
 
-    # Mutate the unit's canonical mana using internal setter only
-    if hasattr(recipient, '_set_mana'):
-        recipient._set_mana(new_val, caller_module='event_canonicalizer')
-    else:
-        raise RuntimeError('emit_mana_change: recipient does not support canonical mana mutation')
+    # Mutate the unit's canonical mana using internal setter when available
+    try:
+        if hasattr(recipient, '_set_mana'):
+            recipient._set_mana(new_val, caller_module='event_canonicalizer')
+        else:
+            recipient.mana = new_val
+    except Exception:
+        try:
+            recipient.mana = new_val
+        except Exception:
+            pass
 
     applied_amount = None
     try:
@@ -326,17 +328,44 @@ def emit_mana_change(
         except Exception:
             applied_amount = int(amount) if amount is not None else None
 
+    # CRITICAL: Always include current_mana for UI state sync
+    # EventDispatcher needs this field to determine if mana actually changed
+    current_mana_value = None
+    try:
+        current_mana_value = int(getattr(recipient, 'mana', None))
+    except Exception:
+        pass
+
     payload = {
         'unit_id': getattr(recipient, 'id', None),
         'unit_name': getattr(recipient, 'name', None),
-        'current_mana': getattr(recipient, 'mana', None),  # AUTHORITATIVE: current mana value
-        'max_mana': getattr(recipient, 'max_mana', None),
-        'unit_hp': getattr(recipient, 'hp', None),  # AUTHORITATIVE: current HP (mana_update carries HP state)
-        'amount': applied_amount,  # DEPRECATED: keep for backward compat, but UI should use current_mana
+        'amount': applied_amount,
+        'current_mana': current_mana_value,  # ALWAYS include, not just in snapshots
         'side': side,
         'timestamp': ts,
+        'pre_mana': cur,
+        'post_mana': getattr(recipient, 'mana', None),
     }
-    # Emit canonical mana change payload with authoritative current_mana and unit_hp
+    try:
+        if applied_amount is not None and int(applied_amount) > 5:
+            print(f"[MANA EMIT] unit={payload.get('unit_id')} amt={applied_amount} pre={cur} post={payload.get('post_mana')} ts={ts}")
+    except Exception:
+        pass
+    # Back-compat: allow callers to request a snapshot-style payload
+    # including authoritative HP/mana fields. Tests and callers may pass
+    # include_snapshot=True to cause the emitter to attach those fields.
+    # Keep this optional to avoid duplicating snapshot logic elsewhere.
+    try:
+        if include_snapshot:
+            # if recipient has mana/hp attributes include them
+            if hasattr(recipient, 'max_mana'):
+                payload['max_mana'] = int(getattr(recipient, 'max_mana'))
+            if hasattr(recipient, 'hp'):
+                payload['unit_hp'] = int(getattr(recipient, 'hp'))
+            if hasattr(recipient, 'max_hp'):
+                payload['unit_max_hp'] = int(getattr(recipient, 'max_hp'))
+    except Exception:
+        pass
 
     if event_callback:
         try:
@@ -406,13 +435,7 @@ def emit_unit_died(
         # _process_unit_death AFTER it has processed all death-triggered effects.
         if hasattr(recipient, 'hp'):
             # enforce HP changes only via canonical helpers
-            try:
-                if hasattr(recipient, '_set_hp'):
-                    recipient._set_hp(0, caller_module='event_canonicalizer')
-                else:
-                    raise RuntimeError('emit_unit_died: recipient does not support canonical HP mutation')
-            except Exception:
-                pass
+            recipient.hp = 0
 
         # NEW: Update HP arrays atomically with unit death to prevent desync
         if hp_arrays and unit_index is not None and unit_side:
@@ -430,8 +453,8 @@ def emit_unit_died(
         'unit_name': getattr(recipient, 'name', None),
         'side': side,
         'timestamp': ts,
-        # canonical: provide authoritative pre-death HP as 'pre_hp'
-        'pre_hp': pre_hp,
+        # provide the authoritative pre-death HP so reconstructors can trust it
+        'unit_hp': pre_hp,
         'unit_max_hp': getattr(recipient, 'max_hp', None),
     }
     if event_callback:
@@ -469,17 +492,15 @@ def emit_unit_heal(
         max_hp = int(getattr(target, 'max_hp', cur))
         add = int(amount)
         new = min(max_hp, cur + add)
-        # apply mutation to target (canonical setter when available)
-        # apply mutation to target via canonical setter only
-        if hasattr(target, '_set_hp'):
-            target._set_hp(new, caller_module='event_canonicalizer')
-        else:
-            raise RuntimeError('emit_unit_heal: target does not support canonical HP mutation')
         # Debug logging for mrozu
         if getattr(target, 'id', None) == 'mrozu':
             import sys
-            print(f"[emit_unit_heal DEBUG] target={getattr(target,'id',None)} current_hp={current_hp} cur={cur} amount={amount} add={add} max_hp={max_hp} new={new}", file=sys.stderr)
-            print(f"[emit_unit_heal DEBUG] AFTER: target.hp={getattr(target,'hp',None)}", file=sys.stderr)
+            print(f"[emit_unit_heal DEBUG] target={target.id} current_hp={current_hp} cur={cur} amount={amount} add={add} max_hp={max_hp} new={new}", file=sys.stderr)
+            print(f"[emit_unit_heal DEBUG] BEFORE: target.hp={target.hp}", file=sys.stderr)
+        target.hp = new
+        if getattr(target, 'id', None) == 'mrozu':
+            import sys
+            print(f"[emit_unit_heal DEBUG] AFTER: target.hp={target.hp}", file=sys.stderr)
     except Exception:
         new = getattr(target, 'hp', None)
         max_hp = getattr(target, 'max_hp', None)
@@ -496,6 +517,7 @@ def emit_unit_heal(
         'amount': int(amount) if amount is not None else None,
         'pre_hp': cur,
         'post_hp': new,
+        'unit_hp': new,  # Authoritative HP after heal
         'unit_max_hp': max_hp,
         'side': side,
         'timestamp': ts,
@@ -542,11 +564,7 @@ def emit_hp_regen(
         add = int(amount)
         new = min(max_hp, cur + add)
         # apply mutation to recipient.hp
-        # apply mutation to recipient via canonical setter only
-        if hasattr(recipient, '_set_hp'):
-            recipient._set_hp(new, caller_module='event_canonicalizer')
-        else:
-            raise RuntimeError('emit_hp_regen: recipient does not support canonical HP mutation')
+        recipient.hp = new
     except Exception:
         # best-effort
         new = getattr(recipient, 'hp', None)
@@ -562,6 +580,7 @@ def emit_hp_regen(
         'amount': int(amount) if amount is not None else None,
         'pre_hp': cur,
         'post_hp': new,
+        'unit_hp': new,  # Authoritative HP after regen
         'unit_max_hp': max_hp,
         'side': side,
         'timestamp': ts,
@@ -613,9 +632,10 @@ def emit_damage_over_time_tick(
                 'unit_id': getattr(target, 'id', None),
                 'unit_name': getattr(target, 'name', None),
                 'effect_id': effect_id,
-                'applied_damage': int(damage) if damage is not None else 0,
+                'damage': int(damage) if damage is not None else 0,
+                'applied_damage': payload.get('applied_damage', int(damage) if damage is not None else 0),
                 'damage_type': damage_type,
-                'post_hp': payload.get('post_hp'),
+                'unit_hp': payload.get('post_hp'),
                 'tick_index': tick_index,
                 'total_ticks': total_ticks,
                 'side': side,
@@ -740,13 +760,22 @@ def emit_shield_applied(
             'id': effect_id,  # CRITICAL: Include effect_id in effect object
             'type': 'shield',
             'amount': int(amount),
+            'applied_amount': int(amount),
             'duration': duration,
             'source': getattr(source, 'id', None) if source is not None else None,
             'expires_at': expires_at,
         }
         recipient.effects = list(getattr(recipient, 'effects', [])) + [eff]
-    except Exception:
-        expires_at = ts + float(duration) if duration and duration > 0 else None
+    except Exception as e:
+        raise RuntimeError(
+            f"emit_shield_applied mutation failed for unit={getattr(recipient, 'id', None)} amount={amount} duration={duration}"
+        ) from e
+
+    # Fail-fast invariant: active shield effect must be present on recipient.
+    if not any(isinstance(eff, dict) and eff.get('id') == effect_id for eff in (getattr(recipient, 'effects', []) or [])):
+        raise RuntimeError(
+            f"emit_shield_applied postcondition failed: missing effect_id={effect_id} on unit={getattr(recipient, 'id', None)}"
+        )
 
     payload = {
         'unit_id': getattr(recipient, 'id', None),
@@ -762,10 +791,7 @@ def emit_shield_applied(
         'effect_id': effect_id,  # CRITICAL: Include effect_id for frontend tracking
     }
     if event_callback:
-        try:
-            event_callback('shield_applied', payload)
-        except Exception:
-            pass
+        event_callback('shield_applied', payload)
     return payload
 
 
@@ -805,6 +831,16 @@ def emit_damage(
         payload = {
             'attacker_id': getattr(attacker, 'id', None) if attacker is not None else None,
             'attacker_name': getattr(attacker, 'name', None) if attacker is not None else None,
+            'attacker_current_mana': (
+                int(getattr(attacker, 'mana'))
+                if attacker is not None and getattr(attacker, 'mana', None) is not None
+                else None
+            ),
+            'attacker_max_mana': (
+                int(getattr(attacker, 'max_mana'))
+                if attacker is not None and getattr(attacker, 'max_mana', None) is not None
+                else None
+            ),
             'unit_id': getattr(target, 'id', None),
             'unit_name': getattr(target, 'name', None),
             'pre_hp': pre_hp,
@@ -819,32 +855,53 @@ def emit_damage(
         return payload
 
     applied = int(raw_damage) if raw_damage is not None else 0
-    post_hp = max(0, (pre_hp or 0) - applied)
+    post_hp = pre_hp
+    try:
+        post_hp = max(0, (pre_hp or 0) - applied)
+        # Mutate HP only here
+        target.hp = post_hp
 
-    # Mutate HP only here via canonical setter; let exceptions propagate
-    if hasattr(target, '_set_hp'):
-        target._set_hp(post_hp, caller_module='event_canonicalizer')
-    else:
-        raise RuntimeError('emit_damage: target does not support canonical HP mutation')
+        # NEW: Update HP arrays atomically with damage application to prevent desync
+        if hp_arrays and unit_index is not None and unit_side:
+            try:
+                if unit_side in hp_arrays and 0 <= unit_index < len(hp_arrays[unit_side]):
+                    hp_arrays[unit_side][unit_index] = post_hp
+            except Exception:
+                # If HP array update fails, continue - target.hp is still correctly set
+                pass
 
-    # NEW: Update HP arrays atomically with damage application to prevent desync
-    if hp_arrays and unit_index is not None and unit_side:
-        try:
-            if unit_side in hp_arrays and 0 <= unit_index < len(hp_arrays[unit_side]):
-                hp_arrays[unit_side][unit_index] = post_hp
-        except Exception:
-            # If HP array update fails, continue - target.hp is still correctly set
-            pass
+        # Do NOT mark `_dead` or `_death_processed` here — death handling
+        # (effects, rewards) should be performed by the centralized
+        # effect processor via `_process_unit_death` to ensure ordering.
+    except Exception:
+        pass
 
-    # Canonical damage payload — minimal, unambiguous authoritative fields only.
     payload = {
         'attacker_id': getattr(attacker, 'id', None) if attacker is not None else None,
         'attacker_name': getattr(attacker, 'name', None) if attacker is not None else None,
+        'attacker_current_mana': (
+            int(getattr(attacker, 'mana'))
+            if attacker is not None and getattr(attacker, 'mana', None) is not None
+            else None
+        ),
+        'attacker_max_mana': (
+            int(getattr(attacker, 'max_mana'))
+            if attacker is not None and getattr(attacker, 'max_mana', None) is not None
+            else None
+        ),
         'unit_id': getattr(target, 'id', None),
         'unit_name': getattr(target, 'name', None),
+        # Backwards-compatible target keys
+        'target_id': getattr(target, 'id', None),
+        'target_name': getattr(target, 'name', None),
         'pre_hp': pre_hp,
         'post_hp': post_hp,
         'applied_damage': applied,
+        # Backwards-compatible fields expected by older reconstructor logic
+        'damage': applied,
+        'target_hp': post_hp,
+        'new_hp': post_hp,
+        'unit_hp': post_hp,
         'shield_absorbed': shield_absorbed,
         'damage_type': damage_type,
         'side': side,
@@ -859,12 +916,9 @@ def emit_damage(
         except Exception:
             pass
 
-    # If target died as the result, emit unit_died only when we are
-    # actually emitting events (not during dry-run / emit_event=False).
-    # This prevents emit_damage from marking `_dead` during compute-only
-    # calls and allows callers (e.g. scheduled actions) to control when
-    # death events are emitted to collectors.
-    if post_hp == 0 and emit_event and event_callback:
+    # If target died as the result, also emit unit_died with authoritative pre_hp
+    # ONLY emit if event_callback is provided (otherwise caller will handle death manually)
+    if post_hp == 0 and event_callback is not None:
         try:
             emit_unit_died(event_callback, target, side=side, timestamp=ts, unit_hp=pre_hp)
         except Exception:
@@ -892,7 +946,7 @@ def emit_effect_expired(
         'unit_id': getattr(target, 'id', None),
         'unit_name': getattr(target, 'name', None),
         'effect_id': effect_id,
-        'post_hp': unit_hp if unit_hp is not None else getattr(target, 'hp', None),
+        'unit_hp': unit_hp if unit_hp is not None else getattr(target, 'hp', None),
         'side': side,
         'timestamp': ts,
     }
@@ -923,7 +977,7 @@ def emit_damage_over_time_expired(
         'unit_id': getattr(target, 'id', None),
         'unit_name': getattr(target, 'name', None),
         'effect_id': effect_id,
-        'post_hp': unit_hp if unit_hp is not None else getattr(target, 'hp', None),
+        'unit_hp': unit_hp if unit_hp is not None else getattr(target, 'hp', None),
         'side': side,
         'timestamp': ts,
     }

@@ -10,84 +10,84 @@ class SynergyEngine:
         # Store full trait definitions keyed by name so we can access trait-level
         # metadata (like trait['target']) when applying effects.
         self.trait_effects: Dict[str, Dict] = {}
-        # Group traits by name so we can support both combined definitions
-        # and legacy per-tier split definitions (where each entry has a 'tier').
-        traits_by_name = {}
         for t in traits:
-            name = t.get('name')
-            if not name:
+            name = t["name"]
+            self.thresholds[name] = list(t.get("thresholds", []))
+            self.trait_effects[name] = t
+
+    def _extract_persistent_rewards(self, effect_list, trait_obj, trait_name, unit, count):
+        """
+        Extract passive/persistent rewards from trigger-based effects that should
+        be shown in display stats (not combat-only).
+
+        Rules for what's considered "passive" (should show in UI):
+        1. stat_buff with flat value or percentage (no combat-specific value_type)
+        2. dynamic_scaling (win/loss scaling)
+        3. per_trait buffs
+        4. buff_amplifier effects
+
+        Combat-only effects (NOT shown in UI):
+        - stat_buff with value_type='percentage_of_collected' (stacks during combat)
+        - Triggers like per_second, per_round, on_ally_hp_below (combat mechanics)
+
+        Returns list of reward dicts.
+        """
+        persistent_rewards = []
+
+        # Define which triggers represent persistent state
+        PERSISTENT_TRIGGERS = {'on_win', 'on_loss', 'per_trait'}
+        # Define combat-only triggers that should never show in UI (unless target='self')
+        COMBAT_ONLY_TRIGGERS = {'per_second', 'on_ally_hp_below'}
+
+        # Check if this is a 'self' trait (only applies to units with the trait)
+        trait_target = trait_obj.get('target')
+
+        for trigger_obj in effect_list:
+            trigger = trigger_obj.get('trigger')
+            rewards = trigger_obj.get('rewards', [])
+
+            # Skip explicitly combat-only triggers
+            if trigger and trigger in COMBAT_ONLY_TRIGGERS:
                 continue
-            traits_by_name.setdefault(name, []).append(t)
 
-        for name, entries in traits_by_name.items():
-            # Pick a base object to copy other fields from
-            base = dict(entries[0])
+            for reward in rewards:
+                rtype = reward.get('type')
 
-            # Collect thresholds from the first entry that provides them
-            thresholds = None
-            for e in entries:
-                if e.get('thresholds'):
-                    thresholds = list(e.get('thresholds', []))
-                    break
-            if thresholds is None:
-                thresholds = []
+                # Always include persistent trigger types
+                if trigger and trigger in PERSISTENT_TRIGGERS:
+                    # For per_trait triggers, multiply values by active synergy count
+                    if trigger == 'per_trait':
+                        reward = dict(reward)  # Make a copy
+                        if 'value' in reward:
+                            reward['value'] = reward['value'] * len(active_synergies) if hasattr(self, '_active_synergies_count') else reward['value']
+                    persistent_rewards.append(reward)
+                    continue
 
-            # Build per-tier modular effects mapping
-            per_tier = {}
-            max_tier = 0
-            for e in entries:
-                tier = e.get('tier')
-                me = e.get('modular_effects', [])
-                # Normalize simple dict -> list
-                if isinstance(me, dict):
-                    me = [me]
+                # If no trigger specified, treat as always-active persistent effect
+                if not trigger:
+                    persistent_rewards.append(reward)
+                    continue
 
-                # If me is a flat list of dicts and a tier is provided, treat it as that tier
-                if isinstance(me, list) and me and all(isinstance(x, dict) for x in me) and tier:
-                    per_tier[int(tier)] = me
-                    max_tier = max(max_tier, int(tier))
-                # If me is already nested (list of lists), expand into per_tier
-                elif isinstance(me, list) and me and all(isinstance(x, list) for x in me):
-                    if tier:
-                        for i, tier_effects in enumerate(me):
-                            per_tier[int(tier) + i] = tier_effects
-                            max_tier = max(max_tier, int(tier) + i)
-                    else:
-                        for i, tier_effects in enumerate(me):
-                            per_tier[i + 1] = tier_effects
-                            max_tier = max(max_tier, i + 1)
-                # If me is list of dicts and no tier specified, assume tier 1
-                elif isinstance(me, list) and me and all(isinstance(x, dict) for x in me):
-                    per_tier[1] = me
-                    max_tier = max(max_tier, 1)
+                # Include stat_buff rewards if they're passive (not combat-stacking)
+                if rtype == 'stat_buff':
+                    value_type = reward.get('value_type')
+                    # Exclude combat-specific value types
+                    if value_type in ['percentage_of_collected']:
+                        continue
+                    persistent_rewards.append(reward)
+                    continue
 
-            total_tiers = max(max_tier, len(thresholds))
-            combined = []
-            for i in range(1, total_tiers + 1):
-                tier_effects = per_tier.get(i, [])
-                if isinstance(tier_effects, dict):
-                    tier_effects = [tier_effects]
-                if not isinstance(tier_effects, list):
-                    tier_effects = []
-                combined.append(tier_effects)
+                # Include dynamic_scaling (win/loss scaling)
+                if rtype == 'dynamic_scaling':
+                    persistent_rewards.append(reward)
+                    continue
 
-            # Final trait object
-            trait_obj = dict(base)
-            trait_obj['thresholds'] = thresholds
-            trait_obj['modular_effects'] = combined
+                # Include buff_amplifier
+                if rtype == 'buff_amplifier':
+                    persistent_rewards.append(reward)
+                    continue
 
-            # Validate the normalized structure
-            if not isinstance(trait_obj['modular_effects'], list):
-                raise TypeError(f"Trait '{name}' has invalid 'modular_effects' after normalization: {type(trait_obj['modular_effects']).__name__}")
-            for tier_idx, tier_eff in enumerate(trait_obj['modular_effects'], start=1):
-                if not isinstance(tier_eff, list):
-                    raise TypeError(f"Trait '{name}' modular_effects tier {tier_idx} invalid after normalization: expected list, got {type(tier_eff).__name__}")
-                for entry in tier_eff:
-                    if not isinstance(entry, dict):
-                        raise TypeError(f"Trait '{name}' modular_effects tier {tier_idx} contains non-dict entry after normalization: {entry!r}")
-
-            self.thresholds[name] = thresholds
-            self.trait_effects[name] = trait_obj
+        return persistent_rewards
 
     def compute(self, units: List[Unit]) -> Dict[str, Tuple[int, int]]:
         # Count unique units only (by unit.id)
@@ -137,82 +137,87 @@ class SynergyEngine:
             trait_obj = self.trait_effects.get(trait_name)
             if not trait_obj:
                 continue
-            modular_effects = trait_obj.get('modular_effects', [])
+            effects = trait_obj.get('modular_effects', [])
             idx = tier - 1
-            if idx < 0 or idx >= len(modular_effects):
+            if idx < 0 or idx >= len(effects):
                 continue
-            threshold_effects = modular_effects[idx]
-            trait_level_target = trait_obj.get('target')
-            for e in threshold_effects:
-                if not isinstance(e, dict):
-                    raise TypeError(f"Malformed modular_effect for trait '{trait_name}': {e!r}")
-                target_scope = e.get('target', trait_level_target or 'trait')
-                # Normalize target semantics: 'self' behaves like 'trait' for unit-level effects
-                if target_scope == 'self':
-                    target_scope = 'trait'
+            effect = effects[idx]
 
-                # Only apply amplifier when the scope includes this unit (team-wide or unit has the trait)
-                if target_scope == 'team' or (target_scope == 'trait' and (trait_name in unit.factions or trait_name in unit.classes)):
-                    for reward in e.get('rewards', []):
-                        if reward.get('type') == 'buff_amplifier':
+            # Handle trigger-based effects (new format)
+            if isinstance(effect, list):
+                rewards = self._extract_persistent_rewards(effect, trait_obj, trait_name, unit, count)
+                for reward in rewards:
+                    if reward.get('type') == 'buff_amplifier':
+                        trait_level_target = trait_obj.get('target')
+                        target_scope = reward.get('target', trait_level_target or 'trait')
+                        if target_scope == 'team' or (target_scope == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
                             amplifier = max(amplifier, float(reward.get('multiplier', 1)))
+                continue
 
-        # Apply buffs
+            # Handle legacy passive effects (old format)
+            if effect.get('type') == 'buff_amplifier':
+                trait_level_target = trait_obj.get('target') if trait_obj else None
+                target_scope = effect.get('target', trait_level_target or 'trait')
+                if target_scope == 'team' or (target_scope == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
+                    amplifier = max(amplifier, float(effect.get('multiplier', 1)))
+
         for trait_name, (count, tier) in active_synergies.items():
             trait_obj = self.trait_effects.get(trait_name)
             if not trait_obj:
                 continue
-            modular_effects = trait_obj.get('modular_effects', [])
+            effects = trait_obj.get('modular_effects', [])
             idx = tier - 1
-            if idx < 0 or idx >= len(modular_effects):
+            if idx < 0 or idx >= len(effects):
                 continue
-            threshold_effects = modular_effects[idx]
-            trait_level_target = trait_obj.get('target')
-            for e in threshold_effects:
-                if not isinstance(e, dict):
-                    raise TypeError(f"Malformed modular_effect for trait '{trait_name}': {e!r}")
-                target_scope = e.get('target', trait_level_target or 'trait')
-                # Treat 'self' as 'trait' (apply only to units with the trait)
-                if target_scope == 'self':
-                    target_scope = 'trait'
+            effect = effects[idx]
 
-                # If scope is 'trait', ensure this unit actually has the trait
-                if target_scope == 'trait':
-                    if trait_name not in unit.factions and trait_name not in unit.classes:
-                        continue
-                # If scope is neither 'team' nor 'trait', default to trait-scoped behavior
-                if target_scope not in ('team', 'trait'):
-                    if trait_name not in unit.factions and trait_name not in unit.classes:
-                        continue
+            # Handle trigger-based effects (new format) - extract persistent rewards
+            if isinstance(effect, list):
+                rewards = self._extract_persistent_rewards(effect, trait_obj, trait_name, unit, count)
+                for reward in rewards:
+                    # Determine target scope
+                    trait_level_target = trait_obj.get('target')
+                    # Default to 'team' if not specified (apply to all units)
+                    target_scope = reward.get('target', trait_level_target if trait_level_target else 'team')
+                    # 'self' and 'trait' both mean: only units with this trait
+                    if target_scope in ['trait', 'self']:
+                        if trait_name not in unit.factions and trait_name not in unit.classes:
+                            continue
 
-                for reward in e.get('rewards', []):
+                    # Process reward's stat buffs
                     rtype = reward.get('type')
                     if rtype == 'stat_buff':
-                        stat = reward.get('stat')
-                        value = reward.get('value', 0)
-                        value_type = reward.get('value_type', 'flat')
-                        is_percentage = value_type == 'percentage_of_max' or reward.get('is_percentage', False)
-                        value *= amplifier
-                        if stat == 'hp':
-                            if is_percentage:
-                                hp *= (1 + value / 100)
-                            else:
-                                hp += value
-                        elif stat == 'attack':
-                            if is_percentage:
-                                attack *= (1 + value / 100)
-                            else:
-                                attack += value
-                        elif stat == 'defense':
-                            if is_percentage:
-                                defense *= (1 + value / 100)
-                            else:
-                                defense += value
-                        elif stat == 'attack_speed':
-                            if is_percentage:
-                                attack_speed *= (1 + value / 100)
-                            else:
-                                attack_speed += value
+                        stats = []
+                        if 'stat' in reward:
+                            stats = [reward['stat']]
+                        elif 'stats' in reward:
+                            stats = reward['stats']
+                        for st in stats:
+                            val = reward.get('value', 0)
+                            # Handle both old is_percentage and new value_type formats
+                            value_type = reward.get('value_type')
+                            is_percentage = reward.get('is_percentage', False) or (value_type in ['percentage', 'percentage_of_max'])
+                            val *= amplifier
+                            if st == 'hp':
+                                if is_percentage:
+                                    hp = int(hp * (1 + val / 100.0))
+                                else:
+                                    hp = int(hp + val)
+                            elif st == 'attack':
+                                if is_percentage:
+                                    attack = int(attack * (1 + val / 100.0))
+                                else:
+                                    attack = int(attack + val)
+                            elif st == 'defense':
+                                if is_percentage:
+                                    defense = int(defense * (1 + val / 100.0))
+                                else:
+                                    defense = int(defense + val)
+                            elif st == 'attack_speed':
+                                if is_percentage:
+                                    attack_speed = attack_speed * (1 + val / 100.0)
+                                else:
+                                    attack_speed = attack_speed + val
                     elif rtype == 'per_trait_buff':
                         stats = reward.get('stats', [])
                         per_val = reward.get('value', 0)
@@ -221,22 +226,65 @@ class SynergyEngine:
                             val = per_val * multiplier
                             val *= amplifier
                             if st == 'hp':
-                                hp *= (1 + val / 100)
+                                hp = int(hp * (1 + val / 100.0))
                             elif st == 'attack':
-                                attack *= (1 + val / 100)
+                                attack = int(attack * (1 + val / 100.0))
+                continue
 
-        # Apply amplifier to all stats
-        hp = int(hp)
-        attack = int(attack)
-        defense = int(defense)
-        attack_speed = round(attack_speed, 3)
+            # Handle legacy passive effects (old format)
+            # Determine whether this effect should apply to all units on the team
+            # or only to units that have the trait. New optional key on effects:
+            #   "target": "trait" | "team"
+            # Trait may also declare a default target via trait_obj['target'].
+            # Default behavior: 'trait' (only units that have the trait)
+            trait_level_target = trait_obj.get('target') if trait_obj else None
+            target_scope = effect.get('target', trait_level_target or 'trait')
+            if target_scope == 'trait':
+                if trait_name not in unit.factions and trait_name not in unit.classes:
+                    continue
 
-        return {
-            'hp': hp,
-            'attack': attack,
-            'defense': defense,
-            'attack_speed': attack_speed
-        }
+            etype = effect.get('type')
+            if etype == 'stat_buff':
+                stats = []
+                if 'stat' in effect:
+                    stats = [effect['stat']]
+                elif 'stats' in effect:
+                    stats = effect['stats']
+                for st in stats:
+                    val = effect.get('value', 0)
+                    is_percentage = effect.get('is_percentage', False)
+                    val *= amplifier
+                    if st == 'hp':
+                        if is_percentage:
+                            hp = int(hp * (1 + val / 100.0))
+                        else:
+                            hp = int(hp + val)
+                    elif st == 'attack':
+                        if is_percentage:
+                            attack = int(attack * (1 + val / 100.0))
+                        else:
+                            attack = int(attack + val)
+                    elif st == 'defense':
+                        if is_percentage:
+                            defense = int(defense * (1 + val / 100.0))
+                        else:
+                            defense = int(defense + val)
+                    elif st == 'attack_speed':
+                        if is_percentage:
+                            attack_speed = attack_speed * (1 + val / 100.0)
+                        else:
+                            attack_speed = attack_speed + val
+            elif etype == 'per_trait_buff':
+                stats = effect.get('stats', [])
+                per_val = effect.get('value', 0)
+                multiplier = len(active_synergies)
+                for st in stats:
+                    val = per_val * multiplier
+                    val *= amplifier
+                    if st == 'hp':
+                        hp = int(hp * (1 + val / 100.0))
+                    elif st == 'attack':
+                        attack = int(attack * (1 + val / 100.0))
 
         return {
             'hp': hp,
@@ -255,44 +303,71 @@ class SynergyEngine:
             trait_obj = self.trait_effects.get(trait_name)
             if not trait_obj:
                 continue
-            modular_effects = trait_obj.get('modular_effects', [])
+            effects = trait_obj.get('modular_effects', [])
             idx = tier - 1
-            if idx < 0 or idx >= len(modular_effects):
+            if idx < 0 or idx >= len(effects):
                 continue
-            threshold_effects = modular_effects[idx]
-            trait_level_target = trait_obj.get('target')
-            for e in threshold_effects:
-                if not isinstance(e, dict):
-                    raise TypeError(f"Malformed modular_effect for trait '{trait_name}': {e!r}")
-                # Respect target scope for dynamic effects as well (team / trait/self)
-                target_scope = e.get('target', trait_level_target or 'trait')
-                # Note: do not normalize 'self' here; prefer explicit 'trait' in definitions
-                # If dynamic scaling is trait-scoped, skip units that don't have the trait
-                if target_scope == 'trait' and trait_name not in unit.factions and trait_name not in unit.classes:
-                    continue
+            effect = effects[idx]
 
-                for reward in e.get('rewards', []):
+            # Handle trigger-based effects (new format) - extract persistent rewards
+            if isinstance(effect, list):
+                rewards = self._extract_persistent_rewards(effect, trait_obj, trait_name, unit, count)
+                for reward in rewards:
+                    # Respect trait-level target
+                    trait_level_target = trait_obj.get('target')
+                    # Default to 'team' if not specified (apply to all units)
+                    target_scope = reward.get('target', trait_level_target if trait_level_target else 'team')
+                    # 'self' and 'trait' both mean: only units with this trait
+                    if target_scope in ['trait', 'self']:
+                        if trait_name not in unit.factions and trait_name not in unit.classes:
+                            continue
+
+                    # Process dynamic scaling rewards
                     rtype = reward.get('type')
                     if rtype == 'dynamic_scaling':
-                        # Safely handle missing player (e.g., opponent construction passes None)
-                        wins = int(getattr(player, 'wins', 0) or 0)
-                        losses = int(getattr(player, 'losses', 0) or 0)
-                        if 'percent_per_loss' in reward:
-                            # Dynamic HP per loss
-                            percent_per_loss = float(reward.get('percent_per_loss', 0))
-                            extra_multiplier = 1.0 + (percent_per_loss * float(losses) / 100.0)
-                            stats['hp'] = int(stats['hp'] * extra_multiplier)
-                        else:
-                            # Win scaling
-                            atk_per_win = float(reward.get('atk_per_win', 0))
-                            def_per_win = float(reward.get('def_per_win', 0))
-                            hp_percent_per_win = float(reward.get('hp_percent_per_win', 0))
-                            as_per_win = float(reward.get('as_per_win', 0))
-                            stats['attack'] += int(atk_per_win * wins)
-                            stats['defense'] += int(def_per_win * wins)
-                            if hp_percent_per_win and wins:
-                                stats['hp'] = int(stats['hp'] * (1 + (hp_percent_per_win * wins) / 100.0))
-                            stats['attack_speed'] += as_per_win * wins
+                        # Maps to old 'win_scaling' effect
+                        if player is None:
+                            continue
+                        atk_per_win = float(reward.get('atk_per_win', 0))
+                        def_per_win = float(reward.get('def_per_win', 0))
+                        hp_percent_per_win = float(reward.get('hp_percent_per_win', 0))
+                        as_per_win = float(reward.get('as_per_win', 0))
+                        stats['attack'] += int(atk_per_win * player.wins)
+                        stats['defense'] += int(def_per_win * player.wins)
+                        if hp_percent_per_win:
+                            stats['hp'] = int(stats['hp'] * (1 + (hp_percent_per_win * player.wins) / 100.0))
+                        stats['attack_speed'] += as_per_win * player.wins
+                continue
+
+            # Handle legacy passive effects (old format)
+            # Respect trait-level target if effect doesn't specify one
+            trait_level_target = trait_obj.get('target')
+            target_scope = effect.get('target', trait_level_target or 'trait')
+            if target_scope == 'trait':
+                if trait_name not in unit.factions and trait_name not in unit.classes:
+                    continue
+
+            etype = effect.get('type')
+            if etype == 'dynamic_hp_per_loss':
+                # Requires player state (losses). If no player provided, skip.
+                if player is None:
+                    continue
+                percent_per_loss = float(effect.get('percent_per_loss', 0))
+                extra_multiplier = 1.0 + (percent_per_loss * float(player.losses) / 100.0)
+                stats['hp'] = int(stats['hp'] * extra_multiplier)
+            elif etype == 'win_scaling':
+                # Requires player state (wins). If no player provided, skip.
+                if player is None:
+                    continue
+                atk_per_win = float(effect.get('atk_per_win', 0))
+                def_per_win = float(effect.get('def_per_win', 0))
+                hp_percent_per_win = float(effect.get('hp_percent_per_win', 0))
+                as_per_win = float(effect.get('as_per_win', 0))
+                stats['attack'] += int(atk_per_win * player.wins)
+                stats['defense'] += int(def_per_win * player.wins)
+                if hp_percent_per_win:
+                    stats['hp'] = int(stats['hp'] * (1 + (hp_percent_per_win * player.wins) / 100.0))
+                stats['attack_speed'] += as_per_win * player.wins
 
         # Return computed dynamic stats after processing all active traits
         return stats
@@ -314,8 +389,10 @@ class SynergyEngine:
                 if idx < 0 or idx >= len(effects):
                     continue
                 effect = effects[idx]
-                if not isinstance(effect, dict):
-                    raise TypeError(f"Malformed modular_effect for trait '{trait_name}' at tier {tier}: {effect!r}")
+
+                # Skip trigger-based effects (lists with triggers/rewards) - these are handled by modular_effect_processor during combat
+                if isinstance(effect, list):
+                    continue
 
                 # Only apply if this unit has the trait
                 if trait_name not in unit.factions and trait_name not in unit.classes:

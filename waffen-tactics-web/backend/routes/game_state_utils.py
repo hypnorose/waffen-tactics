@@ -87,8 +87,7 @@ def enrich_player_state(player: PlayerState) -> dict:
             instance_id = ui.instance_id
             unit = next((u for u in GameManager().data.units if u.id == ui.unit_id), None)
             if not unit:
-                print(f"⚠️ Unit {ui.unit_id} not found in data, skipping stats calculation")
-                continue
+                raise ValueError(f"Unit '{ui.unit_id}' not found in game data. Cannot compute buffed stats for board unit {instance_id}.")
             star_level = ui.star_level
             persistent_buffs = ui.persistent_buffs or {}
             # Calculate base stats (before buffs)
@@ -113,7 +112,7 @@ def enrich_player_state(player: PlayerState) -> dict:
             buffed_stats = GameManager().synergy_engine.apply_stat_buffs(base_stats, unit, active_synergies)
             buffed_stats = GameManager().synergy_engine.apply_dynamic_effects(unit, buffed_stats, active_synergies, player)
             if buffed_stats is None:
-                buffed_stats = base_stats.copy()
+                raise RuntimeError(f"SynergyEngine.apply_dynamic_effects returned None for unit '{ui.unit_id}' (instance {instance_id}). This indicates a bug in the synergy system.")
 
             # Apply persistent buffs after synergies
             for stat, value in persistent_buffs.items():
@@ -141,7 +140,7 @@ def enrich_player_state(player: PlayerState) -> dict:
         for ui in player.bench:
             unit = next((u for u in GameManager().data.units if u.id == ui.unit_id), None)
             if not unit:
-                continue
+                raise ValueError(f"Unit '{ui.unit_id}' not found in game data. Cannot compute buffed stats for bench unit {ui.instance_id}.")
             star_level = ui.star_level
             persistent_buffs = ui.persistent_buffs or {}
             base = deepcopy(unit.stats)

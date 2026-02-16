@@ -33,6 +33,14 @@ class SkillExecutor:
         """
         events = []
 
+        def emit(event_type: str, payload: Dict[str, Any]) -> None:
+            """Emit immediately to runtime callback, or buffer for callers/tests."""
+            cb = getattr(context, 'event_callback', None)
+            if cb:
+                cb(event_type, payload)
+            else:
+                events.append((event_type, payload))
+
         try:
             # Determine required mana to cast.
             # Prefer explicit skill.mana_cost if present (back-compat for tests/data),
@@ -54,12 +62,8 @@ class SkillExecutor:
             from waffen_tactics.services.event_canonicalizer import emit_mana_change
             print(f"[SKILL_EXEC] casting {skill.name} at combat_time={context.combat_time}")
             
-            # Use canonical emitter for mana change
-            def event_callback(event_type, payload):
-                events.append((event_type, payload))
-            
             side = 'team_a' if any(u.id == context.caster.id for u in context.team_a) else 'team_b'
-            emit_mana_change(event_callback, context.caster, 
+            emit_mana_change(emit, context.caster,
                            -required_mana,  # Negative amount for mana cost
                            side=side, 
                            timestamp=context.combat_time,
@@ -71,6 +75,20 @@ class SkillExecutor:
             target_id = None
             target_name = None
             damage = None
+            target_hp = None
+            target_max_hp = None
+
+            # Ensure single-enemy targeting stays consistent within one cast:
+            # select once and reuse for metadata + effect execution.
+            has_single_enemy_effect = any(
+                effect.target in (TargetType.SINGLE_ENEMY, TargetType.SINGLE_ENEMY_PERSISTENT)
+                for effect in skill.effects
+            )
+            if has_single_enemy_effect and context.persistent_target is None:
+                seeded_targets = self._get_targets(TargetType.SINGLE_ENEMY, context)
+                if seeded_targets:
+                    context.persistent_target = seeded_targets[0]
+
             if len(skill.effects) == 1:
                 effect = skill.effects[0]
                 if effect.target == TargetType.SINGLE_ENEMY:
@@ -79,26 +97,36 @@ class SkillExecutor:
                     if targets:
                         target_id = targets[0].id
                         target_name = targets[0].name
+                        target_hp = int(getattr(targets[0], 'hp', 0))
+                        target_max_hp = int(getattr(targets[0], 'max_hp', 0))
                         if effect.type == EffectType.DAMAGE:
                             damage = effect.params.get('amount')
                 elif effect.type == EffectType.DAMAGE:
                     # For other targets, still include damage if it's a damage effect
                     damage = effect.params.get('amount')
-            events.append(('skill_cast', {
+            emit('skill_cast', {
                 'caster_id': context.caster.id,
                 'caster_name': context.caster.name,
                 'skill_name': skill.name,
                 'target_id': target_id,
                 'target_name': target_name,
                 'damage': damage,
+                'target_hp': target_hp,
+                'target_max_hp': target_max_hp,
                 'timestamp': context.combat_time
-            }))
+            })
 
             # Execute effects sequentially (effects come after skill_cast)
             for effect in skill.effects:
+                if self._should_defer_effect(effect, context):
+                    self._schedule_deferred_effect(effect, context)
+                    continue
+
                 effect_events = self._execute_effect(effect, context)
                 print(f"[SKILL_EXEC] effect {effect.type} returned {effect_events}")
-                events.extend(effect_events)
+                if effect_events:
+                    for event_type, payload in effect_events:
+                        emit(event_type, payload)
 
         except Exception as e:
             raise SkillExecutionError(f"Failed to execute skill {skill.name}: {e}")
@@ -107,10 +135,12 @@ class SkillExecutor:
 
     def _execute_effect(self, effect: Effect, context: SkillExecutionContext) -> List[Dict[str, Any]]:
         """Execute a single effect"""
-        events = []
-
-        # Get targets for this effect
         targets = self._get_targets(effect.target, context)
+        return self._execute_effect_on_targets(effect, context, targets)
+
+    def _execute_effect_on_targets(self, effect: Effect, context: SkillExecutionContext, targets: List[Any]) -> List[Dict[str, Any]]:
+        """Execute a single effect on a provided target list."""
+        events = []
 
         # Get effect handler
         handler = get_effect_handler(effect.type)
@@ -142,6 +172,53 @@ class SkillExecutor:
 
         return events
 
+    def _should_defer_effect(self, effect: Effect, context: SkillExecutionContext) -> bool:
+        """Return True when this effect must be executed at a future simulation timestamp."""
+        if effect.type == EffectType.DELAY:
+            return False
+
+        cb = getattr(context, 'event_callback', None)
+        scheduler = getattr(context, 'schedule_event', None)
+        ts = getattr(context, 'combat_time', None)
+        current_ts = getattr(context, 'sim_current_time', None)
+
+        return bool(
+            cb
+            and scheduler
+            and isinstance(ts, (int, float))
+            and isinstance(current_ts, (int, float))
+            and ts > current_ts
+        )
+
+    def _schedule_deferred_effect(self, effect: Effect, context: SkillExecutionContext) -> None:
+        """Schedule effect execution for delayed skill timelines.
+
+        This keeps event-sourcing strict: state mutation happens exactly when
+        the event is emitted by scheduler delivery.
+        """
+        scheduler = getattr(context, 'schedule_event', None)
+        if scheduler is None:
+            raise SkillExecutionError("Deferred effect requested but schedule_event is not available")
+
+        deliver_ts = float(getattr(context, 'combat_time', 0.0))
+        targets = list(self._get_targets(effect.target, context))
+
+        if not targets:
+            return
+
+        def action():
+            original_combat_time = getattr(context, 'combat_time', None)
+            original_sim_time = getattr(context, 'sim_current_time', None)
+            try:
+                context.combat_time = deliver_ts
+                context.sim_current_time = deliver_ts
+                return self._execute_effect_on_targets(effect, context, targets)
+            finally:
+                context.combat_time = original_combat_time
+                context.sim_current_time = original_sim_time
+
+        scheduler(deliver_ts, action)
+
     def _get_targets(self, target_type: TargetType, context: SkillExecutionContext) -> List[Any]:
         """Get list of targets for an effect"""
         caster = context.caster
@@ -152,6 +229,12 @@ class SkillExecutor:
             return [caster]
 
         elif target_type == TargetType.SINGLE_ENEMY:
+            # Reuse preselected target within this cast when available.
+            if context.persistent_target is not None:
+                if context.persistent_target in enemy_team and getattr(context.persistent_target, 'hp', 0) > 0:
+                    return [context.persistent_target]
+                context.persistent_target = None
+
             # Random enemy - prefer alive targets but fall back to any enemy
             alive_enemies = [u for u in enemy_team if getattr(u, 'hp', 0) > 0]
             candidates = alive_enemies if alive_enemies else list(enemy_team)
@@ -163,7 +246,9 @@ class SkillExecutor:
             # Use random_seed for deterministic behavior if provided
             if context.random_seed is not None:
                 random.seed(context.random_seed)
-            return [random.choice(candidates)]
+            chosen = random.choice(candidates)
+            context.persistent_target = chosen
+            return [chosen]
 
         elif target_type == TargetType.SINGLE_ENEMY_PERSISTENT:
             # Same enemy for all effects in this skill execution

@@ -117,6 +117,31 @@ class TestCombatManager:
         assert player_state.streak == -1
 
     @patch('waffen_tactics.services.combat_manager.CombatSimulator')
+    def test_damage_to_player_is_correctly_calculated(self, mock_combat_sim, combat_manager, player_state, opponent_board):
+        """Ensure damage applied to `PlayerState` equals surviving stars + opponent level"""
+        # Mock combat simulator to return opponent win
+        mock_sim_instance = Mock()
+        mock_sim_instance.simulate.return_value = {
+            'winner': 'team_b',
+            'duration': 2.0,
+            'log': ['Combat started', 'Opponent wins']
+        }
+        mock_combat_sim.return_value = mock_sim_instance
+
+        initial_hp = player_state.hp
+        opponent_level = 3
+
+        # Compute expected surviving stars (opponent units default to 1 star in CombatManager)
+        expected_stars = sum(getattr(u, 'star_level', 1) for u in opponent_board)
+        expected_damage = expected_stars + opponent_level
+
+        result = combat_manager.start_combat(player_state, opponent_board, {'level': opponent_level})
+
+        assert result['winner'] == 'opponent'
+        assert result['damage_taken'] == expected_damage
+        assert player_state.hp == initial_hp - expected_damage
+
+    @patch('waffen_tactics.services.combat_manager.CombatSimulator')
     def test_start_combat_with_persistent_buffs(self, mock_combat_sim, combat_manager, player_state, opponent_board, mock_synergy_engine):
         """Test that persistent buffs are applied to surviving units"""
         # Mock surviving units with permanent buffs

@@ -63,6 +63,20 @@ class CombatUnit:
         mana = current_mana if current_mana is not None else self.get_mana()
         if mana is None:
             mana = 0
+        # CRITICAL: Snapshot serialization must not leak mutable references.
+        # Collected events are streamed after simulation completes; if we keep
+        # references to `self._state.effects`, later mutations would rewrite
+        # historical snapshots and cause replay desync.
+        effects_snapshot = copy.deepcopy(self._state.effects)
+        buffed_stats_snapshot = {
+            'hp': self._stats.hp,
+            'attack': self._stats.attack,
+            'defense': self._stats.defense,
+            'attack_speed': self._stats.attack_speed,
+            'max_mana': self._stats.max_mana,
+            'hp_regen_per_sec': self._computed_stats.hp_regen_per_sec
+        }
+
         return {
             'id': self.id,
             'name': self.name,
@@ -73,18 +87,11 @@ class CombatUnit:
             'attack_speed': self._stats.attack_speed,
             'star_level': self._stats.star_level,
             'position': self._stats.position,
-            'effects': self._state.effects,
+            'effects': effects_snapshot,
             'current_mana': mana,
             'max_mana': self._stats.max_mana,
             'shield': self._state.shield,
-            'buffed_stats': {
-                'hp': self._stats.hp,
-                'attack': self._stats.attack,
-                'defense': self._stats.defense,
-                'attack_speed': self._stats.attack_speed,
-                'max_mana': self._stats.max_mana,
-                'hp_regen_per_sec': self._computed_stats.hp_regen_per_sec
-            }
+            'buffed_stats': buffed_stats_snapshot
         }
 
     # `take_damage` removed — HP mutation must be performed via canonical

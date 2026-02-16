@@ -26,9 +26,13 @@ class ShieldHandler(EffectHandler):
             'source': f"skill_{context.caster.id}"
         }
 
-        # Use canonical emitter to apply shield and produce a canonical payload
+        # Use canonical emitter to apply shield and produce a canonical payload.
+        # CRITICAL: when event callback exists, emit immediately so event order
+        # matches mutation order (prevents stat_buff snapshot from observing
+        # shield change before shield_applied event is replayed in UI).
+        cb = getattr(context, 'event_callback', None)
         payload = emit_shield_applied(
-            None,
+            cb,
             recipient=target,
             amount=amount,
             duration=duration,
@@ -36,6 +40,8 @@ class ShieldHandler(EffectHandler):
             timestamp=context.combat_time,
         )
 
+        if cb:
+            return []
         return [('shield_applied', payload)]
 
     def validate_params(self, effect: Effect) -> bool:

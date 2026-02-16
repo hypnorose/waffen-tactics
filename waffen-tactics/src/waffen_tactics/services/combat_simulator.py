@@ -10,6 +10,7 @@ from .combat_regeneration_processor import CombatRegenerationProcessor
 from .combat_per_second_buff_processor import CombatPerSecondBuffProcessor
 from .modular_effect_processor import ModularEffectProcessor
 from ..engine.combat_state import CombatState
+from ..engine.event_dispatcher import EventDispatcher
 
 
 class CombatSimulator:
@@ -66,8 +67,8 @@ class CombatSimulator:
         return {'winner': 'team_a', 'duration': 0.0, 'team_a_survivors': 1, 'team_b_survivors': 0, 'log': []}
 
 
-class _EventSink:
-    """Small event sink used by tests.
+class _DispatcherEventSink:
+    """Event sink that wraps callbacks with EventDispatcher middleware.
 
     Behavior:
     - If payload timestamp > simulator._current_time -> enqueue via simulator._enqueue_scheduled_event
@@ -76,6 +77,14 @@ class _EventSink:
     def __init__(self, simulator: CombatSimulator, collector: Callable[[str, Dict[str, Any]], None]):
         self.simulator = simulator
         self.collector = collector
+        self.dispatcher = EventDispatcher(
+            team_a=simulator.team_a,
+            team_b=simulator.team_b,
+            a_hp=simulator.a_hp,
+            b_hp=simulator.b_hp,
+            initial_seq=simulator._event_seq,
+        )
+        self.wrapped_collector = self.dispatcher.wrap_callback(collector)
 
     def emit(self, event_type: str, payload: Dict[str, Any]):
         data = dict(payload) if isinstance(payload, dict) else payload
@@ -88,24 +97,9 @@ class _EventSink:
             self.simulator._enqueue_scheduled_event(ts, event_type, data if isinstance(data, dict) else {'payload': data})
             return
 
-        # immediate delivery: attach seq and event_id
-        seq_value = getattr(self.simulator, '_event_seq', 0) + 1
-
-        if isinstance(data, dict):
-            if seq_value is not None:
-                data['seq'] = seq_value
-            # Preserve the event type inside the payload so collectors that
-            # only store payloads (without the separate event_type) retain it.
-            if 'type' not in data:
-                data['type'] = event_type
-            data['event_id'] = str(uuid.uuid4())
-            # Ensure mana_update payloads always include 'amount' for schema consistency
-            if event_type == 'mana_update' and 'amount' not in data:
-                data['amount'] = 0
-
-        self.collector(event_type, data)
-        if seq_value is not None:
-            self.simulator._event_seq = seq_value
+        if self.wrapped_collector:
+            self.wrapped_collector(event_type, data)
+            self.simulator._event_seq = self.dispatcher._event_seq
 
 
     def _process_ally_hp_below_triggers(
@@ -307,13 +301,25 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                     effect['next_tick_time'] = time + interval
                 else:
                     effects_to_remove.append(j)
-                    emit_damage_over_time_expired(event_callback, unit, effect.get('id'), unit_hp=hp_list[i], side=side, timestamp=time)
 
             for j in reversed(effects_to_remove):
+                expired = None
                 try:
-                    unit.effects.pop(j)
+                    expired = unit.effects.pop(j)
                 except Exception:
                     pass
+
+                # Emit expiration AFTER removal so game_state attached to this
+                # event reflects post-expiry effect list.
+                if expired is not None:
+                    emit_damage_over_time_expired(
+                        event_callback,
+                        unit,
+                        expired.get('id'),
+                        unit_hp=hp_list[i],
+                        side=side,
+                        timestamp=time,
+                    )
 
         return
 
@@ -346,8 +352,7 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
             if not hasattr(unit, 'effects') or not unit.effects:
                 continue
 
-            effects_to_remove = []
-            for j, effect in enumerate(list(unit.effects)):
+            for effect in list(unit.effects):
                 expires_at = effect.get('expires_at')
                 if expires_at is None or time < expires_at:
                     continue
@@ -378,19 +383,17 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                         setattr(unit, 'shield', new_shield)
                         log.append(f"{unit.name} shield reverted by {-applied_amount} (effect expired)")
 
-                # Emit effect_expired event
-                from .event_canonicalizer import emit_effect_expired
-                emit_effect_expired(event_callback, unit, effect.get('id'), unit_hp=hp_list[i], side=side, timestamp=time)
-
-                # Mark effect for removal
-                effects_to_remove.append(j)
-
-            # Remove expired effects
-            for j in reversed(effects_to_remove):
+                # Remove THIS expired effect immediately.
+                effect_id = effect.get('id')
                 try:
-                    unit.effects.pop(j)
+                    unit.effects = [e for e in (unit.effects or []) if e.get('id') != effect_id]
                 except Exception:
                     pass
+
+                # Emit this expiration AFTER this effect mutation so event
+                # game_state is post-expiry for this exact effect only.
+                from .event_canonicalizer import emit_effect_expired
+                emit_effect_expired(event_callback, unit, effect_id, unit_hp=hp_list[i], side=side, timestamp=time)
 
         return
 
@@ -548,6 +551,6 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
 
 # Provide test-suite compatible EventSink symbol
 def _EventSink(simulator, collector):
-    return _SimpleEventSink(simulator, collector)
+    return _DispatcherEventSink(simulator, collector)
 
 

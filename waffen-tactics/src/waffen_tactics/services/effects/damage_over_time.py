@@ -36,6 +36,7 @@ class DamageOverTimeHandler(EffectHandler):
             'type': 'damage_over_time',
             'damage': damage,
             'damage_type': damage_type,
+            'duration': duration,
             'interval': interval,
             'ticks_remaining': ticks,
             'total_ticks': ticks,

@@ -18,17 +18,43 @@ class DamageHandler(EffectHandler):
         if amount <= 0:
             return []
 
-        # Use canonical emitter to apply damage (HP mutation + shield handling)
-        # But we emit 'unit_attack' instead of 'attack' to mark this as skill damage
+        # Use canonical emitter to apply damage (HP mutation + shield handling).
+        # For future timestamps under simulator scheduling, defer BOTH mutation
+        # and event emission to delivery time to avoid snapshot/event desync.
         cb = getattr(context, 'event_callback', None)
+        scheduled = getattr(context, 'schedule_event', None)
+        ts = getattr(context, 'combat_time', None)
+        current_ts = getattr(context, 'sim_current_time', None)
+        caster_side = getattr(context, 'caster_side', None)
+
+        if cb and scheduled and isinstance(ts, (int, float)) and isinstance(current_ts, (int, float)) and ts > current_ts:
+            def action():
+                payload = emit_damage(
+                    cb,
+                    attacker=context.caster,
+                    target=target,
+                    raw_damage=amount,
+                    damage_type=damage_type,
+                    side=caster_side,
+                    timestamp=ts,
+                    cause='skill',
+                    emit_event=False,
+                )
+                payload['is_skill'] = True
+                cb('unit_attack', payload)
+                return []
+
+            scheduled(ts, action)
+            return []
+
         payload = emit_damage(
             cb,
             attacker=context.caster,
             target=target,
             raw_damage=amount,
             damage_type=damage_type,
-            side=None,  # Side will be determined by simulator
-            timestamp=getattr(context, 'combat_time', None),
+            side=caster_side,
+            timestamp=ts,
             cause='skill',
             emit_event=False,  # Don't auto-emit, we'll emit as unit_attack
         )

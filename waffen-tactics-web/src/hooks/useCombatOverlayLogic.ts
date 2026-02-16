@@ -49,9 +49,20 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   const { spawnProjectile } = useProjectileSystem()
   const [pendingProjectiles, setPendingProjectiles] = useState(0)
   const [allEventsReplayed, setAllEventsReplayed] = useState(false)
+  const [isPausedOnDesync, setIsPausedOnDesync] = useState(false)
+  const recentEventsRef = useRef<CombatEvent[]>([])
 
   const pushDesync = (entry: DesyncEntry) => {
-    setDesyncLogs(prev => [entry, ...prev].slice(0, 200))
+    const recent_events = recentEventsRef.current.slice(-25)
+    setDesyncLogs(prev => {
+      const updated = [{ ...entry, recent_events }, ...prev].slice(0, 200)
+      // FAIL FAST: Pause combat on first desync
+      if (updated.length === 1) {
+        console.error('🛑 DESYNC DETECTED - Combat paused:', entry)
+        setIsPausedOnDesync(true)
+      }
+      return updated
+    })
   }
 
   const clearDesyncLogs = () => setDesyncLogs([])
@@ -78,6 +89,9 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
 
     const event = bufferedEvents[playhead]
     console.log('Applying event:', event.type, 'seq:', event.seq, 'playhead:', playhead)
+
+    // Keep a rolling buffer of recent events for desync diagnostics
+    recentEventsRef.current = [...recentEventsRef.current, event].slice(-50)
 
     // DEBUG: Log all effect-related events
     if (event.type === 'unit_stunned' || event.type === 'damage_over_time_applied' || event.type === 'stat_buff' || event.type === 'effect_expired') {
@@ -228,6 +242,12 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     if (event.game_state) {
       const stateDesyncs = compareCombatStates(newState, event.game_state, event)
       stateDesyncs.forEach(pushDesync)
+      
+      // FAIL FAST: Stop replay if desync detected
+      if (stateDesyncs.length > 0) {
+        console.error(`🛑 Combat stopped at seq=${event.seq} due to ${stateDesyncs.length} desyncs`)
+        return  // Don't schedule next event
+      }
     }
 
     // Schedule next
@@ -314,6 +334,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     defeatMessage: combatState.defeatMessage,
     desyncLogs,
     clearDesyncLogs,
-    exportDesyncJSON
+    exportDesyncJSON,
+    isPausedOnDesync
   }
 }

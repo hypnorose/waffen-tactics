@@ -110,32 +110,64 @@ class CombatAttackProcessor:
 
                 # Schedule unit_attack and mana_update with a UI delay (0.2s)
                 attack_ts = round(time + 0.2, 10)
-                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val, target_idx_arg=None, compute_ts=None):
+                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val, target_idx_arg=None, compute_ts=None, attacker_idx=None):
                     def action():
                         from .event_canonicalizer import emit_damage, emit_unit_died
                         results = []
                         dmg_payload = None
-                        # Prepare hp_arrays and unit side/index for atomic updates when running under simulator
+                        # Prepare hp_arrays and resolve target index at delivery time.
+                        # Do not trust scheduled-time index because team composition can change.
                         hp_arrays = None
                         unit_index = None
                         unit_side = None
-                        try:
-                            if hasattr(self, 'a_hp') and hasattr(self, 'b_hp'):
-                                hp_arrays = {'team_a': self.a_hp, 'team_b': self.b_hp}
-                                # target_idx_arg references index inside defending_team
-                                unit_index = int(target_idx_arg) if target_idx_arg is not None else None
-                                # target side is opposite of attacker side
-                                unit_side = 'team_b' if side_val == 'team_a' else 'team_a'
-                        except Exception:
-                            hp_arrays = None
+                        if hasattr(self, 'a_hp') and hasattr(self, 'b_hp'):
+                            hp_arrays = {'team_a': self.a_hp, 'team_b': self.b_hp}
+                            unit_side = 'team_b' if side_val == 'team_a' else 'team_a'
+                            target_team = self.team_b if unit_side == 'team_b' else self.team_a
+                            target_id = getattr(target_obj, 'id', None)
+                            unit_index = next((idx for idx, u in enumerate(target_team) if getattr(u, 'id', None) == target_id), None)
+                            if unit_index is None:
+                                raise RuntimeError(f"Target unit {target_id} not found in {unit_side} at delivery_ts={deliver_ts}")
 
                         # Apply canonical damage mutation without emitting the builtin 'attack' event
                         dmg_payload = emit_damage(None, attacker, target_obj, raw_damage=dmg, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='attack', emit_event=False, hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side)
+
+                        # Apply mana gain at delivery time before building unit_attack payload.
+                        # This keeps server snapshot state and unit_attack payload coherent.
+                        mana_payload = None
+                        from .event_canonicalizer import emit_mana_change
+                        mana_arrays = None
+                        atk_index = None
+                        atk_side = None
+                        if hasattr(self, 'a_hp') and hasattr(self, 'b_hp'):
+                            combat_state = getattr(self, '_combat_state', None)
+                            if combat_state is None:
+                                raise RuntimeError("Missing _combat_state during scheduled attack mana emit")
+                            mana_arrays = combat_state.mana_arrays
+                            atk_side = side_val
+                            attacker_team = self.team_a if atk_side == 'team_a' else self.team_b
+                            attacker_id = getattr(attacker, 'id', None)
+                            atk_index = next((idx for idx, u in enumerate(attacker_team) if getattr(u, 'id', None) == attacker_id), None)
+                            if atk_index is None:
+                                raise RuntimeError(f"Attacker unit {attacker_id} not found in {atk_side} at delivery_ts={deliver_ts}")
+
+                        mana_payload = emit_mana_change(
+                            None,
+                            attacker,
+                            int(getattr(attacker.stats, 'mana_on_attack', 0)),
+                            side=side_val,
+                            timestamp=deliver_ts,
+                            mana_arrays=mana_arrays,
+                            unit_index=atk_index,
+                            unit_side=atk_side,
+                        )
 
                         # Build unit_attack payload with authoritative HP fields
                         ua = {
                             'attacker_id': getattr(attacker, 'id', None),
                             'attacker_name': getattr(attacker, 'name', None),
+                            'attacker_current_mana': getattr(attacker, 'mana', None),
+                            'attacker_max_mana': getattr(attacker, 'max_mana', None),
                             'target_id': getattr(target_obj, 'id', None),
                             'target_name': getattr(target_obj, 'name', None),
                             'damage': int(dmg) if dmg is not None else 0,
@@ -186,6 +218,9 @@ class CombatAttackProcessor:
                             print(f"[MAKE_ACTION DEBUG] dmg_payload={dmg_payload}")
                         except Exception:
                             pass
+
+                        if mana_payload:
+                            results.append(('mana_update', mana_payload))
 
                         # If the canonical damage resulted in death, prepare unit_died
                         # payload and process on-death effects via the modular effect
@@ -252,23 +287,12 @@ class CombatAttackProcessor:
                             except Exception as e:
                                 print(f"[MAKE_ACTION ERROR] emit_unit_died raised: {e}")
 
-                        # Emit mana_update snapshot for attacker at deliver_ts
-                        mu = {
-                            'unit_id': getattr(attacker, 'id', None),
-                            'unit_name': getattr(attacker, 'name', None),
-                            'current_mana': getattr(attacker, 'mana', None),
-                            'max_mana': getattr(attacker, 'max_mana', None),
-                            'unit_hp': getattr(attacker, 'hp', None),  # AUTHORITATIVE: current HP
-                            'side': side_val,
-                            'timestamp': deliver_ts,
-                        }
-                        results.append(('mana_update', mu))
                         return results
                     return action
 
                 # If running under CombatSimulator, use scheduler; otherwise emit immediately
                 if hasattr(self, 'schedule_event') and event_callback:
-                    action_callable = make_action(unit, defending_team[target_idx], damage, side, attack_ts, old_hp, new_hp, target_idx_arg=target_idx, compute_ts=time)
+                    action_callable = make_action(unit, defending_team[target_idx], damage, side, attack_ts, old_hp, new_hp, target_idx_arg=target_idx, compute_ts=time, attacker_idx=i)
                     # Schedule for delivery at attack_ts
                     # note: CombatSimulator.schedule_event will handle the heap
                     self.schedule_event(attack_ts, action_callable)
@@ -324,13 +348,14 @@ class CombatAttackProcessor:
                         )
                         log.append(f"{unit.name} lifesteals {heal}")
 
-                # Mana gain: per attack — apply via canonical emitter (mutates state)
-                amount = int(getattr(unit.stats, 'mana_on_attack', 0))
-                combat_state = getattr(self, '_combat_state', None)
-                if combat_state is not None:
-                    emit_mana_change(event_callback, unit, amount, side=side, timestamp=attack_ts, mana_arrays=combat_state.mana_arrays, unit_index=i, unit_side=side)
-                else:
-                    emit_mana_change(event_callback, unit, amount, side=side, timestamp=attack_ts)
+                # Mana gain: per attack — apply via canonical emitter only for non-scheduled path
+                if not (hasattr(self, 'schedule_event') and event_callback):
+                    amount = int(getattr(unit.stats, 'mana_on_attack', 0))
+                    combat_state = getattr(self, '_combat_state', None)
+                    if combat_state is not None:
+                        emit_mana_change(event_callback, unit, amount, side=side, timestamp=attack_ts, mana_arrays=combat_state.mana_arrays, unit_index=i, unit_side=side)
+                    else:
+                        emit_mana_change(event_callback, unit, amount, side=side, timestamp=attack_ts)
 
                 # Check for skill casting if mana is full (reaches max_mana)
                 skill_was_cast = False
@@ -495,7 +520,10 @@ class CombatAttackProcessor:
                 team_a=getattr(self, 'team_a', []) if side == 'team_a' else getattr(self, 'team_b', []),
                 team_b=getattr(self, 'team_b', []) if side == 'team_a' else getattr(self, 'team_a', []),
                 combat_time=time,
-                event_callback=event_callback
+                event_callback=event_callback,
+                schedule_event=getattr(self, 'schedule_event', None),
+                sim_current_time=getattr(self, '_current_time', time),
+                caster_side=side,
             )
             skill_events = skill_executor.execute_skill(new_skill, ctx)
             if event_callback and skill_events:

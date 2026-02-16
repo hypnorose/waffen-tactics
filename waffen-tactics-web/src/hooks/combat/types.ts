@@ -34,6 +34,7 @@ export interface DesyncEntry {
   timestamp?: number | null
   diff: Record<string, { ui: any, server: any }>
   pending_events: CombatEvent[]
+  recent_events?: CombatEvent[]
   note?: string
 }
 
@@ -53,6 +54,8 @@ export interface CombatEvent {
   traits?: TraitDefinition[]
   opponent?: { name: string, wins: number, level: number, avatar?: string }
   attacker_id?: string
+  attacker_current_mana?: number
+  attacker_max_mana?: number
   target_id?: string
   damage?: number
   unit_hp?: number

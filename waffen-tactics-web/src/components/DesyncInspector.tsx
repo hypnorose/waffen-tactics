@@ -60,6 +60,10 @@ export default function DesyncInspector({ desyncLogs, onClear, onExport }: Props
               <summary style={{ cursor: 'pointer' }}>Pending Events (sample)</summary>
               <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, marginTop: 6 }}>{JSON.stringify(d.pending_events?.slice(0,10) || [], null, 2)}</pre>
             </details>
+            <details style={{ marginTop: 8 }}>
+              <summary style={{ cursor: 'pointer' }}>Recent Events (last 25)</summary>
+              <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, marginTop: 6 }}>{JSON.stringify(d.recent_events || [], null, 2)}</pre>
+            </details>
           </div>
         ))}
       </div>

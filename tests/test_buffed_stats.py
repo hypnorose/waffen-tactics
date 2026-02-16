@@ -14,17 +14,13 @@ def make_unit(uid, name, factions=None, classes=None, atk_speed=1.0):
 
 # Create player with 3 XN Waffen and 1 XN Jugend
 player = PlayerState(user_id=1)
-u1 = make_unit("xn1", "XN1", factions=["XN Waffen"])
-u2 = make_unit("xn2", "XN2", factions=["XN Waffen"])
-u3 = make_unit("xn3", "XN3", factions=["XN Waffen"])
-u4 = make_unit("noname", "Noname", factions=["XN Jugend"])
 
+# Create unit instances with matching IDs
 ui1 = UnitInstance(unit_id="yossarian", star_level=1)
 ui2 = UnitInstance(unit_id="szalwia", star_level=1)
 ui3 = UnitInstance(unit_id="bosman", star_level=1)
-ui4 = UnitInstance(unit_id="noname", star_level=1)  # XN Jugend
 
-player.board = [ui1, ui2, ui3, ui4]
+player.board = [ui1, ui2, ui3]
 
 state = gsu.enrich_player_state(player)
 

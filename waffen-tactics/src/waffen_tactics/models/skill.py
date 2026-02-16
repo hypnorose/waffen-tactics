@@ -82,6 +82,12 @@ class SkillExecutionContext:
     persistent_target: Optional[Any] = None  # For SINGLE_ENEMY_PERSISTENT targeting
     # Optional event callback from simulator so effect handlers can emit canonical events
     event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None
+    # Optional scheduler hook from simulator for delayed skill effects
+    schedule_event: Optional[Callable[[float, Callable[[], Any]], None]] = None
+    # Simulator current time used to decide immediate vs scheduled emission
+    sim_current_time: Optional[float] = None
+    # Canonical side of caster in simulator context: 'team_a' | 'team_b'
+    caster_side: Optional[str] = None
 
     @property
     def caster_team(self) -> List[Any]:
