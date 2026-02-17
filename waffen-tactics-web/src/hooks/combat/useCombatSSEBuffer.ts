@@ -95,19 +95,15 @@ function ensureSharedSSE(token: string) {
               // console.log(`[SSE DEBUG] Token ${token} ConnId ${connectionId}: Received ${data.type} seq:${data.seq}`)
               if (!state.isBufferedComplete) {
                 state.ingest.push(data)
+                // Progressive buffering: expose events immediately so replay
+                // can start at fight load instead of waiting for stream end.
+                state.bufferedEvents = [...state.ingest]
+                state.listeners.forEach(l => l({ bufferedEvents: state.bufferedEvents, isBufferedComplete: false }))
+
                 if (data.type === 'end') {
                   state.endTime = Date.now()
                   state.eventSource = null // Mark as ended
                   // console.log(`[SSE DEBUG] Token ${token} ConnId ${connectionId}: End received, setting TTL`)
-                  const sorted = [...state.ingest].sort((a, b) => {
-                    const seqA = a.seq ?? Number.MAX_SAFE_INTEGER
-                    const seqB = b.seq ?? Number.MAX_SAFE_INTEGER
-                    if (seqA !== seqB) return seqA - seqB
-                    const tsA = a.timestamp ?? 0 
-                    const tsB = b.timestamp ?? 0
-                    return tsA - tsB
-                  })
-                  state.bufferedEvents = sorted
                   state.isBufferedComplete = true
                   // notify listeners
                   // console.log(`[SSE DEBUG] Token ${token} ConnId ${connectionId}: Notifying ${state.listeners.size} listeners`)
@@ -169,6 +165,11 @@ export function useCombatSSEBuffer(token: string) {
       console.error('No token found!')
       return
     }
+
+    // Always start a fresh combat stream for a newly opened overlay.
+    // Reusing an existing token stream can leave replay stuck on stale
+    // buffered state and prevent autoplay from starting correctly.
+    sseMap.delete(token)
 
     let state: SharedSSEState
     const setup = async () => {

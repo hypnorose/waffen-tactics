@@ -110,6 +110,95 @@ def _run_async(coro):
         loop.close()
 
 
+def compute_defeat_hp_loss(result: Dict[str, Any]) -> int:
+    """Compute player HP loss from combat result in a fail-fast way.
+
+    Contract:
+    - `result['winner']` must be `team_b`
+    - `result['surviving_star_sum']` must be present and >= 1
+    """
+    winner = result.get('winner')
+    if winner != 'team_b':
+        raise RuntimeError(f"compute_defeat_hp_loss called for non-defeat winner={winner}")
+
+    if 'surviving_star_sum' not in result:
+        raise RuntimeError("Defeat result missing required field: surviving_star_sum")
+
+    try:
+        hp_loss = int(result['surviving_star_sum'])
+    except Exception as e:
+        raise RuntimeError(f"Invalid surviving_star_sum value: {result.get('surviving_star_sum')}") from e
+
+    if hp_loss < 1:
+        raise RuntimeError(f"Invalid surviving_star_sum (must be >= 1): {hp_loss}")
+
+    return hp_loss
+
+
+def apply_player_hp_loss(player: PlayerState, hp_loss: int) -> Tuple[int, int]:
+    """Apply HP loss to player deterministically and return (pre_hp, post_hp)."""
+    try:
+        pre_hp = int(player.hp)
+    except Exception as e:
+        raise RuntimeError(f"Player HP is invalid before defeat mutation: {getattr(player, 'hp', None)}") from e
+
+    try:
+        loss = int(hp_loss)
+    except Exception as e:
+        raise RuntimeError(f"hp_loss is invalid: {hp_loss}") from e
+
+    if loss < 1:
+        raise RuntimeError(f"hp_loss must be >= 1, got {loss}")
+
+    post_hp = max(0, pre_hp - loss)
+    player.hp = post_hp
+    return pre_hp, post_hp
+
+
+def resolve_defeat_hp_mutation(player: PlayerState, result: Dict[str, Any], opponent_units: Optional[List[CombatUnit]] = None) -> Dict[str, int]:
+    """Apply defeat HP mutation with strict invariants.
+
+    Returns:
+        Dict with `hp_loss`, `pre_hp`, `post_hp`.
+    """
+    if result.get('winner') != 'team_b':
+        raise RuntimeError(f"resolve_defeat_hp_mutation called for non-defeat winner={result.get('winner')}")
+
+    # If caller omitted surviving_star_sum, derive it from authoritative
+    # post-simulation opponent units. No fallback heuristics.
+    if 'surviving_star_sum' not in result:
+        if opponent_units is None:
+            raise RuntimeError("Defeat result missing required field: surviving_star_sum (opponent_units not provided)")
+
+        alive_units = [u for u in opponent_units if int(getattr(u, 'hp', 0)) > 0]
+        if not alive_units:
+            raise RuntimeError("Defeat result missing surviving_star_sum and no alive opponent units to derive from")
+
+        star_sum = 0
+        for u in alive_units:
+            try:
+                star_sum += int(getattr(u, 'star_level', 1))
+            except Exception as e:
+                raise RuntimeError(f"Invalid opponent star_level for unit={getattr(u, 'id', None)}") from e
+
+        if star_sum < 1:
+            raise RuntimeError(f"Derived invalid surviving_star_sum={star_sum} from alive opponents")
+
+        result['surviving_star_sum'] = int(star_sum)
+
+    hp_loss = compute_defeat_hp_loss(result)
+    pre_hp, post_hp = apply_player_hp_loss(player, hp_loss)
+
+    # Postcondition: exact deterministic clipping semantics.
+    expected_post = max(0, int(pre_hp) - int(hp_loss))
+    if int(post_hp) != expected_post:
+        raise RuntimeError(
+            f"Defeat HP mutation postcondition failed: pre_hp={pre_hp} hp_loss={hp_loss} post_hp={post_hp} expected={expected_post}"
+        )
+
+    return {'hp_loss': int(hp_loss), 'pre_hp': int(pre_hp), 'post_hp': int(post_hp)}
+
+
 def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[Tuple[List[CombatUnit], List[Dict[str, Any]], Dict[str, Any]]]]:
     """
     Prepare player units for combat with synergies and buffs.
@@ -663,35 +752,20 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
     Returns:
         Tuple of (game_over, result_data)
     """
-    try:
-        # Update player stats
-        player.round_number += 1
-        player.xp += 2  # Always +2 XP per combat
+    # Update player stats
+    player.round_number += 1
+    player.xp += 2  # Always +2 XP per combat
 
-        # Apply persistent per-round buffs from traits to units on player's board BEFORE checking winner
-        player_synergies = game_manager.get_board_synergies(player)
+    # Apply persistent per-round buffs from traits to units on player's board BEFORE checking winner
+    player_synergies = game_manager.get_board_synergies(player)
 
-        # Calculate buff amplifier for each unit
-        unit_amplifiers = {}
-        for ui in player.board:
-            unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-            if not unit:
-                continue
-            amplifier = 1.0
-            for trait_name, (count, tier) in player_synergies.items():
-                trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
-                if not trait_obj:
-                    continue
-                idx = tier - 1
-                if idx < 0 or idx >= len(trait_obj.get('effects', [])):
-                    continue
-                effect = trait_obj.get('effects', [])[idx]
-                if effect.get('type') == 'buff_amplifier':
-                    target = trait_obj.get('target', 'trait')
-                    if target == 'team' or (target == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
-                        amplifier = max(amplifier, float(effect.get('multiplier', 1)))
-            unit_amplifiers[ui.instance_id] = amplifier
-
+    # Calculate buff amplifier for each unit
+    unit_amplifiers = {}
+    for ui in player.board:
+        unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
+        if not unit:
+            continue
+        amplifier = 1.0
         for trait_name, (count, tier) in player_synergies.items():
             trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
             if not trait_obj:
@@ -700,113 +774,119 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
             if idx < 0 or idx >= len(trait_obj.get('effects', [])):
                 continue
             effect = trait_obj.get('effects', [])[idx]
-            etype = effect.get('type')
-            if etype == 'per_round_buff':
+            if effect.get('type') == 'buff_amplifier':
                 target = trait_obj.get('target', 'trait')
-                stat = effect.get('stat')
-                value = effect.get('value', 0)
-                is_percentage = effect.get('is_percentage', False)
-                if stat:
-                    units_to_buff = []
-                    if target == 'team':
-                        units_to_buff = player.board
-                    elif target == 'trait':
-                        for ui in player.board:
-                            unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-                            if unit and (trait_name in unit.factions or trait_name in unit.classes):
-                                units_to_buff.append(ui)
-                    for ui in units_to_buff:
+                if target == 'team' or (target == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
+                    amplifier = max(amplifier, float(effect.get('multiplier', 1)))
+        unit_amplifiers[ui.instance_id] = amplifier
+
+    for trait_name, (count, tier) in player_synergies.items():
+        trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
+        if not trait_obj:
+            continue
+        idx = tier - 1
+        if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+            continue
+        effect = trait_obj.get('effects', [])[idx]
+        etype = effect.get('type')
+        if etype == 'per_round_buff':
+            target = trait_obj.get('target', 'trait')
+            stat = effect.get('stat')
+            value = effect.get('value', 0)
+            is_percentage = effect.get('is_percentage', False)
+            if stat:
+                units_to_buff = []
+                if target == 'team':
+                    units_to_buff = player.board
+                elif target == 'trait':
+                    for ui in player.board:
                         unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-                        if not unit:
-                            continue
-                        amplifier = unit_amplifiers.get(ui.instance_id, 1.0)
-                        current_buff = ui.persistent_buffs.get(stat, 0)
-                        if is_percentage:
-                            # For percentage, add based on base stat
-                            base_stat = getattr(unit.stats, stat, 0) * ui.star_level
-                            increment = base_stat * (value / 100.0) * amplifier
-                        else:
-                            increment = value * amplifier
-                        ui.persistent_buffs[stat] = current_buff + increment
+                        if unit and (trait_name in unit.factions or trait_name in unit.classes):
+                            units_to_buff.append(ui)
+                for ui in units_to_buff:
+                    unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
+                    if not unit:
+                        continue
+                    amplifier = unit_amplifiers.get(ui.instance_id, 1.0)
+                    current_buff = ui.persistent_buffs.get(stat, 0)
+                    if is_percentage:
+                        # For percentage, add based on base stat
+                        base_stat = getattr(unit.stats, stat, 0) * ui.star_level
+                        increment = base_stat * (value / 100.0) * amplifier
+                    else:
+                        increment = value * amplifier
+                    ui.persistent_buffs[stat] = current_buff + increment
 
-        # Apply permanent buffs from kills (on_enemy_death with permanent_stat_buff)
-        _apply_persistent_buffs_from_kills(player, player_synergies, collected_stats_maps, game_manager)
+    # Apply permanent buffs from kills (on_enemy_death with permanent_stat_buff)
+    _apply_persistent_buffs_from_kills(player, player_synergies, collected_stats_maps, game_manager)
 
-        win_bonus = 0
-        game_over = False
-        result_message = ""
+    win_bonus = 0
+    game_over = False
+    result_message = ""
 
-        if result['winner'] == 'team_a':
-            # Victory
-            player.wins += 1
-            win_bonus = 1  # +1 gold bonus for winning
-            player.gold += win_bonus
-            player.streak += 1
-            player.add_xp(2)  # Add XP for winning
-            result_message = "🎉 ZWYCIĘSTWO!"
-        elif result['winner'] == 'team_b':
-            # Defeat - lose HP based on surviving enemy star levels
-            hp_loss = (result.get('surviving_star_sum') or 1)  # 1 HP per surviving enemy star
-            # Apply player HP loss via canonical emitter when possible to centralize mutation.
-            try:
-                emit_damage(None, None, player, raw_damage=hp_loss, emit_event=False)
-            except Exception:
-                # PlayerState may not expose canonical setter; fall back to direct mutation.
-                try:
-                    player.hp = max(0, int(player.hp) - int(hp_loss))
-                except Exception:
-                    pass
-            player.losses += 1
-            player.streak = 0
+    if result['winner'] == 'team_a':
+        # Victory
+        player.wins += 1
+        win_bonus = 1  # +1 gold bonus for winning
+        player.gold += win_bonus
+        player.streak += 1
+        player.add_xp(2)  # Add XP for winning
+        result_message = "🎉 ZWYCIĘSTWO!"
+    elif result['winner'] == 'team_b':
+        # Defeat - lose HP based on surviving enemy star levels
+        defeat = resolve_defeat_hp_mutation(player, result)
+        hp_loss = defeat['hp_loss']
+        post_hp = defeat['post_hp']
+        player.losses += 1
+        player.streak = 0
 
-            if player.hp <= 0:
-                # Game Over
-                game_over = True
-                result_message = "💀 PRZEGRANA! Koniec gry!"
-            else:
-                result_message = f'💔 PRZEGRANA! -{hp_loss} HP (zostało {player.hp} HP)'
-
-        # Handle XP level ups
-        while player.level < 10:
-            xp_for_next = player.xp_to_next_level
-            if xp_for_next > 0 and player.xp >= xp_for_next:
-                player.xp -= xp_for_next
-                player.level += 1
-            else:
-                break
-
-        # Calculate interest: 1g per 10g (max 5g) from current gold
-        interest = min(5, player.gold // 10)
-        base_income = 5
-
-        # Milestone bonus: rounds 5, 10, 15, 20, etc. give gold equal to round number
-        milestone_bonus = 0
-        if player.round_number % 5 == 0:
-            milestone_bonus = player.round_number
-
-        total_income = base_income + interest + milestone_bonus
-        player.gold += total_income
-
-        # Generate new shop (unless locked)
-        if not player.locked_shop:
-            game_manager.generate_shop(player)
+        if post_hp <= 0:
+            # Game Over
+            game_over = True
+            result_message = "💀 PRZEGRANA! Koniec gry!"
         else:
-            # Unlock shop after combat
-            player.locked_shop = False
+            result_message = f'💔 PRZEGRANA! -{hp_loss} HP (zostało {post_hp} HP)'
+    else:
+        raise RuntimeError(f"Unsupported combat winner: {result.get('winner')}")
 
-        gold_breakdown = {
-            'base': base_income,
-            'interest': interest,
-            'milestone': milestone_bonus,
-            'win_bonus': win_bonus,
-            'total': total_income + win_bonus
-        }
+    # Handle XP level ups
+    while player.level < 10:
+        xp_for_next = player.xp_to_next_level
+        if xp_for_next > 0 and player.xp >= xp_for_next:
+            player.xp -= xp_for_next
+            player.level += 1
+        else:
+            break
 
-        return game_over, {
-            'result_message': result_message,
-            'gold_breakdown': gold_breakdown,
-            'game_over': game_over
-        }
+    # Calculate interest: 1g per 10g (max 5g) from current gold
+    interest = min(5, player.gold // 10)
+    base_income = 5
 
-    except Exception as e:
-        return False, {'error': f'Error processing combat results: {str(e)}'}
+    # Milestone bonus: rounds 5, 10, 15, 20, etc. give gold equal to round number
+    milestone_bonus = 0
+    if player.round_number % 5 == 0:
+        milestone_bonus = player.round_number
+
+    total_income = base_income + interest + milestone_bonus
+    player.gold += total_income
+
+    # Generate new shop (unless locked)
+    if not player.locked_shop:
+        game_manager.generate_shop(player)
+    else:
+        # Unlock shop after combat
+        player.locked_shop = False
+
+    gold_breakdown = {
+        'base': base_income,
+        'interest': interest,
+        'milestone': milestone_bonus,
+        'win_bonus': win_bonus,
+        'total': total_income + win_bonus
+    }
+
+    return game_over, {
+        'result_message': result_message,
+        'gold_breakdown': gold_breakdown,
+        'game_over': game_over
+    }

@@ -47,21 +47,46 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   const [displayedGoldBreakdown, setDisplayedGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number } | null>(null)
 
   const { spawnProjectile } = useProjectileSystem()
+  const spawnProjectileRef = useRef(spawnProjectile)
   const [pendingProjectiles, setPendingProjectiles] = useState(0)
   const [allEventsReplayed, setAllEventsReplayed] = useState(false)
-  const [isPausedOnDesync, setIsPausedOnDesync] = useState(false)
   const recentEventsRef = useRef<CombatEvent[]>([])
+  const lastAppliedPlayheadRef = useRef<number>(-1)
+  const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const replayInitializedRef = useRef<boolean>(false)
+
+  const clearReplayTimer = () => {
+    if (replayTimerRef.current) {
+      clearTimeout(replayTimerRef.current)
+      replayTimerRef.current = null
+    }
+  }
+
+  useEffect(() => {
+    spawnProjectileRef.current = spawnProjectile
+  }, [spawnProjectile])
+
+  const scheduleNextEvent = (currentEvent: CombatEvent, currentPlayhead: number) => {
+    const nextEvent = bufferedEvents[currentPlayhead + 1]
+    if (!nextEvent) {
+      if (isBufferedComplete) {
+        setAllEventsReplayed(true)
+      }
+      return
+    }
+
+    clearReplayTimer()
+    const delay = computeDelayMs(currentEvent, nextEvent, combatSpeed, 1)
+    replayTimerRef.current = setTimeout(() => {
+      // Guard against stale timers if playhead changed elsewhere.
+      setPlayhead(prev => (prev === currentPlayhead ? prev + 1 : prev))
+    }, delay)
+  }
 
   const pushDesync = (entry: DesyncEntry) => {
     const recent_events = recentEventsRef.current.slice(-25)
     setDesyncLogs(prev => {
-      const updated = [{ ...entry, recent_events }, ...prev].slice(0, 200)
-      // FAIL FAST: Pause combat on first desync
-      if (updated.length === 1) {
-        console.error('🛑 DESYNC DETECTED - Combat paused:', entry)
-        setIsPausedOnDesync(true)
-      }
-      return updated
+      return [{ ...entry, recent_events }, ...prev].slice(0, 200)
     })
   }
 
@@ -85,9 +110,20 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
 
   // Replay loop
   useEffect(() => {
-    if (!isBufferedComplete || playhead >= bufferedEvents.length) return
+    if (playhead >= bufferedEvents.length) {
+      clearReplayTimer()
+      return
+    }
 
     const event = bufferedEvents[playhead]
+
+    // If the effect reruns for the same event (e.g. speed slider changes),
+    // do NOT reapply state mutation — only reschedule next step timing.
+    if (playhead <= lastAppliedPlayheadRef.current) {
+      scheduleNextEvent(event, playhead)
+      return
+    }
+
     console.log('Applying event:', event.type, 'seq:', event.seq, 'playhead:', playhead)
 
     // Keep a rolling buffer of recent events for desync diagnostics
@@ -119,6 +155,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     }
 
     const newState = applyCombatEvent(currentState, event, { simTime: currentState.simTime })
+    lastAppliedPlayheadRef.current = playhead
 
     // DEBUG: Log state AFTER applying event (only if effects present)
     if (event.type === 'mana_update' && event.unit_id) {
@@ -210,7 +247,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     if (event.type === 'animation_start' && event.attacker_id && event.target_id) {
       const emoji = event.animation_id === 'skill_attack' ? '⚡' : '🗡️'
       setPendingProjectiles(p => p + 1)
-      spawnProjectile({ 
+      spawnProjectileRef.current({ 
         fromId: event.attacker_id, 
         toId: event.target_id, 
         emoji,
@@ -246,27 +283,38 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
       // FAIL FAST: Stop replay if desync detected
       if (stateDesyncs.length > 0) {
         console.error(`🛑 Combat stopped at seq=${event.seq} due to ${stateDesyncs.length} desyncs`)
+        clearReplayTimer()
         return  // Don't schedule next event
       }
     }
 
     // Schedule next
-    const nextEvent = bufferedEvents[playhead + 1]
-    if (nextEvent) {
-      const delay = computeDelayMs(event, nextEvent, combatSpeed, 1)
-      setTimeout(() => setPlayhead(playhead + 1), delay)
-    } else {
-      // All events have been replayed
-      setAllEventsReplayed(true)
-    }
-  }, [isBufferedComplete, bufferedEvents, playhead, combatSpeed, spawnProjectile])
+    scheduleNextEvent(event, playhead)
+  }, [isBufferedComplete, bufferedEvents, playhead, combatSpeed])
 
   // Start replay when buffered
   useEffect(() => {
-    if (isBufferedComplete && bufferedEvents.length > 0) {
-      setPlayhead(0)
+    if (bufferedEvents.length === 0) return
+
+    // Progressive buffering updates `bufferedEvents` many times during one fight.
+    // Initialize autoplay once per stream; do not reset playhead on each append.
+    if (replayInitializedRef.current) return
+    replayInitializedRef.current = true
+
+    // New fight loaded -> always autostart replay from beginning.
+    clearReplayTimer()
+    lastAppliedPlayheadRef.current = -1
+    recentEventsRef.current = []
+    setAllEventsReplayed(false)
+    setPlayhead(0)
+  }, [bufferedEvents])
+
+  useEffect(() => {
+    return () => {
+      clearReplayTimer()
+      replayInitializedRef.current = false
     }
-  }, [isBufferedComplete, bufferedEvents.length])
+  }, [])
 
   // Set isFinished when all events replayed and projectiles done
   useEffect(() => {
@@ -334,7 +382,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     defeatMessage: combatState.defeatMessage,
     desyncLogs,
     clearDesyncLogs,
-    exportDesyncJSON,
-    isPausedOnDesync
+    exportDesyncJSON
   }
 }

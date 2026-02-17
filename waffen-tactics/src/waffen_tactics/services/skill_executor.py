@@ -141,6 +141,7 @@ class SkillExecutor:
     def _execute_effect_on_targets(self, effect: Effect, context: SkillExecutionContext, targets: List[Any]) -> List[Dict[str, Any]]:
         """Execute a single effect on a provided target list."""
         events = []
+        callback = getattr(context, 'event_callback', None)
 
         # Get effect handler
         handler = get_effect_handler(effect.type)
@@ -162,9 +163,16 @@ class SkillExecutor:
                 else:
                     effect_events = result
 
-                # Extend events if the handler returned a list
+                # When callback exists, emit immediately per target so each
+                # event's attached game_state reflects incremental mutations.
+                # This prevents batched state jumps (e.g. multi-target DoT apply)
+                # where first event already contains all later target changes.
                 if effect_events:
-                    events.extend(effect_events)
+                    if callback:
+                        for ev_type, ev_payload in effect_events:
+                            callback(ev_type, ev_payload)
+                    else:
+                        events.extend(effect_events)
             except Exception as e:
                 # Log error but continue with other targets
                 print(f"Error executing effect {effect.type} on target {getattr(target, 'id', '<unknown>')}: {e}")

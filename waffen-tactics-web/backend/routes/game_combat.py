@@ -11,7 +11,7 @@ from waffen_tactics.services.game_manager import GameManager
 from waffen_tactics.services.combat_shared import CombatSimulator, CombatUnit
 from services.combat_service import (
     prepare_player_units_for_combat, prepare_opponent_units_for_combat,
-    run_combat_simulation, process_combat_results
+    run_combat_simulation, process_combat_results, resolve_defeat_hp_mutation
 )
 from .game_state_utils import run_async, enrich_player_state
 from routes.auth import verify_token
@@ -663,13 +663,13 @@ def start_combat():
 
             elif result['winner'] == 'team_b':
                 # Defeat - lose HP based on surviving enemy star levels
-                hp_loss = (result.get('surviving_star_sum') or 1)  # 1 HP per surviving enemy star
-                # print(f"DEBUG: surviving_star_sum = {result.get('surviving_star_sum', 'NOT_FOUND')}, hp_loss = {hp_loss}")
-                player.hp -= hp_loss
+                defeat = resolve_defeat_hp_mutation(player, result, opponent_units=opponent_units)
+                hp_loss = defeat['hp_loss']
+                post_hp = defeat['post_hp']
                 player.losses += 1
                 player.streak = 0
 
-                if player.hp <= 0:
+                if post_hp <= 0:
                     # Game Over - save to leaderboard
                     username = payload.get('username', f'Player_{user_id}')
                     team_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
@@ -684,7 +684,7 @@ def start_combat():
                     ))
                     yield f"data: {json.dumps({'type': 'defeat', 'message': f'💀 PRZEGRANA! -{hp_loss} HP. Koniec gry!', 'game_over': True, 'seq': 999998})}\n\n"
                 else:
-                    yield f"data: {json.dumps({'type': 'defeat', 'message': f'💔 PRZEGRANA! -{hp_loss} HP (zostało {player.hp} HP)', 'seq': 999998})}\n\n"
+                    yield f"data: {json.dumps({'type': 'defeat', 'message': f'💔 PRZEGRANA! -{hp_loss} HP (zostało {post_hp} HP)', 'seq': 999998})}\n\n"
 
             # Previously an intermediate 'end' event was sent here to finalize
             # buffering. That prematurely signals the client the stream is

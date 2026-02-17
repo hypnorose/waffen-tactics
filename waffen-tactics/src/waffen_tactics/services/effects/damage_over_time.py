@@ -66,7 +66,8 @@ class DamageOverTimeHandler(EffectHandler):
             'effect_id': dot_id,
             'next_tick_time': next_tick,
             'expires_at': expires_at,
-            'source': f"skill_{context.caster.id}"
+            'source': f"skill_{context.caster.id}",
+            'timestamp': context.combat_time,
         })
 
         return [event]
