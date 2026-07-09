@@ -33,6 +33,23 @@ require_key() {
     fi
 }
 
+load_nvm() {
+    export NVM_DIR="$HOME/.nvm"
+    if [ -s "$NVM_DIR/nvm.sh" ]; then
+        . "$NVM_DIR/nvm.sh"
+    fi
+
+    if ! command -v node >/dev/null 2>&1; then
+        log_error "Node.js is not available after loading nvm"
+        exit 1
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        log_error "npm is not available after loading nvm"
+        exit 1
+    fi
+}
+
 PROJECT_ROOT="/home/ubuntu/waffen-tactics-game"
 WEB_DIR="$PROJECT_ROOT/waffen-tactics-web"
 BACKEND_DIR="$WEB_DIR/backend"
@@ -99,6 +116,10 @@ if [ ! -d "venv" ]; then
     log_error "Create the backend virtualenv before starting the runtime."
     exit 1
 fi
+
+log_info "Loading Node runtime"
+load_nvm
+log_success "Node runtime ready"
 
 log_info "Starting backend API on port 8000"
 cd "$BACKEND_DIR"
