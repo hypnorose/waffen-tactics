@@ -377,16 +377,8 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'skill_cast':
-      // Mana is already updated by the preceding mana_update event
-      // Don't set mana to 0 here as it would override the correct value
-      if (event.target_id && event.target_hp !== undefined) {
-        if (isOpponent(event.target_id)) {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.target_id, u => ({ ...u, hp: event.target_hp! }))
-        } else {
-          newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, u => ({ ...u, hp: event.target_hp! }))
-        }
-      }
-      newState.combatLog = [...newState.combatLog, `✨ ${event.caster_name} używa ${event.skill_name}!`]
+      // Skill casting is disabled in the current ruleset.
+      // Keep the event as a no-op so older replays do not mutate state.
       break
 
     case 'shield_applied':

@@ -51,6 +51,10 @@ game_manager = GameManager()
 def _apply_persistent_buffs_from_kills(player: PlayerState, player_synergies: Dict[str, Tuple[int, int]], collected_stats_maps: Dict[str, Dict[str, int]], game_manager: GameManager):
     """
     Apply persistent buffs to player units based on kills and trait synergies.
+    
+    Note: This function is now deprecated. All permanent buffs from kills are
+    handled by modular_effect_processor during combat. This stub is kept for
+    backward compatibility.
 
     Args:
         player: The player state
@@ -58,46 +62,9 @@ def _apply_persistent_buffs_from_kills(player: PlayerState, player_synergies: Di
         collected_stats_maps: Dict of instance_id -> collected stats
         game_manager: Game manager for trait data
     """
-    # Apply permanent buffs from kills (on_enemy_death with permanent_stat_buff)
-    for trait_name, (count, tier) in player_synergies.items():
-        trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
-        if not trait_obj:
-            continue
-        idx = tier - 1
-        if idx < 0 or idx >= len(trait_obj.get('effects', [])):
-            continue
-        effect = trait_obj.get('effects', [])[idx]
-        etype = effect.get('type')
-        if etype == 'on_enemy_death':
-            actions = effect.get('actions', [])
-            for action in actions:
-                if action.get('type') == 'kill_buff':
-                    stat = action.get('stat')
-                    value = action.get('value', 0)
-                    is_percentage = action.get('is_percentage', False)
-                    collect_stat = action.get('collect_stat', 'defense')
-                    if stat:
-                        units_to_buff = []
-                        target = trait_obj.get('target', 'trait')
-                        if target == 'team':
-                            units_to_buff = player.board
-                        elif target == 'trait':
-                            for ui in player.board:
-                                unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-                                if unit and (trait_name in unit.factions or trait_name in unit.classes):
-                                    units_to_buff.append(ui)
-
-                        for ui in units_to_buff:
-                            collected_stats = collected_stats_maps.get(ui.instance_id, {})
-                            collected_value = collected_stats.get(collect_stat, 0)
-                            if is_percentage:
-                                increment = collected_value * (value / 100.0)
-                            else:
-                                increment = collected_value * value
-
-                            if increment > 0:
-                                current_buff = ui.persistent_buffs.get(stat, 0)
-                                ui.persistent_buffs[stat] = current_buff + increment
+    # Apply permanent buffs from kills - now handled by modular_effect_processor during combat
+    # This function is kept for backward compatibility but does nothing
+    pass
 
 
 def _run_async(coro):
@@ -116,6 +83,10 @@ def compute_defeat_hp_loss(result: Dict[str, Any]) -> int:
     Contract:
     - `result['winner']` must be `team_b`
     - `result['surviving_star_sum']` must be present and >= 1
+    - `result['opponent_level']` must be present and >= 1
+
+    Formula:
+    - hp_loss = opponent_level + surviving_star_sum
     """
     winner = result.get('winner')
     if winner != 'team_b':
@@ -123,15 +94,24 @@ def compute_defeat_hp_loss(result: Dict[str, Any]) -> int:
 
     if 'surviving_star_sum' not in result:
         raise RuntimeError("Defeat result missing required field: surviving_star_sum")
+    if 'opponent_level' not in result:
+        raise RuntimeError("Defeat result missing required field: opponent_level")
 
     try:
-        hp_loss = int(result['surviving_star_sum'])
+        surviving_star_sum = int(result['surviving_star_sum'])
     except Exception as e:
         raise RuntimeError(f"Invalid surviving_star_sum value: {result.get('surviving_star_sum')}") from e
+    try:
+        opponent_level = int(result['opponent_level'])
+    except Exception as e:
+        raise RuntimeError(f"Invalid opponent_level value: {result.get('opponent_level')}") from e
 
-    if hp_loss < 1:
-        raise RuntimeError(f"Invalid surviving_star_sum (must be >= 1): {hp_loss}")
+    if surviving_star_sum < 1:
+        raise RuntimeError(f"Invalid surviving_star_sum (must be >= 1): {surviving_star_sum}")
+    if opponent_level < 1:
+        raise RuntimeError(f"Invalid opponent_level (must be >= 1): {opponent_level}")
 
+    hp_loss = opponent_level + surviving_star_sum
     return hp_loss
 
 
@@ -155,7 +135,12 @@ def apply_player_hp_loss(player: PlayerState, hp_loss: int) -> Tuple[int, int]:
     return pre_hp, post_hp
 
 
-def resolve_defeat_hp_mutation(player: PlayerState, result: Dict[str, Any], opponent_units: Optional[List[CombatUnit]] = None) -> Dict[str, int]:
+def resolve_defeat_hp_mutation(
+    player: PlayerState,
+    result: Dict[str, Any],
+    opponent_units: Optional[List[CombatUnit]] = None,
+    opponent_level: Optional[int] = None,
+) -> Dict[str, int]:
     """Apply defeat HP mutation with strict invariants.
 
     Returns:
@@ -185,6 +170,17 @@ def resolve_defeat_hp_mutation(player: PlayerState, result: Dict[str, Any], oppo
             raise RuntimeError(f"Derived invalid surviving_star_sum={star_sum} from alive opponents")
 
         result['surviving_star_sum'] = int(star_sum)
+
+    if 'opponent_level' not in result:
+        if opponent_level is None:
+            raise RuntimeError("Defeat result missing required field: opponent_level")
+        try:
+            parsed_level = int(opponent_level)
+        except Exception as e:
+            raise RuntimeError(f"Invalid opponent_level value from caller: {opponent_level}") from e
+        if parsed_level < 1:
+            raise RuntimeError(f"Invalid opponent_level (must be >= 1): {parsed_level}")
+        result['opponent_level'] = parsed_level
 
     hp_loss = compute_defeat_hp_loss(result)
     pre_hp, post_hp = apply_player_hp_loss(player, hp_loss)
@@ -771,53 +767,23 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
             if not trait_obj:
                 continue
             idx = tier - 1
-            if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+            effects = trait_obj.get('modular_effects', [])
+            if idx < 0 or idx >= len(effects):
                 continue
-            effect = trait_obj.get('effects', [])[idx]
-            if effect.get('type') == 'buff_amplifier':
-                target = trait_obj.get('target', 'trait')
-                if target == 'team' or (target == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
-                    amplifier = max(amplifier, float(effect.get('multiplier', 1)))
+            effect = effects[idx]
+            
+            # Handle modular format (list of trigger objects)
+            if isinstance(effect, list):
+                for trigger_obj in effect:
+                    if trigger_obj.get('trigger') == 'passive':
+                        for reward in trigger_obj.get('rewards', []):
+                            if reward.get('type') == 'buff_amplifier':
+                                target = trait_obj.get('target', 'trait')
+                                if target == 'team' or (target == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
+                                    amplifier = max(amplifier, float(reward.get('multiplier', 1)))
         unit_amplifiers[ui.instance_id] = amplifier
 
-    for trait_name, (count, tier) in player_synergies.items():
-        trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
-        if not trait_obj:
-            continue
-        idx = tier - 1
-        if idx < 0 or idx >= len(trait_obj.get('effects', [])):
-            continue
-        effect = trait_obj.get('effects', [])[idx]
-        etype = effect.get('type')
-        if etype == 'per_round_buff':
-            target = trait_obj.get('target', 'trait')
-            stat = effect.get('stat')
-            value = effect.get('value', 0)
-            is_percentage = effect.get('is_percentage', False)
-            if stat:
-                units_to_buff = []
-                if target == 'team':
-                    units_to_buff = player.board
-                elif target == 'trait':
-                    for ui in player.board:
-                        unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-                        if unit and (trait_name in unit.factions or trait_name in unit.classes):
-                            units_to_buff.append(ui)
-                for ui in units_to_buff:
-                    unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-                    if not unit:
-                        continue
-                    amplifier = unit_amplifiers.get(ui.instance_id, 1.0)
-                    current_buff = ui.persistent_buffs.get(stat, 0)
-                    if is_percentage:
-                        # For percentage, add based on base stat
-                        base_stat = getattr(unit.stats, stat, 0) * ui.star_level
-                        increment = base_stat * (value / 100.0) * amplifier
-                    else:
-                        increment = value * amplifier
-                    ui.persistent_buffs[stat] = current_buff + increment
-
-    # Apply permanent buffs from kills (on_enemy_death with permanent_stat_buff)
+    # Apply permanent buffs from kills - now handled by modular_effect_processor during combat
     _apply_persistent_buffs_from_kills(player, player_synergies, collected_stats_maps, game_manager)
 
     win_bonus = 0

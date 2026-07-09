@@ -361,7 +361,7 @@ class TestManaRegeneration(unittest.TestCase):
         self.assertEqual(len(mana_regen_events), 0, "Should have no mana_update events for unit with no regeneration")
 
     def test_mana_regeneration_events_mana_attack_separate(self):
-        """Test that mana_regen events are separate from mana_on_attack events"""
+        """Test that mana events are emitted correctly for both regen and attacks"""
         unit_a = CombatUnit(
             id="test_unit_a",
             name="Test Mage A",
@@ -396,22 +396,16 @@ class TestManaRegeneration(unittest.TestCase):
         # Run combat (units will attack each other)
         result = self.simulator.simulate([unit_a], [unit_b], event_callback)
 
-        # Filter different event types
-        mana_regen_events = [e for e in events if 'amount' in e[1] and 'current_mana' not in e[1]]
-        mana_update_events = [e for e in events if 'current_mana' in e[1]]
+        # Filter mana_update events (all mana changes use this event type now)
+        mana_update_events = [e for e in events if e[0] == 'mana_update']
 
-        # Should have both types of events
-        self.assertGreater(len(mana_regen_events), 0, "Should have mana_regen events")
-        self.assertGreater(len(mana_update_events), 0, "Should have mana_update events from attacks")
+        # Should have mana_update events (from both regen and attacks)
+        self.assertGreater(len(mana_update_events), 0, "Should have mana_update events")
 
-        # Events should have different structures
-        for event_type, data in mana_regen_events:
-            self.assertIn('amount', data, "mana_regen events should have amount")
-            self.assertNotIn('current_mana', data, "mana_regen events should not have current_mana")
-
+        # All mana events should have current_mana (for UI state sync)
         for event_type, data in mana_update_events:
             self.assertIn('current_mana', data, "mana_update events should have current_mana")
-            self.assertIn('max_mana', data, "mana_update events should have max_mana")
+            self.assertIn('amount', data, "mana_update events should have amount")
 
 
 if __name__ == '__main__':

@@ -34,7 +34,7 @@ class CombatAttackProcessor:
         events = []
         print(f"[ATTACK_PROC] compute_team_attacks side={side} time={time} attackers={[u.id for u in attacking_team]}")
 
-        # Track mana accumulation for skill casting checks
+        # Track mana accumulation for the bonus basic attack check.
         mana_accumulation = {}  # unit_id -> total mana gain this tick
 
         for i, unit in enumerate(attacking_team):
@@ -55,87 +55,10 @@ class CombatAttackProcessor:
 
                 # Calculate damage
                 damage = self._calculate_damage(unit, defending_team[target_idx])
-                # Determine if this attack should instead trigger a skill cast.
+                # Skills are disabled in the current ruleset.
+                # When mana is full, the unit simply gets one extra basic attack.
                 mana_gain = unit.stats.mana_on_attack
                 effective_mana = unit.get_mana() + mana_gain
-
-                skill_casted = False
-                if hasattr(unit, 'skill') and unit.skill and effective_mana >= unit.max_mana:
-                    # Unit will cast a skill instead of performing this normal attack.
-                    # Use the same new-skill execution path as elsewhere to convert
-                    # skill executor output into event payloads.
-                    skill_data = unit.skill
-                    new_skill = None
-                    if hasattr(skill_data, 'effects'):
-                        new_skill = skill_data
-                    elif isinstance(skill_data, dict):
-                        new_skill = skill_data.get('effect', {}).get('skill')
-
-                    if new_skill:
-                        from waffen_tactics.services.skill_executor import skill_executor
-                        from waffen_tactics.models.skill import SkillExecutionContext
-
-                        context = SkillExecutionContext(
-                            caster=unit,
-                            team_a=attacking_team if side == 'team_a' else defending_team,
-                            team_b=defending_team if side == 'team_a' else attacking_team,
-                            combat_time=time,
-                            event_callback=self.event_dispatcher.emit if getattr(self, 'event_dispatcher', None) is not None else None
-                        )
-
-                        skill_events = skill_executor.execute_skill(new_skill, context)
-                        for event_type, event_data in skill_events:
-                            # Preserve any timestamp emitted by the skill executor; fall back to current compute time
-                            ts = event_data.get('timestamp', time) if isinstance(event_data, dict) else time
-                            if event_type == 'mana_update':
-                                events.append({
-                                    'type': 'mana_update',
-                                    'unit_id': event_data.get('unit_id'),
-                                    'unit_name': event_data.get('unit_name'),
-                                    'amount': event_data.get('amount'),
-                                    'current_mana': event_data.get('current_mana'),
-                                    'side': side,
-                                    'timestamp': ts,
-                                    'cause': 'skill_cast'
-                                })
-                            elif event_type == 'unit_attack':
-                                events.append({
-                                    'type': 'skill_attack',
-                                    'attacker_id': event_data.get('attacker_id'),
-                                    'target_id': event_data.get('target_id'),
-                                    'damage': event_data.get('damage'),
-                                    'side': side,
-                                    'timestamp': ts,
-                                    'is_skill': True
-                                })
-                            else:
-                                # Generic pass-through for other event types: ensure a `type` field
-                                if isinstance(event_data, dict):
-                                    merged = {'type': event_type}
-                                    merged.update(event_data)
-                                    if 'timestamp' not in merged:
-                                        merged['timestamp'] = ts
-                                    events.append(merged)
-                                    print(f"[SKILL_EVT] type={event_type} ts={merged.get('timestamp')} caster={getattr(unit,'name',None)} target={defending_team[target_idx].name}")
-                                else:
-                                    events.append({'type': event_type, 'data': event_data, 'timestamp': ts})
-                        # Add a skill_cast marker event
-                        events.append({
-                            'type': 'skill_cast',
-                            'caster_id': unit.id,
-                            'caster_name': unit.name,
-                            'skill_name': new_skill.name,
-                            'target_id': defending_team[target_idx].id,
-                            'target_name': defending_team[target_idx].name,
-                            'side': side,
-                            'timestamp': time,
-                            'message': f"{unit.name} casts {new_skill.name}!"
-                        })
-                        skill_casted = True
-
-                if skill_casted:
-                    # Skip creating a normal attack event this tick
-                    continue
 
                 # Create attack event payload
                 attack_event = {
@@ -184,6 +107,33 @@ class CombatAttackProcessor:
 
                     # Track mana accumulation for skill casting
                     mana_accumulation[unit.id] = mana_accumulation.get(unit.id, 0) + mana_gain
+
+                if effective_mana >= unit.max_mana:
+                    bonus_attack = {
+                        'type': 'unit_attack',
+                        'attacker_id': unit.id,
+                        'attacker_name': unit.name,
+                        'target_id': defending_team[target_idx].id,
+                        'target_name': defending_team[target_idx].name,
+                        'damage': damage,
+                        'pre_hp': defending_hp[target_idx],
+                        'side': side,
+                        'timestamp': round(time + 0.05, 10),
+                        'cause': 'attack',
+                        'is_skill': False
+                    }
+                    events.append(bonus_attack)
+                    if mana_gain > 0:
+                        events.append({
+                            'type': 'mana_update',
+                            'unit_id': unit.id,
+                            'unit_name': unit.name,
+                            'amount': -unit.max_mana,
+                            'current_mana': 0,
+                            'side': side,
+                            'timestamp': round(time + 0.05, 10),
+                            'cause': 'attack',
+                        })
 
 
         # Attach UI timing for all emitted events so the frontend can start
@@ -308,14 +258,10 @@ class CombatAttackProcessor:
                 self._apply_mana_update(event, combat_state)
 
             elif event_type == 'skill_cast':
-                winner = self._apply_skill_cast(event, combat_state, log)
-                if winner:
-                    return winner
+                continue
 
             elif event_type == 'skill_attack':
-                winner = self._apply_skill_attack(event, combat_state, log)
-                if winner:
-                    return winner
+                continue
 
         return winner
 
@@ -457,7 +403,8 @@ class CombatAttackProcessor:
         combat_state: 'CombatState',
         log: List[str]
     ) -> Optional[str]:
-        """Apply a skill cast event."""
+        """Skills are disabled in the current ruleset."""
+        return None
         caster_id = event['caster_id']
         target_id = event['target_id']
         skill_damage = event.get('damage', 0)
@@ -544,7 +491,8 @@ class CombatAttackProcessor:
         combat_state: 'CombatState',
         log: List[str]
     ) -> Optional[str]:
-        """Apply a skill attack event."""
+        """Skills are disabled in the current ruleset."""
+        return None
         attacker_id = event['attacker_id']
         target_id = event['target_id']
         damage = event['damage']
@@ -621,40 +569,8 @@ class CombatAttackProcessor:
         time: float,
         side: str
     ) -> List[Dict[str, Any]]:
-        """Compute skill cast events."""
-        events = []
-        skill = caster.skill
-
-        # Mana reset event (to 0)
-        mana_reset_event = {
-            'type': 'mana_update',
-            'unit_id': caster.id,
-            'unit_name': caster.name,
-            'amount': -caster.mana,  # Reset to 0
-            'side': side,
-            'timestamp': time,
-            'cause': 'skill_cast'
-        }
-        events.append(mana_reset_event)
-
-        # Skill cast event
-        effect = skill['effect']
-        if effect.get('type') == 'damage':
-            skill_damage = effect.get('amount', 0)
-            skill_event = {
-                'type': 'skill_cast',
-                'caster_id': caster.id,
-                'caster_name': caster.name,
-                'skill_name': skill['name'],
-                'target_id': target.id,
-                'target_name': target.name,
-                'damage': skill_damage,
-                'side': side,
-                'timestamp': time
-            }
-            events.append(skill_event)
-
-        return events
+        """Skills are disabled in the current ruleset."""
+        return []
 
     def _select_target(
         self,

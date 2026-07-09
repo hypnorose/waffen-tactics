@@ -1,11 +1,16 @@
-// Discord OAuth - po prostu wklej swoje Application ID
-const DISCORD_CLIENT_ID = '1449028504615256217'  // Waffen Tactics Bot Application ID
+const DISCORD_CLIENT_ID = import.meta.env.VITE_DISCORD_CLIENT_ID || ''
 const REDIRECT_URI = window.location.hostname === 'localhost' 
   ? 'http://localhost:3000/auth/callback' 
   : 'https://waffentactics.pl/auth/callback'
 
 export default function Login() {
+  const configError = !DISCORD_CLIENT_ID
+
   const handleDiscordLogin = () => {
+    if (configError) {
+      console.error('Missing VITE_DISCORD_CLIENT_ID')
+      return
+    }
     const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify`
     window.location.href = discordAuthUrl
   }
@@ -21,6 +26,7 @@ export default function Login() {
         <div className="space-y-4">
           <button
             onClick={handleDiscordLogin}
+            disabled={configError}
             className="btn btn-primary w-full flex items-center justify-center gap-2"
           >
             <svg width="24" height="24" viewBox="0 0 71 55" fill="none">
@@ -33,12 +39,17 @@ export default function Login() {
             </svg>
             Zaloguj się przez Discord
           </button>
+          {configError && (
+            <p className="text-sm text-red-400">
+              Brak konfiguracji logowania przez Discord. Sprawdź `VITE_DISCORD_CLIENT_ID` w frontendowym `.env`.
+            </p>
+          )}
         </div>
 
         <div className="text-sm text-text/60">
-          <p>✨ 51 jednostek</p>
-          <p>🎯 14 traitów</p>
-          <p>⚔️ Strategiczny auto-battler</p>
+          <p>51 jednostek</p>
+          <p>14 traitów</p>
+          <p>Strategiczny auto-battler</p>
         </div>
       </div>
     </div>

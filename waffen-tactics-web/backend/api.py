@@ -43,7 +43,7 @@ app.register_blueprint(game_bp, url_prefix='/game')
 from routes.admin import admin_bp
 app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
-# Database path - use the same DB as Discord bot
+# Database path - use the shared runtime DB
 DB_PATH = str(Path(__file__).parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')
 db_manager = DatabaseManager(DB_PATH)
 game_manager = GameManager()

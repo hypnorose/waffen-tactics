@@ -95,6 +95,7 @@ class CombatUnitState:
     stolen_defense: int = 0
     collected_stats: Dict[str, float] = field(default_factory=dict)
     hp_regen_accumulator: float = 0.0
+    focus_target_id: str | None = None
 
     def copy(self) -> 'CombatUnitState':
         """Create a copy of the state"""
@@ -107,7 +108,8 @@ class CombatUnitState:
             kills=self.kills,
             stolen_defense=self.stolen_defense,
             collected_stats=self.collected_stats.copy(),
-            hp_regen_accumulator=self.hp_regen_accumulator
+            hp_regen_accumulator=self.hp_regen_accumulator,
+            focus_target_id=self.focus_target_id
         )
 
 

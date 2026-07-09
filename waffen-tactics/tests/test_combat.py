@@ -64,20 +64,20 @@ class TestCombat(unittest.TestCase):
         damage_entries = [l for l in log if "hits" in l and "hp=" in l]
         self.assertGreater(len(damage_entries), 0, "Should have damage entries in log")
 
-    def test_skills_cast_when_mana_reached(self):
-        """Test that units cast skills after gaining enough mana"""
+    def test_bonus_attack_replaces_skills_when_mana_reached(self):
+        """Test that combat keeps using basic attacks when mana fills up."""
         team = self.data.units[:2]
         opp = self.data.units[2:4]
         result = self.sim.simulate(team, opp)
         
         log = result.get("log", [])
         skill_casts = [l for l in log if "casts" in l]
-        
-        # With the new mana system (+10 per attack, cast at max mana),
-        # units should cast skills during combat
-        # Note: This is probabilistic, so we just check that combat completes
+        attack_lines = [l for l in log if "hits" in l]
+
         self.assertIn(result["winner"], ("A", "B", "team_a", "team_b"))
         self.assertGreater(len(log), 0)
+        self.assertGreater(len(attack_lines), 0)
+        self.assertEqual(len(skill_casts), 0, "Skills should be disabled in combat")
 
     def test_defender_priority_targeting(self):
         """Test that high defense units are targeted more frequently"""

@@ -266,7 +266,7 @@ class TestCombatService(unittest.TestCase):
         mock_game_manager.get_board_synergies.return_value = {}
         mock_game_manager.generate_shop = MagicMock()
 
-        result = {'winner': 'team_b', 'surviving_star_sum': 5}
+        result = {'winner': 'team_b', 'surviving_star_sum': 5, 'opponent_level': 3}
         collected_stats_maps = {}
 
         # Execute
@@ -275,7 +275,7 @@ class TestCombatService(unittest.TestCase):
         # Assert
         self.assertFalse(game_over)
         self.assertIn('PRZEGRANA', result_data['result_message'])
-        self.assertEqual(self.mock_player.hp, 95)  # Lost 5 HP (5 * 1)
+        self.assertEqual(self.mock_player.hp, 92)  # Lost 8 HP (5 stars + level 3)
         self.assertEqual(self.mock_player.streak, 0)  # Reset to 0
 
     @patch('services.combat_service.game_manager')
@@ -290,7 +290,7 @@ class TestCombatService(unittest.TestCase):
         mock_game_manager.get_board_synergies.return_value = {}
         mock_game_manager.generate_shop = MagicMock()
 
-        result = {'winner': 'team_b', 'surviving_star_sum': 5}  # Will cause 10 HP loss
+        result = {'winner': 'team_b', 'surviving_star_sum': 5, 'opponent_level': 3}  # Will cause 8 HP loss
         collected_stats_maps = {}
 
         # Execute
@@ -299,7 +299,7 @@ class TestCombatService(unittest.TestCase):
         # Assert
         self.assertTrue(game_over)
         self.assertIn('Koniec gry', result_data['result_message'])
-        self.assertEqual(self.mock_player.hp, 0)  # Went to 0 (5 - 5)
+        self.assertEqual(self.mock_player.hp, 0)  # Went to 0 (5 - 8, clipped)
 
     @patch('services.combat_service.db_manager')
     @patch('services.combat_service.game_manager')

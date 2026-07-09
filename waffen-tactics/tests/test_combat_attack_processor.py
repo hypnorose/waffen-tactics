@@ -118,44 +118,37 @@ class TestCombatAttackProcessor(unittest.TestCase):
 
         # Note: ui_delay markers are added at a higher level in _attach_ui_timing
 
-    def test_skill_attack_emits_animation_start(self):
-        """Test that skill attacks trigger skill casting when mana is full"""
-        # Setup
-        attacker = MockUnit('player_1', 'Warrior', mana=100)  # Full mana to trigger skill
-        defender = MockUnit('opp_1', 'Goblin')
-
-        # Mock skill as dict
-        attacker.skill = {
-            'name': 'Test Skill',
-            'effect': {'type': 'damage', 'amount': 50}
-        }
+    def test_full_mana_triggers_bonus_attack_instead_of_skill(self):
+        """Test that filling mana adds a second basic attack and never casts skills."""
+        attacker = MockUnit('player_1', 'Warrior', mana=90)
+        defender = MockUnit('opp_1', 'Goblin', hp=500)
 
         emitted_events = []
 
         def mock_event_callback(event_type, event):
             emitted_events.append((event_type, event))
 
-        # Execute
         self.processor._process_team_attacks(
             attacking_team=[attacker],
             defending_team=[defender],
             attacking_hp=[100],
-            defending_hp=[200],  # High HP to avoid death
+            defending_hp=[500],
             time=1.0,
             log=[],
             side='team_a',
             event_callback=mock_event_callback
         )
 
-        # Verify that _process_skill_cast was called (since mana is full and skill exists)
-        self.assertGreaterEqual(self.processor._process_skill_cast.call_count, 1)
-        # Check that it was called with the right arguments (modern keyword signature)
-        call = self.processor._process_skill_cast.call_args_list[0]
-        called_kwargs = call[1]
-        self.assertIn('caster', called_kwargs)
-        self.assertIn('target', called_kwargs)
-        self.assertEqual(called_kwargs['caster'], attacker)
-        self.assertEqual(called_kwargs['target'], defender)
+        attack_events = [(t, e) for t, e in emitted_events if t == 'unit_attack']
+        mana_events = [(t, e) for t, e in emitted_events if t == 'mana_update']
+        skill_events = [(t, e) for t, e in emitted_events if t == 'skill_cast']
+
+        self.assertEqual(len(skill_events), 0, "Skills should be disabled completely")
+        self.assertEqual(len(attack_events), 2, "Full mana should grant one extra basic attack")
+        self.assertEqual(len(mana_events), 2, "Each attack should emit a mana update")
+        self.assertEqual(attack_events[0][1]['timestamp'], 1.2)
+        self.assertEqual(attack_events[1][1]['timestamp'], 1.25)
+        self.assertEqual(attacker.mana, 0, "Bonus attack should consume the full mana bar")
 
     def test_animation_events_before_damage_events(self):
         """Test that animation_start events are emitted before damage events"""

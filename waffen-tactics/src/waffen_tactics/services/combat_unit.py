@@ -381,6 +381,17 @@ class CombatUnit:
         return self._state.current_hp > 0
 
     @property
+    def focus_target_id(self) -> Optional[str]:
+        return getattr(self._state, 'focus_target_id', None)
+
+    @focus_target_id.setter
+    def focus_target_id(self, value: Optional[str]):
+        self._state.focus_target_id = value
+
+    def clear_focus_target(self) -> None:
+        self._state.focus_target_id = None
+
+    @property
     def hp_regen_per_sec(self) -> float:
         """Expose computed hp regen per second from effects cache."""
         return getattr(self._computed_stats, 'hp_regen_per_sec', 0.0)

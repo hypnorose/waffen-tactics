@@ -77,15 +77,28 @@ class ShopService:
             if not trait_obj:
                 continue
             idx = tier - 1
-            if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+            effects = trait_obj.get('modular_effects', [])
+            if idx < 0 or idx >= len(effects):
                 continue
-            effect = trait_obj.get('effects', [])[idx]
-            if effect.get('type') == 'reroll_free_chance':
-                chance = float(effect.get('chance_percent', 0))
-                if random.random() * 100.0 < chance:
-                    free_reroll = True
-                    free_reason = f"{trait_name} darmowy reroll ({chance}%)"
-                    break
+            effect = effects[idx]
+            
+            # Handle modular format (list of trigger objects)
+            if isinstance(effect, list):
+                for trigger_obj in effect:
+                    # Only process passive triggers for reroll_free_chance
+                    if trigger_obj.get('trigger') == 'passive':
+                        for reward in trigger_obj.get('rewards', []):
+                            if reward.get('type') == 'reroll_free_chance':
+                                chance = float(reward.get('chance_percent', 0))
+                                if random.random() * 100.0 < chance:
+                                    free_reroll = True
+                                    free_reason = f"{trait_name} darmowy reroll ({chance}%)"
+                                    break
+                    if free_reroll:
+                        break
+            
+            if free_reroll:
+                break
 
         cost = 2
         if not free_reroll:

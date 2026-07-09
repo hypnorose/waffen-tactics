@@ -1,5 +1,5 @@
 """
-Shared combat logic for both Discord bot and web version
+Shared combat logic for the runtime adapters.
 """
 from .combat_unit import CombatUnit
 from .combat_simulator import CombatSimulator

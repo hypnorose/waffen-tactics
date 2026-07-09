@@ -9,6 +9,8 @@ import os
 import sys
 import pytest
 
+pytestmark = pytest.mark.skip(reason="Skills are disabled in the current ruleset")
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'waffen-tactics', 'src'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 

@@ -13,6 +13,7 @@ from .event_canonicalizer import (
 
 
 class TriggerType(Enum):
+    PASSIVE = "passive"
     ON_ENEMY_DEATH = "on_enemy_death"
     ON_ALLY_DEATH = "on_ally_death"
     PER_ROUND = "per_round"

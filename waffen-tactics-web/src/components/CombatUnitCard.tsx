@@ -223,32 +223,6 @@ export default function CombatUnitCard({ unit, isOpponent, regen }: Props) {
             <div>🔮 Mana: {Math.round(displayMana)}/{Math.round(displayMaxMana)}</div>
             {displayHpRegen > 0 && <div>💚 Regen: +{Math.round(displayHpRegen)}/s</div>}
           </div>
-          
-          {/* Skill Information */}
-          {unit.skill && (
-            <div className="mt-3 pt-3 border-t border-gray-600">
-              <div className="font-semibold text-blue-400 mb-1">🎯 {unit.skill.name}</div>
-              <div className="text-sm text-gray-300 mb-2">{unit.skill.description}</div>
-              <div className="text-xs text-purple-400">Mana Cost: {unit.skill?.mana_cost ?? Math.floor(displayMaxMana)}</div>
-              {unit.skill.effects && unit.skill.effects.length > 0 && (
-                <div className="mt-2">
-                  <div className="text-xs text-gray-400 mb-1">Effects:</div>
-                  <div className="space-y-1">
-                    {unit.skill.effects.map((effect, index) => (
-                      <div key={index} className="text-xs bg-gray-700/50 rounded px-2 py-1">
-                        <span className="capitalize text-yellow-400">{effect.type.replace('_', ' ')}</span>
-                        {effect.target && <span className="text-gray-300"> → {effect.target.replace('_', ' ')}</span>}
-                        {effect.amount && <span className="text-green-400"> ({effect.amount})</span>}
-                        {effect.duration && <span className="text-blue-400"> for {effect.duration}s</span>}
-                        {effect.damage && <span className="text-red-400"> {effect.damage}/tick</span>}
-                        {effect.interval && <span className="text-orange-400"> every {effect.interval}s</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
           {/* Arrow */}
           <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
         </div>

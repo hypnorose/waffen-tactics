@@ -1,11 +1,14 @@
 import os
 import sys
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from waffen_tactics.services.data_loader import load_game_data
 from waffen_tactics.services.combat_shared import CombatSimulator, CombatUnit
 from waffen_tactics.models.skill import Skill
+
+pytestmark = pytest.mark.skip(reason="Skills are disabled in the current ruleset")
 
 
 def make_combat_unit_from_unitdef(unit_def, instance_id='inst', hp=None, max_hp=None):

@@ -35,7 +35,7 @@ class SynergyEngine:
         persistent_rewards = []
 
         # Define which triggers represent persistent state
-        PERSISTENT_TRIGGERS = {'on_win', 'on_loss', 'per_trait'}
+        PERSISTENT_TRIGGERS = {'passive', 'on_win', 'on_loss', 'per_trait'}
         # Define combat-only triggers that should never show in UI (unless target='self')
         COMBAT_ONLY_TRIGGERS = {'per_second', 'on_ally_hp_below'}
 
@@ -143,7 +143,7 @@ class SynergyEngine:
                 continue
             effect = effects[idx]
 
-            # Handle trigger-based effects (new format)
+            # Handle trigger-based effects (modular format)
             if isinstance(effect, list):
                 rewards = self._extract_persistent_rewards(effect, trait_obj, trait_name, unit, count)
                 for reward in rewards:
@@ -153,13 +153,6 @@ class SynergyEngine:
                         if target_scope == 'team' or (target_scope == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
                             amplifier = max(amplifier, float(reward.get('multiplier', 1)))
                 continue
-
-            # Handle legacy passive effects (old format)
-            if effect.get('type') == 'buff_amplifier':
-                trait_level_target = trait_obj.get('target') if trait_obj else None
-                target_scope = effect.get('target', trait_level_target or 'trait')
-                if target_scope == 'team' or (target_scope == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
-                    amplifier = max(amplifier, float(effect.get('multiplier', 1)))
 
         for trait_name, (count, tier) in active_synergies.items():
             trait_obj = self.trait_effects.get(trait_name)
@@ -171,7 +164,7 @@ class SynergyEngine:
                 continue
             effect = effects[idx]
 
-            # Handle trigger-based effects (new format) - extract persistent rewards
+            # Handle trigger-based effects (modular format) - extract persistent rewards
             if isinstance(effect, list):
                 rewards = self._extract_persistent_rewards(effect, trait_obj, trait_name, unit, count)
                 for reward in rewards:
@@ -309,7 +302,7 @@ class SynergyEngine:
                 continue
             effect = effects[idx]
 
-            # Handle trigger-based effects (new format) - extract persistent rewards
+            # Handle trigger-based effects (modular format) - extract persistent rewards
             if isinstance(effect, list):
                 rewards = self._extract_persistent_rewards(effect, trait_obj, trait_name, unit, count)
                 for reward in rewards:

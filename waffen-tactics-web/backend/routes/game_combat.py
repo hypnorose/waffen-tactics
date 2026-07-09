@@ -456,7 +456,7 @@ def start_combat():
                 opponent_unit_info.append(d)
 
             # Send initial units state with synergies and trait definitions
-            trait_definitions = [{'name': t['name'], 'type': t['type'], 'description': t.get('description', ''), 'thresholds': t['thresholds'], 'threshold_descriptions': t.get('threshold_descriptions', []), 'effects': t.get('modular_effects', t.get('effects', []))} for t in game_manager.data.traits]
+            trait_definitions = [{'name': t['name'], 'type': t['type'], 'description': t.get('description', ''), 'thresholds': t['thresholds'], 'threshold_descriptions': t.get('threshold_descriptions', []), 'effects': t.get('modular_effects', [])} for t in game_manager.data.traits]
             logger.info(f"start_combat: sending units_init for player {user_id}")
             yield f"data: {json.dumps({'type': 'units_init', 'player_units': player_unit_info, 'opponent_units': opponent_unit_info, 'synergies': synergies_data, 'traits': trait_definitions, 'opponent': opponent_info, 'game_state': {'player_units': player_unit_info, 'opponent_units': opponent_unit_info}, 'seq': 0})}\n\n"
 
@@ -553,103 +553,27 @@ def start_combat():
                         if not trait_obj:
                             continue
                         idx = tier - 1
-                        if idx < 0 or idx >= len(trait_obj.get('effects', [])):
+                        effects = trait_obj.get('modular_effects', [])
+                        if idx < 0 or idx >= len(effects):
                             continue
-                        effect = trait_obj.get('effects', [])[idx]
-                        if effect.get('type') == 'buff_amplifier':
-                            target = trait_obj.get('target', 'trait')
-                            if target == 'team' or (target == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
-                                amplifier = max(amplifier, float(effect.get('multiplier', 1)))
+                        effect = effects[idx]
+                        
+                        # Handle modular format (list of trigger objects)
+                        if isinstance(effect, list):
+                            for trigger_obj in effect:
+                                if trigger_obj.get('trigger') == 'passive':
+                                    for reward in trigger_obj.get('rewards', []):
+                                        if reward.get('type') == 'buff_amplifier':
+                                            target = trait_obj.get('target', 'trait')
+                                            if target == 'team' or (target == 'trait' and trait_name in unit.factions or trait_name in unit.classes):
+                                                amplifier = max(amplifier, float(reward.get('multiplier', 1)))
                     unit_amplifiers[ui.instance_id] = amplifier
 
-                for trait_name, (count, tier) in player_synergies.items():
-                    trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
-                    if not trait_obj:
-                        continue
-                    idx = tier - 1
-                    if idx < 0 or idx >= len(trait_obj.get('effects', [])):
-                        continue
-                    effect = trait_obj.get('effects', [])[idx]
-                    etype = effect.get('type')
-                    if etype == 'per_round_buff':
-                        target = trait_obj.get('target', 'trait')  # default to 'trait'
-                        stat = effect.get('stat')
-                        value = effect.get('value', 0)
-                        is_percentage = effect.get('is_percentage', False)
-                        if stat:
-                            units_to_buff = []
-                            if target == 'team':
-                                units_to_buff = player.board
-                            elif target == 'trait':
-                                for ui in player.board:
-                                    unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-                                    if unit and (trait_name in unit.factions or trait_name in unit.classes):
-                                        units_to_buff.append(ui)
-                            for ui in units_to_buff:
-                                unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-                                if not unit:
-                                    continue
-                                amplifier = unit_amplifiers.get(ui.instance_id, 1.0)
-                                current_buff = ui.persistent_buffs.get(stat, 0)
-                                if is_percentage:
-                                    # For percentage, add based on base stat
-                                    base_stat = getattr(unit.stats, stat, 0) * ui.star_level
-                                    increment = base_stat * (value / 100.0) * amplifier
-                                else:
-                                    increment = value * amplifier
-                                ui.persistent_buffs[stat] = current_buff + increment
             except Exception as e:
-                print(f"Error applying per-round buffs: {e}")
+                print(f"Error applying buff amplifiers: {e}")
 
-            # Apply permanent buffs from kills (on_enemy_death with permanent_stat_buff)
-            try:
-                # Create collected_stats maps from combat units
-                collected_stats_maps = {combat_unit.id: combat_unit.collected_stats for combat_unit in player_units}
-                
-                player_synergies = game_manager.get_board_synergies(player)
-                for trait_name, (count, tier) in player_synergies.items():
-                    trait_obj = next((t for t in game_manager.data.traits if t.get('name') == trait_name), None)
-                    if not trait_obj:
-                        continue
-                    idx = tier - 1
-                    if idx < 0 or idx >= len(trait_obj.get('effects', [])):
-                        continue
-                    effect = trait_obj.get('effects', [])[idx]
-                    etype = effect.get('type')
-                    if etype == 'on_enemy_death':
-                        actions = effect.get('actions', [])
-                        for action in actions:
-                            if action.get('type') == 'kill_buff':
-                                stat = action.get('stat')
-                                value = action.get('value', 0)
-                                is_percentage = action.get('is_percentage', False)
-                                collect_stat = action.get('collect_stat', 'defense')
-                                if stat:
-                                    units_to_buff = []
-                                    target = trait_obj.get('target', 'trait')
-                                    if target == 'team':
-                                        units_to_buff = player.board
-                                    elif target == 'trait':
-                                        for ui in player.board:
-                                            unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-                                            if unit and (trait_name in unit.factions or trait_name in unit.classes):
-                                                units_to_buff.append(ui)
-                                    
-                                    for ui in units_to_buff:
-                                        collected_stats = collected_stats_maps.get(ui.instance_id, {})
-                                        if is_percentage:
-                                            collected_value = collected_stats.get(collect_stat, 0)
-                                            increment = collected_value * (value / 100.0)
-                                        else:
-                                            collected_value = collected_stats.get('kills', 0)
-                                            increment = collected_value * value
-                                        
-                                        if increment > 0:
-                                            current_buff = ui.persistent_buffs.get(stat, 0)
-                                            ui.persistent_buffs[stat] = current_buff + increment
-                                            print(f"Applied permanent buff: {ui.instance_id} +{increment} {stat} from {collected_value} {collect_stat}")
-            except Exception as e:
-                print(f"Error applying permanent kill buffs: {e}")
+            # Apply permanent buffs from kills - now handled by modular_effect_processor during combat
+            # Legacy code removed
 
             win_bonus = 0
             if result['winner'] == 'team_a':
@@ -663,7 +587,12 @@ def start_combat():
 
             elif result['winner'] == 'team_b':
                 # Defeat - lose HP based on surviving enemy star levels
-                defeat = resolve_defeat_hp_mutation(player, result, opponent_units=opponent_units)
+                defeat = resolve_defeat_hp_mutation(
+                    player,
+                    result,
+                    opponent_units=opponent_units,
+                    opponent_level=opponent_info.get('level') if isinstance(opponent_info, dict) else None,
+                )
                 hp_loss = defeat['hp_loss']
                 post_hp = defeat['post_hp']
                 player.losses += 1
@@ -731,7 +660,7 @@ def start_combat():
                 # Unlock shop after combat
                 player.locked_shop = False
 
-            # Save player's team to opponent pool (like Discord bot)
+            # Save player's team to the opponent pool for future matches.
             board_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
             bench_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.bench]
             username = payload.get('username', f'Player_{user_id}')

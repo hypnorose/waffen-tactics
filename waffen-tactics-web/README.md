@@ -1,53 +1,26 @@
-# Waffen Tactics - React Frontend Setup
+# Waffen Tactics Web
 
-## 📋 Wymagania
+Web client and backend for Waffen Tactics. Discord is used for OAuth login only.
 
-- Node.js 18+
-- npm lub yarn
-- Python 3.12+ (dla backendu)
-
-## 🚀 Instalacja Frontend
+## Setup
 
 ```bash
-cd /home/ubuntu/mentorbot/waffen-tactics-web
-
-# Zainstaluj zależności
+cd waffen-tactics-web
 npm install
-
-# Stwórz plik .env
 cp .env.example .env
+cp backend/.env.example backend/.env
 ```
 
-## 🔑 Konfiguracja Discord OAuth2
+Fill in the environment values:
 
-1. Idź na: https://discord.com/developers/applications
-2. Stwórz nową aplikację lub wybierz istniejącą
-3. W zakładce "OAuth2" → "Redirects" dodaj:
-   - `http://localhost:3000/auth/callback` (dev)
-   - `https://your-domain.com/auth/callback` (produkcja)
-4. Skopiuj `Client ID` i `Client Secret`
-5. Edytuj plik `.env`:
-
+Frontend `.env`
 ```env
 VITE_DISCORD_CLIENT_ID=your_client_id_here
 VITE_DISCORD_REDIRECT_URI=http://localhost:3000/auth/callback
 VITE_API_URL=http://localhost:8000
 ```
 
-## 🐍 Instalacja Backend
-
-```bash
-cd /home/ubuntu/mentorbot
-
-# Zainstaluj dodatkowe zależności
-source bot_venv/bin/activate
-pip install fastapi uvicorn[standard] pyjwt aiohttp python-multipart
-
-# Stwórz plik .env dla backendu (jeśli jeszcze nie istnieje)
-nano .env
-```
-
-Dodaj do `.env`:
+Backend `backend/.env`
 ```env
 DISCORD_CLIENT_ID=your_client_id_here
 DISCORD_CLIENT_SECRET=your_client_secret_here
@@ -55,114 +28,38 @@ DISCORD_REDIRECT_URI=http://localhost:3000/auth/callback
 JWT_SECRET=your-random-secret-key-here
 ```
 
-## ▶️ Uruchomienie
+## Run locally
 
-### Terminal 1 - Backend API:
 ```bash
-cd /home/ubuntu/mentorbot
-source bot_venv/bin/activate
-python waffen-tactics-backend.py
-```
-API dostępne na: http://localhost:8000
+# backend
+cd waffen-tactics-web/backend
+python api.py
 
-### Terminal 2 - Frontend React:
-```bash
-cd /home/ubuntu/mentorbot/waffen-tactics-web
+# frontend
+cd waffen-tactics-web
 npm run dev
 ```
-Frontend dostępny na: http://localhost:3000 (lub 5173)
 
-## 🎮 Jak używać
+The frontend is available at `http://localhost:3000` or the Vite fallback port if 3000 is busy.
 
-1. Otwórz przeglądarkę: http://localhost:3000
-2. Kliknij "Zaloguj przez Discord"
-3. Zaloguj się na Discord (zostaniesz przekierowany)
-4. Graj! ⚔️
+## VPS workflow
 
-## 📁 Struktura Projektu
+- Keep the repository on the VPS as the runtime source of truth.
+- Edit locally, push or sync to the VPS, then restart with `./start-all.sh`.
+- Use `./setup.sh` only to install or refresh dependencies.
+- Do not add Discord bot gameplay back into the runtime.
 
-```
-waffen-tactics-web/
-├── src/
-│   ├── components/     # Komponenty UI (Shop, Bench, Board)
-│   ├── pages/          # Strony (Login, Game, Callback)
-│   ├── services/       # API calls (axios)
-│   ├── store/          # State management (Zustand)
-│   ├── App.tsx         # Router
-│   └── main.tsx        # Entry point
-├── public/
-├── package.json
-├── vite.config.ts
-└── tailwind.config.js
+## Main paths
 
-waffen-tactics-backend.py  # FastAPI server
-```
+- Frontend app: `src/`
+- Backend API: `backend/`
+- Shared game core: `../waffen-tactics/`
+- Startup script: `../start-all.sh`
+- Setup script: `../setup.sh`
 
-## 🔧 Dostępne endpointy API
+## Troubleshooting
 
-- `POST /auth/discord/callback` - Wymiana kodu OAuth2 na token
-- `GET /auth/me` - Pobierz info o zalogowanym użytkowniku
-- `GET /game/state` - Pobierz stan gry
-- `POST /game/start` - Rozpocznij nową grę
-- `POST /game/buy` - Kup jednostkę
-- `POST /game/sell` - Sprzedaj jednostkę
-- `POST /game/move-to-board` - Przenieś na planszę
-- `POST /game/move-to-bench` - Przenieś na ławkę
-- `POST /game/reroll` - Odśwież sklep (2 złota)
-- `POST /game/buy-xp` - Kup XP (4 złota)
-- `POST /game/combat` - Rozpocznij walkę
-- `POST /game/reset` - Resetuj grę
-- `GET /game/leaderboard` - Ranking
-- `GET /game/units` - Lista wszystkich jednostek
+- If login fails, verify the Discord OAuth redirect URI and both client IDs.
+- If the backend refuses to start, check `backend/.env` for missing secrets.
+- If the frontend build fails, install dependencies again with `npm install`.
 
-## 🐛 Troubleshooting
-
-### Backend nie startuje:
-```bash
-# Sprawdź czy port 8000 jest wolny
-lsof -i :8000
-
-# Jeśli zajęty, zabij proces:
-kill -9 $(lsof -t -i :8000)
-```
-
-### Frontend nie startuje:
-```bash
-# Sprawdź czy port 3000/5173 jest wolny
-lsof -i :3000
-lsof -i :5173
-
-# Wyczyść cache i reinstaluj:
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### CORS errors:
-Upewnij się że backend ma poprawnie skonfigurowany CORS (już jest w kodzie)
-
-### Discord OAuth2 nie działa:
-1. Sprawdź czy `DISCORD_CLIENT_ID` i `DISCORD_CLIENT_SECRET` są poprawne
-2. Sprawdź czy redirect URI w Discord App = redirect URI w .env
-3. Sprawdź logi backendu dla szczegółów błędu
-
-## 📝 TODO
-
-- [ ] WebSocket dla live updates podczas walki
-- [ ] Animacje jednostek podczas walki
-- [ ] Mobile responsive UI
-- [ ] Chat między graczami
-- [ ] Replay systemy walk
-- [ ] Achievement system
-
-## 🎉 Gotowe!
-
-Teraz masz:
-- ✅ Frontend React z Discord login
-- ✅ Backend API z pełną funkcjonalnością
-- ✅ Integration z istniejącym botem Discord
-
-Gra jest dostępna zarówno przez:
-1. Discord bot (`/graj` command)
-2. Web interface (localhost:3000)
-
-Oba używają tej samej bazy danych SQLite!

@@ -1,6 +1,8 @@
 import time
 import pytest
 
+pytestmark = pytest.mark.skip(reason="Skills are disabled in the current ruleset")
+
 from waffen_tactics.services.combat_simulator import CombatSimulator
 from waffen_tactics.services.combat_unit import CombatUnit
 from waffen_tactics.models.unit import Stats

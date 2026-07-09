@@ -1,4 +1,4 @@
-"""Player state models for Discord bot game sessions"""
+"""Player state models for runtime game sessions."""
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from datetime import datetime
@@ -23,9 +23,9 @@ class UnitInstance:
 
 @dataclass
 class PlayerState:
-    """Complete player state for a game session"""
-    user_id: int  # Discord user ID
-    username: str = "Player"  # Discord username
+    """Complete player state for a game session."""
+    user_id: int  # Identity provider user ID
+    username: str = "Player"  # Display name
     
     # Resources
     gold: int = 10

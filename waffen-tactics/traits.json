@@ -1043,13 +1043,12 @@
       "modular_effects": [
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "passive",
             "conditions": {},
             "rewards": [
               {
                 "type": "buff_amplifier",
-                "value": 0,
-                "multiplier": 2
+                "multiplier": 2.0
               }
             ]
           }
@@ -1065,17 +1064,16 @@
         1
       ],
       "threshold_descriptions": [
-        "<conditions.chance_percent>% szans na darmowy reroll"
+        "<rewards.chance_percent>% szans na darmowy reroll"
       ],
       "modular_effects": [
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "passive",
             "conditions": {},
             "rewards": [
               {
-                "type": "reroll_chance",
-                "value": 0,
+                "type": "reroll_free_chance",
                 "chance_percent": 30
               }
             ]
@@ -1124,14 +1122,13 @@
       "modular_effects": [
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "passive",
             "conditions": {},
             "rewards": [
               {
                 "type": "stat_buff",
                 "stat": "lifesteal",
-                "value": 15,
-                "is_percentage": true
+                "value": 15
               }
             ]
           }

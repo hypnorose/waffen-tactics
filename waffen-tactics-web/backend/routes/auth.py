@@ -12,17 +12,18 @@ from dotenv import load_dotenv
 # Load environment variables (project .env is one level up)
 load_dotenv(Path(__file__).parent.parent / '.env')
 
+def _require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
 # Discord OAuth Config (kept close to the auth logic)
-DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID', '1449028504615256217')
-# Do not provide a default for the client secret; require it from environment
-DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET')
-DISCORD_REDIRECT_URI = os.getenv('DISCORD_REDIRECT_URI', 'https://waffentactics.pl/auth/callback')
-JWT_SECRET = os.getenv('JWT_SECRET', 'waffen-tactics-secret-key-change-in-production')
-
-if not DISCORD_CLIENT_SECRET:
-    print("⚠️ WARNING: DISCORD_CLIENT_SECRET is not set in environment (.env). OAuth exchanges will fail.")
-
-print(f"🔑 JWT Secret loaded in auth module: {JWT_SECRET[:10]}... (length: {len(JWT_SECRET)})")
+DISCORD_CLIENT_ID = _require_env('DISCORD_CLIENT_ID')
+DISCORD_CLIENT_SECRET = _require_env('DISCORD_CLIENT_SECRET')
+DISCORD_REDIRECT_URI = _require_env('DISCORD_REDIRECT_URI')
+JWT_SECRET = _require_env('JWT_SECRET')
 
 auth_bp = Blueprint('auth', __name__)
 

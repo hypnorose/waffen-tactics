@@ -29,6 +29,7 @@
 
 | Trigger | Description | Context Available |
 |---------|-------------|-------------------|
+| `passive` | Always active when trait is active | `current_unit` |
 | `on_enemy_death` | When an enemy unit dies | `current_unit`, `killed_unit`, `collected_stats` |
 | `on_ally_death` | When an ally unit dies | `current_unit`, `dead_unit` |
 | `per_second` | Every second during combat | `current_unit`, `all_units` |
@@ -285,6 +286,34 @@
 }
 ```
 
+### XN Jugend (Passive Buff Amplifier)
+```json
+{
+  "trigger": "passive",
+  "conditions": {},
+  "rewards": [
+    {
+      "type": "buff_amplifier",
+      "multiplier": 2.0
+    }
+  ]
+}
+```
+
+### XN Mod (Passive Reroll Chance)
+```json
+{
+  "trigger": "passive",
+  "conditions": {},
+  "rewards": [
+    {
+      "type": "reroll_free_chance",
+      "chance_percent": 30
+    }
+  ]
+}
+```
+
 ## Quick Reference: All Reward Types
 
 | Reward Type | Required Params | Optional Params | Description |
@@ -294,9 +323,9 @@
 | `healing` | `value` | `value_type`, `duration`, `duration_seconds` | HP regeneration |
 | `enemy_debuff` | `stat`, `value` | - | Debuff enemy team stats |
 | `mana_regen` | `value` | - | Increased mana regeneration |
-| `buff_amplifier` | `multiplier` | - | Multiply other buffs |
-| `targeting_preference` | `target_preference` | - | Change targeting behavior |
-| `reroll_chance` | `chance_percent` | - | Free shop reroll chance |
+| `buff_amplifier` | `multiplier` | - | Multiply other buffs (use with `passive` trigger) |
+| `targeting_preference` | `target_preference` | - | Change targeting behavior (use with `passive` trigger) |
+| `reroll_free_chance` | `chance_percent` | - | Free shop reroll chance (use with `passive` trigger) |
 | `dynamic_scaling` | - | `atk_per_win`, `def_per_win`, `hp_percent_per_win`, `as_per_win`, `percent_per_loss` | Scaling bonuses per wins/losses |
 | `special` | `value` | - | Special effects (HP regen, etc.) |
 
@@ -304,6 +333,7 @@
 
 | Trigger | When | Common Use Cases |
 |---------|------|------------------|
+| `passive` | Always active | Buff amplifiers, targeting preferences, economic effects |
 | `on_enemy_death` | Enemy unit dies | Kill-based buffs, stat stealing |
 | `on_ally_death` | Ally unit dies | Gold rewards, resurrection effects |
 | `per_second` | Every combat second | Continuous buffs (defense per second) |

@@ -11,9 +11,10 @@ import { CombatState, CombatEvent, DesyncEntry } from './combat/types'
 interface UseCombatOverlayLogicProps {
   onClose: (newState?: PlayerState) => void
   logEndRef: MutableRefObject<HTMLDivElement | null>
+  replayEnabled?: boolean
 }
 
-export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLogicProps) {
+export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true }: UseCombatOverlayLogicProps) {
   const { token } = useAuthStore()
   const { bufferedEvents, isBufferedComplete } = useCombatSSEBuffer(token || '')
   const [playhead, setPlayhead] = useState(0)
@@ -54,6 +55,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   const lastAppliedPlayheadRef = useRef<number>(-1)
   const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const replayInitializedRef = useRef<boolean>(false)
+  const prevReplayEnabledRef = useRef<boolean>(replayEnabled)
 
   const clearReplayTimer = () => {
     if (replayTimerRef.current) {
@@ -68,16 +70,23 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
 
   const scheduleNextEvent = (currentEvent: CombatEvent, currentPlayhead: number) => {
     const nextEvent = bufferedEvents[currentPlayhead + 1]
+    console.log('[scheduleNextEvent] currentPlayhead:', currentPlayhead, 'nextEvent exists:', !!nextEvent, 'bufferedEvents.length:', bufferedEvents.length)
+    
     if (!nextEvent) {
       if (isBufferedComplete) {
+        console.log('[scheduleNextEvent] No next event but buffering complete, setting allEventsReplayed')
         setAllEventsReplayed(true)
+      } else {
+        console.log('[scheduleNextEvent] No next event and buffering not complete yet')
       }
       return
     }
 
     clearReplayTimer()
     const delay = computeDelayMs(currentEvent, nextEvent, combatSpeed, 1)
+    console.log('[scheduleNextEvent] Scheduling next event with delay:', delay, 'ms')
     replayTimerRef.current = setTimeout(() => {
+      console.log('[scheduleNextEvent TIMEOUT] Advancing playhead from', currentPlayhead, 'to', currentPlayhead + 1)
       // Guard against stale timers if playhead changed elsewhere.
       setPlayhead(prev => (prev === currentPlayhead ? prev + 1 : prev))
     }, delay)
@@ -110,7 +119,16 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
 
   // Replay loop
   useEffect(() => {
+    console.log('[REPLAY LOOP] Running. replayEnabled:', replayEnabled, 'playhead:', playhead, 'bufferedEvents.length:', bufferedEvents.length)
+    
+    if (!replayEnabled) {
+      console.log('[REPLAY LOOP] Gate closed, clearing timer')
+      clearReplayTimer()
+      return
+    }
+
     if (playhead >= bufferedEvents.length) {
+      console.log('[REPLAY LOOP] Playhead reached end')
       clearReplayTimer()
       return
     }
@@ -290,15 +308,40 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
 
     // Schedule next
     scheduleNextEvent(event, playhead)
-  }, [isBufferedComplete, bufferedEvents, playhead, combatSpeed])
+  }, [replayEnabled, isBufferedComplete, bufferedEvents, playhead, combatSpeed])
 
   // Start replay when buffered
   useEffect(() => {
-    if (bufferedEvents.length === 0) return
+    const justEnabled = replayEnabled && !prevReplayEnabledRef.current
+    console.log('[REPLAY INIT] Running. replayEnabled:', replayEnabled, 'justEnabled:', justEnabled, 'bufferedEvents.length:', bufferedEvents.length, 'replayInitialized:', replayInitializedRef.current, 'lastAppliedPlayhead:', lastAppliedPlayheadRef.current)
+    prevReplayEnabledRef.current = replayEnabled
+
+    if (!replayEnabled) {
+      console.log('[REPLAY INIT] Gate not enabled, skipping')
+      return
+    }
+    if (bufferedEvents.length === 0) {
+      console.log('[REPLAY INIT] No events yet, skipping')
+      return
+    }
 
     // Progressive buffering updates `bufferedEvents` many times during one fight.
     // Initialize autoplay once per stream; do not reset playhead on each append.
-    if (replayInitializedRef.current) return
+    // But when replay gate is opened (after matchmaking screen), always bootstrap.
+    // CRITICAL: Don't reset playhead if replay already started (would cancel scheduled timers!)
+    if (replayInitializedRef.current && !justEnabled) {
+      console.log('[REPLAY INIT] Already initialized and not justEnabled, skipping')
+      return
+    }
+    
+    // If justEnabled but we already applied events, don't reset - replay is in progress!
+    if (justEnabled && lastAppliedPlayheadRef.current >= 0) {
+      console.log('[REPLAY INIT] justEnabled but replay already in progress (lastApplied:', lastAppliedPlayheadRef.current, '), skipping reset')
+      replayInitializedRef.current = true  // Mark as initialized so we don't re-run
+      return
+    }
+    
+    console.log('[REPLAY INIT] ✅ Initializing replay! Setting playhead to 0')
     replayInitializedRef.current = true
 
     // New fight loaded -> always autostart replay from beginning.
@@ -307,7 +350,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     recentEventsRef.current = []
     setAllEventsReplayed(false)
     setPlayhead(0)
-  }, [bufferedEvents])
+  }, [replayEnabled, bufferedEvents])
 
   useEffect(() => {
     return () => {
@@ -355,6 +398,13 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
   const handleClose = () => onClose(combatState.finalState || undefined)
   const handleGoldDismiss = () => { setDisplayedGoldBreakdown(null); setStoredGoldBreakdown(null); handleClose() }
 
+  const hasCombatInitData =
+    combatState.playerUnits.length > 0 ||
+    combatState.opponentUnits.length > 0 ||
+    !!combatState.opponentInfo
+
+  const isSearchingOpponent = !hasCombatInitData && bufferedEvents.length === 0 && !isBufferedComplete
+
   return {
     playerUnits: combatState.playerUnits,
     opponentUnits: combatState.opponentUnits,
@@ -382,6 +432,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef }: UseCombatOverlayLo
     defeatMessage: combatState.defeatMessage,
     desyncLogs,
     clearDesyncLogs,
-    exportDesyncJSON
+    exportDesyncJSON,
+    isSearchingOpponent
   }
 }

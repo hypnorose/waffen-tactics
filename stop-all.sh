@@ -17,6 +17,10 @@ log_success() {
     echo -e "${GREEN}✅ $1${NC}"
 }
 
+PROJECT_ROOT="/home/ubuntu/waffen-tactics-game"
+WEB_DIR="$PROJECT_ROOT/waffen-tactics-web"
+BACKEND_DIR="$WEB_DIR/backend"
+
 echo "════════════════════════════════════════════════════════"
 echo "   🛑 Waffen Tactics - Zatrzymywanie projektu"
 echo "════════════════════════════════════════════════════════"
@@ -27,17 +31,33 @@ log_info "Aktywne procesy przed zatrzymaniem:"
 ps aux | grep -E "api.py|vite|caddy" | grep -v grep | awk '{printf "   • PID %-6s %s\n", $2, $11}' || echo "   (brak procesów)"
 echo ""
 
-# Zatrzymaj Backend API
+# Zatrzymaj Backend API - tylko ten projekt
 log_info "Zatrzymywanie Backend API..."
-pkill -f "python.*api.py" 2>/dev/null && log_success "Backend zatrzymany" || log_info "Backend nie był uruchomiony"
+_stopped=0
+for pid in $(pgrep -f "api.py" 2>/dev/null); do
+    if [ -L "/proc/$pid/cwd" ] && readlink "/proc/$pid/cwd" 2>/dev/null | grep -q "$BACKEND_DIR"; then
+        kill "$pid" 2>/dev/null && _stopped=1 && log_info "Zatrzymano Backend PID=$pid"
+    fi
+done
+[ "$_stopped" -eq 1 ] && log_success "Backend zatrzymany" || log_info "Backend nie był uruchomiony"
 
-# Zatrzymaj Frontend
+# Zatrzymaj Frontend - tylko ten projekt
 log_info "Zatrzymywanie Frontend (Vite)..."
-pkill -f "vite" 2>/dev/null && log_success "Frontend zatrzymany" || log_info "Frontend nie był uruchomiony"
+_stopped=0
+for pid in $(pgrep -f "vite" 2>/dev/null); do
+    if [ -L "/proc/$pid/cwd" ] && readlink "/proc/$pid/cwd" 2>/dev/null | grep -q "$WEB_DIR"; then
+        kill "$pid" 2>/dev/null && _stopped=1 && log_info "Zatrzymano Frontend PID=$pid"
+    fi
+done
+[ "$_stopped" -eq 1 ] && log_success "Frontend zatrzymany" || log_info "Frontend nie był uruchomiony"
 
-# Zatrzymaj Caddy
+# Zatrzymaj Caddy - tylko jeśli uruchomiony z Caddyfile tego projektu
 log_info "Zatrzymywanie Caddy..."
-sudo pkill -9 caddy 2>/dev/null && log_success "Caddy zatrzymany" || log_info "Caddy nie był uruchomiony"
+if pgrep -a caddy 2>/dev/null | grep -q "$WEB_DIR/Caddyfile"; then
+    sudo pkill -f "caddy.*$WEB_DIR/Caddyfile" 2>/dev/null && log_success "Caddy zatrzymany" || log_info "Caddy nie był uruchomiony"
+else
+    log_info "Caddy nie był uruchomiony przez ten projekt"
+fi
 
 sleep 2
 

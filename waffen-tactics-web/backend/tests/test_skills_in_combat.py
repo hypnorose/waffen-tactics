@@ -1,7 +1,7 @@
-"""
-Integration tests: run skills within the combat simulator and assert
-that skill_cast and the expected effect events are emitted into the
-combat event stream (no HTTP).
+"""Integration tests for combat events (no HTTP).
+
+The current ruleset disables skills, so these tests focus on attack-only
+streams and the extra hit granted at full mana.
 """
 import os
 import sys
@@ -13,7 +13,6 @@ import random
 
 from services.combat_service import run_combat_simulation
 from waffen_tactics.services.combat_unit import CombatUnit
-from waffen_tactics.models.skill import Skill, Effect, EffectType, TargetType, SkillExecutionContext
 
 
 class SimpleStats:
@@ -38,97 +37,61 @@ def _run_simulation_with_seed(player_units, opponent_units, seed=1):
     return result
 
 
-def test_skill_damage_in_combat_emits_skill_and_unit_attack():
-    # Caster will gain full mana in one attack (mana_on_attack == max_mana)
-    stats = SimpleStats(hp=100, mana_on_attack=100)
-    # Create a Skill that deals 40 damage to a single enemy
-    eff = Effect(type=EffectType.DAMAGE, target=TargetType.SINGLE_ENEMY, params={'amount': 40})
-    skill = Skill(name='Slam', description='Deal damage', mana_cost=50, effects=[eff])
+def test_full_mana_produces_bonus_attack_and_no_skill_cast():
+    stats = SimpleStats(hp=100, mana_on_attack=0)
 
-    # Attach skill into the combat-unit skill dict that simulator expects
-    skill_dict = {'name': skill.name, 'description': skill.description, 'mana_cost': skill.mana_cost, 'effect': {'skill': skill}}
-
-    caster = make_combat_unit('p1', 'Caster', hp=100, attack=5, attack_speed=1.0, max_mana=100, stats=stats, skill=skill_dict)
-    # Opponent - single target
-    target = make_combat_unit('o1', 'Target', hp=120, attack=1, attack_speed=0.1, max_mana=100, stats=SimpleStats(120, mana_on_attack=0))
+    caster = make_combat_unit('p1', 'Caster', hp=100, attack=5, attack_speed=1.0, max_mana=100, stats=stats)
+    target = make_combat_unit('o1', 'Target', hp=300, attack=1, attack_speed=0.1, max_mana=100, stats=SimpleStats(300, mana_on_attack=0))
+    caster.mana = caster.max_mana
 
     result = _run_simulation_with_seed([caster], [target])
-
-    # Collect event types
     events = result.get('events', [])
     types = [t for t, _ in events]
 
-    assert 'skill_cast' in types, 'Expected skill_cast event in combat events'
-    # Skill damage should produce a unit_attack event when executed by the skill executor
-    assert 'unit_attack' in types
+    assert 'skill_cast' not in types
+    assert types.count('unit_attack') >= 2
 
 
-def test_skill_support_effects_in_combat_emit_heal_buff_shield():
-    stats = SimpleStats(hp=100, mana_on_attack=100)
+def test_basic_attack_stream_keeps_names():
+    stats = SimpleStats(hp=100, mana_on_attack=0)
 
-    effects = [
-        Effect(type=EffectType.HEAL, target=TargetType.SELF, params={'amount': 30}),
-        Effect(type=EffectType.BUFF, target=TargetType.SELF, params={'stat': 'attack', 'value': 5, 'duration': 5}),
-        Effect(type=EffectType.SHIELD, target=TargetType.SELF, params={'amount': 20, 'duration': 3})
-    ]
-    skill = Skill(name='Support Wave', description='Heals and buffs self', mana_cost=50, effects=effects)
-    skill_dict = {'name': skill.name, 'description': skill.description, 'mana_cost': skill.mana_cost, 'effect': {'skill': skill}}
-
-    # Make caster start below max HP so heal will have an effect
-    caster = make_combat_unit('p2', 'Healer', hp=70, attack=1, attack_speed=1.0, max_mana=100, stats=stats, skill=skill_dict)
+    caster = make_combat_unit('p2', 'Healer', hp=70, attack=12, attack_speed=1.0, max_mana=100, stats=stats)
     enemy = make_combat_unit('o2', 'Dummy', hp=1, attack=0, attack_speed=0.1, max_mana=100, stats=SimpleStats(1, mana_on_attack=0))
 
     result = _run_simulation_with_seed([caster], [enemy])
     events = result.get('events', [])
     types = [t for t, _ in events]
 
-    assert 'skill_cast' in types
-    assert 'unit_heal' in types
-    assert 'stat_buff' in types
-    assert 'shield_applied' in types
+    assert 'skill_cast' not in types
+    assert 'unit_attack' in types
+    assert any(d.get('attacker_name') for t, d in events if t == 'unit_attack')
+    assert any(d.get('target_name') for t, d in events if t == 'unit_attack')
 
 
-def test_skill_stun_in_combat_emits_unit_stunned():
-    stats = SimpleStats(hp=100, mana_on_attack=100)
-    eff = Effect(type=EffectType.STUN, target=TargetType.SINGLE_ENEMY, params={'duration': 2})
-    skill = Skill(name='Stun Blast', description='Stun target', mana_cost=50, effects=[eff])
-    skill_dict = {'name': skill.name, 'description': skill.description, 'mana_cost': skill.mana_cost, 'effect': {'skill': skill}}
+def test_full_mana_stream_has_no_skill_events():
+    stats = SimpleStats(hp=100, mana_on_attack=0)
 
-    caster = make_combat_unit('p3', 'Stunner', hp=100, attack=5, attack_speed=1.0, max_mana=100, stats=stats, skill=skill_dict)
-    target = make_combat_unit('o3', 'Target', hp=100, attack=1, attack_speed=0.1, max_mana=100, stats=SimpleStats(100, mana_on_attack=0))
+    caster = make_combat_unit('p3', 'Stunner', hp=100, attack=5, attack_speed=1.0, max_mana=100, stats=stats)
+    target = make_combat_unit('o3', 'Target', hp=150, attack=1, attack_speed=0.1, max_mana=100, stats=SimpleStats(150, mana_on_attack=0))
+    caster.mana = caster.max_mana
 
     result = _run_simulation_with_seed([caster], [target])
     events = result.get('events', [])
     types = [t for t, _ in events]
 
-    assert 'skill_cast' in types
-    assert 'unit_stunned' in types
-    stun = next((d for t, d in events if t == 'unit_stunned'), None)
-    assert stun and stun.get('duration') == 2
+    assert 'skill_cast' not in types
+    assert types.count('unit_attack') >= 2
 
 
-def test_skill_dot_applies_and_emits_ticks_in_event_stream():
-    """Skill should apply a DoT effect and simulator should emit tick events."""
-    # Caster will gain full mana in one attack
-    stats = SimpleStats(hp=100, mana_on_attack=100)
-    # DoT: 2 seconds duration, 1s interval, damage 5 per tick
-    eff = Effect(type=EffectType.DAMAGE_OVER_TIME, target=TargetType.SINGLE_ENEMY, params={'damage': 5, 'duration': 2, 'interval': 1.0})
-    skill = Skill(name='Corrupting Bolt', description='Apply DoT', mana_cost=50, effects=[eff])
-    skill_dict = {'name': skill.name, 'description': skill.description, 'mana_cost': skill.mana_cost, 'effect': {'skill': skill}}
-
-    caster = make_combat_unit('p4', 'DoTer', hp=100, attack=5, attack_speed=1.0, max_mana=100, stats=stats, skill=skill_dict)
-    # Make target sufficiently durable so DoT ticks can occur
+def test_bonus_attack_resets_mana_to_zero():
+    stats = SimpleStats(hp=100, mana_on_attack=0)
+    caster = make_combat_unit('p4', 'DoTer', hp=100, attack=5, attack_speed=1.0, max_mana=100, stats=stats)
     target = make_combat_unit('o4', 'Target', hp=1000, attack=1, attack_speed=0.1, max_mana=100, stats=SimpleStats(1000, mana_on_attack=0))
+    caster.mana = caster.max_mana
 
     result = _run_simulation_with_seed([caster], [target])
     events = result.get('events', [])
     types = [t for t, _ in events]
 
-    # The handler should emit an applied event when the DoT is attached
-    assert 'damage_over_time_applied' in types
-
-    # The simulator should produce periodic tick events while DoT is active
-    dot_ticks = [d for t, d in events if t == 'damage_over_time_tick']
-    assert len(dot_ticks) >= 1, 'Expected at least one DoT tick event in the stream'
-    # If interval=1 and duration=2, expect ~2 ticks (may vary by simulation timing)
-    assert len(dot_ticks) >= 2 or len(dot_ticks) == 1
+    assert 'skill_cast' not in types
+    assert caster.mana == 0
