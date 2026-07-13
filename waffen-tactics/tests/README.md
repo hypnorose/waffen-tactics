@@ -1,6 +1,6 @@
 # Comprehensive System Tests
 
-This test suite provides comprehensive coverage for the Traits System, Skills, and Combat mechanics to prevent regressions like double deaths, missing trait effects, and skill casting issues.
+This test suite provides comprehensive coverage for the Traits System and Combat mechanics. Skill-focused cases are kept as skipped legacy coverage because the current ruleset has skills disabled.
 
 ## Running Tests
 
@@ -28,14 +28,12 @@ pytest waffen-tactics/tests/test_comprehensive_system.py::TestCombatSystem::test
 - **Mana regeneration**: Passive mana gain effects
 
 ### Skills System (`TestSkillsSystem`)
-- **Mana management**: Deduction on cast, insufficient mana handling
-- **Event formatting**: Proper skill_cast event structure for UI
-- **Skill execution**: Effect application and error handling
+- Skipped legacy coverage kept only for reference while skills remain disabled.
 
 ### Combat System (`TestCombatSystem`)
 - **Death handling**: No double death events from attacks or skills
-- **Trait integration**: Death-based effects trigger from skill kills
-- **Mana accumulation**: Proper skill casting triggers
+- **Trait integration**: Death-based effects trigger from combat deaths
+- **Mana accumulation**: Full mana still grants the extra basic attack
 - **Event ordering**: Combat events in chronological order
 
 ## Key Features Tested
@@ -47,7 +45,7 @@ pytest waffen-tactics/tests/test_comprehensive_system.py::TestCombatSystem::test
 - **Combat flow**: Proper event sequencing and state management
 
 ### Edge Cases Covered
-- Skill kills vs attack kills
+- Attack kills vs legacy skill-kill scenarios
 - Trait effects on both sides of combat
 - Mana management and regeneration
 - Event callback correctness
@@ -62,6 +60,7 @@ When adding new features to traits, skills, or combat:
 3. Ensure tests are isolated and don't depend on external state
 4. Test both success and failure scenarios
 5. Verify event callbacks work correctly
+6. Keep skill-specific coverage skipped unless the ruleset changes
 
 ## Test Structure
 

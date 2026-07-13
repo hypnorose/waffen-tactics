@@ -333,6 +333,7 @@ class TestTraitsSystem:
         assert all(e['amount'] == 5 for e in mana_regen_events)
 
 
+@pytest.mark.skip(reason="Skills are disabled in the current ruleset")
 class TestSkillsSystem:
     """Test skill execution, mana management, and effects"""
 
@@ -1103,6 +1104,7 @@ class TestSkillParserAndEffects:
         assert len(death_events) == 1
         assert death_events[0]['unit_id'] == 'victim'
 
+    @pytest.mark.skip(reason="Skills are disabled in the current ruleset")
     def test_no_double_deaths_from_skills(self):
         """Test that units don't die twice when killed by skills"""
         attacker = CombatUnit(
@@ -1148,6 +1150,7 @@ class TestSkillParserAndEffects:
         assert len(death_events) == 1
         assert death_events[0]['unit_id'] == 'victim'
 
+    @pytest.mark.skip(reason="Skills are disabled in the current ruleset")
     def test_skill_kills_trigger_trait_effects(self):
         """Test that deaths from skills trigger trait effects"""
         killer = CombatUnit(
