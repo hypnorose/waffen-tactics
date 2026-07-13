@@ -391,6 +391,32 @@ describe('applyCombatEvent - Effect Handling', () => {
         caster_name: 'Healer'
       })
     })
+
+    it('should remove the shield badge state when the matching effect expires', () => {
+      let newState = applyCombatEvent(state, {
+        type: 'shield_applied',
+        unit_id: 'player_0',
+        unit_name: 'TestPlayer',
+        amount: 100,
+        duration: 3,
+        effect_id: 'expiring-shield',
+        seq: 1,
+        timestamp: 1.0
+      }, { simTime: 1.0 })
+
+      newState = applyCombatEvent(newState, {
+        type: 'effect_expired',
+        unit_id: 'player_0',
+        unit_name: 'TestPlayer',
+        effect_id: 'expiring-shield',
+        seq: 2,
+        timestamp: 4.0
+      }, { simTime: 4.0 })
+
+      const player = newState.playerUnits.find(u => u.id === 'player_0')
+      expect(player!.shield).toBe(0)
+      expect(player!.effects).toEqual([])
+    })
   })
 
   describe('unit_stunned events', () => {
@@ -416,6 +442,17 @@ describe('applyCombatEvent - Effect Handling', () => {
         duration: 1.5,
         caster_name: 'Stunner'
       })
+
+      const expiredState = applyCombatEvent(newState, {
+        type: 'effect_expired',
+        unit_id: 'opp_0',
+        unit_name: 'TestOpponent',
+        effect_id: 'stun-uuid',
+        seq: 2,
+        timestamp: 3.0
+      }, { simTime: 3.0 })
+
+      expect(expiredState.opponentUnits.find(u => u.id === 'opp_0')!.effects).toEqual([])
     })
   })
 
