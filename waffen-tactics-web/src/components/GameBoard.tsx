@@ -232,7 +232,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
             // Empty slot placeholder
             return (
               <div key={`empty-${lineType}-${index}`} className={`w-full ${detailedView ? 'max-w-[14rem]' : 'max-w-[9rem]'}`}>
-                <div className={`rounded-lg bg-surface/30 ${detailedView ? 'h-64' : 'h-32'} flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600`}>
+                <div className={`rounded-lg bg-surface/30 ${detailedView ? 'h-64' : 'h-36'} flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600`}>
                   <span className="text-2xl">∅</span>
                 </div>
               </div>

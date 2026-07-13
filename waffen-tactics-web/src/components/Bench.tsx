@@ -152,7 +152,7 @@ export default function Bench({ playerState, onUpdate, onNotification }: BenchPr
         {/* Show one placeholder if bench is not full */}
         {playerState.bench.length < playerState.max_bench_size && (
           <div className={`flex-shrink-0 ${detailedView ? '' : 'max-w-[9rem]'}`}>
-            <div className={`rounded-lg bg-surface/30 ${detailedView ? 'w-56 h-64' : 'w-36 h-32'} flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600`}>
+            <div className={`rounded-lg bg-surface/30 ${detailedView ? 'w-56 h-64' : 'w-36 h-36'} flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600`}>
               <span className="text-2xl">∅</span>
             </div>
           </div>

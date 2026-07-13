@@ -295,7 +295,7 @@ export default function UnitCard({
       )}
 
       <div
-        className={`w-full rounded-lg ${detailed ? 'p-2' : 'p-1'} transition-all duration-150 border-2 bg-gray-800/90 hover:bg-gray-800 ${detailed ? 'h-64' : 'h-32'} flex flex-col relative`}
+          className={`w-full rounded-lg ${detailed ? 'p-2' : 'p-1'} transition-all duration-150 border-2 bg-gray-800/90 hover:bg-gray-800 ${detailed ? 'h-64' : 'h-36'} flex flex-col relative`}
         style={{
           borderColor: getCostBorderColor(unit.cost),
           boxShadow: `0 0 10px ${getCostBorderColor(unit.cost)}40`,
