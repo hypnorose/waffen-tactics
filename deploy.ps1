@@ -83,19 +83,17 @@ Invoke-Step "Push branch to origin" {
     git push $RemoteName "HEAD:refs/heads/$Branch"
 }
 
-$remoteScript = @"
-set -euo pipefail
-cd '$RemotePath'
-git fetch '$RemoteName' '$Branch'
-git reset --hard '$RemoteName/$Branch'
-./stop-all.sh
-./start-all.sh
-./status.sh
-"@
-$remoteScript = $remoteScript -replace "`r", ""
+$remoteCommand = @(
+    "cd $RemotePath"
+    "git fetch $RemoteName $Branch"
+    "git reset --hard $RemoteName/$Branch"
+    "./stop-all.sh"
+    "./start-all.sh"
+    "./status.sh"
+) -join ' && '
 
 Invoke-Step "Sync and restart on VPS" {
-    $remoteScript | ssh $HostAlias 'bash -s'
+    ssh $HostAlias "bash -lc '$remoteCommand'"
 }
 
 Write-Host ""
