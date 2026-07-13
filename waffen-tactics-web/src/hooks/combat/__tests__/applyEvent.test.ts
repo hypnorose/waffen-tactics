@@ -483,6 +483,35 @@ describe('applyCombatEvent - Effect Handling', () => {
       expect(effectTypes).toEqual(['buff', 'debuff', 'shield'])
     })
   })
+
+  describe('Combat presentation summary', () => {
+    it('should track bonus attacks, focus and damage totals', () => {
+      const event: CombatEvent = {
+        type: 'unit_attack',
+        attacker_id: 'player_0',
+        attacker_name: 'TestPlayer',
+        target_id: 'opp_0',
+        target_name: 'TestOpponent',
+        damage: 42,
+        applied_damage: 42,
+        attacker_current_mana: 0,
+        attacker_max_mana: 100,
+        target_hp: 158,
+        bonus_attack: true,
+        seq: 99,
+        timestamp: 4.2
+      }
+
+      const newState = applyCombatEvent(state, event, { simTime: 4.2 })
+
+      expect(newState.combatLog[newState.combatLog.length - 1]).toContain('[BONUS]')
+      expect(newState.combatSummary?.bonusAttacks).toBe(1)
+      expect(newState.combatSummary?.focus?.target_id).toBe('opp_0')
+      expect(newState.combatSummary?.focus?.bonus_attack).toBe(true)
+      expect(newState.combatSummary?.totalDamageByUnit['player_0'].damage).toBe(42)
+      expect(newState.combatSummary?.lastAction?.type).toBe('unit_attack')
+    })
+  })
 })
 
 describe('applyCombatEvent - Real Event Dump Replay', () => {

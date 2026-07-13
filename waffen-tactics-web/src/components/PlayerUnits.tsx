@@ -5,9 +5,11 @@ import CombatUnitCard from './CombatUnitCard'
 interface Props {
   units: any[]
   regenMap: Record<string, any>
+  activeAttackerId?: string | null
+  activeTargetId?: string | null
 }
 
-const PlayerUnits = memo(function PlayerUnits({ units, regenMap }: Props) {
+const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerId, activeTargetId }: Props) {
   const frontUnits = units.filter(u => u.position === 'front')
   const backUnits = units.filter(u => u.position === 'back')
   return (
@@ -26,6 +28,8 @@ const PlayerUnits = memo(function PlayerUnits({ units, regenMap }: Props) {
                 <CombatUnitCard
                   unit={u}
                   regen={regenMap[u.id]}
+                  isActiveAttacker={u.id === activeAttackerId}
+                  isActiveTarget={u.id === activeTargetId}
                 />
               </motion.div>
             ))}
@@ -45,6 +49,8 @@ const PlayerUnits = memo(function PlayerUnits({ units, regenMap }: Props) {
                 <CombatUnitCard
                   unit={u}
                   regen={regenMap[u.id]}
+                  isActiveAttacker={u.id === activeAttackerId}
+                  isActiveTarget={u.id === activeTargetId}
                 />
               </motion.div>
             ))}

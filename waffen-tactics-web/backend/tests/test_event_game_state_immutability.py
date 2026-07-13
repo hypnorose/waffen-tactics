@@ -1,6 +1,6 @@
 import copy
 
-from waffen_tactics_web.backend.routes.game_combat import map_event_to_sse_payload
+from routes.game_combat import map_event_to_sse_payload
 
 
 def make_game_state(hp_list):

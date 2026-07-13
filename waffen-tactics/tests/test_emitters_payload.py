@@ -23,6 +23,7 @@ def test_build_damage_payload_keys_and_values():
         timestamp=123.0,
         cause="attack",
         is_skill=False,
+        bonus_attack=True,
     )
 
     assert payload["attacker_id"] == 1
@@ -34,3 +35,4 @@ def test_build_damage_payload_keys_and_values():
     assert payload["applied_damage"] == 20
     assert payload["shield_absorbed"] == 5
     assert payload["unit_shield"] == 0
+    assert payload["bonus_attack"] is True

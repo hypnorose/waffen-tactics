@@ -1199,8 +1199,8 @@ class TestSkillParserAndEffects:
         assert len(gold_rewards) == 1
         assert gold_rewards[0]['amount'] == 7
 
-    def test_mana_accumulation_and_skill_casting(self):
-        """Test that mana accumulates properly and triggers skill casting"""
+    def test_mana_accumulation_and_bonus_basic_attack(self):
+        """Test that mana accumulates properly and grants a bonus basic attack."""
         unit = CombatUnit(
             id='mana_unit',
             name='ManaUnit',
@@ -1232,20 +1232,25 @@ class TestSkillParserAndEffects:
 
         skill_casts = []
         mana_updates = []
+        unit_attacks = []
 
         def event_callback(event_type, data):
             if event_type == 'skill_cast':
                 skill_casts.append(data)
             elif event_type == 'mana_update':
                 mana_updates.append(data)
+            elif event_type == 'unit_attack':
+                unit_attacks.append(data)
 
         simulator = CombatSimulator()
         result = simulator.simulate([unit], [enemy], event_callback=event_callback)
 
-        # Should have skill casts when mana reaches 100
-        assert len(skill_casts) > 0
-        # Should have mana updates
+        # Skills are disabled in the current ruleset.
+        assert len(skill_casts) == 0
+        # Mana still updates, and full mana grants a bonus basic attack.
         assert len(mana_updates) > 0
+        assert len(unit_attacks) >= 2
+        assert all(not attack.get('is_skill', False) for attack in unit_attacks)
 
     def test_combat_event_ordering(self):
         """Test that combat events are in correct order"""

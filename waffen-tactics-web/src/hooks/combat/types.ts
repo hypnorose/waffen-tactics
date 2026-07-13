@@ -58,6 +58,8 @@ export interface CombatEvent {
   attacker_max_mana?: number
   target_id?: string
   damage?: number
+  applied_damage?: number
+  bonus_attack?: boolean
   unit_hp?: number
   target_hp?: number
   target_max_hp?: number
@@ -125,6 +127,38 @@ export interface EffectSummary {
   source?: string
 }
 
+export interface CombatSummaryEntry {
+  unit_id?: string
+  unit_name?: string
+  damage?: number
+  timestamp?: number
+  seq?: number
+}
+
+export interface CombatSummaryFocus {
+  attacker_id?: string
+  attacker_name?: string
+  target_id?: string
+  target_name?: string
+  bonus_attack?: boolean
+  timestamp?: number
+  seq?: number
+}
+
+export interface CombatSummary {
+  totalDamageByUnit: Record<string, { unit_name: string; damage: number }>
+  bonusAttacks: number
+  firstDeath: CombatSummaryEntry | null
+  lastAction: {
+    type: string
+    text: string
+    seq?: number
+    timestamp?: number
+  } | null
+  focus: CombatSummaryFocus | null
+  roundResult: string | null
+}
+
 export interface CombatState {
   playerUnits: Unit[]
   opponentUnits: Unit[]
@@ -138,6 +172,7 @@ export interface CombatState {
   regenMap: Record<string, { amount_per_sec: number; total_amount: number; expiresAt: number }>
   simTime: number
   defeatMessage?: string
+  combatSummary?: CombatSummary
   // Active animations started by `animation_start` events. UI consumes
   // these to play animations; authoritative state changes arrive in the
   // corresponding delayed events (with `ui_delay`). Keeping this in

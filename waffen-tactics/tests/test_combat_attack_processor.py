@@ -115,6 +115,7 @@ class TestCombatAttackProcessor(unittest.TestCase):
 
         self.assertEqual(attack_event['timestamp'], 1.2, "unit_attack should be delayed by 0.2s")
         self.assertEqual(mana_event['timestamp'], 1.2, "mana_update should be delayed by 0.2s")
+        self.assertFalse(attack_event.get('bonus_attack', True))
 
         # Note: ui_delay markers are added at a higher level in _attach_ui_timing
 
@@ -148,6 +149,8 @@ class TestCombatAttackProcessor(unittest.TestCase):
         self.assertEqual(len(mana_events), 2, "Each attack should emit a mana update")
         self.assertEqual(attack_events[0][1]['timestamp'], 1.2)
         self.assertEqual(attack_events[1][1]['timestamp'], 1.25)
+        self.assertFalse(attack_events[0][1].get('bonus_attack', True))
+        self.assertTrue(attack_events[1][1].get('bonus_attack', False))
         self.assertEqual(attacker.mana, 0, "Bonus attack should consume the full mana bar")
 
     def test_animation_events_before_damage_events(self):

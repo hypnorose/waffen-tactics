@@ -30,7 +30,8 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     opponentInfo: null,
     regenMap: {},
     simTime: 0,
-    defeatMessage: undefined
+    defeatMessage: undefined,
+    combatSummary: undefined
   })
   const combatStateRef = useRef(combatState)
 
@@ -430,6 +431,9 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     handleClose,
     handleGoldDismiss,
     defeatMessage: combatState.defeatMessage,
+    combatSummary: combatState.combatSummary,
+    activeAttackerId: combatState.combatSummary?.focus?.attacker_id ?? null,
+    activeTargetId: combatState.combatSummary?.focus?.target_id ?? null,
     desyncLogs,
     clearDesyncLogs,
     exportDesyncJSON,

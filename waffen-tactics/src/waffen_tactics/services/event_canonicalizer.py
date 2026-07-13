@@ -806,6 +806,7 @@ def emit_damage(
     timestamp: Optional[float] = None,
     cause: Optional[str] = None,
     emit_event: bool = True,
+    bonus_attack: bool = False,
     # NEW: HP array references for atomic updates during damage
     hp_arrays: Optional[Dict[str, List[int]]] = None,  # {'team_a': [...], 'team_b': [...]}
     unit_index: Optional[int] = None,
@@ -907,6 +908,7 @@ def emit_damage(
         'side': side,
         'timestamp': ts,
         'cause': cause,
+        'bonus_attack': bonus_attack,
     }
 
     if emit_event and event_callback:

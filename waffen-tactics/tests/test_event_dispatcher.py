@@ -77,7 +77,7 @@ def test_mana_delta_computed_when_prev_exists():
     assert payload.get('amount') == 5
 
 
-def test_mana_snapshot_suppressed_when_no_delta():
+def test_mana_snapshot_emits_when_no_previous_value():
     u = SimpleUnit('u2', mana=5)
     a_hp = [100]
     b_hp = [100]
@@ -87,9 +87,14 @@ def test_mana_snapshot_suppressed_when_no_delta():
         called.append((et, dict(payload)))
 
     d = EventDispatcher([u], [], a_hp, b_hp)
-    # do NOT initialize last_mana to simulate snapshot-only
     wrapped = d.wrap_callback(cb)
     wrapped('mana_update', {'unit_id': u.id, 'current_mana': 5})
 
-    # suppressed -> no callback calls
-    assert not called
+    # Without a prior mana baseline, the authoritative snapshot should emit.
+    assert len(called) == 1
+    et, payload = called[0]
+    assert et == 'mana_update'
+    assert payload.get('unit_id') == u.id
+    assert payload.get('current_mana') == 5
+    assert 'amount' not in payload
+    assert d.get_last_mana().get(u.id) == 5

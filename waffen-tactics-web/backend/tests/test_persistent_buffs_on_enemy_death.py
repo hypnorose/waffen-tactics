@@ -1,5 +1,8 @@
 """
-Tests for persistent buffs granted on enemy death
+Tests for the deprecated persistent-buff helper.
+
+The helper is intentionally a no-op in the current ruleset. These tests now
+assert that it leaves unit state untouched.
 """
 import unittest
 from unittest.mock import Mock, MagicMock
@@ -7,10 +10,10 @@ from services.combat_service import _apply_persistent_buffs_from_kills
 
 
 class TestPersistentBuffsOnEnemyDeath(unittest.TestCase):
-    """Test cases for persistent buffs applied when enemies die"""
+    """Test cases for the deprecated no-op persistent buff helper"""
 
-    def test_persistent_buff_on_enemy_death_applied_correctly(self):
-        """Test that persistent buffs are applied to units when enemies die based on trait synergies"""
+    def test_persistent_buff_on_enemy_death_is_noop(self):
+        """The deprecated helper should not mutate persistent buffs."""
         # Mock game manager with trait data
         mock_game_manager = Mock()
         mock_trait = {
@@ -62,11 +65,10 @@ class TestPersistentBuffsOnEnemyDeath(unittest.TestCase):
             mock_player, player_synergies, collected_stats_maps, mock_game_manager
         )
 
-        # Verify persistent buff was applied: 30 defense * 5 = 150 attack
-        self.assertEqual(mock_unit_instance.persistent_buffs['attack'], 150)
+        self.assertEqual(mock_unit_instance.persistent_buffs, {})
 
-    def test_persistent_buff_percentage_based_on_enemy_death(self):
-        """Test that percentage-based persistent buffs work correctly"""
+    def test_persistent_buff_percentage_based_on_enemy_death_is_noop(self):
+        """Percentage-based legacy buffs should also be ignored."""
         # Mock game manager with trait data
         mock_game_manager = Mock()
         mock_trait = {
@@ -118,11 +120,10 @@ class TestPersistentBuffsOnEnemyDeath(unittest.TestCase):
             mock_player, player_synergies, collected_stats_maps, mock_game_manager
         )
 
-        # Verify persistent buff was applied: 40 defense * 25% = 10 defense, plus existing 5 = 15
-        self.assertEqual(mock_unit_instance.persistent_buffs['defense'], 15)
+        self.assertEqual(mock_unit_instance.persistent_buffs, {'defense': 5})
 
-    def test_persistent_buff_team_target_on_enemy_death(self):
-        """Test that team-targeted persistent buffs apply to all board units"""
+    def test_persistent_buff_team_target_on_enemy_death_is_noop(self):
+        """Team-targeted legacy buffs should remain untouched."""
         # Mock game manager with trait data
         mock_game_manager = Mock()
         mock_trait = {
@@ -174,12 +175,11 @@ class TestPersistentBuffsOnEnemyDeath(unittest.TestCase):
             mock_player, player_synergies, collected_stats_maps, mock_game_manager
         )
 
-        # Both units should get buffs: instance_1 gets 20 defense * 3 = 60 HP, instance_2 gets 15 defense * 3 = 45 HP
-        self.assertEqual(mock_unit_instance1.persistent_buffs['hp'], 60)
-        self.assertEqual(mock_unit_instance2.persistent_buffs['hp'], 45)
+        self.assertEqual(mock_unit_instance1.persistent_buffs, {})
+        self.assertEqual(mock_unit_instance2.persistent_buffs, {})
 
-    def test_persistent_buff_trait_target_on_enemy_death(self):
-        """Test that trait-targeted persistent buffs only apply to units with the trait"""
+    def test_persistent_buff_trait_target_on_enemy_death_is_noop(self):
+        """Trait-targeted legacy buffs should not be applied either."""
         # Mock game manager with trait data
         mock_game_manager = Mock()
         mock_trait = {
@@ -241,9 +241,8 @@ class TestPersistentBuffsOnEnemyDeath(unittest.TestCase):
             mock_player, player_synergies, collected_stats_maps, mock_game_manager
         )
 
-        # Only the unit with the trait should get the buff: 25 defense * 0.1 = 2.5 attack_speed
-        self.assertEqual(mock_unit_instance_trait.persistent_buffs['attack_speed'], 2.5)
-        self.assertNotIn('attack_speed', mock_unit_instance_no_trait.persistent_buffs)
+        self.assertEqual(mock_unit_instance_trait.persistent_buffs, {})
+        self.assertEqual(mock_unit_instance_no_trait.persistent_buffs, {})
 
     def test_persistent_buff_zero_increment_not_applied(self):
         """Test that zero increment persistent buffs are not applied"""
@@ -301,8 +300,8 @@ class TestPersistentBuffsOnEnemyDeath(unittest.TestCase):
         # No buff should be applied since increment is 0
         self.assertEqual(len(mock_unit_instance.persistent_buffs), 0)
 
-    def test_persistent_buff_on_max_mana_stat(self):
-        """Test that persistent buffs work for max_mana stat"""
+    def test_persistent_buff_on_max_mana_stat_is_noop(self):
+        """Max mana legacy buffs should not be applied."""
         # Mock game manager with trait data
         mock_game_manager = Mock()
         mock_trait = {
@@ -354,11 +353,10 @@ class TestPersistentBuffsOnEnemyDeath(unittest.TestCase):
             mock_player, player_synergies, collected_stats_maps, mock_game_manager
         )
 
-        # Verify persistent buff was applied: 50 defense * 10 = 500 max_mana
-        self.assertEqual(mock_unit_instance.persistent_buffs['max_mana'], 500)
+        self.assertEqual(mock_unit_instance.persistent_buffs, {})
 
-    def test_persistent_buff_percentage_on_hp_stat(self):
-        """Test that percentage-based persistent buffs work for hp stat"""
+    def test_persistent_buff_percentage_on_hp_stat_is_noop(self):
+        """HP legacy buffs should not be applied."""
         # Mock game manager with trait data
         mock_trait = {
             'name': 'HpPercentTrait',
@@ -410,11 +408,10 @@ class TestPersistentBuffsOnEnemyDeath(unittest.TestCase):
             mock_player, player_synergies, collected_stats_maps, mock_game_manager
         )
 
-        # Verify persistent buff was applied: 100 defense * 50% = 50 hp, plus existing 20 = 70
-        self.assertEqual(mock_unit_instance.persistent_buffs['hp'], 70)
+        self.assertEqual(mock_unit_instance.persistent_buffs, {'hp': 20})
 
-    def test_persistent_buff_flat_buff_different_collect_stat(self):
-        """Test that flat buffs can use different collect_stat (not just kills)"""
+    def test_persistent_buff_flat_buff_different_collect_stat_is_noop(self):
+        """Alternative collect stats should also be ignored in the no-op helper."""
         # Mock game manager with trait data
         mock_game_manager = Mock()
         mock_trait = {
@@ -466,8 +463,7 @@ class TestPersistentBuffsOnEnemyDeath(unittest.TestCase):
             mock_player, player_synergies, collected_stats_maps, mock_game_manager
         )
 
-        # Verify persistent buff was applied: 40 attack * 2 = 80 defense
-        self.assertEqual(mock_unit_instance.persistent_buffs['defense'], 80)
+        self.assertEqual(mock_unit_instance.persistent_buffs, {})
 
 
 if __name__ == '__main__':

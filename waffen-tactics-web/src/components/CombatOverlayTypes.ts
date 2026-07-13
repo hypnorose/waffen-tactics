@@ -37,6 +37,8 @@ export interface CombatEvent {
   attacker_id?: string
   target_id?: string
   damage?: number
+  applied_damage?: number
+  bonus_attack?: boolean
   target_hp?: number
   target_max_hp?: number
   unit_id?: string

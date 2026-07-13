@@ -138,7 +138,7 @@ def main():
     with output_path.open('w') as f:
         json.dump(events, f, indent=2)
 
-    print(f"✅ Saved {len(events)} events to {output_path}")
+    print(f"Saved {len(events)} events to {output_path}")
     print(f"\nTo validate with frontend logic:")
     print(f"  cd waffen-tactics-web")
     print(f"  node test-event-replay.mjs {output_path.absolute()}")

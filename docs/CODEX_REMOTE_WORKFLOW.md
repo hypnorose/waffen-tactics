@@ -38,6 +38,20 @@ For the full planning artifact, see [vps-remote-dev-workflow](</C:/Users/yoss/Do
 5. Restart or refresh the runtime.
 6. Inspect status and logs over SSH.
 
+## Deploy Helper
+
+Use the root deploy script to push the committed local branch to the VPS and restart the runtime:
+
+```powershell
+.\deploy.ps1 -RunTests
+```
+
+If you still have uncommitted work and want the script to create a deploy commit first, run:
+
+```powershell
+.\deploy.ps1 -AutoCommit -RunTests
+```
+
 ## Useful Commands
 
 ```powershell

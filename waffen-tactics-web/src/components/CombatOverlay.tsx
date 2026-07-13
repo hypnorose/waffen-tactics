@@ -7,6 +7,7 @@ import PlayerUnits from './PlayerUnits'
 import OpponentUnits from './OpponentUnits'
 import CombatLog from './CombatLog'
 // import CombatFooter from './CombatFooter'
+import CombatSummaryPanel from './CombatSummaryPanel'
 import SynergiesPanel from './SynergiesPanel'
 import CombatSpeedSlider from './CombatSpeedSlider'
 import CombatLogModal from './CombatLogModal'
@@ -47,6 +48,9 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     handleClose,
     handleGoldDismiss,
     defeatMessage,
+    combatSummary,
+    activeAttackerId,
+    activeTargetId,
     desyncLogs,
     clearDesyncLogs,
     exportDesyncJSON
@@ -109,6 +113,7 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
             <div style={{ width: 320, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '1.5rem 1rem', borderRight: '2px solid #334155', background: 'rgba(30,41,59,0.98)' }}>
               <div>
                 <CombatHeader opponentInfo={opponentInfo} />
+                <CombatSummaryPanel summary={combatSummary} synergies={synergies} />
                 <details style={{ marginTop: 12, marginBottom: 12 }}>
                   <summary style={{ cursor: 'pointer', color: '#cbd5e1', fontSize: 12, fontWeight: 700, listStyle: 'none' }}>
                     Pokaż synergie
@@ -139,10 +144,10 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1.5rem', position: 'relative' }}>
               <div style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
-                <OpponentUnits units={opponentUnits} regenMap={regenMap} />
+                <OpponentUnits units={opponentUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} />
               </div>
               <div style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-                <PlayerUnits units={playerUnits} regenMap={regenMap} />
+                <PlayerUnits units={playerUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} />
               </div>
 
               <button onClick={() => setShowLog(!showLog)} style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>

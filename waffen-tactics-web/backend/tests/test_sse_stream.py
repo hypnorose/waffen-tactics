@@ -63,4 +63,6 @@ def test_full_mana_emits_bonus_basic_attack_and_no_skill_cast(monkeypatch):
     assert len(attacks) >= 2
     assert all(evt.get('attacker_name') for _, evt in attacks)
     assert all(evt.get('target_name') for _, evt in attacks)
+    assert attacks[0][1].get('bonus_attack') is False
+    assert any(evt.get('bonus_attack') is True for _, evt in attacks)
     assert not any('casts' in msg for msg in result.get('log', []))

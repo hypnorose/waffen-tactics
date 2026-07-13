@@ -44,6 +44,7 @@ class UnitAttackEvent:
     new_hp: int = 0
     cause: str = 'attack'
     is_skill: bool = False
+    bonus_attack: bool = False
 
 
 Event = Union[UnitAttackEvent]

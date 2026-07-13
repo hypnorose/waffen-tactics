@@ -37,6 +37,8 @@ interface Props {
   unit: Unit
   isOpponent?: boolean
   regen?: { amount_per_sec: number } | undefined
+  isActiveAttacker?: boolean
+  isActiveTarget?: boolean
 }
 
 const getRarityColor = (cost?: number) => {
@@ -49,7 +51,7 @@ const getRarityColor = (cost?: number) => {
   return '#6b7280'
 }
 
-export default function CombatUnitCard({ unit, isOpponent, regen }: Props) {
+export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget }: Props) {
   const [showTooltip, setShowTooltip] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const { register } = useUnitAnchors()
@@ -66,6 +68,8 @@ export default function CombatUnitCard({ unit, isOpponent, regen }: Props) {
   const displayMaxMana = unit.buffed_stats?.max_mana ?? 100
   const displayMana = unit.current_mana ?? 0
   const displayHpRegen = unit.buffed_stats?.hp_regen_per_sec ?? 0
+  const hasBonusReady = unit.hp > 0 && displayMaxMana > 0 && displayMana >= displayMaxMana
+  const activeBorder = isActiveTarget ? '#fb923c' : isActiveAttacker ? '#fde047' : getRarityColor(unit.cost)
 
   // Resolve avatar source robustly: prefer server-side unit data via getUnit(),
   // then local unit payload, then predictable path.
@@ -106,10 +110,16 @@ export default function CombatUnitCard({ unit, isOpponent, regen }: Props) {
         backgroundColor: '#0f172a',
         borderRadius: isOpponent ? '0.25rem' : '0.5rem',
         padding: isOpponent ? '0.25rem' : '0.5rem',
-        border: `2px solid ${unit.hp > 0 ? getRarityColor(unit.cost) : '#374151'}`,
+        border: `2px solid ${unit.hp > 0 ? activeBorder : '#374151'}`,
         opacity: unit.hp > 0 ? 1 : 0.4,
         transition: 'all 0.3s',
-        boxShadow: unit.hp > 0 ? `0 0 10px ${getRarityColor(unit.cost)}40` : 'none',
+        boxShadow: unit.hp > 0
+          ? isActiveTarget
+            ? '0 0 0 2px rgba(251, 146, 60, 0.45), 0 0 18px rgba(251, 146, 60, 0.18)'
+            : isActiveAttacker
+              ? '0 0 0 2px rgba(250, 204, 21, 0.45), 0 0 18px rgba(250, 204, 21, 0.18)'
+              : `0 0 10px ${getRarityColor(unit.cost)}40`
+          : 'none',
         minWidth: 0,
         position: 'relative',
         width: '120px',
@@ -135,6 +145,26 @@ export default function CombatUnitCard({ unit, isOpponent, regen }: Props) {
           )
         })}
       </div>
+      {hasBonusReady && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '6px',
+            left: '6px',
+            background: 'linear-gradient(90deg,#f59e0b,#f97316)',
+            color: '#1f1300',
+            padding: '2px 6px',
+            borderRadius: '999px',
+            fontSize: '10px',
+            fontWeight: 800,
+            boxShadow: '0 4px 10px rgba(249,115,22,0.2)',
+            zIndex: 40,
+          }}
+          title="Bonus attack ready"
+        >
+          BONUS
+        </div>
+      )}
       {/* Old inline attack/skill/target visuals removed in favor of projectile VFX */}
 
       {/* Unit avatar (robust source resolution with fallback) */}

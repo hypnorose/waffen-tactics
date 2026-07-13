@@ -72,7 +72,8 @@ class CombatAttackProcessor:
                     'side': side,
                     'timestamp': time,
                     'cause': 'attack',
-                    'is_skill': False
+                    'is_skill': False,
+                    'bonus_attack': False,
                 }
                 events.append(attack_event)
 
@@ -120,7 +121,8 @@ class CombatAttackProcessor:
                         'side': side,
                         'timestamp': round(time + 0.05, 10),
                         'cause': 'attack',
-                        'is_skill': False
+                        'is_skill': False,
+                        'bonus_attack': True,
                     }
                     events.append(bonus_attack)
                     if mana_gain > 0:

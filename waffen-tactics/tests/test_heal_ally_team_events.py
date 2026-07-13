@@ -33,8 +33,9 @@ def collect_events(team_a, team_b, max_time=3.0):
     return events
 
 
-def test_heal_ally_team_generates_unit_heal_event():
-    # Skill: heal ally team for 40
+def test_heal_skill_is_ignored_and_basic_attacks_continue():
+    # Skills are disabled in the current ruleset, so this setup should
+    # behave like a normal attacker with no heal side effects.
     skill = {
         'name': 'Group Heal',
         'description': 'Heal allies',
@@ -54,9 +55,10 @@ def test_heal_ally_team_generates_unit_heal_event():
     events = collect_events([caster, ally], [enemy], max_time=3.0)
 
     heal_events = [e for e in events if e[0] == 'unit_heal']
-    assert len(heal_events) >= 1, f"Expected at least one unit_heal event, got: {events}"
+    skill_events = [e for e in events if e[0] == 'skill_cast']
+    attack_events = [e for e in events if e[0] == 'unit_attack' and e[1].get('attacker_id') == 'caster_h']
 
-    # Check that the healed unit is the ally and amount is >= 1
-    healed_targets = {e[1]['unit_id']: e[1]['amount'] for e in heal_events}
-    assert 'ally_1' in healed_targets
-    assert healed_targets['ally_1'] >= 1
+    assert len(skill_events) == 0
+    assert len(heal_events) == 0
+    assert len(attack_events) >= 1
+    assert all(not e[1].get('is_skill', False) for e in attack_events)

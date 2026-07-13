@@ -28,6 +28,7 @@ class CombatAttackProcessor:
         deliver_ts: float,
         old_hp_val: int,
         new_hp_val: int,
+        bonus_attack: bool = False,
         dmg_payload: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Build the canonical unit_attack payload for basic attacks."""
@@ -44,6 +45,7 @@ class CombatAttackProcessor:
             'post_hp': new_hp_val,
             'applied_damage': int(dmg) if dmg is not None else 0,
             'is_skill': False,
+            'bonus_attack': bonus_attack,
             'side': side_val,
             'timestamp': deliver_ts,
         }
@@ -88,6 +90,7 @@ class CombatAttackProcessor:
                 bonus_attack_ts,
                 bonus_old_hp,
                 bonus_new_hp,
+                bonus_attack=True,
             ))
         if defending_hp[target_idx] <= 0:
             self._process_unit_death(
@@ -151,7 +154,7 @@ class CombatAttackProcessor:
 
                 # Schedule unit_attack and mana_update with a UI delay (0.2s)
                 attack_ts = round(time + 0.2, 10)
-                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val, compute_ts=None, grant_mana=True, reset_mana=False):
+                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val, compute_ts=None, grant_mana=True, reset_mana=False, bonus_attack=False):
                     def action():
                         from .event_canonicalizer import emit_damage, emit_unit_died
                         results = []
@@ -216,6 +219,7 @@ class CombatAttackProcessor:
                             deliver_ts,
                             old_hp_val,
                             new_hp_val,
+                            bonus_attack=bonus_attack,
                             dmg_payload=dmg_payload,
                         )
                         results.append(('unit_attack', ua))
@@ -313,6 +317,7 @@ class CombatAttackProcessor:
                             'old_hp': old_hp,
                             'new_hp': new_hp,
                             'is_skill': False,
+                            'bonus_attack': False,
                             'side': side,
                             'timestamp': attack_ts
                         })
@@ -372,6 +377,7 @@ class CombatAttackProcessor:
                             compute_ts=time,
                             grant_mana=False,
                             reset_mana=True,
+                            bonus_attack=True,
                         )
                         self.schedule_event(bonus_attack_ts, bonus_action_callable)
                     elif event_callback:

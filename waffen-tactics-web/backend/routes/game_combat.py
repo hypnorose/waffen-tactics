@@ -47,6 +47,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'damage': data.get('damage'),
             'applied_damage': data.get('applied_damage', data.get('damage')),
             'shield_absorbed': data.get('shield_absorbed', 0),
+            'bonus_attack': data.get('bonus_attack', False),
             # Do NOT silently fallback to `unit_hp` here — preserve the
             # canonical `target_hp` value as provided by the backend.
             # If `target_hp` is missing, let that be visible to callers/tests

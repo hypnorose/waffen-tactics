@@ -1,4 +1,5 @@
 import { CombatState, CombatEvent, Unit, EffectSummary } from './types'
+import { createCombatSummary, formatCombatLogEntry, updateCombatSummary } from './combatPresentation'
 
 interface ApplyEventContext {
   simTime: number
@@ -15,6 +16,8 @@ function isOpponent(unitId: string | undefined): boolean {
 
 export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: ApplyEventContext): CombatState {
   let newState = { ...state }
+  const logLine = formatCombatLogEntry(event)
+  let shouldUpdateSummary = true
 
   // Update simTime if timestamp present
   if (typeof event.timestamp === 'number') {
@@ -23,7 +26,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
   switch (event.type) {
     case 'start':
-      newState.combatLog = [...newState.combatLog, '⚔️ Walka rozpoczyna się!']
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
 
     case 'animation_start':
@@ -123,6 +126,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         // Backend MUST provide target_hp - no fallback fields
         if (event.target_hp === undefined) {
           console.error(`⚠️ unit_attack event ${event.seq} missing required field: target_hp`)
+          shouldUpdateSummary = false
           break
         }
 
@@ -138,10 +142,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, updateFn)
         }
       }
-      const msg = event.is_skill
-        ? `🔥 ${event.attacker_name} zadaje ${event.damage?.toFixed(2)} obrażeń ${event.target_name} (umiejętność)`
-        : `⚔️ ${event.attacker_name} atakuje ${event.target_name} (${(event.damage ?? 0).toFixed(2)} dmg)`
-      newState.combatLog = [...newState.combatLog, msg]
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
 
     case 'unit_died':
@@ -152,28 +153,23 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: 0 }))
         }
       }
-      newState.combatLog = [...newState.combatLog, `💀 ${event.unit_name} zostaje pokonany!`]
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
 
     case 'gold_reward':
-      newState.combatLog = [...newState.combatLog, `💰 ${event.unit_name} daje +${event.amount} gold (sojusznik umarł)`]
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
 
     case 'stat_buff':
       console.log('[STAT_BUFF] Event:', event)
-      const statName = event.stat === 'attack' ? 'Ataku' : event.stat === 'defense' ? 'Obrony' : event.stat || 'Statystyki'
-      const buffType = event.buff_type === 'debuff' ? '⬇️' : '⬆️'
-      let reason = ''
-      if (event.buff_type === 'debuff') reason = '(umiejętność)'
-      else if (event.cause === 'kill') reason = '(zabity wróg)'
-      const buffMsg = `${buffType} ${event.unit_name} ${event.buff_type === 'debuff' ? 'traci' : 'zyskuje'} ${event.amount} ${statName} ${reason}`
-      newState.combatLog = [...newState.combatLog, buffMsg]
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       if (event.unit_id) {
         const amountNum = event.amount ?? 0
 
         // Backend MUST provide applied_delta - no fallback calculations
         if (event.applied_delta === undefined) {
           console.error(`⚠️ [DESYNC] stat_buff event seq=${event.seq} missing CRITICAL field: applied_delta (unit=${event.unit_id}, stat=${event.stat})`)
+          shouldUpdateSummary = false
           break
         }
 
@@ -223,6 +219,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         // Backend MUST provide current_mana - no incremental amount fallback
         if (event.current_mana === undefined || event.current_mana === null) {
           console.error(`⚠️ [DESYNC] mana_update event seq=${event.seq} missing CRITICAL field: current_mana (unit=${event.unit_id})`)
+          shouldUpdateSummary = false
           break
         }
 
@@ -252,17 +249,17 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
         }
 
-        newState.combatLog = [...newState.combatLog, `🔮 ${event.unit_name} mana: ${event.current_mana}/${event.max_mana}`]
+        if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       }
       break
 
     case 'victory':
-      newState.combatLog = [...newState.combatLog, '🎉 ZWYCIĘSTWO!']
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       newState.victory = true
       break
 
     case 'defeat':
-      newState.combatLog = [...newState.combatLog, event.message || '💔 PRZEGRANA!']
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       newState.victory = false
       newState.defeatMessage = event.message
       break
@@ -301,6 +298,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         // Backend MUST provide post_hp - no fallback calculations
         if (event.post_hp === undefined) {
           console.error(`⚠️ heal event ${event.seq} missing required field: post_hp`)
+          shouldUpdateSummary = false
           break
         }
 
@@ -317,6 +315,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         // Backend MUST provide post_hp - no fallback calculations
         if (event.post_hp === undefined) {
           console.error(`⚠️ unit_heal event ${event.seq} missing required field: post_hp`)
+          shouldUpdateSummary = false
           break
         }
 
@@ -326,7 +325,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: event.post_hp! }))
         }
       }
-      newState.combatLog = [...newState.combatLog, `💚 ${event.unit_name} regeneruje ${(event.amount ?? 0).toFixed(2)} HP`]
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
 
     case 'hp_regen':
@@ -334,6 +333,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         // Backend MUST provide post_hp - no fallback fields
         if (event.post_hp === undefined) {
           console.error(`⚠️ hp_regen event ${event.seq} missing required field: post_hp`)
+          shouldUpdateSummary = false
           break
         }
 
@@ -345,7 +345,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       }
       // Only log significant regen amounts to avoid spam
       if ((event.amount ?? 0) >= 1) {
-        newState.combatLog = [...newState.combatLog, `💚 ${event.unit_name} regeneruje ${(event.amount ?? 0).toFixed(2)} HP (${event.cause || 'passive'})`]
+        if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       }
       break
 
@@ -355,6 +355,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         const authHp = event.post_hp ?? event.unit_hp
         if (authHp === undefined) {
           console.error(`⚠️ damage_over_time_tick event ${event.seq} missing required field: post_hp or unit_hp`)
+          shouldUpdateSummary = false
           break
         }
 
@@ -364,7 +365,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, u => ({ ...u, hp: authHp }))
         }
       }
-      newState.combatLog = [...newState.combatLog, `🔥 ${event.unit_name} otrzymuje ${event.damage ?? 0} obrażeń (DoT)`]
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
 
     case 'regen_gain':
@@ -372,7 +373,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         const dur = event.duration || 5
         const expiresAt = ctx.simTime + dur // Use simTime for expiry
         newState.regenMap = { ...newState.regenMap, [event.unit_id]: { amount_per_sec: event.amount_per_sec || 0, total_amount: event.total_amount || 0, expiresAt } }
-        newState.combatLog = [...newState.combatLog, `💚 ${event.unit_name} zyskuje +${(event.total_amount || 0).toFixed(2)} HP przez ${dur}s`]
+        if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       }
       break
 
@@ -404,11 +405,11 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
         }
       }
-      newState.combatLog = [...newState.combatLog, `🛡️ ${event.unit_name} zyskuje ${event.amount} tarczy na ${event.duration}s`]
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
 
     case 'unit_stunned':
-      newState.combatLog = [...newState.combatLog, `😵 ${event.unit_name} jest ogłuszony na ${event.duration}s`]
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       if (event.unit_id) {
         const effect: EffectSummary = {
           id: event.effect_id,
@@ -433,7 +434,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'damage_over_time_applied':
-      newState.combatLog = [...newState.combatLog, `🔥 ${event.unit_name} otrzymuje DoT (${event.ticks || '?'} ticks)`]
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       if (event.unit_id) {
         const effect: EffectSummary = {
           id: event.effect_id,
@@ -465,6 +466,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         // Backend MUST provide effect_id
         if (!event.effect_id) {
           console.error(`⚠️ damage_over_time_expired event ${event.seq} missing required field: effect_id`)
+          shouldUpdateSummary = false
           break
         }
 
@@ -497,6 +499,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         // Backend MUST provide effect_id - no property matching fallback
         if (!event.effect_id) {
           console.error(`⚠️ effect_expired event ${event.seq} missing required field: effect_id`)
+          shouldUpdateSummary = false
           break
         }
 
@@ -565,6 +568,10 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       // Log unknown skill effect application
       console.log(`[Skill Effect] ${event.caster_id} applied unknown effect:`, event.effect)
       break
+  }
+
+  if (shouldUpdateSummary) {
+    newState.combatSummary = updateCombatSummary(newState.combatSummary ?? createCombatSummary(), event)
   }
 
   // IMPORTANT: Do NOT auto-expire effects here!
