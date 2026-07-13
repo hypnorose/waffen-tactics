@@ -62,8 +62,8 @@ export default function CombatLog({ combatLog, logEndRef }: Omit<Props, 'showLog
     >
       {combatLog.map((msg, idx) => {
         const parsed = parseLogLine(msg)
-        const fallbackEffect =
-          !parsed.tag && (
+        const fallbackEffect: string | null = !parsed.tag
+          ? (
             msg.includes('tarcz') || msg.includes('shield') ? 'SHIELD'
               : msg.includes('regeneruje') || msg.includes('heals') ? 'HEAL'
               : msg.includes('ogłusz') || msg.includes('stun') ? 'STUN'
@@ -71,6 +71,7 @@ export default function CombatLog({ combatLog, logEndRef }: Omit<Props, 'showLog
               : (msg.includes('zyskuje') || msg.includes('traci') || msg.includes('buff') || msg.includes('debuff')) ? 'BUFF'
               : null
           )
+          : null
         const effectTag = parsed.tag || fallbackEffect
         const styles = tagStyle(effectTag)
 

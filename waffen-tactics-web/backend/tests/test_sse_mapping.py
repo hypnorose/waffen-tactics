@@ -138,3 +138,22 @@ def test_seq_is_monotonically_increasing():
     # Assert seqs are strictly increasing
     for i in range(1, len(seqs)):
         assert seqs[i] > seqs[i-1], f"seq not increasing: {seqs[i-1]} >= {seqs[i]}"
+
+
+def test_passive_triggered_payload_keeps_player_facing_fields():
+    payload = gc.map_event_to_sse_payload('passive_triggered', {
+        'seq': 42,
+        'passive_id': 'kubica',
+        'unit_id': 'a_kubica',
+        'unit_name': 'Kubica',
+        'description': 'Z przodu otrzymuje więcej ataku.',
+        'trigger': 'on_start',
+        'effect': 'passive_ready',
+        'side': 'team_a',
+        'timestamp': 0.0,
+    })
+
+    assert payload['type'] == 'passive_triggered'
+    assert payload['passive_id'] == 'kubica'
+    assert payload['description'].startswith('Z przodu')
+    assert payload['seq'] == 42

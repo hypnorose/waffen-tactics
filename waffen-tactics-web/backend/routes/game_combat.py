@@ -54,7 +54,6 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             # so we can surface bugs instead of hiding them.
             'target_hp': data.get('target_hp'),
             'target_max_hp': data.get('target_max_hp'),
-            'is_skill': data.get('is_skill', False),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -156,6 +155,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
         if data.get('unit_hp') is not None:
             res['unit_hp'] = data.get('unit_hp')
     if event_type == 'skill_cast':
+        # Legacy compatibility only. The live ruleset is attack-only, but we
+        # still map older replay payloads that may contain skill_cast.
         res = {
             'type': 'skill_cast',
             'caster_id': data.get('caster_id'),
@@ -166,6 +167,21 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'damage': data.get('damage'),
             'target_hp': data.get('target_hp'),
             'target_max_hp': data.get('target_max_hp'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
+        }
+    if event_type == 'passive_triggered':
+        res = {
+            'type': 'passive_triggered',
+            'passive_id': data.get('passive_id'),
+            'unit_id': data.get('unit_id'),
+            'unit_name': data.get('unit_name'),
+            'description': data.get('description'),
+            'trigger': data.get('trigger'),
+            'effect': data.get('effect'),
+            'target_id': data.get('target_id'),
+            'preference': data.get('preference'),
+            'side': data.get('side'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -193,7 +209,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
     try:
         if res and res.get('type') == 'unit_attack':
             try:
-                print(f"[SSE_MAPPED_PAYLOAD] type=unit_attack seq={res.get('seq')} is_skill={res.get('is_skill')} attacker={res.get('attacker_id')} target={res.get('target_id')} payload_keys={list(res.keys())}")
+                print(f"[SSE_MAPPED_PAYLOAD] type=unit_attack seq={res.get('seq')} attacker={res.get('attacker_id')} target={res.get('target_id')} payload_keys={list(res.keys())}")
             except Exception:
                 print("[SSE_MAPPED_PAYLOAD] unit_attack mapped (unable to stringify payload)")
     except Exception:

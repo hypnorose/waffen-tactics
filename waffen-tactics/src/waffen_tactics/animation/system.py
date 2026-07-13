@@ -31,23 +31,13 @@ class AnimationSystem:
 
     def _setup_default_configs(self) -> None:
         """Register default animation configurations for backward compatibility"""
-        # Basic attack animation
         self.registry.register_config(AnimationConfig(
             id="basic_attack",
             type=AnimationType.PROJECTILE,
             duration=0.3,
-            renderer_config={"emoji": "🗡️"}
+            renderer_config={"emoji": "\U0001F5E1\uFE0F"}
         ))
 
-        # Skill attack animation
-        self.registry.register_config(AnimationConfig(
-            id="skill_attack",
-            type=AnimationType.PROJECTILE,
-            duration=0.4,
-            renderer_config={"emoji": "⚡"}
-        ))
-
-        # Healing animation
         self.registry.register_config(AnimationConfig(
             id="heal",
             type=AnimationType.SCREEN_EFFECT,
@@ -55,7 +45,6 @@ class AnimationSystem:
             renderer_config={"effect_type": "heal_glow"}
         ))
 
-        # Buff animation
         self.registry.register_config(AnimationConfig(
             id="buff",
             type=AnimationType.UNIT_ANIMATION,
@@ -87,6 +76,14 @@ class AnimationSystem:
         )
         return self.registry.trigger_animation(trigger)
 
+    def get_animation_ids(self) -> List[str]:
+        """Get all registered animation IDs."""
+        return self.registry.get_registered_animation_ids()
+
+    def get_animation_config(self, animation_id: str) -> Optional[AnimationConfig]:
+        """Get animation config by ID."""
+        return self.registry.get_config(animation_id)
+
     def create_animation_event(
         self,
         animation_id: str,
@@ -98,49 +95,35 @@ class AnimationSystem:
     ) -> AnimationEvent:
         """Create an animation event for the event system"""
         config = self.registry.get_config(animation_id)
-        duration = config.duration if config else 0.3
+        if not config:
+            raise ValueError(f"Unknown animation: {animation_id}")
 
-        trigger = AnimationTrigger(
+        event_id = f"anim_{animation_id}_{int(timestamp * 1000)}"
+
+        return AnimationEvent(
+            type="animation_start",
             animation_id=animation_id,
             attacker_id=attacker_id,
             target_id=target_id,
             skill_name=skill_name,
-            timestamp=timestamp
+            duration=config.duration or 0.3,
+            timestamp=timestamp,
+            seq=seq,
+            event_id=event_id,
         )
-        event = AnimationEvent.from_trigger(trigger, seq)
-        event.duration = duration  # Set the duration from config
-        return event
-
-    def get_animation_ids(self) -> List[str]:
-        """Get all registered animation IDs"""
-        return self.registry.get_registered_animation_ids()
-
-    def get_animation_config(self, animation_id: str) -> Optional[AnimationConfig]:
-        """Get animation config by ID"""
-        return self.registry.get_config(animation_id)
 
 
-# Global animation system instance
 _animation_system: Optional[AnimationSystem] = None
 
 
 def get_animation_system() -> AnimationSystem:
-    """Get the global animation system instance"""
+    """Get or create the global animation system"""
     global _animation_system
     if _animation_system is None:
         _animation_system = AnimationSystem()
     return _animation_system
 
 
-def trigger_animation(
-    animation_id: str,
-    attacker_id: Optional[str] = None,
-    target_id: Optional[str] = None,
-    skill_name: Optional[str] = None,
-    timestamp: float = 0.0,
-    custom_data: Optional[Dict[str, Any]] = None
-) -> bool:
-    """Convenience function to trigger animations"""
-    return get_animation_system().trigger_animation(
-        animation_id, attacker_id, target_id, skill_name, timestamp, custom_data
-)
+def initialize_animation_system() -> AnimationSystem:
+    """Initialize and return the animation system"""
+    return get_animation_system()

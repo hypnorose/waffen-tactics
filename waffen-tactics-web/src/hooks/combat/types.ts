@@ -25,6 +25,7 @@ export interface Unit {
   persistent_buffs?: Record<string, number>
   avatar?: string
   skill?: any
+  passive?: { description: string; [key: string]: any }
 }
 
 export interface DesyncEntry {
@@ -73,7 +74,7 @@ export interface CombatEvent {
   total_amount?: number
   timestamp?: number
   seq?: number
-  // Mana and skill casting events
+  // Mana events and combat metadata
   caster_id?: string
   caster_name?: string
   skill_name?: string
@@ -86,7 +87,6 @@ export interface CombatEvent {
   amount?: number
   stat?: string
   side?: string
-  is_skill?: boolean
   buff_type?: string
   duration?: number
   shield_absorbed?: number
@@ -102,6 +102,9 @@ export interface CombatEvent {
   source_id?: string
   effect_id?: string
   effect?: any
+  passive_id?: string
+  description?: string
+  value?: any
   applied_delta?: number  // Authoritative delta applied by backend (for stat_buff events)
   // Animation events
   animation_id?: string

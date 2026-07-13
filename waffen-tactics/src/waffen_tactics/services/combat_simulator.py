@@ -8,6 +8,7 @@ from .combat_effect_processor import CombatEffectProcessor
 from .combat_regeneration_processor import CombatRegenerationProcessor
 from .combat_per_second_buff_processor import CombatPerSecondBuffProcessor
 from .modular_effect_processor import ModularEffectProcessor
+from .passive_processor import PassiveProcessor
 from ..engine.combat_state import CombatState
 from ..engine.event_dispatcher import EventDispatcher
 
@@ -59,6 +60,7 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
             modular_effect_processor = ModularEffectProcessor()
         # Initialize processors that require construction
         CombatEffectProcessor.__init__(self, modular_effect_processor=modular_effect_processor)
+        self.passive_processor = PassiveProcessor()
         # Basic simulator state
         self.dt = dt
         self.timeout = timeout
@@ -275,6 +277,10 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
 
         # create combat state snapshot helper
         self._combat_state = CombatState(self.team_a, self.team_b)
+
+        # Passive initialization is the only start-of-combat effect path. It
+        # runs before the first attack and never invokes the skill executor.
+        self.passive_processor.initialize(self.team_a, self.team_b, proc_cb, timestamp=0.0)
 
         # Apply per-round buffs
         for idx_u, u in enumerate(self.team_a):

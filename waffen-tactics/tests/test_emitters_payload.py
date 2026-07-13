@@ -22,7 +22,6 @@ def test_build_damage_payload_keys_and_values():
         side="a",
         timestamp=123.0,
         cause="attack",
-        is_skill=False,
         bonus_attack=True,
     )
 

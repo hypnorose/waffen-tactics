@@ -27,7 +27,6 @@ def make_attack_payload(target_hp=None, unit_hp=None, damage=10, seq=1, timestam
         'target_hp': target_hp,
         'unit_hp': unit_hp,
         'target_max_hp': 100,
-        'is_skill': False,
         'timestamp': timestamp if timestamp is not None else time.time(),
         'seq': seq,
     }
@@ -74,7 +73,6 @@ def test_map_event_preserves_all_fields_when_provided():
     payload['shield_absorbed'] = 0
     payload['bonus_attack'] = True
     payload['target_max_hp'] = 964
-    payload['is_skill'] = False
 
     out = map_event_to_sse_payload('unit_attack', payload)
     # Verify each top-level field except game_state
@@ -88,7 +86,6 @@ def test_map_event_preserves_all_fields_when_provided():
     assert out['bonus_attack'] is True
     assert out['target_hp'] == 30
     assert out['target_max_hp'] == 964
-    assert out['is_skill'] is False
     assert out['timestamp'] == 3.8
     assert out['seq'] == 496
 
@@ -102,7 +99,7 @@ def test_map_event_defaults_and_types_when_missing():
         'target_name': 'T2',
         'damage': 5,
         'seq': 7,
-        # intentionally omit shield_absorbed, bonus_attack, is_skill, timestamp, target_max_hp
+        # intentionally omit shield_absorbed, bonus_attack, timestamp, target_max_hp
     }
     out = map_event_to_sse_payload('unit_attack', payload)
     assert out['type'] == 'unit_attack'
@@ -111,10 +108,9 @@ def test_map_event_defaults_and_types_when_missing():
     assert out['target_id'] == 't2'
     assert out.get('unit_name') == 'T2'
     assert out.get('applied_damage') == 5
-    # Defaults: shield_absorbed -> 0, is_skill -> False
+    # Defaults: shield_absorbed -> 0
     assert out['shield_absorbed'] == 0
     assert out['bonus_attack'] is False
-    assert out['is_skill'] is False
     # If timestamp not provided, mapping uses a float timestamp
     assert isinstance(out['timestamp'], float)
     assert out['seq'] == 7

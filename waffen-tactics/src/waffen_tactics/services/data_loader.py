@@ -5,6 +5,7 @@ from typing import Dict, Any, List
 from waffen_tactics.models.unit import Unit, Stats, Skill
 from waffen_tactics.models.skill import Skill as NewSkill, Effect, TargetType, EffectType
 from waffen_tactics.services.skill_parser import skill_parser
+from waffen_tactics.services.passive_definitions import get_passive_definition
 
 DATA_FILE = Path(__file__).resolve().parents[3] / "units.json"
 TRAITS_FILE = Path(__file__).resolve().parents[3] / "traits.json"
@@ -106,7 +107,11 @@ def load_game_data() -> GameData:
             logging.warning(f"Using default skill for unit {u.get('id')} (cost {cost})")
         # No mana_cost on skill definitions anymore — mana is always unit max_mana
 
-        units.append(Unit.from_json(u, stats, skill, role_color))
+        unit = Unit.from_json(u, stats, skill, role_color)
+        # Passives are a separate runtime contract; legacy skill data remains
+        # available only for old fixtures and non-combat compatibility paths.
+        unit.passive = get_passive_definition(u.get("id"))
+        units.append(unit)
     
     traits = traits_data.get("traits", [])
     factions = data.get("factions", [])

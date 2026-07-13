@@ -37,6 +37,7 @@ class Unit:
     classes: List[str]
     stats: Stats
     skill: Skill
+    passive: Dict[str, Any] | None = None
     role: str = ""
     role_color: str = "#6b7280"
     avatar: str = ""
@@ -52,6 +53,7 @@ class Unit:
             classes=list(d.get("classes", [])),
             stats=default_stats,
             skill=default_skill,
+            passive=d.get("passive"),
             role=d.get("role", ""),
             role_color=role_color,
             avatar=d.get("avatar", ""),

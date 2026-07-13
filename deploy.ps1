@@ -43,6 +43,7 @@ if ($RunTests) {
     Invoke-Step "Core tests" { python -m pytest -q 'waffen-tactics\tests' }
     Invoke-Step "Backend tests" { python -m pytest -q 'waffen-tactics-web\backend\tests' }
     Invoke-Step "Frontend tests" { Push-Location 'waffen-tactics-web'; try { npx vitest run } finally { Pop-Location } }
+    Invoke-Step "Frontend production build" { Push-Location 'waffen-tactics-web'; try { npm run build } finally { Pop-Location } }
 }
 
 function Get-TrackedChanges {

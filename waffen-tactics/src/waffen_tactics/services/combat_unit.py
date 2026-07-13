@@ -9,7 +9,7 @@ from ..models.unit import CombatUnitStats, CombatUnitState, CombatUnitSkill, Com
 
 class CombatUnit:
     """Lightweight unit representation for combat with effect hooks"""
-    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, skill: Optional[Union[Dict[str, Any], Skill]] = None, mana_regen: int = 0, stats: Optional['Stats'] = None, star_level: int = 1, position: str = 'front', base_stats: Optional[Dict[str, float]] = None):
+    def __init__(self, id: str, name: str, hp: int, attack: int, defense: int, attack_speed: float, effects: Optional[List[Dict[str, Any]]] = None, max_mana: int = 100, skill: Optional[Union[Dict[str, Any], Skill]] = None, mana_regen: int = 0, stats: Optional['Stats'] = None, star_level: int = 1, position: str = 'front', base_stats: Optional[Dict[str, float]] = None, passive: Optional[Dict[str, Any]] = None):
         # Create immutable stats
         self._stats = CombatUnitStats(
             hp=stats.hp if stats else hp,
@@ -43,6 +43,8 @@ class CombatUnit:
         # Required attributes
         self.id = id
         self.name = name
+        self.passive = copy.deepcopy(passive) if isinstance(passive, dict) else None
+        self.passive_state: Dict[str, Any] = {}
         
         # Computed stats cache
         self._computed_stats = ComputedStats.from_effects(self._state.effects)
@@ -88,6 +90,7 @@ class CombatUnit:
             'star_level': self._stats.star_level,
             'position': self._stats.position,
             'effects': effects_snapshot,
+            'passive': copy.deepcopy(self.passive) if isinstance(self.passive, dict) else None,
             'current_mana': mana,
             'max_mana': self._stats.max_mana,
             'shield': self._state.shield,
@@ -320,6 +323,20 @@ class CombatUnit:
     @property
     def mana_regen(self) -> int:
         return self._stats.mana_regen
+
+    @mana_regen.setter
+    def mana_regen(self, value: int):
+        self._stats = CombatUnitStats(
+            hp=self._stats.hp,
+            attack=self._stats.attack,
+            defense=self._stats.defense,
+            attack_speed=self._stats.attack_speed,
+            max_mana=self._stats.max_mana,
+            mana_regen=int(value),
+            star_level=self._stats.star_level,
+            position=self._stats.position,
+            mana_on_attack=self._stats.mana_on_attack,
+        )
 
     @property
     def position(self) -> str:

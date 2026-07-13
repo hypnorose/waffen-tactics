@@ -340,6 +340,7 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                         'mana_cost': (unit.skill.mana_cost if getattr(unit.skill, 'mana_cost', None) is not None else max_mana),
                         'effect': unit.skill.effect
                     } if hasattr(unit, 'skill') and unit.skill else None
+                    ,passive=getattr(unit, 'passive', None)
                 )
                 # Set max_hp to buffed hp to prevent hp > max_hp issues
                 combat_unit.max_hp = hp
@@ -360,8 +361,9 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     'factions': unit.factions,
                     'classes': unit.classes,
                     'position': combat_unit.position,
-                    'avatar': getattr(unit, 'avatar', None),
-                    'buffed_stats': buffed_stats
+                     'avatar': getattr(unit, 'avatar', None),
+                     'passive': getattr(unit, 'passive', None),
+                     'buffed_stats': buffed_stats
                 })
 
         # Ensure we don't send synergies with zero units
@@ -509,7 +511,8 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                             'description': unit.skill.description,
                             'mana_cost': (unit.skill.mana_cost if getattr(unit.skill, 'mana_cost', None) is not None else max_mana),
                             'effect': unit.skill.effect
-                        } if hasattr(unit, 'skill') and unit.skill else None
+                    } if hasattr(unit, 'skill') and unit.skill else None
+                        ,passive=getattr(unit, 'passive', None)
                     )
                     # Set max_hp to buffed hp to prevent hp > max_hp issues
                     combat_unit.max_hp = hp
@@ -527,8 +530,9 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                         'factions': unit.factions,
                         'classes': unit.classes,
                         'position': combat_unit.position,
-                        'avatar': getattr(unit, 'avatar', None),
-                        'buffed_stats': {
+                         'avatar': getattr(unit, 'avatar', None),
+                         'passive': getattr(unit, 'passive', None),
+                         'buffed_stats': {
                             'hp': combat_unit.hp,
                             'attack': combat_unit.attack,
                             'defense': combat_unit.defense,
@@ -660,14 +664,12 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
                 # Flag explicit attack events that are 'true' attacks (cause=='attack')
                 if event_type in ('attack', 'unit_attack') and isinstance(data, dict):
                     try:
-                        cause = data.get('cause') or data.get('is_skill')
+                        cause = data.get('cause')
                         # prefer canonical damage fields
                         damage = data.get('applied_damage') or data.get('damage') or data.get('amount')
                         attacker = data.get('attacker_id') or data.get('attacker_name')
                         target = data.get('target_id') or data.get('unit_id') or data.get('target_name')
-                        # Distinguish skill-caused attacks vs basic attacks
-                        tag = 'SKILL' if (str(cause).lower() in ('skill', 'true') or data.get('is_skill')) else 'TRUE'
-                        print(f"[EVENT_COLLECTOR ATTACK] type={event_type} tag={tag} cause={cause} damage={damage} attacker={attacker} target={target}")
+                        print(f"[EVENT_COLLECTOR ATTACK] type={event_type} cause={cause} damage={damage} attacker={attacker} target={target}")
                     except Exception:
                         pass
             except Exception:

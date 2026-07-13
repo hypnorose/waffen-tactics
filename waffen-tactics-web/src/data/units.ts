@@ -15,6 +15,11 @@ export interface Unit {
     mana_cost?: number
     effects: any[]
   }
+  passive?: {
+    description: string
+    kind?: string
+    [key: string]: any
+  }
   stats?: {
     hp: number
     attack: number

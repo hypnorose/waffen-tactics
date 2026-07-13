@@ -184,6 +184,12 @@ export default function UnitCard({
                 </span>
               ))}
             </div>
+            {unit.passive?.description && (
+              <div className="mb-2 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-100">
+                <div className="mb-1 font-semibold text-amber-300">Pasywka</div>
+                <div>{unit.passive.description}</div>
+              </div>
+            )}
           </div>
 
           {scaledStats && (

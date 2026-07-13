@@ -78,7 +78,7 @@ class CombatManager:
                 # Get active effects
                 effects_a = self.synergy_engine.get_active_effects(unit, active_synergies)
 
-                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats, position=ui.position, base_stats=base_stats, star_level=ui.star_level))
+                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats, position=ui.position, base_stats=base_stats, star_level=ui.star_level, passive=getattr(unit, 'passive', None)))
 
             # Opponent team
             opponent_units = [u for u in opponent_board]
@@ -104,7 +104,7 @@ class CombatManager:
 
                 effects_b = self.synergy_engine.get_active_effects(u, opponent_active)
 
-                team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b, max_mana=u.stats.max_mana, stats=u.stats, position='front', base_stats={'hp': hp_b, 'attack': attack_b, 'defense': defense_b, 'attack_speed': attack_speed_b, 'max_mana': u.stats.max_mana}, star_level=1))
+                team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b, max_mana=u.stats.max_mana, stats=u.stats, position='front', base_stats={'hp': hp_b, 'attack': attack_b, 'defense': defense_b, 'attack_speed': attack_speed_b, 'max_mana': u.stats.max_mana}, star_level=1, passive=getattr(u, 'passive', None)))
 
             shared = CombatSimulator()
             result = shared.simulate(team_a_combat, team_b_combat, timeout=120, event_callback=None, round_number=player.round_number)

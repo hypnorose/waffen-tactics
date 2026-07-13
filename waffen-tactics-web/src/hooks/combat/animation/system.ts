@@ -63,13 +63,6 @@ function setupDefaultConfigs(registry: AnimationRegistry): void {
   })
 
   registry.registerConfig({
-    id: "skill_attack",
-    type: AnimationType.PROJECTILE,
-    duration: 0.4,
-    rendererConfig: { emoji: "⚡" }
-  })
-
-  registry.registerConfig({
     id: "heal",
     type: AnimationType.SCREEN_EFFECT,
     duration: 0.5,

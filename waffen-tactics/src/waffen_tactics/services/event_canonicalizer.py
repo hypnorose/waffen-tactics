@@ -78,7 +78,7 @@ def emit_stat_buff(
             # float fields
             cur = float(getattr(recipient, stat, 0.0))
             if value_type == 'percentage' and stat == 'attack_speed':
-                delta = int(round(cur * (float(value) / 100.0)))
+                delta = round(cur * (float(value) / 100.0), 6)
             else:
                 delta = int(round(float(value)))
             setattr(recipient, stat, cur + delta)

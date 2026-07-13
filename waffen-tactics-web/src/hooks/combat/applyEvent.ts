@@ -377,11 +377,6 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       }
       break
 
-    case 'skill_cast':
-      // Skill casting is disabled in the current ruleset.
-      // Keep the event as a no-op so older replays do not mutate state.
-      break
-
     case 'shield_applied':
       if (event.unit_id && typeof event.amount === 'number') {
         const updateFn = (u: Unit) => {
@@ -564,10 +559,6 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       }
       break
 
-    case 'skill_effect':
-      // Log unknown skill effect application
-      console.log(`[Skill Effect] ${event.caster_id} applied unknown effect:`, event.effect)
-      break
   }
 
   if (shouldUpdateSummary) {

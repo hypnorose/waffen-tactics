@@ -10,14 +10,15 @@ from .event_canonicalizer import emit_mana_change
 class CombatAttackProcessor:
     """Handles attack processing and damage calculations"""
 
-    def _calculate_damage(self, attacker: 'CombatUnit', defender: 'CombatUnit') -> int:
+    def _calculate_damage(self, attacker: 'CombatUnit', defender: 'CombatUnit', damage_multiplier: float = 1.0, ignore_defense_pct: float = 0.0) -> int:
         """Calculate damage from attacker to defender."""
-        damage = attacker.attack * 100.0 / (100.0 + defender.defense)
+        effective_defense = max(0.0, float(defender.defense) * (1.0 - float(ignore_defense_pct) / 100.0))
+        damage = attacker.attack * 100.0 / (100.0 + effective_defense)
         # Apply target damage reduction if present
         dr = getattr(defender, 'damage_reduction', 0.0)
         if dr:
             damage = damage * (1.0 - dr / 100.0)
-        return max(1, int(damage))  # Minimum 1 damage
+        return max(1, int(damage * max(0.0, float(damage_multiplier))))  # Minimum 1 damage
 
     def _build_unit_attack_payload(
         self,
@@ -44,7 +45,6 @@ class CombatAttackProcessor:
             'pre_hp': old_hp_val,
             'post_hp': new_hp_val,
             'applied_damage': int(dmg) if dmg is not None else 0,
-            'is_skill': False,
             'bonus_attack': bonus_attack,
             'side': side_val,
             'timestamp': deliver_ts,
@@ -126,8 +126,56 @@ class CombatAttackProcessor:
                     # Attacking team wins
                     return "team_a" if side == "team_a" else "team_b"
 
-                # Calculate damage
-                damage = self._calculate_damage(unit, defending_team[target_idx])
+                target = defending_team[target_idx]
+                passive_plan = {}
+                passive_processor = getattr(self, 'passive_processor', None)
+                if passive_processor:
+                    passive_plan = passive_processor.before_attack(
+                        unit,
+                        target,
+                        attacking_team,
+                        defending_team,
+                        event_callback,
+                        side,
+                        time,
+                    ) or {}
+
+                    # Attack-count mana effects happen before the hit and are
+                    # still ordinary mana changes, never skill casts.
+                    if passive_plan.get('mana_self'):
+                        combat_state = getattr(self, '_combat_state', None)
+                        emit_mana_change(
+                            event_callback,
+                            unit,
+                            passive_plan['mana_self'],
+                            side=side,
+                            timestamp=time,
+                            mana_arrays=combat_state.mana_arrays if combat_state else None,
+                            unit_index=i,
+                            unit_side=side,
+                        )
+                    if passive_plan.get('mana_burn') and target is not None:
+                        target_side = 'team_b' if side == 'team_a' else 'team_a'
+                        target_index = defending_team.index(target)
+                        combat_state = getattr(self, '_combat_state', None)
+                        emit_mana_change(
+                            event_callback,
+                            target,
+                            -int(passive_plan['mana_burn']),
+                            side=side,
+                            timestamp=time,
+                            mana_arrays=combat_state.mana_arrays if combat_state else None,
+                            unit_index=target_index,
+                            unit_side=target_side,
+                        )
+
+                # Calculate damage after passive attack modifiers are applied.
+                damage = self._calculate_damage(
+                    unit,
+                    target,
+                    damage_multiplier=passive_plan.get('damage_multiplier', 1.0),
+                    ignore_defense_pct=passive_plan.get('ignore_defense_pct', 0.0),
+                )
                 old_hp = int(defending_hp[target_idx])
                 # Compute new_hp but DO NOT mutate defending_hp here when running under
                 # the simulator scheduler. Mutations must happen atomically inside
@@ -154,11 +202,12 @@ class CombatAttackProcessor:
 
                 # Schedule unit_attack and mana_update with a UI delay (0.2s)
                 attack_ts = round(time + 0.2, 10)
-                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val, compute_ts=None, grant_mana=True, reset_mana=False, bonus_attack=False):
+                def make_action(attacker, target_obj, dmg, side_val, deliver_ts, old_hp_val, new_hp_val, compute_ts=None, grant_mana=True, reset_mana=False, bonus_attack=False, passive_plan=None):
                     def action():
                         from .event_canonicalizer import emit_damage, emit_unit_died
                         results = []
                         dmg_payload = None
+                        action_plan = dict(passive_plan or {})
                         # Prepare hp_arrays and resolve target index at delivery time.
                         # Do not trust scheduled-time index because team composition can change.
                         hp_arrays = None
@@ -173,8 +222,30 @@ class CombatAttackProcessor:
                             if unit_index is None:
                                 raise RuntimeError(f"Target unit {target_id} not found in {unit_side} at delivery_ts={deliver_ts}")
 
+                        # Bonus attacks get one passive hook. The hook cannot
+                        # schedule another bonus attack.
+                        local_collector = lambda ev_type, ev_payload: results.append((ev_type, ev_payload))
+                        if bonus_attack and getattr(self, 'passive_processor', None):
+                            bonus_plan = self.passive_processor.bonus_attack_plan(
+                                attacker,
+                                target_obj,
+                                self.team_a if side_val == 'team_a' else self.team_b,
+                                self.team_b if side_val == 'team_a' else self.team_a,
+                                local_collector,
+                                side_val,
+                                deliver_ts,
+                            ) or {}
+                            action_plan.update(bonus_plan)
+
+                        action_damage = self._calculate_damage(
+                            attacker,
+                            target_obj,
+                            damage_multiplier=action_plan.get('damage_multiplier', 1.0),
+                            ignore_defense_pct=action_plan.get('ignore_defense_pct', 0.0),
+                        ) if bonus_attack else dmg
+
                         # Apply canonical damage mutation without emitting the builtin 'attack' event
-                        dmg_payload = emit_damage(None, attacker, target_obj, raw_damage=dmg, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='attack', emit_event=False, hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side)
+                        dmg_payload = emit_damage(None, attacker, target_obj, raw_damage=action_damage, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='attack', emit_event=False, hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side, bonus_attack=bonus_attack)
 
                         # Apply mana gain at delivery time before building unit_attack payload.
                         # This keeps server snapshot state and unit_attack payload coherent.
@@ -214,7 +285,7 @@ class CombatAttackProcessor:
                         ua = self._build_unit_attack_payload(
                             attacker,
                             target_obj,
-                            dmg,
+                            action_damage,
                             side_val,
                             deliver_ts,
                             old_hp_val,
@@ -227,6 +298,64 @@ class CombatAttackProcessor:
                         if mana_payload:
                             results.append(('mana_update', mana_payload))
 
+                        # Bonus attack team-mana effects are ordinary mana
+                        # updates, intentionally without a skill event.
+                        if action_plan.get('team_mana'):
+                            ally_team = self.team_a if side_val == 'team_a' else self.team_b
+                            combat_state = getattr(self, '_combat_state', None)
+                            for ally_index, ally in enumerate(ally_team):
+                                mana_payload = emit_mana_change(
+                                    None,
+                                    ally,
+                                    action_plan['team_mana'],
+                                    side=side_val,
+                                    timestamp=deliver_ts,
+                                    mana_arrays=combat_state.mana_arrays if combat_state else None,
+                                    unit_index=ally_index,
+                                    unit_side=side_val,
+                                )
+                                results.append(('mana_update', mana_payload))
+
+                        # Bonus/attack-count control and secondary pressure.
+                        if action_plan.get('stun'):
+                            stun_payload = emit_unit_stunned(None, target_obj, duration=action_plan['stun'], source=attacker, side=side_val, timestamp=deliver_ts)
+                            if stun_payload:
+                                results.append(('unit_stunned', stun_payload))
+                        secondary_scope = action_plan.get('secondary_scope')
+                        if secondary_scope:
+                            target_team = self.team_b if side_val == 'team_a' else self.team_a
+                            candidates = [u for u in target_team if u is not target_obj and getattr(u, 'hp', 0) > 0]
+                            if secondary_scope == 'frontline':
+                                candidates = [u for u in candidates if getattr(u, 'position', 'front') == 'front']
+                            elif secondary_scope == 'weakest_nonprimary' and candidates:
+                                candidates = [min(candidates, key=lambda u: getattr(u, 'hp', 0))]
+                            elif secondary_scope != 'all':
+                                candidates = candidates[:1]
+                            for secondary in candidates:
+                                secondary_side = 'team_b' if side_val == 'team_a' else 'team_a'
+                                secondary_index = next((idx for idx, u in enumerate(target_team) if u is secondary), None)
+                                secondary_damage = self._calculate_damage(attacker, secondary, damage_multiplier=action_plan.get('secondary_multiplier', 0.0))
+                                secondary_payload = emit_damage(None, attacker, secondary, raw_damage=secondary_damage, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='passive_secondary', emit_event=False, hp_arrays=hp_arrays, unit_index=secondary_index, unit_side=secondary_side, bonus_attack=bonus_attack)
+                                secondary_attack = self._build_unit_attack_payload(attacker, secondary, secondary_damage, side_val, deliver_ts, secondary_payload.get('pre_hp', secondary.hp), secondary_payload.get('post_hp', secondary.hp), bonus_attack=bonus_attack, dmg_payload=secondary_payload)
+                                secondary_attack['cause'] = 'passive_secondary'
+                                results.append(('unit_attack', secondary_attack))
+
+                        # The target-side threshold passives see authoritative
+                        # pre/post HP after the hit has been applied.
+                        if getattr(self, 'passive_processor', None) and isinstance(dmg_payload, dict):
+                            target_team = self.team_b if side_val == 'team_a' else self.team_a
+                            attacker_team = self.team_a if side_val == 'team_a' else self.team_b
+                            self.passive_processor.after_damage(
+                                target_obj,
+                                int(dmg_payload.get('pre_hp') or 0),
+                                int(dmg_payload.get('post_hp') or 0),
+                                target_team,
+                                attacker_team,
+                                local_collector,
+                                'team_b' if side_val == 'team_a' else 'team_a',
+                                deliver_ts,
+                            )
+
                         # If the canonical damage resulted in death, prepare unit_died
                         # payload and process on-death effects via the modular effect
                         # processor into the local results list so they are emitted
@@ -238,26 +367,24 @@ class CombatAttackProcessor:
                                 if died:
                                     results.append(('unit_died', died))
 
-                                # If we have a modular_effect_processor available on self,
-                                # execute ON_ENEMY_DEATH and ON_ALLY_DEATH triggers using
-                                # a local collector that appends events to results so that
-                                # they are emitted in-order by the sink.
+                                passive_collector = lambda ev_type, ev_payload: results.append((ev_type, ev_payload))
+                                if getattr(self, 'passive_processor', None):
+                                    self.passive_processor.on_kill(attacker, attacking_team, defending_team, passive_collector, side_val, deliver_ts)
+
+                                # Preserve the existing legacy death-trigger path
+                                # after the passive kill hook has been recorded.
                                 try:
                                     from .modular_effect_processor import TriggerType
                                     if hasattr(self, 'modular_effect_processor') and self.modular_effect_processor:
                                         def _local_collector(ev_type, ev_payload):
                                             results.append((ev_type, ev_payload))
 
-                                        # Build context similar to CombatEffectProcessor
                                         context = {
                                             'current_unit': attacker,
                                             'all_units': attacking_team + defending_team,
                                             'enemy_units': defending_team,
                                             'ally_units': attacking_team,
                                             'collected_stats': getattr(attacker, 'collected_stats', {}),
-                                            # Use the original compute timestamp so modular triggers
-                                            # see the time the attack was computed (animation_start),
-                                            # matching legacy behavior and test expectations.
                                             'current_time': compute_ts if compute_ts is not None else deliver_ts,
                                             'side': side_val,
                                             'player': attacker,
@@ -265,27 +392,17 @@ class CombatAttackProcessor:
                                             'killer_unit': attacker,
                                             'triggered_rewards': set(),
                                         }
-
-                                        # Process ON_ENEMY_DEATH
-                                        try:
-                                            self.modular_effect_processor.process_trigger(TriggerType.ON_ENEMY_DEATH, context, _local_collector)
-                                        except Exception:
-                                            pass
-
-                                        # Process ON_ALLY_DEATH
-                                        try:
-                                            ally_ctx = {
-                                                    'all_units': attacking_team + defending_team,
-                                                    'enemy_units': attacking_team,
-                                                    'ally_units': defending_team,
-                                                    'current_time': compute_ts if compute_ts is not None else deliver_ts,
-                                                    'side': 'team_b' if side_val == 'team_a' else 'team_a',
-                                                    'dead_ally': target_obj,
-                                                    'triggered_rewards': set(),
-                                                }
-                                            self.modular_effect_processor.process_trigger(TriggerType.ON_ALLY_DEATH, ally_ctx, _local_collector)
-                                        except Exception:
-                                            pass
+                                        self.modular_effect_processor.process_trigger(TriggerType.ON_ENEMY_DEATH, context, _local_collector)
+                                        ally_ctx = {
+                                            'all_units': attacking_team + defending_team,
+                                            'enemy_units': attacking_team,
+                                            'ally_units': defending_team,
+                                            'current_time': compute_ts if compute_ts is not None else deliver_ts,
+                                            'side': 'team_b' if side_val == 'team_a' else 'team_a',
+                                            'dead_ally': target_obj,
+                                            'triggered_rewards': set(),
+                                        }
+                                        self.modular_effect_processor.process_trigger(TriggerType.ON_ALLY_DEATH, ally_ctx, _local_collector)
                                 except Exception:
                                     pass
                             except Exception as e:
@@ -296,7 +413,7 @@ class CombatAttackProcessor:
 
                 # If running under CombatSimulator, use scheduler; otherwise emit immediately
                 if hasattr(self, 'schedule_event') and event_callback:
-                    action_callable = make_action(unit, defending_team[target_idx], damage, side, attack_ts, old_hp, new_hp, compute_ts=time)
+                    action_callable = make_action(unit, target, damage, side, attack_ts, old_hp, new_hp, compute_ts=time, passive_plan=passive_plan)
                     # Schedule for delivery at attack_ts
                     # note: CombatSimulator.schedule_event will handle the heap
                     self.schedule_event(attack_ts, action_callable)
@@ -316,7 +433,6 @@ class CombatAttackProcessor:
                             'damage_type': getattr(unit, 'damage_type', 'physical'),
                             'old_hp': old_hp,
                             'new_hp': new_hp,
-                            'is_skill': False,
                             'bonus_attack': False,
                             'side': side,
                             'timestamp': attack_ts
@@ -427,23 +543,46 @@ class CombatAttackProcessor:
                 unit.clear_focus_target()
             except Exception:
                 setattr(unit, 'focus_target_id', None)
-        
+
+        def _normalize_preference(value: Any) -> Optional[str]:
+            if not value:
+                return None
+            mapping = {
+                'back': 'backline',
+                'backline': 'backline',
+                'front': 'frontline',
+                'frontline': 'frontline',
+                'lowest_hp': 'lowest_hp',
+                'weakest': 'lowest_hp',
+                'highest_hp': 'highest_hp',
+                'tank': 'highest_hp',
+            }
+            return mapping.get(str(value).lower())
+
+        def _get_target_preference() -> Optional[str]:
+            for e in reversed(getattr(unit, 'effects', []) or []):
+                if isinstance(e, dict) and e.get('type') == 'targeting_preference':
+                    pref = _normalize_preference(e.get('preference'))
+                    if pref:
+                        return pref
+            # legacy support
+            for e in getattr(unit, 'effects', []) or []:
+                if isinstance(e, dict) and e.get('type') == 'target_backline':
+                    return 'backline'
+                if isinstance(e, str) and e == 'target_backline':
+                    return 'backline'
+                if isinstance(e, dict) and e.get('type') == 'target_least_hp':
+                    return 'lowest_hp'
+            return None
+
         # Find alive targets and split by line
         front_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'front']
         back_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'back']
 
         # Default ordering: front line first then back line
         targets = front_targets + back_targets
-        # If unit has a 'target_backline' effect, prefer backline targets first
-        has_backline = False
-        for e in getattr(unit, 'effects', []) or []:
-            if isinstance(e, dict) and e.get('type') == 'target_backline':
-                has_backline = True
-                break
-            if isinstance(e, str) and e == 'target_backline':
-                has_backline = True
-                break
-        if has_backline:
+        preference = _get_target_preference()
+        if preference == 'backline':
             targets = back_targets + front_targets
         if not targets:
             try:
@@ -456,21 +595,25 @@ class CombatAttackProcessor:
         # Default behaviour (when the var is not set) is to select randomly within the preferred line.
         DETERMINISTIC_TARGETING = os.getenv('WAFFEN_DETERMINISTIC_TARGETING', '0') in ('1', 'true', 'True')
 
-        # Target selection override: if attacker has 'target_least_hp', pick alive target with least current HP
-        if any(e.get('type') == 'target_least_hp' for e in getattr(unit, 'effects', [])):
-            target_idx = min([t[0] for t in targets], key=lambda idx: defending_hp[idx])
+        # Target selection override: support target preference effects and legacy targeting hooks.
+        if preference in ('lowest_hp', 'highest_hp'):
+            chooser = min if preference == 'lowest_hp' else max
+            target_idx = chooser([t[0] for t in targets], key=lambda idx: defending_hp[idx])
         else:
+            candidate_list = targets
+            if preference == 'backline':
+                candidate_list = back_targets if back_targets else front_targets
+            elif preference == 'frontline':
+                candidate_list = front_targets if front_targets else back_targets
+
+            if not candidate_list:
+                candidate_list = targets
+
             # Deterministic override: when the env var is set we pick the first-in-priority list.
             # Otherwise (default) pick a random target within the preferred line.
             if DETERMINISTIC_TARGETING:
-                target_idx = targets[0][0]
+                target_idx = candidate_list[0][0]
             else:
-                if has_backline:
-                    preferred = back_targets if back_targets else front_targets
-                else:
-                    preferred = front_targets if front_targets else back_targets
-
-                candidate_list = preferred if preferred else targets
                 target_idx = random.choice([t[0] for t in candidate_list])
 
         # Persist focus so subsequent attacks are not random until target changes.
@@ -492,10 +635,9 @@ class CombatAttackProcessor:
         event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
         side: str = 'team_a'
     ):
-        """Legacy skill hook kept for compatibility.
+        """Legacy compatibility hook.
 
         Skills are disabled in the current ruleset, so this method is now a
-        no-op and only exists so older call sites do not explode if they still
-        reference it.
+        no-op.
         """
         return None

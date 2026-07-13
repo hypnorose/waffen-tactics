@@ -31,6 +31,7 @@ class CombatSimulator:
                 max_mana=u.stats.max_mana,
                 skill=u.skill,
                 stats=u.stats
+                ,passive=getattr(u, 'passive', None)
             )
             for i, u in enumerate(team_a)
         ]
@@ -47,6 +48,7 @@ class CombatSimulator:
                 max_mana=u.stats.max_mana,
                 skill=u.skill,
                 stats=u.stats
+                ,passive=getattr(u, 'passive', None)
             )
             for i, u in enumerate(team_b)
         ]

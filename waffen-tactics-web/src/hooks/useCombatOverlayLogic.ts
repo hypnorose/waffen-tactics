@@ -264,7 +264,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
     // Trigger projectile VFX for animation_start events
     if (event.type === 'animation_start' && event.attacker_id && event.target_id) {
-      const emoji = event.animation_id === 'skill_attack' ? '⚡' : '🗡️'
+      const emoji = '🗡️'
       setPendingProjectiles(p => p + 1)
       spawnProjectileRef.current({ 
         fromId: event.attacker_id, 
@@ -276,23 +276,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
         }
       })
     }
-
-    // NOTE: Projectile VFX now triggered by animation_start events above
-    // Keeping unit_attack trigger commented for reference
-    /*
-    if (event.type === 'unit_attack' && event.attacker_id && event.target_id) {
-      const emoji = event.is_skill ? '⚡' : '🗡️'
-      setPendingProjectiles(p => p + 1)
-      spawnProjectile({ 
-        fromId: event.attacker_id, 
-        toId: event.target_id, 
-        emoji,
-        onComplete: () => {
-          setPendingProjectiles(p => p - 1)
-        }
-      })
-    }
-    */
 
     // Compare with server if game_state present
     if (event.game_state) {

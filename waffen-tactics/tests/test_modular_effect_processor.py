@@ -2,6 +2,8 @@
 Tests for the modular effect processor system
 """
 import unittest
+from waffen_tactics.models.unit import Stats
+from waffen_tactics.services.combat_unit import CombatUnit
 from waffen_tactics.services.modular_effect_processor import (
     ModularEffectProcessor,
     ModularEffect,
@@ -158,6 +160,44 @@ class TestModularEffectProcessor(unittest.TestCase):
         self.assertEqual(reward2.type, RewardType.RESOURCE)
         self.assertEqual(reward2.resource, "gold")
         self.assertEqual(reward2.value, 10)
+
+    def test_targeting_preference_reward_is_persisted(self):
+        """Test that targeting preference rewards become persistent combat effects."""
+        effect = ModularEffect(
+            trigger=TriggerType.ON_ENEMY_DEATH,
+            conditions=EffectConditions(),
+            rewards=[Reward(
+                type=RewardType.TARGETING_PREFERENCE,
+                target_preference="backline"
+            )]
+        )
+
+        self.processor.register_effect("hitman", effect)
+
+        unit = CombatUnit(
+            id="unit1",
+            name="Hitman",
+            hp=100,
+            attack=20,
+            defense=5,
+            attack_speed=1.0,
+            effects=[],
+            max_mana=100,
+            stats=Stats(attack=20, hp=100, defense=5, max_mana=100, attack_speed=1.0, mana_on_attack=0, mana_regen=0),
+        )
+
+        context = {
+            'current_unit': unit,
+            'all_units': [unit],
+            'current_time': 1.0
+        }
+
+        result = self.processor.process_trigger(TriggerType.ON_ENEMY_DEATH, context)
+
+        self.assertEqual(len(result['events']), 1)
+        self.assertEqual(result['events'][0]['type'], 'targeting_preference')
+        self.assertEqual(result['events'][0]['preference'], 'backline')
+        self.assertTrue(any(e.get('type') == 'targeting_preference' and e.get('preference') == 'backline' for e in unit.effects))
 
 
 if __name__ == '__main__':

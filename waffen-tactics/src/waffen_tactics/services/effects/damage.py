@@ -40,7 +40,6 @@ class DamageHandler(EffectHandler):
                     cause='skill',
                     emit_event=False,
                 )
-                payload['is_skill'] = True
                 cb('unit_attack', payload)
                 return []
 
@@ -63,9 +62,6 @@ class DamageHandler(EffectHandler):
             print(f"[DAMAGE DEBUG] damage payload timestamp={payload.get('timestamp', None)} attacker={getattr(context.caster,'id',None)} target={getattr(target,'id',None)} amount={amount}")
         except Exception:
             raise
-
-        # Add is_skill marker to payload
-        payload['is_skill'] = True
 
         # Emit as unit_attack to distinguish skill damage from regular attacks
         if cb:

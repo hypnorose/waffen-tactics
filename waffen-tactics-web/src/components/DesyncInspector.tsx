@@ -7,6 +7,7 @@ interface DesyncEntry {
   timestamp?: number | null
   diff: Record<string, { ui: any, server: any }>
   pending_events: any[]
+  recent_events?: any[]
   note?: string
 }
 

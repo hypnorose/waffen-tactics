@@ -13,7 +13,6 @@ def build_damage_payload(
     side: str,
     timestamp: float,
     cause: str,
-    is_skill: bool = False,
     bonus_attack: bool = False,
 ) -> Dict[str, Any]:
     """Build canonical damage payload (pure function)."""
@@ -37,6 +36,5 @@ def build_damage_payload(
         'side': side,
         'timestamp': timestamp,
         'cause': cause,
-        'is_skill': is_skill,
         'bonus_attack': bonus_attack,
     }

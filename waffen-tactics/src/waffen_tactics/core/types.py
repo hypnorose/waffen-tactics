@@ -43,7 +43,6 @@ class UnitAttackEvent:
     target_hp: int = 0
     new_hp: int = 0
     cause: str = 'attack'
-    is_skill: bool = False
     bonus_attack: bool = False
 
 

@@ -41,6 +41,8 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
       return tag('START', 'Walka rozpoczyna sie')
     case 'animation_start':
       return null
+    case 'passive_triggered':
+      return tag('PASSIVE', `${event.unit_name || event.unit_id || 'Unit'}: ${event.description || event.effect || 'efekt aktywny'}`)
     case 'unit_attack': {
       const prefix = event.bonus_attack ? 'BONUS' : 'ATK'
       const damage = formatAmount(event.damage ?? event.applied_damage)
@@ -89,8 +91,6 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
       return tag('DOT', `${event.unit_name || event.unit_id || 'Unit'} DoT wygasl`)
     case 'effect_expired':
       return tag('BUFF', `${event.unit_name || event.unit_id || 'Unit'} efekt wygasl`)
-    case 'skill_cast':
-      return tag('SKILL', `${event.caster_name || event.caster_id || 'Caster'} skill disabled`)
     default:
       return null
   }

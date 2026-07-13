@@ -22,6 +22,10 @@ interface Unit {
     mana_cost?: number
     effects: any[]
   }
+  passive?: {
+    description: string
+    [key: string]: any
+  }
   buffed_stats?: {
     hp?: number
     attack?: number
@@ -243,6 +247,12 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
           {unit.position && (
             <div className="mb-2">
               <span className="bg-purple-500/30 px-2 py-1 rounded text-sm">{unit.position === 'front' ? 'Front' : 'Tył'}</span>
+            </div>
+          )}
+          {unit.passive?.description && (
+            <div className="mb-3 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-100">
+              <div className="mb-1 font-semibold text-amber-300">Pasywka</div>
+              <div>{unit.passive.description}</div>
             </div>
           )}
           <div className="grid grid-cols-3 gap-3 text-sm">

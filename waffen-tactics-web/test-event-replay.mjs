@@ -152,9 +152,7 @@ function applyCombatEvent(state, event, ctx) {
           }
         }
       }
-      const msg = event.is_skill
-        ? `🔥 ${event.attacker_name} zadaje ${event.damage?.toFixed(2)} obrażeń ${event.target_name} (umiejętność)`
-        : `⚔️ ${event.attacker_name} atakuje ${event.target_name} (${(event.damage ?? 0).toFixed(2)} dmg)`
+      const msg = `⚔️ ${event.attacker_name} atakuje ${event.target_name} (${(event.damage ?? 0).toFixed(2)} dmg)`
       newState.combatLog = [...newState.combatLog, msg]
       break
 
@@ -359,14 +357,8 @@ function applyCombatEvent(state, event, ctx) {
       break
 
     case 'skill_cast':
-      if (event.target_id && event.target_hp !== undefined) {
-        if (event.target_id.startsWith('opp_')) {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.target_id, u => ({ ...u, hp: event.target_hp }))
-        } else {
-          newState.playerUnits = updateUnitById(newState.playerUnits, event.target_id, u => ({ ...u, hp: event.target_hp }))
-        }
-      }
-      newState.combatLog = [...newState.combatLog, `✨ ${event.caster_name} używa ${event.skill_name}!`]
+      // Legacy replay payloads may still contain this event, but it no longer
+      // affects combat state in the attack-only ruleset.
       break
 
     case 'shield_applied':

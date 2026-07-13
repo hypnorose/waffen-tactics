@@ -10,6 +10,7 @@ export interface Unit {
   cost?: number
   factions?: string[]
   classes?: string[]
+  passive?: { description: string; [key: string]: any }
   buffed_stats?: {
     hp?: number
     attack?: number

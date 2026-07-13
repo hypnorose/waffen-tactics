@@ -72,7 +72,6 @@ class CombatAttackProcessor:
                     'side': side,
                     'timestamp': time,
                     'cause': 'attack',
-                    'is_skill': False,
                     'bonus_attack': False,
                 }
                 events.append(attack_event)
@@ -121,7 +120,6 @@ class CombatAttackProcessor:
                         'side': side,
                         'timestamp': round(time + 0.05, 10),
                         'cause': 'attack',
-                        'is_skill': False,
                         'bonus_attack': True,
                     }
                     events.append(bonus_attack)
@@ -215,18 +213,11 @@ class CombatAttackProcessor:
         animation_system = get_animation_system()
 
         if event_type == 'unit_attack':
-            # Check if it's a skill attack
-            if event.get('is_skill', False):
-                return 'skill_attack'
-            else:
-                return 'basic_attack'
+            return 'basic_attack'
         elif event_type == 'heal':
             return 'heal'
         elif event_type == 'stat_buff':
             return 'buff'
-        elif event_type == 'skill_cast':
-            # Could have different animations for different skills
-            return 'skill_attack'
 
         # For other event types, check if there's a registered animation
         # This allows new animations to be added without modifying this code
@@ -258,12 +249,6 @@ class CombatAttackProcessor:
 
             elif event_type == 'mana_update':
                 self._apply_mana_update(event, combat_state)
-
-            elif event_type == 'skill_cast':
-                continue
-
-            elif event_type == 'skill_attack':
-                continue
 
         return winner
 
@@ -393,186 +378,7 @@ class CombatAttackProcessor:
         NOTE: Mana changes are already applied by canonical emitters during compute phase.
         This method exists only for event processing consistency but does not re-apply changes.
         """
-        from ..services.error_print import error_print
-        error_print("DEBUG: _apply_mana_update called")
-        # Mana changes already applied by emit_mana_change/emit_mana_update during compute phase
-        # Do not re-apply to avoid double application
         pass
-
-    def _apply_skill_cast(
-        self,
-        event: Dict[str, Any],
-        combat_state: 'CombatState',
-        log: List[str]
-    ) -> Optional[str]:
-        """Skills are disabled in the current ruleset."""
-        return None
-        caster_id = event['caster_id']
-        target_id = event['target_id']
-        skill_damage = event.get('damage', 0)
-        side = event['side']
-        time = event['timestamp']
-        skill_name = event['skill_name']
-
-        # Find units
-        if side == 'team_a':
-            caster_team = combat_state.team_a
-            target_team = combat_state.team_b
-            target_hp = combat_state.b_hp
-        else:
-            caster_team = combat_state.team_b
-            target_team = combat_state.team_a
-            target_hp = combat_state.a_hp
-
-        caster = next((u for u in caster_team if u.id == caster_id), None)
-        target = next((u for u in target_team if u.id == target_id), None)
-        target_idx = next((i for i, u in enumerate(target_team) if u.id == target_id), None)
-
-        if not caster or not target or target_idx is None:
-            return None
-
-        # Reset mana to 0
-        mana_reset_amount = -caster.mana
-        from ..services.event_canonicalizer import emit_mana_change
-        if hasattr(self, 'a_mana') and hasattr(self, 'b_mana'):
-            mana_arrays = {'team_a': self.a_mana, 'team_b': self.b_mana}
-            emit_mana_change(
-                self.event_dispatcher.emit,
-                caster,
-                mana_reset_amount,
-                side=side,
-                timestamp=time,
-                mana_arrays=mana_arrays,
-                unit_index=target_idx if target_idx is not None else None,
-                unit_side=side
-            )
-        else:
-            emit_mana_change(
-                self.event_dispatcher.emit,
-                caster,
-                mana_reset_amount,
-                side=side,
-                timestamp=time
-            )
-
-        log.append(f"[{time:.2f}s] {caster.name} casts {skill_name}!")
-
-        # Apply skill damage
-        if skill_damage > 0:
-            target_hp[target_idx] -= skill_damage
-            target_hp[target_idx] = max(0, int(target_hp[target_idx]))
-            log.append(f"[{time:.2f}s] {skill_name} deals {skill_damage} damage to {target.name}")
-
-            # Emit skill cast event
-            self.event_dispatcher.emit('skill_cast', {
-                'caster_id': caster.id,
-                'caster_name': caster.name,
-                'skill_name': skill_name,
-                'target_id': target.id,
-                'target_name': target.name,
-                'damage': skill_damage,
-                'target_hp': target_hp[target_idx],
-                'target_max_hp': target.max_hp,
-                'side': side,
-                'timestamp': time,
-                'message': f"{caster.name} casts {skill_name}!"
-            })
-
-        # Check if target died from skill
-        if target_hp[target_idx] <= 0:
-            winner = self._process_unit_death(
-                caster, target_team, target_hp, caster_team, combat_state.a_hp if side == 'team_a' else combat_state.b_hp, target_idx, time, log, side
-            )
-            return winner
-
-        return None
-
-    def _apply_skill_attack(
-        self,
-        event: Dict[str, Any],
-        combat_state: 'CombatState',
-        log: List[str]
-    ) -> Optional[str]:
-        """Skills are disabled in the current ruleset."""
-        return None
-        attacker_id = event['attacker_id']
-        target_id = event['target_id']
-        damage = event['damage']
-        side = event['side']
-        time = event['timestamp']
-
-        # Find units
-        attacker = None
-        target = None
-        target_idx = None
-
-        if side == 'team_a':
-            attacking_team = combat_state.team_a
-            defending_team = combat_state.team_b
-            defending_hp = combat_state.b_hp
-        else:
-            attacking_team = combat_state.team_b
-            defending_team = combat_state.team_a
-            defending_hp = combat_state.a_hp
-
-        for i, unit in enumerate(attacking_team):
-            if unit.id == attacker_id:
-                attacker = unit
-                break
-
-        for i, unit in enumerate(defending_team):
-            if unit.id == target_id:
-                target = unit
-                target_idx = i
-                break
-
-        if not attacker or not target or target_idx is None:
-            return None
-
-        # Apply damage using canonical emitter
-        from ..services.event_canonicalizer import emit_damage
-
-        # Prepare HP arrays for canonical emitter to update atomically
-        hp_arrays = {'team_a': combat_state.a_hp, 'team_b': combat_state.b_hp}
-        defending_side = 'team_b' if side == 'team_a' else 'team_a'
-
-        emit_damage(
-            self.event_dispatcher.emit,
-            attacker=attacker,
-            target=target,
-            raw_damage=damage,
-            side=side,
-            timestamp=time,
-            cause='skill',
-            hp_arrays=hp_arrays,
-            unit_index=target_idx,
-            unit_side=defending_side,
-        )
-
-        # HP array is now updated atomically by emit_damage - no manual sync needed
-
-        # Log
-        msg = f"[{time:.2f}s] {side.upper()[0]}:{attacker.name} skill hits {'A' if side == 'team_b' else 'B'}:{target.name} for {damage}, hp={defending_hp[target_idx]}"
-        log.append(msg)
-
-        # Check if target died
-        if defending_hp[target_idx] <= 0:
-            winner = self._process_unit_death(
-                attacker, defending_team, defending_hp, attacking_team, combat_state.a_hp if side == 'team_a' else combat_state.b_hp, target_idx, time, log, side
-            )
-            return winner
-
-        return None
-
-    def _compute_skill_cast(
-        self,
-        caster: 'CombatUnit',
-        target: 'CombatUnit',
-        time: float,
-        side: str
-    ) -> List[Dict[str, Any]]:
-        """Skills are disabled in the current ruleset."""
-        return []
 
     def _select_target(
         self,
@@ -585,22 +391,45 @@ class CombatAttackProcessor:
         """Select a target for the attacking unit at index attacker_idx."""
         unit = attacking_team[attacker_idx]
 
+        def _normalize_preference(value: Any) -> Optional[str]:
+            if not value:
+                return None
+            mapping = {
+                'back': 'backline',
+                'backline': 'backline',
+                'front': 'frontline',
+                'frontline': 'frontline',
+                'lowest_hp': 'lowest_hp',
+                'weakest': 'lowest_hp',
+                'highest_hp': 'highest_hp',
+                'tank': 'highest_hp',
+            }
+            return mapping.get(str(value).lower())
+
+        def _get_target_preference() -> Optional[str]:
+            for e in reversed(getattr(unit, 'effects', []) or []):
+                if isinstance(e, dict) and e.get('type') == 'targeting_preference':
+                    pref = _normalize_preference(e.get('preference'))
+                    if pref:
+                        return pref
+            # legacy support
+            for e in getattr(unit, 'effects', []) or []:
+                if isinstance(e, dict) and e.get('type') == 'target_backline':
+                    return 'backline'
+                if isinstance(e, str) and e == 'target_backline':
+                    return 'backline'
+                if isinstance(e, dict) and e.get('type') == 'target_least_hp':
+                    return 'lowest_hp'
+            return None
+
         # Find alive targets and split by line
         front_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'front']
         back_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'back']
 
         # Default ordering: front line first then back line
         targets = front_targets + back_targets
-        # If unit has a 'target_backline' effect, prefer backline targets first
-        has_backline = False
-        for e in getattr(unit, 'effects', []) or []:
-            if isinstance(e, dict) and e.get('type') == 'target_backline':
-                has_backline = True
-                break
-            if isinstance(e, str) and e == 'target_backline':
-                has_backline = True
-                break
-        if has_backline:
+        preference = _get_target_preference()
+        if preference == 'backline':
             targets = back_targets + front_targets
         if not targets:
             return None
@@ -609,21 +438,25 @@ class CombatAttackProcessor:
         # Default behaviour (when the var is not set) is to select randomly within the preferred line.
         DETERMINISTIC_TARGETING = os.getenv('WAFFEN_DETERMINISTIC_TARGETING', '0') in ('1', 'true', 'True')
 
-        # Target selection override: if attacker has 'target_least_hp', pick alive target with least current HP
-        if any(e.get('type') == 'target_least_hp' for e in getattr(unit, 'effects', [])):
-            target_idx = min([t[0] for t in targets], key=lambda idx: defending_hp[idx])
+        # Target selection override: support target preference effects and legacy targeting hooks.
+        if preference in ('lowest_hp', 'highest_hp'):
+            chooser = min if preference == 'lowest_hp' else max
+            target_idx = chooser([t[0] for t in targets], key=lambda idx: defending_hp[idx])
         else:
+            candidate_list = targets
+            if preference == 'backline':
+                candidate_list = back_targets if back_targets else front_targets
+            elif preference == 'frontline':
+                candidate_list = front_targets if front_targets else back_targets
+
+            if not candidate_list:
+                candidate_list = targets
+
             # Deterministic override: when the env var is set we pick the first-in-priority list.
             # Otherwise (default) pick a random target within the preferred line.
             if DETERMINISTIC_TARGETING:
-                target_idx = targets[0][0]
+                target_idx = candidate_list[0][0]
             else:
-                if has_backline:
-                    preferred = back_targets if back_targets else front_targets
-                else:
-                    preferred = front_targets if front_targets else back_targets
-
-                candidate_list = preferred if preferred else targets
                 target_idx = random.choice([t[0] for t in candidate_list])
 
         return target_idx
@@ -670,7 +503,7 @@ class CombatAttackProcessor:
                         pass
 
         # Emit passthrough/meta events (those not handled by apply_attack_events)
-        handled_types = {'animation_start', 'unit_attack', 'unit_heal', 'mana_update', 'skill_cast', 'skill_attack'}
+        handled_types = {'animation_start', 'unit_attack', 'unit_heal', 'mana_update'}
         passthrough = [e for e in events if e.get('type') not in handled_types]
         if event_cb:
             for e in passthrough:
@@ -689,7 +522,7 @@ class CombatAttackProcessor:
 
         # Apply only the attack/mana/heal/skill events; animation_start and passthrough events
         # have already been emitted above.
-        damage_events = [e for e in events if e.get('type') in ('unit_attack', 'unit_heal', 'mana_update', 'skill_cast', 'skill_attack')]
+        damage_events = [e for e in events if e.get('type') in ('unit_attack', 'unit_heal', 'mana_update')]
         winner = self.apply_attack_events(damage_events, combat_state, log)
         
         # Update last attack times for units that attacked

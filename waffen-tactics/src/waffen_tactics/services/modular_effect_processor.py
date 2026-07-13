@@ -164,6 +164,44 @@ class Reward:
             return self._apply_dynamic_scaling(context, event_callback)
         return {}
 
+    def _append_unit_effect(self, unit: Any, effect: Dict[str, Any]) -> None:
+        """Append or replace a persistent combat effect on a unit."""
+        if not unit or not isinstance(effect, dict):
+            return
+
+        effect = dict(effect)
+        effect.setdefault('id', f"effect_{self.type.value}_{id(self)}")
+
+        try:
+            existing = list(getattr(unit, 'effects', []) or [])
+        except Exception:
+            existing = []
+
+        if effect.get('type') == 'targeting_preference':
+            existing = [e for e in existing if not (isinstance(e, dict) and e.get('type') == 'targeting_preference')]
+        elif effect.get('type') == 'buff_amplifier':
+            # Keep the strongest amplifier only; combat logic uses max() anyway.
+            existing = [e for e in existing if not (isinstance(e, dict) and e.get('type') == 'buff_amplifier')]
+
+        existing.append(effect)
+
+        try:
+            if isinstance(unit, dict):
+                unit['effects'] = existing
+            else:
+                unit.effects = existing
+        except Exception:
+            try:
+                setattr(unit, 'effects', existing)
+            except Exception:
+                pass
+
+        try:
+            if hasattr(unit, '_update_caches'):
+                unit._update_caches()
+        except Exception:
+            pass
+
     def _apply_stat_buff(self, context: Dict[str, Any], event_callback: Optional[Callable[[str, Dict[str, Any]], None]]) -> Dict[str, Any]:
         """Apply stat buff using emit_stat_buff"""
         # Calculate actual value
@@ -414,7 +452,14 @@ class Reward:
         return {}
 
     def _apply_buff_amplifier(self, context: Dict[str, Any], event_callback: Optional[Callable[[str, Dict[str, Any]], None]]) -> Dict[str, Any]:
-        """Apply buff amplifier - handled by combat system"""
+        """Apply buff amplifier as a persistent effect on the unit."""
+        unit = context.get('current_unit')
+        if unit:
+            effect = {
+                'type': 'buff_amplifier',
+                'multiplier': self.multiplier,
+            }
+            self._append_unit_effect(unit, effect)
         # This is a complex effect that modifies how other buffs are applied
         # The combat system should handle the actual amplification logic
         return {
@@ -423,7 +468,14 @@ class Reward:
         }
 
     def _apply_targeting_preference(self, context: Dict[str, Any], event_callback: Optional[Callable[[str, Dict[str, Any]], None]]) -> Dict[str, Any]:
-        """Apply targeting preference - handled by combat system"""
+        """Apply targeting preference as a persistent effect on the unit."""
+        unit = context.get('current_unit')
+        if unit:
+            effect = {
+                'type': 'targeting_preference',
+                'preference': self.target_preference
+            }
+            self._append_unit_effect(unit, effect)
         return {
             'type': 'targeting_preference',
             'preference': self.target_preference

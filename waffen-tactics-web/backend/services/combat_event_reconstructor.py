@@ -1,4 +1,4 @@
-"""
+﻿"""
 Combat Event Reconstructor - Reconstructs game state from combat events
 
 ================================================================================
@@ -16,7 +16,7 @@ CORE PRINCIPLE:
 
 CURRENT VIOLATIONS (marked with ❌ in code):
 
-1. skill_cast is display-only and does not mutate state
+1. legacy skill_cast events are ignored
    → Backend emits mana_update and unit_attack events separately
 
 2. stat_buff handler computes percentage deltas and infers random stats
@@ -43,7 +43,7 @@ REQUIRED BACKEND FIXES (see individual function docstrings for details):
     [ ] Random stat buffs resolve to concrete stat before emission
     [ ] All effect applications emit explicit events (not just in snapshots)
     [ ] All effect expirations emit explicit events
-    [ ] skill_cast events do NOT include damage field
+    [ ] legacy skill_cast payloads should not be relied on for damage
 
 Once backend is fixed, LARGE SECTIONS of this reconstructor should be DELETED.
 Target: <300 lines of simple event application, not 1000+ lines of game logic.
@@ -125,6 +125,10 @@ class CombatEventReconstructor:
             self._process_hp_regen_event(event_data)
         elif event_type == 'skill_cast':
             self._process_skill_cast_event(event_data)
+        elif event_type == 'passive_triggered':
+            # Passive events explain the action; authoritative mutations arrive
+            # through stat, mana, and effect events in the same stream.
+            pass
         elif event_type == 'state_snapshot':
             self._process_state_snapshot_event(event_data)
         else:
@@ -358,16 +362,7 @@ class CombatEventReconstructor:
             unit_dict['effects'].append(eff)
             print(f"  Applied DoT effect to unit {unit_id}: effect_id={eff.get('id')}, damage={eff.get('damage')}")
     def _process_skill_cast_event(self, event_data: Dict[str, Any]):
-        """Process skill_cast event.
-
-        NOTE: This handler is INTENTIONALLY LIMITED.
-        - Mana changes should come from 'mana_update' events (backend emits these after skill cast)
-        - Damage should come from 'unit_attack' or 'attack' events (NOT from skill_cast)
-        - This event exists ONLY for UI animation triggers
-
-        DO NOT ADD GAME LOGIC HERE. If this handler seems incomplete, FIX THE BACKEND to emit
-        proper mana_update/damage events instead.
-        """
+        """Legacy no-op for old replay payloads that still mention skill_cast."""
         return
 
     def _process_stat_buff_event(self, event_data: Dict[str, Any]):

@@ -97,6 +97,7 @@ def get_units_data():
             'role_color': getattr(unit, 'role_color', '#6b7280'),
             'avatar': getattr(unit, 'avatar', None),
             'skill': skill_data,
+            'passive': getattr(unit, 'passive', None),
             'stats': stats_dict
         })
     return units_data
