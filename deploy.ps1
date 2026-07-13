@@ -92,6 +92,7 @@ git reset --hard '$RemoteName/$Branch'
 ./start-all.sh
 ./status.sh
 "@
+$remoteScript = $remoteScript -replace "`r", ""
 
 Invoke-Step "Sync and restart on VPS" {
     $remoteScript | ssh $HostAlias 'bash -s'
