@@ -203,6 +203,12 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
             newU.defense = (u.defense ?? 0) + delta
             // buffed_stats should reflect the NEW defense value after delta is applied
             newU.buffed_stats = { ...u.buffed_stats, defense: newU.defense }
+          } else if (event.stat === 'max_hp') {
+            // Increasing max HP must not heal the unit. Keep current HP, but make
+            // both authoritative max HP representations available to the UI.
+            newU.max_hp = Math.max(0, (u.max_hp ?? u.hp ?? 0) + delta)
+            newU.hp = Math.min(u.hp, newU.max_hp)
+            newU.buffed_stats = { ...u.buffed_stats, hp: newU.max_hp }
           }
           return newU
         }
@@ -535,6 +541,10 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
             } else if (expiredEffect.stat === 'defense') {
               newU.defense = (u.defense ?? 0) + delta
               newU.buffed_stats = { ...u.buffed_stats, defense: newU.defense }
+            } else if (expiredEffect.stat === 'max_hp') {
+              newU.max_hp = Math.max(0, (u.max_hp ?? u.hp ?? 0) + delta)
+              newU.hp = Math.min(u.hp, newU.max_hp)
+              newU.buffed_stats = { ...u.buffed_stats, hp: newU.max_hp }
             }
           }
 

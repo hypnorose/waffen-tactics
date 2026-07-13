@@ -148,6 +148,39 @@ describe('applyCombatEvent - Effect Handling', () => {
       expect(player!.buffed_stats.attack).toBe(80)
     })
 
+    it('should apply max HP buffs without healing the unit', () => {
+      const event: CombatEvent = {
+        type: 'stat_buff',
+        unit_id: 'player_0',
+        unit_name: 'TestPlayer',
+        stat: 'max_hp',
+        value: 10,
+        amount: 10,
+        value_type: 'percentage',
+        duration: null,
+        permanent: true,
+        effect_id: 'max-hp-buff',
+        applied_delta: 72,
+        seq: 1,
+        timestamp: 1.0
+      }
+
+      const damagedState = {
+        ...state,
+        playerUnits: state.playerUnits.map(unit => ({ ...unit, hp: 400 }))
+      }
+      const newState = applyCombatEvent(damagedState, event, { simTime: 1.0 })
+
+      const player = newState.playerUnits.find(u => u.id === 'player_0')
+      expect(player!.hp).toBe(400)
+      expect(player!.max_hp).toBe(572)
+      expect(player!.buffed_stats.hp).toBe(572)
+      expect(player!.effects![0]).toMatchObject({
+        stat: 'max_hp',
+        applied_delta: 72
+      })
+    })
+
     it('should not duplicate effects with same ID', () => {
       const event: CombatEvent = {
         type: 'stat_buff',
@@ -284,6 +317,50 @@ describe('applyCombatEvent - Effect Handling', () => {
 
       player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.defense).toBe(25) // Back to original
+    })
+
+    it('should revert temporary max HP buffs without healing the unit', () => {
+      const buffEvent: CombatEvent = {
+        type: 'stat_buff',
+        unit_id: 'player_0',
+        unit_name: 'TestPlayer',
+        stat: 'max_hp',
+        value: 10,
+        amount: 10,
+        value_type: 'percentage',
+        duration: 3,
+        permanent: false,
+        effect_id: 'expiring-max-hp-buff',
+        applied_delta: 72,
+        seq: 1,
+        timestamp: 1.0
+      }
+
+      const damagedState = {
+        ...state,
+        playerUnits: state.playerUnits.map(unit => ({ ...unit, hp: 400 }))
+      }
+      let newState = applyCombatEvent(damagedState, buffEvent, { simTime: 1.0 })
+
+      let player = newState.playerUnits.find(u => u.id === 'player_0')
+      expect(player!.hp).toBe(400)
+      expect(player!.max_hp).toBe(572)
+      expect(player!.buffed_stats.hp).toBe(572)
+
+      newState = applyCombatEvent(newState, {
+        type: 'effect_expired',
+        unit_id: 'player_0',
+        unit_name: 'TestPlayer',
+        effect_id: 'expiring-max-hp-buff',
+        seq: 2,
+        timestamp: 4.0
+      }, { simTime: 4.0 })
+
+      player = newState.playerUnits.find(u => u.id === 'player_0')
+      expect(player!.hp).toBe(400)
+      expect(player!.max_hp).toBe(500)
+      expect(player!.buffed_stats.hp).toBe(500)
+      expect(player!.effects).toHaveLength(0)
     })
   })
 
