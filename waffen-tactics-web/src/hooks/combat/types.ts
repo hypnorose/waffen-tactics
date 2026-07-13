@@ -148,8 +148,21 @@ export interface CombatSummaryFocus {
   seq?: number
 }
 
+export interface CombatUnitRoundStats {
+  unit_name: string
+  damage_dealt: number
+  damage_received: number
+  avg_dps: number
+  avg_damage_received: number
+  active_seconds: number
+  participated: boolean
+  first_activity_at?: number
+  death_at?: number
+}
+
 export interface CombatSummary {
   totalDamageByUnit: Record<string, { unit_name: string; damage: number }>
+  unitStatsByUnit: Record<string, CombatUnitRoundStats>
   bonusAttacks: number
   firstDeath: CombatSummaryEntry | null
   lastAction: {
@@ -160,6 +173,9 @@ export interface CombatSummary {
   } | null
   focus: CombatSummaryFocus | null
   roundResult: string | null
+  roundStartAt?: number
+  roundEndAt?: number
+  lastEventAt?: number
 }
 
 export interface CombatState {

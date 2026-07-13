@@ -4,14 +4,16 @@ import { useGameStore } from '../store/gameStore'
 import { gameAPI } from '../services/api'
 import { getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
 import { getAllUnits, getCostBorderColor } from '../data/units'
+import type { CombatUnitRoundStats } from '../hooks/combat/types'
 
 interface GameBoardProps {
   playerState: any
   onUpdate: (state: any) => void
   onNotification: (message: string, type?: 'error' | 'success' | 'info') => void
+  roundStatsByUnit?: Record<string, CombatUnitRoundStats>
 }
 
-export default function GameBoard({ playerState, onUpdate, onNotification }: GameBoardProps) {
+export default function GameBoard({ playerState, onUpdate, onNotification, roundStatsByUnit }: GameBoardProps) {
   const [loading, setLoading] = useState(false)
   const [traits, setTraits] = useState<any[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -223,7 +225,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification }: Gam
                 >
                   {lineType === 'front' ? '⬇' : '⬆'}
                 </button>
-                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} />
+                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} lastRoundStats={roundStatsByUnit?.[unitInstance.instance_id]} />
               </div>
             )
           } else {

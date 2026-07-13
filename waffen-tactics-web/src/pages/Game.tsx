@@ -10,6 +10,7 @@ import CombatOverlay from '../components/CombatOverlay'
 import TraitsInfoModal from '../components/TraitsInfoModal'
 import NotificationModal from '../components/NotificationModal'
 import { loadUnits } from '../data/units'
+import type { CombatUnitRoundStats } from '../hooks/combat/types'
 
 export default function Game() {
   const { user, logout } = useAuthStore()
@@ -23,6 +24,7 @@ export default function Game() {
   const [notificationType, setNotificationType] = useState<'error' | 'success' | 'info'>('error')
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<'24h' | 'all'>('24h')
+  const [lastRoundStatsByUnit, setLastRoundStatsByUnit] = useState<Record<string, CombatUnitRoundStats>>({})
 
   const showNotificationModal = (message: string, type: 'error' | 'success' | 'info' = 'error') => {
     setNotificationMessage(message)
@@ -107,10 +109,13 @@ export default function Game() {
     setShowCombat(true)
   }
 
-  const handleCombatEnd = (newState?: any) => {
+  const handleCombatEnd = (newState?: any, roundStatsByUnit?: Record<string, CombatUnitRoundStats>) => {
     setShowCombat(false)
     if (newState) {
       setPlayerState(newState)
+    }
+    if (roundStatsByUnit && Object.keys(roundStatsByUnit).length > 0) {
+      setLastRoundStatsByUnit(roundStatsByUnit)
     }
   }
 
@@ -358,7 +363,7 @@ export default function Game() {
             </span>
             {isGameOver && <span className="text-sm text-red-500 font-normal ml-2">(Gra zakończona - tylko podgląd)</span>}
           </h2>
-          <GameBoard playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />
+          <GameBoard playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} roundStatsByUnit={lastRoundStatsByUnit} />
         </div>
 
         {/* Bench Section */}

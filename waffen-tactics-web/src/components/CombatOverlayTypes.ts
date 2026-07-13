@@ -1,4 +1,5 @@
 import { PlayerState } from '../store/gameStore'
+import type { CombatUnitRoundStats } from '../hooks/combat/types'
 
 export interface Unit {
   id: string
@@ -51,7 +52,7 @@ export interface CombatEvent {
 }
 
 export interface CombatOverlayProps {
-  onClose: (newState?: PlayerState) => void
+  onClose: (newState?: PlayerState, roundStatsByUnit?: Record<string, CombatUnitRoundStats>) => void
 }
 
 export interface SynergiesPanelProps {

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { getUnit } from '../data/units'
 import { useUnitAnchors } from '../hooks/useUnitAnchors'
+import type { CombatUnitRoundStats } from '../hooks/combat/types'
 
 interface Unit {
   id: string
@@ -43,6 +44,7 @@ interface Props {
   regen?: { amount_per_sec: number } | undefined
   isActiveAttacker?: boolean
   isActiveTarget?: boolean
+  roundStats?: CombatUnitRoundStats
 }
 
 const getRarityColor = (cost?: number) => {
@@ -55,7 +57,7 @@ const getRarityColor = (cost?: number) => {
   return '#6b7280'
 }
 
-export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget }: Props) {
+export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget, roundStats }: Props) {
   const [showTooltip, setShowTooltip] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const { register } = useUnitAnchors()
@@ -218,6 +220,22 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
         />
       </div>
 
+      {roundStats?.participated && (
+        <div
+          className="mt-1 grid grid-cols-2 gap-1 rounded border border-slate-600/80 bg-slate-950/60 px-1 py-1 text-[9px] leading-tight"
+          title="Średnie statystyki z ostatniej rundy"
+        >
+          <div>
+            <div className="text-orange-300">DPS</div>
+            <div className="font-bold text-orange-100">{roundStats.avg_dps.toFixed(1)}</div>
+          </div>
+          <div>
+            <div className="text-red-300">Przyjęte/s</div>
+            <div className="font-bold text-red-100">{roundStats.avg_damage_received.toFixed(1)}</div>
+          </div>
+        </div>
+      )}
+
       {/* Tooltip */}
       {showTooltip && (
         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-800 border border-gray-600 text-white text-sm rounded-lg p-4 shadow-xl z-[100] min-w-[300px]">
@@ -263,6 +281,12 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
             <div>🔮 Mana: {Math.round(displayMana)}/{Math.round(displayMaxMana)}</div>
             {displayHpRegen > 0 && <div>💚 Regen: +{Math.round(displayHpRegen)}/s</div>}
           </div>
+          {roundStats?.participated && (
+            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-700 pt-2 text-xs">
+              <div className="text-orange-200">Śr. DPS: <strong>{roundStats.avg_dps.toFixed(1)}</strong></div>
+              <div className="text-red-200">Przyjęte/s: <strong>{roundStats.avg_damage_received.toFixed(1)}</strong></div>
+            </div>
+          )}
           {/* Arrow */}
           <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
         </div>

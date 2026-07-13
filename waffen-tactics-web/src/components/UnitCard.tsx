@@ -1,5 +1,6 @@
 import { getUnit, getCostBorderColor, getFactionColor } from '../data/units'
 import { useRef, useState } from 'react'
+import type { CombatUnitRoundStats } from '../hooks/combat/types'
 
 interface UnitCardProps {
   unitId: string
@@ -26,6 +27,7 @@ interface UnitCardProps {
     max_mana?: number
     current_mana?: number
   }
+  lastRoundStats?: CombatUnitRoundStats
 }
 
 export default function UnitCard({
@@ -39,6 +41,7 @@ export default function UnitCard({
   position,
   baseStats,
   buffedStats,
+  lastRoundStats,
 }: UnitCardProps) {
   const unit = getUnit(unitId)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -192,7 +195,7 @@ export default function UnitCard({
             )}
           </div>
 
-          {scaledStats && (
+            {scaledStats && (
             <div className="space-y-2">
               <div className="flex items-center justify-between py-1">
                 <span className="text-red-400 flex items-center gap-1">
@@ -275,6 +278,19 @@ export default function UnitCard({
               </div>
             </div>
           )}
+          {lastRoundStats?.participated && (
+            <div className="mt-2 border-t border-slate-700 pt-2 text-[11px] text-slate-200">
+              <div className="mb-1 font-semibold text-slate-400">Ostatnia runda</div>
+              <div className="flex items-center justify-between">
+                <span className="text-orange-300">Śr. DPS</span>
+                <span className="font-bold text-orange-200">{lastRoundStats.avg_dps.toFixed(1)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-red-300">Przyjęte/s</span>
+                <span className="font-bold text-red-200">{lastRoundStats.avg_damage_received.toFixed(1)}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -344,6 +360,13 @@ export default function UnitCard({
             </span>
           ))}
         </div>
+
+        {lastRoundStats?.participated && !detailed && (
+          <div className="flex items-center justify-center gap-2 border-t border-slate-700/80 pt-1 text-[9px] leading-none">
+            <span className="text-orange-300" title="Średni DPS z ostatniej rundy">DPS {lastRoundStats.avg_dps.toFixed(1)}</span>
+            <span className="text-red-300" title="Średnie przyjęte obrażenia na sekundę">-HP/s {lastRoundStats.avg_damage_received.toFixed(1)}</span>
+          </div>
+        )}
 
         {scaledStats && detailed && (
           <div className="text-[10px] space-y-0.5 flex-1 flex flex-col justify-end">

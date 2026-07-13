@@ -62,4 +62,44 @@ describe('combatPresentation', () => {
     expect(afterResult.firstDeath?.unit_id).toBe('opp_1')
     expect(afterResult.roundResult).toContain('ZWYCIESTWO')
   })
+
+  it('calculates average dealt and received damage for participating units', () => {
+    const summary = createCombatSummary()
+    const events: CombatEvent[] = [
+      { type: 'start', timestamp: 0 },
+      {
+        type: 'unit_attack',
+        attacker_id: 'unit_a',
+        attacker_name: 'Unit A',
+        target_id: 'unit_b',
+        target_name: 'Unit B',
+        applied_damage: 40,
+        timestamp: 1,
+      },
+      {
+        type: 'unit_attack',
+        attacker_id: 'unit_b',
+        attacker_name: 'Unit B',
+        target_id: 'unit_a',
+        target_name: 'Unit A',
+        applied_damage: 20,
+        timestamp: 3,
+      },
+      { type: 'unit_died', unit_id: 'unit_b', unit_name: 'Unit B', timestamp: 4 },
+      { type: 'victory', message: 'ZWYCIESTWO', timestamp: 5 },
+    ]
+
+    const result = events.reduce(updateCombatSummary, summary)
+
+    expect(result.unitStatsByUnit.unit_a).toMatchObject({
+      participated: true,
+      damage_dealt: 40,
+      damage_received: 20,
+      active_seconds: 4,
+      avg_dps: 10,
+      avg_damage_received: 5,
+    })
+    expect(result.unitStatsByUnit.unit_b?.avg_dps).toBeCloseTo(20 / 3, 5)
+    expect(result.unitStatsByUnit.unit_b?.avg_damage_received).toBeCloseTo(40 / 3, 5)
+  })
 })

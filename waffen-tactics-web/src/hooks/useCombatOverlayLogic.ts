@@ -6,10 +6,10 @@ import { computeDelayMs } from './combat/replayTiming'
 import { applyCombatEvent } from './combat/applyEvent'
 import { compareCombatStates } from './combat/desync'
 import { useProjectileSystem } from './useProjectileSystem'
-import { CombatState, CombatEvent, DesyncEntry } from './combat/types'
+import { CombatState, CombatEvent, CombatUnitRoundStats, DesyncEntry } from './combat/types'
 
 interface UseCombatOverlayLogicProps {
-  onClose: (newState?: PlayerState) => void
+  onClose: (newState?: PlayerState, roundStatsByUnit?: Record<string, CombatUnitRoundStats>) => void
   logEndRef: MutableRefObject<HTMLDivElement | null>
   replayEnabled?: boolean
 }
@@ -379,7 +379,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [combatState.combatLog])
 
-  const handleClose = () => onClose(combatState.finalState || undefined)
+  const handleClose = () => onClose(combatState.finalState || undefined, combatState.combatSummary?.unitStatsByUnit)
   const handleGoldDismiss = () => { setDisplayedGoldBreakdown(null); setStoredGoldBreakdown(null); handleClose() }
 
   const hasCombatInitData =
