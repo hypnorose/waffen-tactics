@@ -16,7 +16,7 @@ CORE PRINCIPLE:
 
 CURRENT VIOLATIONS (marked with ❌ in code):
 
-1. skill_cast handler applies mana reset and damage (REMOVED - now empty)
+1. skill_cast is display-only and does not mutate state
    → Backend emits mana_update and unit_attack events separately
 
 2. stat_buff handler computes percentage deltas and infers random stats
@@ -66,8 +66,6 @@ class CombatEventReconstructor:
         self.reconstructed_player_units: Dict[str, Dict[str, Any]] = {}
         self.reconstructed_opponent_units: Dict[str, Dict[str, Any]] = {}
         self.seed = None
-        # Collect DoT tick/applied events per unit for targeted debugging
-        self._dot_trace: Dict[str, List[Dict[str, Any]]] = {}
 
     def initialize_from_snapshot(self, snapshot_data: Dict[str, Any]):
         """Initialize reconstruction from a state_snapshot event."""
@@ -359,24 +357,6 @@ class CombatEventReconstructor:
         if eff.get('id') not in existing_ids:
             unit_dict['effects'].append(eff)
             print(f"  Applied DoT effect to unit {unit_id}: effect_id={eff.get('id')}, damage={eff.get('damage')}")
-            # Record application in dot trace for debugging (helps when ticks are missing)
-            try:
-                lt = self._dot_trace.setdefault(unit_id, [])
-                entry = {
-                    'seq': event_data.get('seq'),
-                    'timestamp': event_data.get('timestamp'),
-                    'damage': event_data.get('damage'),
-                    'effect_id': eff.get('id'),
-                    'event': 'applied',
-                    'unit_hp': event_data.get('unit_hp') if 'unit_hp' in event_data else event_data.get('target_hp') if 'target_hp' in event_data else event_data.get('new_hp') if 'new_hp' in event_data else None,
-                    'raw_event': dict(event_data)
-                }
-                lt.append(entry)
-                if unit_id == 'mrvlook':
-                    print(f"[DOT TRACE APPEND] unit={unit_id} appended_trace_len={len(lt)} entry={entry}")
-            except Exception:
-                pass
-
     def _process_skill_cast_event(self, event_data: Dict[str, Any]):
         """Process skill_cast event.
 
@@ -388,9 +368,7 @@ class CombatEventReconstructor:
         DO NOT ADD GAME LOGIC HERE. If this handler seems incomplete, FIX THE BACKEND to emit
         proper mana_update/damage events instead.
         """
-        # skill_cast is primarily for UI/animation purposes
-        # All state changes (mana, damage, buffs) come from dedicated events
-        pass  # Intentionally minimal - backend emits proper events for state changes
+        return
 
     def _process_stat_buff_event(self, event_data: Dict[str, Any]):
         """Process stat_buff event.
@@ -513,24 +491,6 @@ class CombatEventReconstructor:
         unit_dict = self._get_unit_dict(unit_id)
         if not unit_dict:
             return
-        # Record expire in dot trace for debugging
-        try:
-            lt = self._dot_trace.setdefault(unit_id, [])
-            entry = {
-                'seq': event_data.get('seq'),
-                'timestamp': event_data.get('timestamp'),
-                'damage': None,
-                'effect_id': effect_id,
-                'event': 'expired',
-                'unit_hp': event_data.get('unit_hp'),
-                'raw_event': dict(event_data)
-            }
-            lt.append(entry)
-            if unit_id == 'mrvlook':
-                print(f"[DOT TRACE APPEND] unit={unit_id} appended_trace_len={len(lt)} entry={entry}")
-        except Exception:
-            pass
-
         # Remove effect by id
         effs = unit_dict.get('effects') or []
         new_eff = [e for e in effs if e.get('id') != effect_id]
@@ -848,34 +808,10 @@ class CombatEventReconstructor:
                 except Exception:
                     pass
 
-        # Targeted debug: if this snapshot seq matches a known failing seq,
-        # dump mrvlook state for investigation.
-        try:
-            seq_val = int(event_data.get('seq', -1))
-        except Exception:
-            seq_val = -1
-        if seq_val == 359:
-            rid = 'mrvlook'
-            recon = self.reconstructed_opponent_units.get(rid)
-            snap = snapshot_opponent_units.get(rid)
-            print(f"[DEBUG SEQ 359] reconstructed mrvlook defense={recon.get('defense') if recon else None}, effects={recon.get('effects') if recon else None}")
-            print(f"[DEBUG SEQ 359] snapshot mrvlook defense={snap.get('defense') if snap else None}, effects={snap.get('effects') if snap else None}")
-
         reconcile_effects(snapshot_player_units, self.reconstructed_player_units)
         reconcile_effects(snapshot_opponent_units, self.reconstructed_opponent_units)
 
-        # Debug: report DoT trace length for mrvlook to track incoming ticks
-        try:
-            mt = self._dot_trace.get('mrvlook') if hasattr(self, '_dot_trace') else None
-            if mt is not None:
-                print(f"[DOT TRACE STATUS] seq={event_data.get('seq', 'N/A')} mrvlook_trace_len={len(mt)}")
-        except Exception:
-            pass
-
         # Compare states
-        # Pass current_time into comparison so we can attempt recovery
-        # via synthetic expiration messages when transient ordering
-        # mismatches (e.g. DoT applied vs snapshot) occur.
         self._compare_units(
             self.reconstructed_player_units,
             snapshot_player_units,
@@ -947,15 +883,6 @@ class CombatEventReconstructor:
                             # Missing apply/expire/tick events are a backend emitter bug.
                             raise AssertionError(f"{field.capitalize()} mismatch for {side} unit {uid} at seq {seq} (seed {self.seed}): reconstructed={reconstructed_effects_sorted}, snapshot={snapshot_effects_sorted}")
                     elif data[field] != snapshot_data[field]:
-                        # If this is the failing unit, dump DoT trace for diagnosis
-                        if uid == 'mrvlook' and field == 'hp':
-                            try:
-                                trace = self._dot_trace.get(uid, [])
-                                print(f"[DOT TRACE DUMP] unit={uid} seq={seq} seed={self.seed} trace_len={len(trace)}")
-                                for te in trace:
-                                    print(f"  TRACE seq={te.get('seq')} ts={te.get('timestamp')} dmg={te.get('damage')} unit_hp={te.get('unit_hp')} raw={te.get('raw_event')}")
-                            except Exception:
-                                pass
                         raise AssertionError(f"{field.capitalize()} mismatch for {side} unit {uid} at seq {seq} (seed {self.seed}): reconstructed={data[field]}, snapshot={snapshot_data[field]}")
 
             # Derive and check 'dead'
