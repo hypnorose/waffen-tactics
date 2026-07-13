@@ -12,6 +12,16 @@ const HIDDEN_PASSIVE_EFFECT_TYPES = new Set([
   'mana_lock',
 ])
 
+// Passive events explain why a mechanic fired. For scheduled bonus attacks,
+// their snapshot may already include the HP/mana mutation that is delivered
+// by the following canonical unit_attack/mana_update events. Comparing that
+// explanatory event would stop replay before those mutations are applied.
+const NON_AUTHORITATIVE_SNAPSHOT_EVENTS = new Set(['passive_triggered'])
+
+export function shouldCompareCombatSnapshot(event: CombatEvent): boolean {
+  return !NON_AUTHORITATIVE_SNAPSHOT_EVENTS.has(event.type)
+}
+
 export function compareUnits(localUnits: Unit[], serverUnits: any[], side: string, event: CombatEvent): DesyncEntry[] {
   const desyncs: DesyncEntry[] = []
   const localMap = new Map(localUnits.map(u => [u.id, {
@@ -56,6 +66,8 @@ export function compareUnits(localUnits: Unit[], serverUnits: any[], side: strin
 }
 
 export function compareCombatStates(localState: CombatState, serverState: any, event: CombatEvent): DesyncEntry[] {
+  if (!shouldCompareCombatSnapshot(event)) return []
+
   const desyncs: DesyncEntry[] = []
 
   // Compare only units

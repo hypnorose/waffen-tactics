@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { compareUnits } from '../desync'
-import { CombatEvent, Unit } from '../types'
+import { compareCombatStates, compareUnits, shouldCompareCombatSnapshot } from '../desync'
+import { CombatEvent, CombatState, Unit } from '../types'
 
 const event: CombatEvent = { type: 'passive_triggered', seq: 8, timestamp: 0 }
 
@@ -46,5 +46,29 @@ describe('combat desync comparison', () => {
 
     expect(desyncs).toHaveLength(1)
     expect(desyncs[0].diff.attack).toEqual({ ui: 62, server: 67 })
+  })
+
+  it('does not compare snapshots attached to explanatory passive events', () => {
+    const passiveEvent: CombatEvent = { type: 'passive_triggered', seq: 88, timestamp: 2.85 }
+    const state: CombatState = {
+      playerUnits: [makeUnit()],
+      opponentUnits: [],
+      combatLog: [],
+      isFinished: false,
+      victory: null,
+      finalState: null,
+      synergies: {},
+      traits: [],
+      opponentInfo: null,
+      regenMap: {},
+      simTime: 2.85,
+    }
+    const snapshot = {
+      player_units: [{ ...makeUnit(), hp: 500 }],
+      opponent_units: [],
+    }
+
+    expect(shouldCompareCombatSnapshot(passiveEvent)).toBe(false)
+    expect(compareCombatStates(state, snapshot, passiveEvent)).toEqual([])
   })
 })
