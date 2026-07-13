@@ -1,7 +1,6 @@
 from typing import List, Dict, Any, Callable, Optional
 import itertools
 import heapq
-import uuid
 
 from .combat_unit import CombatUnit
 from .combat_attack_processor import CombatAttackProcessor
@@ -13,60 +12,6 @@ from ..engine.combat_state import CombatState
 from ..engine.event_dispatcher import EventDispatcher
 
 
-class CombatSimulator:
-    """Minimal CombatSimulator used for scheduler-related tests.
-
-    This intentionally implements a small surface area: `simulate`,
-    `_enqueue_scheduled_event`, and `_deliver_scheduled_events`, and
-    sequence assignment semantics used by tests.
-    """
-
-    def __init__(self, dt: float = 0.1, timeout: int = 120):
-        self.dt = dt
-        self.timeout = timeout
-        self._scheduled = []  # heap of (deliver_at, counter, action)
-        self._schedule_counter = itertools.count()
-        self._event_seq = 0
-        self._current_time = 0.0
-
-    def _enqueue_scheduled_event(self, deliver_at: float, event_type: str, payload: Dict[str, Any]):
-        cnt = next(self._schedule_counter)
-        def action():
-            return [(event_type, payload)]
-        heapq.heappush(self._scheduled, (deliver_at, cnt, action))
-
-    def _deliver_scheduled_events(self, sink: "_EventSink"):
-        current = getattr(self, '_current_time', 0.0)
-        while self._scheduled and self._scheduled[0][0] <= current:
-            _, _, action = heapq.heappop(self._scheduled)
-            results = action()
-            if isinstance(results, dict):
-                results = [('scheduled_event', results)]
-            if results:
-                for ev_type, ev_payload in results:
-                    sink.emit(ev_type, ev_payload)
-
-    def simulate(
-        self,
-        team_a: List[CombatUnit],
-        team_b: List[CombatUnit],
-        event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
-        round_number: int = 1,
-        skip_per_round_buffs: bool = False,
-    ) -> Dict[str, Any]:
-        # Minimal behavior for tests: emit an animation_start then a unit_attack
-        if event_callback is None:
-            def noop(*a, **k):
-                return
-            event_callback = noop
-
-        # Use the provided callback directly; test harness wraps it to add seq
-        event_callback('animation_start', {'timestamp': 0.0})
-        event_callback('unit_attack', {'timestamp': float(self.dt)})
-
-        return {'winner': 'team_a', 'duration': 0.0, 'team_a_survivors': 1, 'team_b_survivors': 0, 'log': []}
-
-
 class _DispatcherEventSink:
     """Event sink that wraps callbacks with EventDispatcher middleware.
 
@@ -74,7 +19,7 @@ class _DispatcherEventSink:
     - If payload timestamp > simulator._current_time -> enqueue via simulator._enqueue_scheduled_event
     - Otherwise deliver immediately and assign `seq` and `event_id` similar to simulator wrapper
     """
-    def __init__(self, simulator: CombatSimulator, collector: Callable[[str, Dict[str, Any]], None]):
+    def __init__(self, simulator: "CombatSimulator", collector: Callable[[str, Dict[str, Any]], None]):
         self.simulator = simulator
         self.collector = collector
         self.dispatcher = EventDispatcher(
@@ -100,113 +45,6 @@ class _DispatcherEventSink:
         if self.wrapped_collector:
             self.wrapped_collector(event_type, data)
             self.simulator._event_seq = self.dispatcher._event_seq
-
-
-    def _process_ally_hp_below_triggers(
-        self,
-        team: List['CombatUnit'],
-        hp_list: List[int],
-        target_idx: int,
-        time: float,
-        log: List[str],
-        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
-        side: str
-    ):
-        """Process on_ally_hp_below triggers for a team."""
-        for unit in team:
-            for eff in getattr(unit, 'effects', []):
-                if eff.get('type') == 'on_ally_hp_below' and not eff.get('_triggered'):
-                    thresh = float(eff.get('threshold_percent', 30))
-                    heal_pct = float(eff.get('heal_percent', 50))
-                    if hp_list[target_idx] <= team[target_idx].max_hp * (thresh / 100.0):
-                        heal_amt = int(team[target_idx].max_hp * (heal_pct / 100.0))
-                        hp_list[target_idx] = min(team[target_idx].max_hp, hp_list[target_idx] + heal_amt)
-                        log.append(f"{unit.name} heals {team[target_idx].name} for {heal_amt} (ally hp below {thresh}%)")
-                        if event_callback:
-                            from .event_canonicalizer import emit_heal
-                            emit_heal(event_callback, team[target_idx], heal_amt, source=None, side=side, timestamp=time)
-                        eff['_triggered'] = True
-                        break
-
-    def _process_damage_over_time(
-        self,
-        team_a: List[CombatUnit],
-        team_b: List[CombatUnit],
-        a_hp: List[int],
-        b_hp: List[int],
-        time: float,
-        log: List[str],
-        event_callback: Optional[Callable[[str, Dict[str, Any]], None]]
-    ):
-        """Process damage over time effects for both teams."""
-        # Process team A
-        self._process_dot_for_team(team_a, a_hp, time, log, event_callback, 'team_a')
-        # Process team B
-        self._process_dot_for_team(team_b, b_hp, time, log, event_callback, 'team_b')
-
-    def _process_dot_for_team(
-        self,
-        team: List[CombatUnit],
-        hp_list: Optional[List[int]] = None,
-        time: float = 0.0,
-        log: Optional[List[str]] = None,
-        event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
-        side: str = 'team_a'
-    ):
-        """Process damage over time effects for a single team."""
-        if hp_list is None:
-            # build a minimal hp_list from unit.hp values
-            try:
-                hp_list = [getattr(u, 'hp', 0) for u in team]
-            except Exception:
-                hp_list = [0 for _ in team]
-        if log is None:
-            log = []
-        return
-# --- Fallback minimal CombatSimulator and EventSink for scheduling tests ---
-class _SimpleEventSink:
-    def __init__(self, sim, collector):
-        self.sim = sim
-        self.collector = collector
-
-    def emit(self, event_type, payload):
-        # immediate delivery if timestamp <= current_time, otherwise enqueue
-        try:
-            data = dict(payload) if isinstance(payload, dict) else payload
-        except Exception:
-            data = payload
-        ts = data.get('timestamp') if isinstance(data, dict) else None
-        current = getattr(self.sim, '_current_time', 0.0)
-        if isinstance(ts, (int, float)) and ts > current:
-            self.sim._enqueue_scheduled_event(ts, event_type, data)
-            return
-
-        # attach seq and event_id
-        try:
-            seq_value = getattr(self.sim, '_event_seq', 0) + 1
-        except Exception:
-            seq_value = None
-        if isinstance(data, dict):
-            if seq_value is not None:
-                data['seq'] = seq_value
-            # Preserve the event type inside the payload so collectors that
-            # only store payloads (without the separate event_type) retain it.
-            if 'type' not in data:
-                data['type'] = event_type
-            data['event_id'] = str(uuid.uuid4())
-            # Ensure mana_update payloads always include 'amount' for schema consistency
-            if event_type == 'mana_update' and 'amount' not in data:
-                data['amount'] = 0
-
-        try:
-            self.collector(event_type, data)
-            if seq_value is not None:
-                self.sim._event_seq = seq_value
-        except Exception:
-            if getattr(self.sim, 'strict_exceptions', False):
-                raise
-            return
-
 
 class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegenerationProcessor, CombatPerSecondBuffProcessor):
     """Shared CombatSimulator combining processors and providing scheduling helpers.
@@ -552,5 +390,3 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
 # Provide test-suite compatible EventSink symbol
 def _EventSink(simulator, collector):
     return _DispatcherEventSink(simulator, collector)
-
-
