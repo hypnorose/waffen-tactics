@@ -956,6 +956,10 @@ def emit_effect_expired(
     unit_hp: Optional[int] = None,
     side: Optional[str] = None,
     timestamp: Optional[float] = None,
+    effect_type: Optional[str] = None,
+    stat: Optional[str] = None,
+    applied_delta: Optional[int] = None,
+    applied_amount: Optional[int] = None,
 ):
     """Emit an `effect_expired` event describing an expired effect on a unit.
 
@@ -969,9 +973,18 @@ def emit_effect_expired(
         'unit_name': getattr(target, 'name', None),
         'effect_id': effect_id,
         'unit_hp': unit_hp if unit_hp is not None else getattr(target, 'hp', None),
+        'post_hp': unit_hp if unit_hp is not None else getattr(target, 'hp', None),
         'side': side,
         'timestamp': ts,
     }
+    if effect_type is not None:
+        payload['effect_type'] = effect_type
+    if stat is not None:
+        payload['stat'] = stat
+    if applied_delta is not None:
+        payload['applied_delta'] = applied_delta
+    if applied_amount is not None:
+        payload['applied_amount'] = applied_amount
 
     # Do not swallow errors — let them propagate to the caller for visibility
     if event_callback:

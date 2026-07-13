@@ -245,7 +245,18 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                 # Emit this expiration AFTER this effect mutation so event
                 # game_state is post-expiry for this exact effect only.
                 from .event_canonicalizer import emit_effect_expired
-                emit_effect_expired(event_callback, unit, effect_id, unit_hp=hp_list[i], side=side, timestamp=time)
+                emit_effect_expired(
+                    event_callback,
+                    unit,
+                    effect_id,
+                    unit_hp=hp_list[i],
+                    side=side,
+                    timestamp=time,
+                    effect_type=effect_type,
+                    stat=effect.get('stat'),
+                    applied_delta=effect.get('applied_delta'),
+                    applied_amount=effect.get('applied_amount'),
+                )
 
         return
 

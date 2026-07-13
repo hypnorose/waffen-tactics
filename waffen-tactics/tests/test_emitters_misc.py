@@ -113,9 +113,24 @@ def test_effect_expired_and_dot_expired_payloads():
     def cb(t, p):
         calls.append((t, p))
 
-    p1 = emit_effect_expired(cb, u, 'fx1', unit_hp=9, timestamp=7.0, side='a')
+    p1 = emit_effect_expired(
+        cb,
+        u,
+        'fx1',
+        unit_hp=9,
+        timestamp=7.0,
+        side='a',
+        effect_type='buff',
+        stat='defense',
+        applied_delta=12,
+    )
     p2 = emit_damage_over_time_expired(cb, u, 'fx2', unit_hp=8, timestamp=8.0, side='b')
     assert p1['effect_id'] == 'fx1'
+    assert p1['unit_hp'] == 9
+    assert p1['post_hp'] == 9
+    assert p1['effect_type'] == 'buff'
+    assert p1['stat'] == 'defense'
+    assert p1['applied_delta'] == 12
     assert p2['effect_id'] == 'fx2'
     assert any(call[0] == 'effect_expired' for call in calls)
     assert any(call[0] == 'damage_over_time_expired' for call in calls)
