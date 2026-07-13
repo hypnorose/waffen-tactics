@@ -52,6 +52,8 @@ def emit_stat_buff(
     # Apply immediate numeric mutation when appropriate
     # CRITICAL: Always calculate delta for ALL stats (needed for reconstructor)
     delta = None
+    pre_hp = None
+    post_hp = None
     try:
         if stat in ('attack', 'defense'):
             if value_type == 'percentage':
@@ -84,11 +86,26 @@ def emit_stat_buff(
             setattr(recipient, stat, cur + delta)
         elif stat in ('max_hp', 'max_mana', 'current_mana'):
             # int fields
+            old_value = int(getattr(recipient, stat, 0) or 0)
             if value_type == 'percentage':
-                delta = int(round(getattr(recipient, stat, 0) * (float(value) / 100.0)))
+                delta = int(round(old_value * (float(value) / 100.0)))
             else:
                 delta = int(round(value))
-            setattr(recipient, stat, getattr(recipient, stat, 0) + delta)
+            new_value = old_value + delta
+            if stat == 'max_hp':
+                # Max HP changes preserve the unit's current health ratio.
+                # A full-health unit stays full, while a damaged unit keeps
+                # the same percentage of its new maximum.
+                pre_hp = int(getattr(recipient, 'hp', 0) or 0)
+                new_max_hp = max(0, new_value)
+                if old_value > 0:
+                    post_hp = min(new_max_hp, int(round(pre_hp * new_max_hp / old_value)))
+                else:
+                    post_hp = min(new_max_hp, pre_hp)
+                setattr(recipient, stat, new_max_hp)
+                recipient.hp = post_hp
+            else:
+                setattr(recipient, stat, new_value)
         else:
             # Unknown/custom stats - still calculate delta for event
             if value_type == 'percentage':
@@ -144,6 +161,9 @@ def emit_stat_buff(
     }
     # include applied_delta when present for deterministic reversion
     payload['applied_delta'] = delta
+    if stat == 'max_hp':
+        payload['pre_hp'] = pre_hp
+        payload['post_hp'] = post_hp
 
     if event_callback:
         print(f"[EMIT_STAT_BUFF] calling callback for recipient={getattr(recipient,'id',None)}")

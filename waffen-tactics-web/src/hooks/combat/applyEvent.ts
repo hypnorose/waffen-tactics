@@ -204,10 +204,18 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
             // buffed_stats should reflect the NEW defense value after delta is applied
             newU.buffed_stats = { ...u.buffed_stats, defense: newU.defense }
           } else if (event.stat === 'max_hp') {
-            // Increasing max HP must not heal the unit. Keep current HP, but make
-            // both authoritative max HP representations available to the UI.
-            newU.max_hp = Math.max(0, (u.max_hp ?? u.hp ?? 0) + delta)
-            newU.hp = Math.min(u.hp, newU.max_hp)
+            // Max HP changes preserve the current health ratio. Prefer the
+            // backend's authoritative post_hp when available; the ratio
+            // fallback keeps older event dumps replayable.
+            const oldMaxHp = Math.max(0, u.max_hp ?? u.hp ?? 0)
+            newU.max_hp = Math.max(0, oldMaxHp + delta)
+            if (event.post_hp !== undefined && event.post_hp !== null) {
+              newU.hp = Math.min(newU.max_hp, Math.max(0, event.post_hp))
+            } else if (oldMaxHp > 0) {
+              newU.hp = Math.min(newU.max_hp, Math.round(u.hp * newU.max_hp / oldMaxHp))
+            } else {
+              newU.hp = Math.min(newU.max_hp, u.hp)
+            }
             newU.buffed_stats = { ...u.buffed_stats, hp: newU.max_hp }
           }
           return newU
@@ -542,8 +550,13 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
               newU.defense = (u.defense ?? 0) + delta
               newU.buffed_stats = { ...u.buffed_stats, defense: newU.defense }
             } else if (expiredEffect.stat === 'max_hp') {
-              newU.max_hp = Math.max(0, (u.max_hp ?? u.hp ?? 0) + delta)
-              newU.hp = Math.min(u.hp, newU.max_hp)
+              const oldMaxHp = Math.max(0, u.max_hp ?? u.hp ?? 0)
+              newU.max_hp = Math.max(0, oldMaxHp + delta)
+              if (oldMaxHp > 0) {
+                newU.hp = Math.min(newU.max_hp, Math.round(u.hp * newU.max_hp / oldMaxHp))
+              } else {
+                newU.hp = Math.min(newU.max_hp, u.hp)
+              }
               newU.buffed_stats = { ...u.buffed_stats, hp: newU.max_hp }
             }
           }

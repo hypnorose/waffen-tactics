@@ -2,6 +2,7 @@ from waffen_tactics.models.unit import Stats
 from waffen_tactics.services.combat_simulator import CombatSimulator
 from waffen_tactics.services.combat_unit import CombatUnit
 from waffen_tactics.services.data_loader import load_game_data
+from waffen_tactics.services.event_canonicalizer import emit_damage
 from waffen_tactics.services.passive_definitions import get_passive_definition
 
 
@@ -73,6 +74,38 @@ def test_full_mana_bonus_attack_can_feed_team_mana_without_skill_cast():
         for event_type, payload in events
     )
     assert all(event_type != "skill_cast" for event_type, _ in events)
+
+
+def test_hyodo_max_hp_passive_preserves_current_health_ratio():
+    hyodo = make_unit("hyodo888", "hyodo888", hp=1000, attack_speed=0.0)
+    target = make_unit("target", hp=100000, attack_speed=0.0)
+
+    _, events = run([hyodo], [target], timeout=0.01)
+
+    stat_events = [payload for event_type, payload in events if event_type == "stat_buff" and payload.get("unit_id") == "hyodo888"]
+    assert len(stat_events) == 1
+    event = stat_events[0]
+    assert event["stat"] == "max_hp"
+    assert event["value_type"] == "percentage"
+    assert event["applied_delta"] == 100
+    assert event["pre_hp"] == 1000
+    assert event["post_hp"] == 1100
+    assert hyodo.max_hp == 1100
+    assert hyodo.hp == 1100
+
+
+def test_hyodo_max_hp_passive_scales_damaged_health_by_the_same_ratio():
+    hyodo = make_unit("hyodo888", "hyodo888", hp=1000, attack_speed=0.0)
+    emit_damage(None, None, hyodo, raw_damage=500, emit_event=False)
+    target = make_unit("target", hp=100000, attack_speed=0.0)
+
+    _, events = run([hyodo], [target], timeout=0.01)
+
+    stat_event = next(payload for event_type, payload in events if event_type == "stat_buff" and payload.get("unit_id") == "hyodo888")
+    assert stat_event["pre_hp"] == 500
+    assert stat_event["post_hp"] == 550
+    assert hyodo.max_hp == 1100
+    assert hyodo.hp == 550
 
 
 def test_attack_counter_passive_emits_one_trigger_and_keeps_basic_attack_order():

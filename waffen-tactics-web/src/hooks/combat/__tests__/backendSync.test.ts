@@ -6,7 +6,9 @@
 
 import { describe, it, expect } from 'vitest'
 import { applyCombatEvent } from '../applyEvent'
+import { compareCombatStates } from '../desync'
 import { CombatState, CombatEvent } from '../types'
+import path from 'path'
 
 interface BackendUnitState {
   id: string
@@ -19,7 +21,7 @@ interface BackendUnitState {
   max_mana: number
   shield: number
   effects: any[]
-  buffed_stats?: { attack?: number, defense?: number }
+  buffed_stats?: Record<string, number>
 }
 
 interface BackendGameState {
@@ -28,39 +30,12 @@ interface BackendGameState {
 }
 
 function compareStates(ui: CombatState, backend: BackendGameState, seq: number): string[] {
-  const diffs: string[] = []
-  
-  for (const b of backend.player_units) {
-    const u = ui.playerUnits.find(x => x.id === b.id)
-    if (!u) {
-      diffs.push(`[${seq}] Missing player unit ${b.id}`)
-      continue
-    }
-    
-    const fields: (keyof BackendUnitState)[] = ['hp', 'max_hp', 'attack', 'defense', 'current_mana', 'shield']
-    for (const f of fields) {
-      if (u[f as keyof typeof u] !== b[f]) {
-        diffs.push(`[${seq}] ${b.name}.${f}: UI=${u[f as keyof typeof u]} != Backend=${b[f]}`)
-      }
-    }
-  }
-  
-  for (const b of backend.opponent_units) {
-    const u = ui.opponentUnits.find(x => x.id === b.id)
-    if (!u) {
-      diffs.push(`[${seq}] Missing opponent unit ${b.id}`)
-      continue
-    }
-    
-    const fields: (keyof BackendUnitState)[] = ['hp', 'max_hp', 'attack', 'defense', 'current_mana', 'shield']
-    for (const f of fields) {
-      if (u[f as keyof typeof u] !== b[f]) {
-        diffs.push(`[${seq}] ${b.name}.${f}: UI=${u[f as keyof typeof u]} != Backend=${b[f]}`)
-      }
-    }
-  }
-  
-  return diffs
+  const event: CombatEvent = { type: 'state_snapshot', seq, timestamp: 0 }
+  return compareCombatStates(ui, backend, event).flatMap(desync =>
+    Object.entries(desync.diff).map(([field, values]) =>
+      `[${seq}] ${desync.unit_name}.${field}: UI=${JSON.stringify(values.ui)} != Backend=${JSON.stringify(values.server)}`
+    )
+  )
 }
 
 function initFromGameState(gs: BackendGameState): CombatState {
@@ -94,15 +69,14 @@ function initFromGameState(gs: BackendGameState): CombatState {
 
 describe('Backend Synchronization Test', () => {
   it('should maintain perfect sync between UI and backend', async () => {
-    const path = '/home/ubuntu/waffen-tactics-game/waffen-tactics-web/backend/test_events_with_snapshots_NEW.json'
+    const fixturePath = path.resolve(__dirname, '../../../../backend/test_hyodo_max_hp_sync.json')
 
     let events: (CombatEvent & { game_state?: BackendGameState })[]
     try {
       const fs = await import('fs')
-      events = JSON.parse(fs.readFileSync(path, 'utf-8'))
+      events = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'))
     } catch {
-      console.warn('⚠️ Backend event file not found - skipping')
-      return
+      throw new Error(`Backend event fixture not found: ${fixturePath}`)
     }
     
     // Find first state_snapshot event to initialize
@@ -111,7 +85,8 @@ describe('Backend Synchronization Test', () => {
       throw new Error('No state_snapshot events found')
     }
 
-    let ui = initFromGameState(initEvent as any)
+    const initialSnapshot = initEvent.game_state ?? initEvent
+    let ui = initFromGameState(initialSnapshot as BackendGameState)
     const allDiffs: string[] = []
     let checked = 0
 
@@ -127,7 +102,8 @@ describe('Backend Synchronization Test', () => {
 
       if (event.type === 'state_snapshot') {
         checked++
-        const diffs = compareStates(ui, event as any, event.seq || 0)
+        const snapshot = event.game_state ?? event
+        const diffs = compareStates(ui, snapshot as BackendGameState, event.seq || 0)
         if (diffs.length > 0) {
           allDiffs.push(`\n❌ DESYNC at seq=${event.seq} (${event.type}):\n${diffs.join('\n')}`)
         }
@@ -135,6 +111,7 @@ describe('Backend Synchronization Test', () => {
     }
     
     console.log(`✅ Checked ${checked} snapshots`)
+    expect(checked).toBeGreaterThan(0)
     
     if (allDiffs.length > 0) {
       console.error(`\n❌ Found ${allDiffs.length} desyncs:\n${allDiffs.slice(0, 10).join('\n')}`)
@@ -193,6 +170,6 @@ describe('Backend Synchronization Test', () => {
     // Desync should be detected
     const diffs = compareStates(ui, events[1].game_state!, 1)
     expect(diffs.length).toBeGreaterThan(0)
-    expect(diffs[0]).toContain('Enemy.hp')
+    expect(diffs.some(diff => diff.includes('Enemy.hp'))).toBe(true)
   })
 })

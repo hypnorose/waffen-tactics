@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { applyCombatEvent } from '../applyEvent'
 import { compareCombatStates, compareUnits, shouldCompareCombatSnapshot } from '../desync'
 import { CombatEvent, CombatState, Unit } from '../types'
 
@@ -70,5 +71,47 @@ describe('combat desync comparison', () => {
 
     expect(shouldCompareCombatSnapshot(passiveEvent)).toBe(false)
     expect(compareCombatStates(state, snapshot, passiveEvent)).toEqual([])
+  })
+
+  it('keeps Hyodo max HP and current HP synchronized after the canonical event', () => {
+    const state: CombatState = {
+      playerUnits: [makeUnit({ id: '9d4c477e', name: 'Hyodo888', hp: 720, max_hp: 720, buffed_stats: { hp: 720, attack: 36, defense: 36, attack_speed: 0.8, max_mana: 50 } })],
+      opponentUnits: [],
+      combatLog: [],
+      isFinished: false,
+      victory: null,
+      finalState: null,
+      synergies: {},
+      traits: [],
+      opponentInfo: null,
+      regenMap: {},
+      simTime: 0,
+    }
+    const statEvent: CombatEvent = {
+      type: 'stat_buff',
+      unit_id: '9d4c477e',
+      unit_name: 'Hyodo888',
+      stat: 'max_hp',
+      amount: 10,
+      value: 10,
+      value_type: 'percentage',
+      permanent: true,
+      duration: null,
+      effect_id: 'hyodo-max-hp',
+      applied_delta: 72,
+      pre_hp: 720,
+      post_hp: 792,
+      seq: 4,
+      timestamp: 0,
+    }
+    const replayed = applyCombatEvent(state, statEvent, { simTime: 0 })
+    const serverState = {
+      player_units: [{ ...replayed.playerUnits[0], attack_speed: 0.8, shield: 0, effects: replayed.playerUnits[0].effects }],
+      opponent_units: [],
+    }
+
+    expect(replayed.playerUnits[0].hp).toBe(792)
+    expect(replayed.playerUnits[0].max_hp).toBe(792)
+    expect(compareCombatStates(replayed, serverState, statEvent)).toEqual([])
   })
 })

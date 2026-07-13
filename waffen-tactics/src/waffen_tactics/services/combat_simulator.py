@@ -210,6 +210,18 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                             setattr(unit, stat, new_hp)
                             hp_list[i] = new_hp  # Update HP list
                             log.append(f"{unit.name} stat {stat} reverted by {-applied_delta} (effect expired)")
+                        elif stat == 'max_hp':
+                            old_max_hp = int(getattr(unit, 'max_hp', 0) or 0)
+                            old_hp = int(getattr(unit, 'hp', 0) or 0)
+                            new_max_hp = max(0, old_max_hp - applied_delta)
+                            if old_max_hp > 0:
+                                new_hp = min(new_max_hp, int(round(old_hp * new_max_hp / old_max_hp)))
+                            else:
+                                new_hp = min(new_max_hp, old_hp)
+                            setattr(unit, stat, new_max_hp)
+                            unit.hp = new_hp
+                            hp_list[i] = new_hp
+                            log.append(f"{unit.name} stat {stat} reverted by {-applied_delta} (effect expired)")
                         else:
                             old_val = getattr(unit, stat, 0)
                             new_val = old_val - applied_delta

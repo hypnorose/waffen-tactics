@@ -1,0 +1,152 @@
+[
+  {
+    "type": "state_snapshot",
+    "seq": 0,
+    "timestamp": 0,
+    "player_units": [
+      {
+        "id": "hyodo",
+        "name": "Hyodo888",
+        "hp": 720,
+        "max_hp": 720,
+        "attack": 36,
+        "defense": 36,
+        "attack_speed": 0.8,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 50,
+        "shield": 0,
+        "buffed_stats": {
+          "hp": 720,
+          "attack": 36,
+          "defense": 36,
+          "attack_speed": 0.8,
+          "max_mana": 50,
+          "hp_regen_per_sec": 0
+        }
+      }
+    ],
+    "opponent_units": [
+      {
+        "id": "dummy",
+        "name": "Dummy",
+        "hp": 1000,
+        "max_hp": 1000,
+        "attack": 1,
+        "defense": 0,
+        "attack_speed": 0,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 100,
+        "shield": 0,
+        "buffed_stats": {
+          "hp": 1000,
+          "attack": 1,
+          "defense": 0,
+          "attack_speed": 0,
+          "max_mana": 100,
+          "hp_regen_per_sec": 0
+        }
+      }
+    ]
+  },
+  {
+    "type": "passive_triggered",
+    "passive_id": "hyodo",
+    "unit_id": "hyodo",
+    "unit_name": "Hyodo888",
+    "trigger": "on_start",
+    "effect": "passive_ready",
+    "seq": 1,
+    "timestamp": 0
+  },
+  {
+    "type": "stat_buff",
+    "unit_id": "hyodo",
+    "unit_name": "Hyodo888",
+    "stat": "max_hp",
+    "amount": 10,
+    "value": 10,
+    "value_type": "percentage",
+    "duration": null,
+    "permanent": true,
+    "effect_id": "hyodo-max-hp",
+    "applied_delta": 72,
+    "pre_hp": 720,
+    "post_hp": 792,
+    "seq": 2,
+    "timestamp": 0
+  },
+  {
+    "type": "state_snapshot",
+    "seq": 3,
+    "timestamp": 0,
+    "player_units": [
+      {
+        "id": "hyodo",
+        "name": "Hyodo888",
+        "hp": 792,
+        "max_hp": 792,
+        "attack": 36,
+        "defense": 36,
+        "attack_speed": 0.8,
+        "star_level": 1,
+        "position": "front",
+        "effects": [
+          {
+            "id": "hyodo-max-hp",
+            "type": "buff",
+            "stat": "max_hp",
+            "value": 10,
+            "value_type": "percentage",
+            "applied_delta": 72,
+            "duration": null,
+            "permanent": true,
+            "source": "hyodo",
+            "expires_at": null
+          }
+        ],
+        "current_mana": 0,
+        "max_mana": 50,
+        "shield": 0,
+        "buffed_stats": {
+          "hp": 792,
+          "attack": 36,
+          "defense": 36,
+          "attack_speed": 0.8,
+          "max_mana": 50,
+          "hp_regen_per_sec": 0
+        }
+      }
+    ],
+    "opponent_units": [
+      {
+        "id": "dummy",
+        "name": "Dummy",
+        "hp": 1000,
+        "max_hp": 1000,
+        "attack": 1,
+        "defense": 0,
+        "attack_speed": 0,
+        "star_level": 1,
+        "position": "front",
+        "effects": [],
+        "current_mana": 0,
+        "max_mana": 100,
+        "shield": 0,
+        "buffed_stats": {
+          "hp": 1000,
+          "attack": 1,
+          "defense": 0,
+          "attack_speed": 0,
+          "max_mana": 100,
+          "hp_regen_per_sec": 0
+        }
+      }
+    ]
+  }
+]
