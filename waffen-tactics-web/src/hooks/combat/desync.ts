@@ -1,5 +1,17 @@
 import { Unit, DesyncEntry, CombatEvent, CombatState } from './types'
 
+// These effects are authoritative server-side mechanics. They are not
+// reconstructed by the replay because their visible consequences arrive as
+// canonical damage/heal/target events, so comparing them would create false
+// positives and stop an otherwise valid fight.
+const HIDDEN_PASSIVE_EFFECT_TYPES = new Set([
+  'lifesteal',
+  'damage_reduction',
+  'targeting_preference',
+  'mana_regen',
+  'mana_lock',
+])
+
 export function compareUnits(localUnits: Unit[], serverUnits: any[], side: string, event: CombatEvent): DesyncEntry[] {
   const desyncs: DesyncEntry[] = []
   const localMap = new Map(localUnits.map(u => [u.id, {
@@ -60,13 +72,15 @@ function canonicalizeEffects(effects: any[]): any[] {
     // console.log(`[CANONICAL DEBUG] Canonicalizing effects:`, JSON.stringify(effects, null, 2))
   }
 
-  const canonical = effects.map(e => ({
+  const canonical = effects
+    .filter(e => !HIDDEN_PASSIVE_EFFECT_TYPES.has(e?.type))
+    .map(e => ({
     id: e.id,
     type: e.type,
     stat: e.stat,
     value: e.value ?? e.amount,
     duration: e.duration
-  })).sort((a, b) => (a.id || '').localeCompare(b.id || '') || a.type.localeCompare(b.type))
+    })).sort((a, b) => (a.id || '').localeCompare(b.id || '') || a.type.localeCompare(b.type))
 
   if (effects.length > 0) {
     // console.log(`[CANONICAL DEBUG] Result:`, JSON.stringify(canonical, null, 2))
