@@ -49,16 +49,16 @@ function Get-TrackedChanges {
     $tracked = @()
     $tracked += git diff --name-only
     $tracked += git diff --cached --name-only
-    return $tracked | Where-Object { $_ } | Sort-Object -Unique
+    return @($tracked | Where-Object { $_ } | Sort-Object -Unique)
 }
 
 function Get-UntrackedPaths {
     $lines = git status --porcelain --untracked-files=normal
-    $lines | Where-Object { $_ -match '^\?\? ' } | ForEach-Object { $_.Substring(3) }
+    return @($lines | Where-Object { $_ -match '^\?\? ' } | ForEach-Object { $_.Substring(3) })
 }
 
-$trackedChanges = Get-TrackedChanges
-$untrackedPaths = Get-UntrackedPaths
+$trackedChanges = @(Get-TrackedChanges)
+$untrackedPaths = @(Get-UntrackedPaths)
 
 if ($untrackedPaths) {
     Write-Host ""
