@@ -203,6 +203,9 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
             newU.defense = (u.defense ?? 0) + delta
             // buffed_stats should reflect the NEW defense value after delta is applied
             newU.buffed_stats = { ...u.buffed_stats, defense: newU.defense }
+          } else if (event.stat === 'attack_speed') {
+            newU.attack_speed = (u.attack_speed ?? 0) + delta
+            newU.buffed_stats = { ...u.buffed_stats, attack_speed: newU.attack_speed }
           } else if (event.stat === 'max_hp') {
             // Max HP changes preserve the current health ratio. Prefer the
             // backend's authoritative post_hp when available; the ratio
@@ -549,6 +552,9 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
             } else if (expiredEffect.stat === 'defense') {
               newU.defense = (u.defense ?? 0) + delta
               newU.buffed_stats = { ...u.buffed_stats, defense: newU.defense }
+            } else if (expiredEffect.stat === 'attack_speed') {
+              newU.attack_speed = (u.attack_speed ?? 0) + delta
+              newU.buffed_stats = { ...u.buffed_stats, attack_speed: newU.attack_speed }
             } else if (expiredEffect.stat === 'max_hp') {
               const oldMaxHp = Math.max(0, u.max_hp ?? u.hp ?? 0)
               newU.max_hp = Math.max(0, oldMaxHp + delta)

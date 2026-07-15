@@ -5,6 +5,7 @@ export interface Unit {
   max_hp: number
   shield?: number
   attack: number
+  attack_speed?: number
   defense?: number
   star_level: number
   cost?: number

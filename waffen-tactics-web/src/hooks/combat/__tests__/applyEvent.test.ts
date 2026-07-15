@@ -236,6 +236,39 @@ describe('applyCombatEvent - Effect Handling', () => {
       const player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.effects![0].applied_delta).toBe(25)
     })
+
+    it('should apply attack speed buffs and revert them on expiration', () => {
+      const buffEvent: CombatEvent = {
+        type: 'stat_buff',
+        unit_id: 'player_0',
+        stat: 'attack_speed',
+        amount: 20,
+        value_type: 'percentage_of_max',
+        duration: 3,
+        permanent: false,
+        effect_id: 'attack-speed-buff',
+        applied_delta: 0.2,
+        seq: 1,
+        timestamp: 1.0
+      }
+
+      let newState = applyCombatEvent(state, buffEvent, { simTime: 1.0 })
+      let player = newState.playerUnits.find(u => u.id === 'player_0')
+      expect(player!.attack_speed).toBeCloseTo(1.2)
+      expect(player!.buffed_stats?.attack_speed).toBeCloseTo(1.2)
+
+      newState = applyCombatEvent(newState, {
+        type: 'effect_expired',
+        unit_id: 'player_0',
+        effect_id: 'attack-speed-buff',
+        seq: 2,
+        timestamp: 4.0
+      }, { simTime: 4.0 })
+
+      player = newState.playerUnits.find(u => u.id === 'player_0')
+      expect(player!.attack_speed).toBeCloseTo(1.0)
+      expect(player!.buffed_stats?.attack_speed).toBeCloseTo(1.0)
+    })
   })
 
   describe('effect_expired events', () => {
