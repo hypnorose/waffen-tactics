@@ -39,7 +39,11 @@ class _DispatcherEventSink:
         current = getattr(self.simulator, '_current_time', 0.0)
 
         if isinstance(ts, (int, float)) and ts > current:
-            # schedule for later
+            # Preserve the authoritative state at emission time. Without this,
+            # the backend may build the event's game_state when it is delivered
+            # in a later tick, making the snapshot describe a future state.
+            if isinstance(data, dict):
+                data['_event_game_state'] = self.simulator._capture_runtime_state()
             self.simulator._enqueue_scheduled_event(ts, event_type, data if isinstance(data, dict) else {'payload': data})
             return
 
@@ -79,6 +83,18 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
         def action():
             return [(event_type, payload)]
         heapq.heappush(self._scheduled, (deliver_at, cnt, action))
+
+    def _capture_runtime_state(self):
+        """Deep-copy unit state at the moment a future event is emitted."""
+        import copy
+        return {
+            'player_units': copy.deepcopy([
+                u.to_dict(current_hp=int(getattr(u, 'hp', 0))) for u in self.team_a
+            ]),
+            'opponent_units': copy.deepcopy([
+                u.to_dict(current_hp=int(getattr(u, 'hp', 0))) for u in self.team_b
+            ]),
+        }
 
     # compatibility wrapper used by processors
     def schedule_event(self, deliver_at: float, action_callable):

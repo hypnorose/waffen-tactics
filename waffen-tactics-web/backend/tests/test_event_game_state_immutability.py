@@ -37,3 +37,35 @@ def test_unit_attack_game_state_is_snapshot_independent():
     gs['opponent_units'][0]['hp'] = 10
     # The mapped attack payload must retain the original hp
     assert mapped_attack['game_state']['opponent_units'][0]['hp'] == 999
+
+
+def test_scheduled_event_keeps_emission_state_until_delivery():
+    from waffen_tactics.services.combat_simulator import CombatSimulator, _DispatcherEventSink
+
+    class DummyUnit:
+        def __init__(self, unit_id, hp):
+            self.id = unit_id
+            self.hp = hp
+
+        def to_dict(self, current_hp=None):
+            return {'id': self.id, 'hp': self.hp if current_hp is None else current_hp}
+
+    player = DummyUnit('player', 100)
+    opponent = DummyUnit('opponent', 100)
+    simulator = CombatSimulator()
+    simulator.team_a = [player]
+    simulator.team_b = [opponent]
+    simulator.a_hp = [100]
+    simulator.b_hp = [100]
+    simulator._current_time = 0.0
+    delivered = []
+    sink = _DispatcherEventSink(simulator, lambda _event_type, payload: delivered.append(payload))
+
+    sink.emit('stat_buff', {'timestamp': 0.5, 'unit_id': 'player', 'effect_id': 'future-buff'})
+    player.hp = 40
+    opponent.hp = 0
+    simulator._current_time = 0.5
+    simulator._deliver_scheduled_events(sink)
+
+    assert delivered[0]['_event_game_state']['player_units'][0]['hp'] == 100
+    assert delivered[0]['_event_game_state']['opponent_units'][0]['hp'] == 100

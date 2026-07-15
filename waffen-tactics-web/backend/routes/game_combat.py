@@ -502,13 +502,18 @@ def start_combat():
                 # Read authoritative state directly from simulator when available,
                 # otherwise fall back to the prepared player/opponent unit lists.
                 event_time = data.get('timestamp', 0.0)
+                emission_state = data.pop('_event_game_state', None)
                 try:
                     # Use canonical unit runtime state as authoritative source.
                     # HP is mutated through canonical emitters (`emit_damage`, `emit_heal`),
                     # so deriving snapshots from unit objects avoids array/index drift.
                     import copy
-                    player_state = copy.deepcopy([u.to_dict(current_hp=int(getattr(u, 'hp'))) for u in simulator.team_a])
-                    opponent_state = copy.deepcopy([u.to_dict(current_hp=int(getattr(u, 'hp'))) for u in simulator.team_b])
+                    if emission_state is not None:
+                        player_state = copy.deepcopy(emission_state['player_units'])
+                        opponent_state = copy.deepcopy(emission_state['opponent_units'])
+                    else:
+                        player_state = copy.deepcopy([u.to_dict(current_hp=int(getattr(u, 'hp'))) for u in simulator.team_a])
+                        opponent_state = copy.deepcopy([u.to_dict(current_hp=int(getattr(u, 'hp'))) for u in simulator.team_b])
 
                     # DEBUG: Log effects in snapshots
                     for u_dict in player_state + opponent_state:
