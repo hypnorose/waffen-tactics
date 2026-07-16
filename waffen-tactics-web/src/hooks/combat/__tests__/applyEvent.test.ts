@@ -269,6 +269,28 @@ describe('applyCombatEvent - Effect Handling', () => {
       expect(player!.attack_speed).toBeCloseTo(1.0)
       expect(player!.buffed_stats?.attack_speed).toBeCloseTo(1.0)
     })
+
+    it('should use the authoritative HP and mana snapshot for same-timestamp buffs', () => {
+      const newState = applyCombatEvent(state, {
+        type: 'stat_buff',
+        unit_id: 'opp_0',
+        stat: 'attack_speed',
+        amount: 20,
+        value_type: 'percentage',
+        effect_id: 'same-timestamp-buff',
+        applied_delta: 0.2,
+        game_state: {
+          player_units: state.playerUnits,
+          opponent_units: [{ ...state.opponentUnits[0], hp: 560, current_mana: 0 }]
+        },
+        seq: 701,
+        timestamp: 7.95
+      }, { simTime: 7.95 })
+
+      const opponent = newState.opponentUnits.find(u => u.id === 'opp_0')
+      expect(opponent!.hp).toBe(560)
+      expect(opponent!.current_mana).toBe(0)
+    })
   })
 
   describe('effect_expired events', () => {

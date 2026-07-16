@@ -228,6 +228,25 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         } else {
           newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
         }
+
+        // Events sharing a timestamp can be emitted after another scheduled
+        // mutation (for example a full-mana bonus attack reset). Use the
+        // event's authoritative snapshot for transient HP/mana parity.
+        const authoritativeUnit = (event.game_state?.player_units || [])
+          .concat(event.game_state?.opponent_units || [])
+          .find((u: Unit) => u.id === event.unit_id)
+        if (authoritativeUnit) {
+          const syncUnit = (u: Unit) => ({
+            ...u,
+            hp: authoritativeUnit.hp,
+            current_mana: authoritativeUnit.current_mana,
+          })
+          if (isOpponent(event.unit_id)) {
+            newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, syncUnit)
+          } else {
+            newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, syncUnit)
+          }
+        }
       }
       break
 
