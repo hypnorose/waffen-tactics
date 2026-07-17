@@ -45,7 +45,7 @@ class CombatAttackProcessor:
             attack_interval = 1.0 / unit.attack_speed if getattr(unit, 'attack_speed', 0) > 0 else float('inf')
 
             if (time - getattr(unit, 'last_attack_time', 0)) >= attack_interval:
-                target_idx = self._select_target(attacking_team, defending_team, attacking_hp, defending_hp, i)
+                    target_idx = self._select_target(attacking_team, defending_team, attacking_hp, defending_hp, i)
                 if target_idx is None:
                     # Attacking team wins - this would be handled by caller
                     continue
@@ -109,12 +109,17 @@ class CombatAttackProcessor:
                     mana_accumulation[unit.id] = mana_accumulation.get(unit.id, 0) + mana_gain
 
                 if effective_mana >= unit.max_mana:
+                    bonus_target_idx = self._select_target(
+                        attacking_team, defending_team, attacking_hp, defending_hp, i, bonus_attack=True
+                    )
+                    if bonus_target_idx is None:
+                        continue
                     bonus_attack = {
                         'type': 'unit_attack',
                         'attacker_id': unit.id,
                         'attacker_name': unit.name,
-                        'target_id': defending_team[target_idx].id,
-                        'target_name': defending_team[target_idx].name,
+                        'target_id': defending_team[bonus_target_idx].id,
+                        'target_name': defending_team[bonus_target_idx].name,
                         'damage': damage,
                         'pre_hp': defending_hp[target_idx],
                         'side': side,
@@ -386,7 +391,8 @@ class CombatAttackProcessor:
         defending_team: List['CombatUnit'],
         attacking_hp: List[int],
         defending_hp: List[int],
-        attacker_idx: int
+        attacker_idx: int,
+        bonus_attack: bool = False
     ) -> Optional[int]:
         """Select a target for the attacking unit at index attacker_idx."""
         unit = attacking_team[attacker_idx]
@@ -408,7 +414,7 @@ class CombatAttackProcessor:
 
         def _get_target_preference() -> Optional[str]:
             for e in reversed(getattr(unit, 'effects', []) or []):
-                if isinstance(e, dict) and e.get('type') == 'targeting_preference':
+                if isinstance(e, dict) and e.get('type') == ('targeting_preference_bonus' if bonus_attack else 'targeting_preference'):
                     pref = _normalize_preference(e.get('preference'))
                     if pref:
                         return pref
