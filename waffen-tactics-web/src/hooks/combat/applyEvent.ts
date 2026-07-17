@@ -190,6 +190,11 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           applied_delta: delta
         }
         const updateFn = (u: Unit) => {
+          // SSE reconnects and replay recovery may deliver an already applied
+          // event again. Effect IDs make stat mutations idempotent.
+          if (effect.id && (u.effects || []).some(existing => existing.id === effect.id)) {
+            return u
+          }
           // CRITICAL: Create NEW effects array to prevent shared references
           const newEffects = [...(u.effects || []), { ...effect }]
           let newU = { ...u, effects: newEffects }

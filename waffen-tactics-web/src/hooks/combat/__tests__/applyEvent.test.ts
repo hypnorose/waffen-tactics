@@ -201,17 +201,12 @@ describe('applyCombatEvent - Effect Handling', () => {
       // Apply same event twice
       let newState = applyCombatEvent(state, event, { simTime: 1.0 })
 
-      // CRITICAL: Applying the same effect_id should not duplicate
-      // This is a known issue we need to fix - for now, this test documents the bug
       newState = applyCombatEvent(newState, event, { simTime: 1.0 })
 
       const player = newState.playerUnits.find(u => u.id === 'player_0')
 
-      // TODO: Fix effect deduplication - should be 1, currently will be 2
-      // expect(player!.effects).toHaveLength(1)
-
-      // For now, document that duplicates happen
-      expect(player!.effects!.length).toBeGreaterThan(0)
+      expect(player!.effects).toHaveLength(1)
+      expect(player!.defense).toBe(state.playerUnits[0].defense! + 20)
     })
 
     it('should store applied_delta for reversion', () => {
