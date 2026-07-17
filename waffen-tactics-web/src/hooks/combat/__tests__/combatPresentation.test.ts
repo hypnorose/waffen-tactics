@@ -63,6 +63,15 @@ describe('combatPresentation', () => {
     expect(afterResult.roundResult).toContain('ZWYCIESTWO')
   })
 
+  it('keeps percentage and flat stat buffs distinct in the combat log', () => {
+    expect(formatCombatLogEntry({
+      type: 'stat_buff', unit_name: 'Mage', amount: 20, stat: 'attack_speed', value_type: 'percentage',
+    })).toContain('+20% attack_speed')
+    expect(formatCombatLogEntry({
+      type: 'stat_buff', unit_name: 'Tank', amount: 20, stat: 'health', value_type: 'flat',
+    })).toContain('+20 health')
+  })
+
   it('calculates average dealt and received damage for participating units', () => {
     const summary = createCombatSummary()
     const events: CombatEvent[] = [

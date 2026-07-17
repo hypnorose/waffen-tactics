@@ -47,11 +47,23 @@ const getTraitColor = (tier: number) => {
   return tierColors[tier] || '#6b7280'
 }
 
+const isPercentageValue = (value: any) => (
+  value?.is_percentage === true ||
+  value?.value_type === 'percentage' ||
+  value?.value_type === 'percentage_of_max' ||
+  value?.value_type === 'percentage_of_collected'
+)
+
+const formatRewardValue = (reward: any, includeSign = false) => {
+  const value = reward?.value
+  if (value == null || value === '') return ''
+  const numericValue = Number(value)
+  const formatted = `${value}${isPercentageValue(reward) ? '%' : ''}`
+  return includeSign && Number.isFinite(numericValue) && numericValue > 0 ? `+${formatted}` : formatted
+}
+
 const formatReward = (r: any) => {
-  const val = r.value
-  const isPct = r.value_type === 'percentage' || r.is_percentage === true
-  const formattedVal = isPct ? `${val}%` : `${val}`
-  const sign = typeof val === 'number' && val > 0 ? `+${formattedVal}` : `${formattedVal}`
+  const sign = formatRewardValue(r, true)
   const statName = statDisplayNames[r.stat] || r.stat
   return `${sign} ${statName}`
 }
@@ -104,10 +116,7 @@ const getTraitDescription = (trait: any, tier: number) => {
 
   // replace <rewards.value> and <rewards.stat>
   if (out.includes('<rewards.value>') && rewards.length > 0) {
-    const val = rewards[0].value
-    const isPct = rewards[0].value_type === 'percentage' || rewards[0].is_percentage === true
-    const formattedVal = isPct ? `${val}%` : `${val}`
-    out = out.replace(/<rewards.value>/g, (val > 0 ? `+${formattedVal}` : `${formattedVal}`))
+    out = out.replace(/<rewards.value>/g, formatRewardValue(rewards[0], true))
   }
   if (out.includes('<rewards.stat>') && rewards.length > 0) {
     out = out.replace(/<rewards.stat>/g, statDisplayNames[rewards[0].stat] || rewards[0].stat)

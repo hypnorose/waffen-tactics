@@ -58,10 +58,24 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
       const modularEffect = effect[0] // First effect in the tier's effect array
       if (modularEffect.rewards && modularEffect.rewards.length > 0) {
         const reward = modularEffect.rewards[0] // Assume first reward for now
+        const isPercentageValue = (value: any) => (
+          value?.is_percentage === true ||
+          value?.value_type === 'percentage' ||
+          value?.value_type === 'percentage_of_max' ||
+          value?.value_type === 'percentage_of_collected'
+        )
+        const formatRewardValue = (value: any) => {
+          if (value == null || value === '') return ''
+          return `${value}${isPercentageValue(value) ? '%' : ''}`
+        }
+        const formatSignedRewardValue = (value: any) => {
+          const formatted = formatRewardValue(value)
+          return Number(value?.value) > 0 ? `+${formatted}` : formatted
+        }
 
         // Replace modular effect placeholders
         desc = desc.replace(/<rewards\.stat>/g, reward.stat || '')
-        desc = desc.replace(/<rewards\.value>/g, reward.value || '')
+        desc = desc.replace(/<rewards\.value>/g, formatSignedRewardValue(reward))
         desc = desc.replace(/<rewards\.value_type>/g, reward.value_type || '')
         desc = desc.replace(/<rewards\.resource>/g, reward.resource || '')
         desc = desc.replace(/<rewards\.duration>/g, reward.duration || '')
@@ -85,11 +99,11 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
         if (uniqueValues.length === 1) {
           // All rewards have the same value
           const value = uniqueValues[0] as number
-          const isPercentage = modularEffect.rewards.some((r: any) => r.value_type === 'percentage_of_max' || r.is_percentage)
+          const isPercentage = modularEffect.rewards.some((r: any) => isPercentageValue(r))
           desc = desc.replace(/<v>/g, isPercentage ? `${value}%` : value.toString())
         } else {
           // Different values - use the first one for <v> (fallback)
-          const isPercentage = reward.value_type === 'percentage_of_max' || reward.is_percentage
+          const isPercentage = isPercentageValue(reward)
           desc = desc.replace(/<v>/g, isPercentage ? `${reward.value}%` : (reward.value as number)?.toString() || '')
         }
 

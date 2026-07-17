@@ -97,6 +97,7 @@ export interface CombatEvent {
   game_state?: { player_units: any[], opponent_units: any[] }
   // Extended/optional fields used by applyEvent handlers
   value_type?: string
+  is_percentage?: boolean
   unit_attack?: number
   unit_defense?: number
   permanent?: boolean

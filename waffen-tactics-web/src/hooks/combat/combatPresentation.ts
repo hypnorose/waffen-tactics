@@ -67,6 +67,10 @@ function formatAmount(value?: number): string {
   return Number.isInteger(value) ? `${value}` : value.toFixed(2)
 }
 
+function isPercentageEvent(event: CombatEvent): boolean {
+  return event.is_percentage === true || event.value_type === 'percentage' || event.value_type === 'percentage_of_max'
+}
+
 function pickUnitName(event: CombatEvent): string {
   return event.attacker_name || event.caster_name || event.unit_name || event.target_name || event.message || 'Unknown'
 }
@@ -115,7 +119,8 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
       const sign = isDebuff ? '-' : '+'
       const stat = event.stat || 'stat'
       const duration = event.duration ? ` for ${formatAmount(event.duration)}s` : ''
-      return tag(prefix, `${event.unit_name || event.unit_id || 'Unit'} ${sign}${formatAmount(Math.abs(rawAmount))} ${stat}${duration}`)
+      const suffix = isPercentageEvent(event) ? '%' : ''
+      return tag(prefix, `${event.unit_name || event.unit_id || 'Unit'} ${sign}${formatAmount(Math.abs(rawAmount))}${suffix} ${stat}${duration}`)
     }
     case 'mana_update':
       return tag('MANA', `${event.unit_name || event.unit_id || 'Unit'} ${event.current_mana ?? 0}/${event.max_mana ?? 0}`)
