@@ -4,7 +4,7 @@ Combat attack processor - handles attack logic and damage calculation
 import random
 import os
 from typing import List, Dict, Any, Callable, Optional
-from .event_canonicalizer import emit_mana_change
+from .event_canonicalizer import emit_mana_change, emit_unit_stunned
 
 
 class CombatAttackProcessor:
