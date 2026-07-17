@@ -609,6 +609,32 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
   }
 
+  // A later event can carry the authoritative state after an earlier effect
+  // event was dropped by the SSE buffer. Reconcile only fields owned by the
+  // combat snapshot; state_snapshot remains validation-only above.
+  if (shouldUpdateSummary && event.type !== 'state_snapshot' && event.game_state) {
+    const snapshotUnits = [...(event.game_state.player_units || []), ...(event.game_state.opponent_units || [])]
+    const reconcile = (units: Unit[]) => units.map(unit => {
+      const authoritative = snapshotUnits.find(candidate => candidate.id === unit.id)
+      if (!authoritative) return unit
+      return {
+        ...unit,
+        hp: authoritative.hp,
+        max_hp: authoritative.max_hp,
+        current_mana: authoritative.current_mana,
+        max_mana: authoritative.max_mana,
+        shield: authoritative.shield,
+        attack: authoritative.attack,
+        defense: authoritative.defense,
+        attack_speed: authoritative.attack_speed,
+        buffed_stats: authoritative.buffed_stats,
+        effects: authoritative.effects || [],
+      }
+    })
+    newState.playerUnits = reconcile(newState.playerUnits)
+    newState.opponentUnits = reconcile(newState.opponentUnits)
+  }
+
   if (shouldUpdateSummary) {
     newState.combatSummary = updateCombatSummary(newState.combatSummary ?? createCombatSummary(), event)
   }

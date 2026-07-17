@@ -291,6 +291,32 @@ describe('applyCombatEvent - Effect Handling', () => {
       expect(opponent!.hp).toBe(560)
       expect(opponent!.current_mana).toBe(0)
     })
+
+    it('should recover a dropped attack speed buff from a later event snapshot', () => {
+      const newState = applyCombatEvent(state, {
+        type: 'unit_attack',
+        attacker_id: 'player_0',
+        target_id: 'opp_0',
+        target_hp: 560,
+        attacker_current_mana: 20,
+        game_state: {
+          player_units: [{ ...state.playerUnits[0] }],
+          opponent_units: [{
+            ...state.opponentUnits[0],
+            attack_speed: 1.2,
+            buffed_stats: { ...state.opponentUnits[0].buffed_stats, attack_speed: 1.2 },
+            effects: [{ id: 'recovered-speed-buff', type: 'buff', stat: 'attack_speed', value: 20, applied_delta: 0.2 }]
+          }]
+        },
+        seq: 420,
+        timestamp: 4.1
+      }, { simTime: 4.1 })
+
+      const opponent = newState.opponentUnits.find(u => u.id === 'opp_0')
+      expect(opponent!.attack_speed).toBeCloseTo(1.2)
+      expect(opponent!.effects).toHaveLength(1)
+      expect(opponent!.effects![0].id).toBe('recovered-speed-buff')
+    })
   })
 
   describe('effect_expired events', () => {
