@@ -272,7 +272,7 @@ class PassiveProcessor:
             if definition.get("kind") == "threshold" and owner is unit and crossed and not self._state(owner).get("threshold_used"):
                 self._state(owner)["threshold_used"] = True
                 effect = definition.get("effect")
-                if effect == "damage_reduction":
+                if effect in ("damage_reduction", "damage_reduction_shield"):
                     self._apply_start_effect(owner, definition, [owner], [], callback, side, timestamp)
                 elif effect == "attack_speed":
                     self._emit_stat_effect(owner, owner, "attack_speed", self._scaled_value(owner, definition["value"]), callback, side, timestamp, "percentage", definition.get("duration"))
