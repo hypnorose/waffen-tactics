@@ -124,7 +124,7 @@ class PassiveProcessor:
                 elif kind == "start_target":
                     self._set_target_preference(owner, definition.get("preference"), callback, side, timestamp)
                 elif kind == "start_target_bonus":
-                    self._set_target_preference(owner, definition.get("preference"), callback, side, timestamp)
+                    self._set_target_preference(owner, definition.get("preference"), callback, side, timestamp, bonus_only=True)
                 elif kind == "start_enemy_highest_attack":
                     alive = [u for u in enemies if getattr(u, "hp", 1) > 0]
                     if alive:
@@ -150,8 +150,8 @@ class PassiveProcessor:
                     branch = definition.get("front" if getattr(owner, "position", "front") == "front" else "back")
                     self._apply_start_effect(owner, branch, owners, enemies, callback, side, timestamp)
 
-    def _set_target_preference(self, unit: Any, preference: Optional[str], callback: EventCallback, side: str, timestamp: float) -> None:
-        self._append_effect(unit, {"type": "targeting_preference", "preference": preference, "source": getattr(unit, "id", None), "passive_effect": "targeting_preference"})
+    def _set_target_preference(self, unit: Any, preference: Optional[str], callback: EventCallback, side: str, timestamp: float, bonus_only: bool = False) -> None:
+        self._append_effect(unit, {"type": "targeting_preference_bonus" if bonus_only else "targeting_preference", "preference": preference, "source": getattr(unit, "id", None), "passive_effect": "targeting_preference"})
         self._emit(callback, unit, "on_start", "targeting_preference", side, timestamp, preference=preference)
 
     def before_attack(self, unit: Any, target: Any, team: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float) -> Dict[str, Any]:

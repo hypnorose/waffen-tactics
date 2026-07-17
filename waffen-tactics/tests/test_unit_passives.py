@@ -76,6 +76,14 @@ def test_full_mana_bonus_attack_can_feed_team_mana_without_skill_cast():
     assert all(event_type != "skill_cast" for event_type, _ in events)
 
 
+def test_dumb_lowest_hp_preference_is_bonus_attack_only():
+    definition = get_passive_definition("dumb")
+
+    assert definition["kind"] == "start_target_bonus"
+    assert definition["preference"] == "lowest_hp"
+    assert "dodatkowy atak" in definition["description"]
+
+
 def test_hyodo_max_hp_passive_preserves_current_health_ratio():
     hyodo = make_unit("hyodo888", "hyodo888", hp=1000, attack_speed=0.0)
     target = make_unit("target", hp=100000, attack_speed=0.0)

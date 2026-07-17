@@ -481,10 +481,15 @@ class CombatAttackProcessor:
                 # If mana filled from this attack, queue one extra basic hit.
                 if bonus_attack_ready:
                     bonus_attack_ts = round(attack_ts + 0.05, 10)
+                    bonus_target_idx = self._select_target(
+                        attacking_team, defending_team, attacking_hp, defending_hp, i, bonus_attack=True
+                    )
+                    if bonus_target_idx is None:
+                        continue
                     if hasattr(self, 'schedule_event') and event_callback:
                         bonus_action_callable = make_action(
                             unit,
-                            defending_team[target_idx],
+                            defending_team[bonus_target_idx],
                             damage,
                             side,
                             bonus_attack_ts,
@@ -501,7 +506,7 @@ class CombatAttackProcessor:
                             unit,
                             defending_team,
                             defending_hp,
-                            target_idx,
+                            bonus_target_idx,
                             side,
                             bonus_attack_ts,
                             event_callback,
@@ -526,7 +531,8 @@ class CombatAttackProcessor:
         defending_team: List['CombatUnit'],
         attacking_hp: List[int],
         defending_hp: List[int],
-        attacker_idx: int
+        attacker_idx: int,
+        bonus_attack: bool = False,
     ) -> Optional[int]:
         """Select a target for the attacking unit at index attacker_idx."""
         unit = attacking_team[attacker_idx]
@@ -561,7 +567,7 @@ class CombatAttackProcessor:
 
         def _get_target_preference() -> Optional[str]:
             for e in reversed(getattr(unit, 'effects', []) or []):
-                if isinstance(e, dict) and e.get('type') == 'targeting_preference':
+                if isinstance(e, dict) and e.get('type') == ('targeting_preference_bonus' if bonus_attack else 'targeting_preference'):
                     pref = _normalize_preference(e.get('preference'))
                     if pref:
                         return pref

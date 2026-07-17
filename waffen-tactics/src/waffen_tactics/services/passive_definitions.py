@@ -42,7 +42,7 @@ PASSIVE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "socjopata": _definition("Jego dodatkowy atak blokuje zdobywanie many przez cel na 2 sekundy.", "bonus_attack", effect="mana_lock", duration=2),
     "neko": _definition("Na początku walki pozycja zmienia efekt: z przodu otrzymuje 10% kradzieży życia, a z tyłu atakuje najsłabszy cel.", "position_start", front={"effect": "lifesteal", "value": 10}, back={"effect": "target", "preference": "lowest_hp"}),
     "noname": _definition("Na początku walki cały zespół otrzymuje +5 obrony.", "start_scope_stat", scope="team", stat="defense", value=5),
-    "dumb": _definition("Priorytetowo atakuje przeciwnika z najmniejszą ilością HP.", "start_target", preference="lowest_hp"),
+    "dumb": _definition("Jego dodatkowy atak wybiera przeciwnika z najmniejszą ilością HP.", "start_target_bonus", preference="lowest_hp"),
     "maxas12": _definition("Na początku walki otrzymuje +10 ataku.", "start_stat", stat="attack", value=10),
     "mrozu": _definition("Jego dodatkowy atak daje mu 20% prędkości ataku na 2 sekundy.", "bonus_attack", effect="attack_speed", value=20, duration=2),
     "v7": _definition("Co czwarty podstawowy atak zmniejsza atak celu o 10% na 3 sekundy.", "attack_count", every=4, effect="attack_break", value=10, duration=3),
