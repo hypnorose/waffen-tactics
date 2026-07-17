@@ -104,6 +104,9 @@ class PassiveProcessor:
                 self._emit_stat_effect(owner, target, effect["stat"], self._scaled_value(owner, effect["value"]), callback, side, timestamp, effect.get("value_type", "flat"), permanent=True)
             elif kind == "damage_reduction":
                 self._append_effect(target, {"type": "damage_reduction", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "damage_reduction"})
+            elif kind == "damage_reduction_shield":
+                self._append_effect(target, {"type": "damage_reduction", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "damage_reduction"})
+                emit_shield_applied(callback, target, int(target.max_hp * self._scaled_value(owner, effect["shield_value"]) / 100.0), duration=effect.get("duration"), source=owner, side=side, timestamp=timestamp)
             elif kind == "lifesteal":
                 self._append_effect(target, {"type": "lifesteal", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "lifesteal"})
             elif kind == "mana_regen":
@@ -207,10 +210,9 @@ class PassiveProcessor:
         elif effect == "frontline_secondary" and target:
             plan["secondary_scope"] = "frontline"
             plan["secondary_multiplier"] = float(value) / 100.0
-        elif effect == "shield_pierce":
-            state = self._state(unit)
-            state["shield_pierce"] = float(value)
-            self._emit(callback, unit, "on_attack_count", "shield_pierce_ready", side, timestamp)
+        elif effect == "shield_break":
+            plan["break_shield"] = True
+            self._emit(callback, unit, "on_attack_count", "shield_break_ready", side, timestamp)
         elif effect == "stun_focus" and target:
             plan["stun"] = float(value)
             self._state(unit)["focus_target_id"] = target.id

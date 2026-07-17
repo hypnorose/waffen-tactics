@@ -444,6 +444,22 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
 
+    case 'shield_broken':
+      if (event.unit_id) {
+        const clearShield = (u: Unit) => ({
+          ...u,
+          shield: 0,
+          effects: (u.effects || []).filter(effect => effect.type !== 'shield'),
+        })
+        if (isOpponent(event.unit_id)) {
+          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, clearShield)
+        } else {
+          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, clearShield)
+        }
+      }
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
+      break
+
     case 'unit_stunned':
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       if (event.unit_id) {

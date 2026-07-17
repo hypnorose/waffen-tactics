@@ -13,7 +13,7 @@ def _definition(description: str, kind: str, **values: Any) -> Dict[str, Any]:
 
 
 PASSIVE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
-    "rafcikd": _definition("Gdy po raz pierwszy spada poniżej 50% HP, otrzymuje 20% redukcji obrażeń na 4 sekundy.", "threshold", threshold=50, effect="damage_reduction", value=20, duration=4),
+    "rafcikd": _definition("Gdy po raz pierwszy spada poniżej 50% HP, otrzymuje 20% redukcji obrażeń i tarczę równą 8% maksymalnego HP na 4 sekundy.", "threshold", threshold=50, effect="damage_reduction_shield", value=20, shield_value=8, duration=4),
     "falconbalkon": _definition("Co trzeci podstawowy atak daje mu 10 many.", "attack_count", every=3, effect="mana_self", value=10),
     "piwniczak": _definition("Co czwarty podstawowy atak zmniejsza obronę celu o 10% na 3 sekundy.", "attack_count", every=4, effect="defense_break", value=10, duration=3),
     "capybara": _definition("Jej dodatkowy atak przy pełnej manie leczy ją za 8% maksymalnego HP.", "bonus_attack", effect="heal_self_percent", value=8),
@@ -29,7 +29,7 @@ PASSIVE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "laylo": _definition("Priorytetowo atakuje cele poniżej 30% HP, a przeciw nim zadaje o 25% więcej obrażeń.", "conditional_attack", threshold=30, effect="target_low_hp", value=25),
     "szachowymentor": _definition("Na początku walki wroga jednostka z najwyższym atakiem zadaje o 15% mniej obrażeń przez całą walkę.", "start_enemy_highest_attack", value=15),
     "mrvlook": _definition("Na początku walki otrzymuje 8% redukcji obrażeń.", "start_effect", effect="damage_reduction", value=8),
-    "wodazlodowca": _definition("Na początku walki otrzymuje tarczę równą 12% maksymalnego HP.", "start_effect", effect="shield_percent", value=12),
+    "wodazlodowca": _definition("Na początku walki otrzymuje tarczę równą 15% maksymalnego HP.", "start_effect", effect="shield_percent", value=15),
     "turboglovica": _definition("Jej dodatkowy atak zmniejsza prędkość ataku celu o 15% na 3 sekundy.", "bonus_attack", effect="attack_speed_break", value=15, duration=3),
     "operatorkosiarki": _definition("Priorytetowo atakuje przednią linię, a jego dodatkowy atak zmniejsza obronę celu o 20% na 4 sekundy.", "start_target_bonus", preference="frontline", effect="defense_break", value=20, duration=4),
     "beligol": _definition("Jego dodatkowy atak ignoruje 35% obrony celu i utrzymuje go jako cel dla kolejnych ataków.", "bonus_attack", effect="ignore_defense_focus", value=35),
@@ -38,7 +38,7 @@ PASSIVE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "jaskol95": _definition("Jej dodatkowy atak daje jej 15% prędkości ataku na 2 sekundy.", "bonus_attack", effect="attack_speed", value=15, duration=2),
     "igor_janik": _definition("Jego dodatkowy atak daje mu +10 ataku na 3 sekundy.", "bonus_attack", effect="attack", value=10, duration=3),
     "olaczka": _definition("Jej dodatkowy atak zadaje 35% obrażeń wszystkim przeciwnikom z przedniej linii.", "bonus_attack", effect="frontline_secondary", value=35),
-    "merex": _definition("Gdy po raz pierwszy spada poniżej 45% HP, otrzymuje tarczę równą 20% maksymalnego HP i przez czas jej trwania priorytetowo przyjmuje ataki.", "threshold", threshold=45, effect="shield_focus", value=20),
+    "merex": _definition("Gdy po raz pierwszy spada poniżej 45% HP, otrzymuje tarczę równą 25% maksymalnego HP i przez czas jej trwania priorytetowo przyjmuje ataki.", "threshold", threshold=45, effect="shield_focus", value=25),
     "socjopata": _definition("Jego dodatkowy atak blokuje zdobywanie many przez cel na 2 sekundy.", "bonus_attack", effect="mana_lock", duration=2),
     "neko": _definition("Na początku walki pozycja zmienia efekt: z przodu otrzymuje 10% kradzieży życia, a z tyłu atakuje najsłabszy cel.", "position_start", front={"effect": "lifesteal", "value": 10}, back={"effect": "target", "preference": "lowest_hp"}),
     "noname": _definition("Na początku walki cały zespół otrzymuje +5 obrony.", "start_scope_stat", scope="team", stat="defense", value=5),
@@ -61,7 +61,7 @@ PASSIVE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "hikki": _definition("Co piąty podstawowy atak odbiera celowi 15 many.", "attack_count", every=5, effect="mana_burn", value=15),
     "alyson_stark": _definition("Na początku walki sojusznicy w przedniej linii otrzymują +8 ataku.", "start_scope_stat", scope="frontline", stat="attack", value=8),
     "flaminga": _definition("Jej dodatkowy atak nakłada na cel krótkie obrażenia w czasie.", "bonus_attack", effect="dot", value=8, ticks=3, interval=1),
-    "vitas": _definition("Co trzeci podstawowy atak sprawia, że jego następny atak ignoruje 25% tarczy celu.", "attack_count", every=3, effect="shield_pierce", value=25),
+    "vitas": _definition("Co trzeci podstawowy atak całkowicie niszczy tarczę celu przed zadaniem obrażeń.", "attack_count", every=3, effect="shield_break"),
     "fiko": _definition("Na początku walki pozycja zmienia efekt: z przodu otrzymuje 12% maksymalnego HP, a z tyłu 10% redukcji obrażeń.", "position_start", front={"effect": "stat", "stat": "max_hp", "value": 12, "value_type": "percentage"}, back={"effect": "damage_reduction", "value": 10}),
     "puszmen12": _definition("Po trzech kolejnych atakach w ten sam cel następny atak zadaje 30% więcej obrażeń.", "attack_count_same_target", every=3, effect="damage", value=30),
     "pan_yakuza": _definition("Po zabiciu przeciwnika otrzymuje +5 ataku do końca walki, maksymalnie 3 razy.", "kill", effect="self_attack_stack", value=5, cap=3),

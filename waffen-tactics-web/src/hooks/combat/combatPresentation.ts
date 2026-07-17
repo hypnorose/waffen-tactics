@@ -137,6 +137,8 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
       return tag('REGEN', `${event.unit_name || event.unit_id || 'Unit'} dostaje +${formatAmount(event.total_amount)} HP przez ${formatAmount(event.duration || 0)}s`)
     case 'shield_applied':
       return tag('SHIELD', `${event.unit_name || event.unit_id || 'Unit'} +${formatAmount(event.amount)} shield`)
+    case 'shield_broken':
+      return tag('SHIELD BREAK', `${event.unit_name || event.unit_id || 'Unit'} traci tarczę (${formatAmount(event.amount)})`)
     case 'unit_stunned':
       return tag('STUN', `${event.unit_name || event.unit_id || 'Unit'} oszolomiony na ${formatAmount(event.duration)}s`)
     case 'damage_over_time_applied':

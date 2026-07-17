@@ -237,6 +237,20 @@ class CombatAttackProcessor:
                             ) or {}
                             action_plan.update(bonus_plan)
 
+                        if action_plan.get('break_shield') and getattr(target_obj, 'shield', 0):
+                            broken_amount = int(getattr(target_obj, 'shield', 0) or 0)
+                            target_obj.shield = 0
+                            target_obj.effects = [e for e in (getattr(target_obj, 'effects', []) or []) if not (isinstance(e, dict) and e.get('type') == 'shield')]
+                            results.append(('shield_broken', {
+                                'type': 'shield_broken',
+                                'unit_id': getattr(target_obj, 'id', None),
+                                'unit_name': getattr(target_obj, 'name', None),
+                                'amount': broken_amount,
+                                'side': side_val,
+                                'timestamp': deliver_ts,
+                                'cause': 'passive',
+                            }))
+
                         action_damage = self._calculate_damage(
                             attacker,
                             target_obj,
