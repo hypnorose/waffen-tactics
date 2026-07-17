@@ -128,17 +128,18 @@ export default function CombatSummaryPanel({ summary, synergies }: Props) {
         padding: '8px 10px',
         marginBottom: 10,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'space-between',
         gap: 10,
+        flexWrap: 'wrap',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0, flex: '1 1 220px' }}>
           <Medal size={14} />
-          <span style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0, lineHeight: 1.35, overflowWrap: 'anywhere' }}>
             {summary?.roundResult || 'W toku'}
           </span>
         </div>
-        <span style={{ fontSize: 11, color: '#cbd5e1', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.35, flex: '1 1 180px', minWidth: 0, overflowWrap: 'anywhere' }}>
           {summary?.lastAction?.text || 'Brak ostatniej akcji'}
         </span>
       </div>

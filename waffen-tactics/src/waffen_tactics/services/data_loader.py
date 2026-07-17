@@ -12,6 +12,15 @@ TRAITS_FILE = Path(__file__).resolve().parents[3] / "traits.json"
 ROLES_FILE = Path(__file__).resolve().parents[3] / "unit_roles.json"
 
 DEFAULT_STATS = Stats(attack=50, hp=500, defense=20, max_mana=100, attack_speed=1.0, mana_on_attack=10, mana_regen=5)
+
+# Mana identity is tied to combat role. Lower max mana and higher income make
+# mages cycle bonus attacks most often; defenders trade frequency for safety.
+ROLE_MANA = {
+    "mage": {"max_mana": 40, "mana_on_attack": 10, "mana_regen": 8},
+    "duelist": {"max_mana": 60, "mana_on_attack": 7, "mana_regen": 6},
+    "fighter": {"max_mana": 80, "mana_on_attack": 5, "mana_regen": 5},
+    "defender": {"max_mana": 100, "mana_on_attack": 4, "mana_regen": 4},
+}
 # Use new skill structures internally and store them under the unit Skill.effect as {'skill': NewSkill}
 _default_new_skill = NewSkill(
     name="Basic Skill",
@@ -46,17 +55,16 @@ def build_stats_for_unit(unit_data: Dict[str, Any], roles: Dict[str, Dict[str, A
     # Cost scaling multiplier: base 1.0, +0.2 per cost level above 1
     cost_mult = 1.0 + (cost - 1) * 0.2
     
-    max_mana = unit_data.get("max_mana", 100)
-    if max_mana is None:
-        raise ValueError(f"Unit {unit_data.get('id', 'unknown')} has max_mana = None")
+    mana_profile = ROLE_MANA.get(role, ROLE_MANA["fighter"])
+    max_mana = mana_profile["max_mana"]
     return Stats(
         attack=int(role_stats.get('attack', 50) * cost_mult),
         hp=int(role_stats.get('hp', 500) * cost_mult),
         defense=int(role_stats.get('defense', 20) * cost_mult),
         max_mana=max_mana,
         attack_speed=role_stats.get('attack_speed', 1.0),
-        mana_on_attack=role_stats.get('mana_on_attack', 10),
-        mana_regen=role_stats.get('mana_regen', 5)
+        mana_on_attack=mana_profile["mana_on_attack"],
+        mana_regen=mana_profile["mana_regen"]
     )
 
 def build_skill_for_cost(cost: int) -> Skill:
