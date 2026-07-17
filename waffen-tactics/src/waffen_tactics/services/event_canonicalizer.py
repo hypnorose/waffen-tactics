@@ -359,6 +359,7 @@ def emit_mana_change(
     payload = {
         'unit_id': getattr(recipient, 'id', None),
         'unit_name': getattr(recipient, 'name', None),
+        'max_mana': int(getattr(recipient, 'max_mana', 0) or 0),
         'amount': applied_amount,
         'current_mana': current_mana_value,  # ALWAYS include, not just in snapshots
         'side': side,

@@ -198,6 +198,19 @@ class TestCombat(unittest.TestCase):
         result = self.sim.simulate(team, opp)
         self.assertIn(result["winner"], ("B", "team_b"))
 
+    def test_combat_stops_when_both_teams_are_wiped(self):
+        """Wiped teams must not leave the simulator running to timeout."""
+        stats = Stats(attack=10, hp=0, defense=0, max_mana=100, attack_speed=1.0)
+        skill = Skill("None", "none", 100, {"type": "none"})
+        team_a = [Unit("dead_a", "Dead A", 1, ["X"], ["Y"], stats, skill)]
+        team_b = [Unit("dead_b", "Dead B", 1, ["X"], ["Y"], stats, skill)]
+
+        result = self.sim.simulate(team_a, team_b)
+
+        self.assertFalse(result.get("timeout", False))
+        self.assertLess(result.get("duration", 0), 1000)
+        self.assertIn(result["winner"], ("A", "team_a"))
+
     def test_unit_without_skill(self):
         """Test that unit without skill does not cause errors"""
         stats = Stats(attack=20, hp=100, defense=5, max_mana=100, attack_speed=1.0)

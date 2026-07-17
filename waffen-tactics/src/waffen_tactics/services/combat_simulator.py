@@ -374,6 +374,18 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
             # Deliver any scheduled events due now
             self._deliver_scheduled_events(sink)
 
+            # A team can be wiped by scheduled damage/DoT between attack
+            # phases. End immediately instead of advancing empty ticks until
+            # timeout and emitting meaningless mana events.
+            team_a_alive = any(hp > 0 for hp in self.a_hp)
+            team_b_alive = any(hp > 0 for hp in self.b_hp)
+            if not team_a_alive or not team_b_alive:
+                # The surviving team wins. If scheduled effects wipe both
+                # teams at the same timestamp, keep the legacy deterministic
+                # tie-breaker instead of continuing until timeout.
+                winner = 'team_a' if team_a_alive or not team_b_alive else 'team_b'
+                break
+
             # Process damage-over-time effects for both teams (emit ticks and expirations)
             self._process_dot_for_team(self.team_a, self.a_hp, time, log, proc_cb, 'team_a')
             self._process_dot_for_team(self.team_b, self.b_hp, time, log, proc_cb, 'team_b')
