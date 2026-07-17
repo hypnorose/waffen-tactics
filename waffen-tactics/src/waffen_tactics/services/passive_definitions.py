@@ -51,7 +51,7 @@ PASSIVE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "wrzechu": _definition("Jej dodatkowy atak zadaje 30% obrażeń najsłabiej rannemu przeciwnikowi poza głównym celem.", "bonus_attack", effect="weakest_secondary", value=30),
     "galanonim": _definition("Na początku walki cały wrogi zespół ma o 5% mniej ataku i obrony.", "start_enemy_debuff", attack=5, defense=5),
     "stalin": _definition("Po zabiciu przeciwnika cały zespół otrzymuje +8 ataku i 10% prędkości ataku na 4 sekundy.", "kill", effect="team_rally", attack=8, attack_speed=10, duration=4),
-    "krasu": _definition("Jego dodatkowy atak zadaje 20% obrażeń każdemu przeciwnikowi.", "bonus_attack", effect="all_secondary", value=20),
+    "krasu": _definition("Jego dodatkowy atak zadaje 5% obrażeń każdemu przeciwnikowi.", "bonus_attack", effect="all_secondary", value=5),
     "atomowy_coggers": _definition("Gdy po raz pierwszy spada poniżej 35% HP, jego następny atak zadaje 25% obrażeń wszystkim przeciwnikom z przedniej linii.", "threshold", threshold=35, effect="arm_frontline_wave", value=25),
     "szalwia": _definition("Na początku walki pozycja zmienia efekt: przednia linia otrzymuje 5% redukcji obrażeń, a tylna linia +2 regeneracji many.", "position_scope_start", front={"scope": "frontline", "effect": "damage_reduction", "value": 5}, back={"scope": "backline", "effect": "mana_regen", "value": 2}),
     "bosman": _definition("Na początku walki sojusznicy w przedniej linii otrzymują +5 ataku.", "start_scope_stat", scope="frontline", stat="attack", value=5),

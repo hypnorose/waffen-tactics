@@ -4,9 +4,10 @@ from waffen_tactics.services.combat_unit import CombatUnit
 from waffen_tactics.services.data_loader import load_game_data
 from waffen_tactics.services.event_canonicalizer import emit_damage
 from waffen_tactics.services.passive_definitions import get_passive_definition
+from waffen_tactics.services.passive_processor import PassiveProcessor
 
 
-def make_unit(unit_id, passive_id=None, *, hp=1000, attack=20, defense=0, attack_speed=2.0, max_mana=100, position="front"):
+def make_unit(unit_id, passive_id=None, *, hp=1000, attack=20, defense=0, attack_speed=2.0, max_mana=100, position="front", star_level=1):
     stats = Stats(
         attack=attack,
         hp=hp,
@@ -26,6 +27,7 @@ def make_unit(unit_id, passive_id=None, *, hp=1000, attack=20, defense=0, attack
         max_mana=max_mana,
         stats=stats,
         position=position,
+        star_level=star_level,
         passive=get_passive_definition(passive_id) if passive_id else None,
     )
 
@@ -82,6 +84,23 @@ def test_dumb_lowest_hp_preference_is_bonus_attack_only():
     assert definition["kind"] == "start_target_bonus"
     assert definition["preference"] == "lowest_hp"
     assert "dodatkowy atak" in definition["description"]
+
+
+def test_passive_strength_scales_by_star_level():
+    processor = PassiveProcessor()
+    unit = make_unit("scaling", hp=1000, star_level=1)
+    assert processor._scaled_value(unit, 10) == 10
+    unit = make_unit("scaling", hp=1000, star_level=2)
+    assert processor._scaled_value(unit, 10) == 15
+    unit = make_unit("scaling", hp=1000, star_level=3)
+    assert processor._scaled_value(unit, 10) == 20
+
+
+def test_krasu_bonus_attack_is_five_percent_base():
+    definition = get_passive_definition("krasu")
+
+    assert definition["value"] == 5
+    assert definition["effect"] == "all_secondary"
 
 
 def test_hyodo_max_hp_passive_preserves_current_health_ratio():

@@ -38,6 +38,14 @@ class PassiveProcessor:
             unit.passive_state = state
         return state
 
+    @staticmethod
+    def _scaled_value(unit: Any, value: Any) -> Any:
+        """Scale passive strength by stars while keeping timing unchanged."""
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return value
+        stars = max(1, min(3, int(getattr(unit, "star_level", 1) or 1)))
+        return value * (1.0 + 0.5 * (stars - 1))
+
     def _emit(self, callback: EventCallback, unit: Any, trigger: str, effect: str, side: str, timestamp: float, **extra: Any) -> None:
         if not callback:
             return
@@ -93,15 +101,15 @@ class PassiveProcessor:
         targets = self._scope(owner, effect.get("scope", "self"), allies, enemies)
         for target in targets:
             if kind == "stat":
-                self._emit_stat_effect(owner, target, effect["stat"], effect["value"], callback, side, timestamp, effect.get("value_type", "flat"), permanent=True)
+                self._emit_stat_effect(owner, target, effect["stat"], self._scaled_value(owner, effect["value"]), callback, side, timestamp, effect.get("value_type", "flat"), permanent=True)
             elif kind == "damage_reduction":
-                self._append_effect(target, {"type": "damage_reduction", "value": effect["value"], "source": getattr(owner, "id", None), "passive_effect": "damage_reduction"})
+                self._append_effect(target, {"type": "damage_reduction", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "damage_reduction"})
             elif kind == "lifesteal":
-                self._append_effect(target, {"type": "lifesteal", "value": effect["value"], "source": getattr(owner, "id", None), "passive_effect": "lifesteal"})
+                self._append_effect(target, {"type": "lifesteal", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "lifesteal"})
             elif kind == "mana_regen":
-                self._append_effect(target, {"type": "mana_regen", "value": effect["value"], "source": getattr(owner, "id", None), "passive_effect": "mana_regen"})
+                self._append_effect(target, {"type": "mana_regen", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "mana_regen"})
             elif kind == "shield_percent":
-                amount = int(target.max_hp * float(effect["value"]) / 100.0)
+                amount = int(target.max_hp * float(self._scaled_value(owner, effect["value"])) / 100.0)
                 emit_shield_applied(callback, target, amount, source=owner, side=side, timestamp=timestamp)
 
     def initialize(self, team_a: List[Any], team_b: List[Any], callback: EventCallback, timestamp: float = 0.0) -> None:
@@ -129,7 +137,7 @@ class PassiveProcessor:
                     alive = [u for u in enemies if getattr(u, "hp", 1) > 0]
                     if alive:
                         target = max(alive, key=lambda u: getattr(u, "attack", 0))
-                        self._append_effect(target, {"type": "damage_reduction", "value": definition["value"], "source": getattr(owner, "id", None), "passive_effect": "enemy_highest_attack"})
+                        self._append_effect(target, {"type": "damage_reduction", "value": self._scaled_value(owner, definition["value"]), "source": getattr(owner, "id", None), "passive_effect": "enemy_highest_attack"})
                         self._emit(callback, owner, "on_start", "enemy_highest_attack_penalty", side, timestamp, target_id=target.id)
                 elif kind == "start_enemy_debuff":
                     for target in enemies:
@@ -175,17 +183,17 @@ class PassiveProcessor:
             state["last_target_id"] = getattr(target, "id", None)
             if state["same_target_count"] > int(definition.get("every", 3)):
                 state["same_target_count"] = 0
-                plan["damage_multiplier"] = 1 + float(definition.get("value", 0)) / 100.0
+                plan["damage_multiplier"] = 1 + float(self._scaled_value(unit, definition.get("value", 0))) / 100.0
                 self._emit(callback, unit, "on_attack_count", "same_target_payoff", side, timestamp)
         elif kind == "conditional_attack":
             if target and target.hp > 0 and target.hp / max(1, target.max_hp) * 100 < float(definition.get("threshold", 0)):
-                plan["damage_multiplier"] = 1 + float(definition.get("value", 0)) / 100.0
+                plan["damage_multiplier"] = 1 + float(self._scaled_value(unit, definition.get("value", 0))) / 100.0
                 self._emit(callback, unit, "on_attack", definition.get("effect", "conditional_damage"), side, timestamp, target_id=target.id)
         return plan
 
     def _apply_attack_effect(self, unit: Any, target: Any, definition: Dict[str, Any], team: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float, plan: Dict[str, Any]) -> None:
         effect = definition.get("effect")
-        value = definition.get("value", 0)
+        value = self._scaled_value(unit, definition.get("value", 0))
         if effect == "mana_self":
             plan["mana_self"] = int(value)
         elif effect == "mana_burn":
@@ -215,7 +223,7 @@ class PassiveProcessor:
             return {}
         plan: Dict[str, Any] = {}
         effect = definition.get("effect")
-        value = definition.get("value", 0)
+        value = self._scaled_value(unit, definition.get("value", 0))
         if effect == "heal_self_percent":
             amount = int(unit.max_hp * float(value) / 100.0)
             emit_heal(callback, unit, amount, source=unit, side=side, timestamp=timestamp, cause="passive_bonus_attack")
@@ -223,7 +231,8 @@ class PassiveProcessor:
             plan["team_mana"] = int(value)
         elif effect == "frontline_secondary":
             plan["secondary_scope"] = "frontline"
-            plan["secondary_multiplier"] = float(definition.get("secondary_value", value)) / 100.0
+            secondary_value = definition.get("secondary_value", definition.get("value", 0))
+            plan["secondary_multiplier"] = float(self._scaled_value(unit, secondary_value)) / 100.0
             if target and definition.get("defense_break"):
                 self._emit_stat_effect(unit, target, "defense", -float(definition["defense_break"]), callback, side, timestamp, "percentage", definition.get("duration"))
         elif effect == "attack_speed_break" and target:
@@ -264,12 +273,12 @@ class PassiveProcessor:
                 if effect == "damage_reduction":
                     self._apply_start_effect(owner, definition, [owner], [], callback, side, timestamp)
                 elif effect == "attack_speed":
-                    self._emit_stat_effect(owner, owner, "attack_speed", definition["value"], callback, side, timestamp, "percentage", definition.get("duration"))
+                    self._emit_stat_effect(owner, owner, "attack_speed", self._scaled_value(owner, definition["value"]), callback, side, timestamp, "percentage", definition.get("duration"))
                 elif effect == "shield_focus":
-                    emit_shield_applied(callback, owner, int(owner.max_hp * definition["value"] / 100), source=owner, side=side, timestamp=timestamp)
+                    emit_shield_applied(callback, owner, int(owner.max_hp * self._scaled_value(owner, definition["value"]) / 100), source=owner, side=side, timestamp=timestamp)
                     self._set_target_preference(owner, "frontline", callback, side, timestamp)
                 elif effect == "arm_frontline_wave":
-                    self._state(owner)["frontline_wave"] = float(definition["value"]) / 100.0
+                    self._state(owner)["frontline_wave"] = float(self._scaled_value(owner, definition["value"])) / 100.0
                 self._emit(callback, owner, "on_self_hp_below", effect, side, timestamp)
 
         if unit is not None and new_hp > 0:
@@ -282,9 +291,9 @@ class PassiveProcessor:
                     self._state(owner)["ally_threshold_used"] = True
                     effect = definition.get("effect")
                     if effect == "heal_percent":
-                        emit_heal(callback, unit, int(unit.max_hp * definition["value"] / 100), source=owner, side=side, timestamp=timestamp, cause="passive_ally_threshold")
+                        emit_heal(callback, unit, int(unit.max_hp * self._scaled_value(owner, definition["value"]) / 100), source=owner, side=side, timestamp=timestamp, cause="passive_ally_threshold")
                     elif effect == "regen_percent":
-                        emit_regen_gain(callback, unit, unit.max_hp * definition["value"] / 100 / max(1, definition.get("duration", 5)), duration=definition.get("duration", 5), side=side, timestamp=timestamp)
+                        emit_regen_gain(callback, unit, unit.max_hp * self._scaled_value(owner, definition["value"]) / 100 / max(1, definition.get("duration", 5)), duration=definition.get("duration", 5), side=side, timestamp=timestamp)
                     self._emit(callback, owner, "on_ally_hp_below", effect, side, timestamp, target_id=unit.id)
 
     def on_kill(self, killer: Any, team: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float) -> None:
@@ -294,12 +303,12 @@ class PassiveProcessor:
         effect = definition.get("effect")
         if effect == "team_rally":
             for ally in team:
-                self._emit_stat_effect(killer, ally, "attack", definition["attack"], callback, side, timestamp, duration=definition.get("duration"))
-                self._emit_stat_effect(killer, ally, "attack_speed", definition["attack_speed"], callback, side, timestamp, "percentage", definition.get("duration"))
+                self._emit_stat_effect(killer, ally, "attack", self._scaled_value(killer, definition["attack"]), callback, side, timestamp, duration=definition.get("duration"))
+                self._emit_stat_effect(killer, ally, "attack_speed", self._scaled_value(killer, definition["attack_speed"]), callback, side, timestamp, "percentage", definition.get("duration"))
         elif effect == "self_attack_stack":
             state = self._state(killer)
             stacks = min(int(definition.get("cap", 3)), int(state.get("kill_stacks", 0)) + 1)
             if stacks > state.get("kill_stacks", 0):
                 state["kill_stacks"] = stacks
-                self._emit_stat_effect(killer, killer, "attack", definition["value"], callback, side, timestamp, permanent=True)
+                self._emit_stat_effect(killer, killer, "attack", self._scaled_value(killer, definition["value"]), callback, side, timestamp, permanent=True)
         self._emit(callback, killer, "on_kill", effect, side, timestamp)
