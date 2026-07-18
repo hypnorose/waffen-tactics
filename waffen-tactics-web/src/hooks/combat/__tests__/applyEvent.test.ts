@@ -675,6 +675,45 @@ describe('applyCombatEvent - Effect Handling', () => {
   })
 
   describe('Combat presentation summary', () => {
+    it('should apply authoritative current and max mana from mana_update', () => {
+      state.playerUnits[0].current_mana = 70
+      state.playerUnits[0].max_mana = 100
+
+      const event: CombatEvent = {
+        type: 'mana_update',
+        unit_id: 'player_0',
+        unit_name: 'TestPlayer',
+        current_mana: 71,
+        max_mana: 80,
+        amount: 1,
+        seq: 12,
+        timestamp: 2.4
+      }
+
+      const newState = applyCombatEvent(state, event, { simTime: 2.4 })
+      const unit = newState.playerUnits[0]
+
+      expect(unit.current_mana).toBe(71)
+      expect(unit.max_mana).toBe(80)
+      expect(newState.combatLog[newState.combatLog.length - 1]).toContain('71/80')
+    })
+
+    it('should clamp malformed mana above the authoritative maximum', () => {
+      const event: CombatEvent = {
+        type: 'mana_update',
+        unit_id: 'player_0',
+        current_mana: 999,
+        max_mana: 40,
+        amount: 999,
+        seq: 13,
+        timestamp: 2.5
+      }
+
+      const newState = applyCombatEvent(state, event, { simTime: 2.5 })
+      expect(newState.playerUnits[0].current_mana).toBe(40)
+      expect(newState.playerUnits[0].max_mana).toBe(40)
+    })
+
     it('should track bonus attacks, focus and damage totals', () => {
       const event: CombatEvent = {
         type: 'unit_attack',

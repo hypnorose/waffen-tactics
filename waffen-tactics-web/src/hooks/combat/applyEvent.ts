@@ -263,6 +263,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           shouldUpdateSummary = false
           break
         }
+        const currentMana = Number(event.current_mana)
 
         // Debug: Log ALL mana_update events (brief format)
         console.log(`💠 MANA seq=${event.seq} ${event.unit_id}=${event.current_mana} amt=${event.amount}`)
@@ -274,7 +275,14 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
         // CRITICAL: Also update HP from unit_hp field (mana_update events carry authoritative HP)
         const updateFn = (u: Unit) => {
-          const updates: Partial<Unit> = { current_mana: event.current_mana }
+          const updates: Partial<Unit> = { current_mana: currentMana }
+          // max_mana is authoritative too. Keeping it in the unit snapshot
+          // prevents stale mana bars and fixes log/state divergence after a
+          // class or passive changes the mana profile.
+          if (typeof event.max_mana === 'number' && Number.isFinite(event.max_mana) && event.max_mana >= 0) {
+            updates.max_mana = event.max_mana
+            updates.current_mana = Math.max(0, Math.min(currentMana, event.max_mana))
+          }
           // CRITICAL: Only update HP if unit_hp is present AND not null
           // Backend sometimes sends unit_hp: null which would erase HP!
           if (event.unit_hp !== undefined && event.unit_hp !== null) {
