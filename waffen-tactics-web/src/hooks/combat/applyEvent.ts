@@ -14,6 +14,11 @@ function isOpponent(unitId: string | undefined): boolean {
   return unitId.startsWith('opponent') || unitId.startsWith('opp_')
 }
 
+function isUnitDead(state: CombatState, unitId: string): boolean {
+  const unit = [...state.playerUnits, ...state.opponentUnits].find(u => u.id === unitId)
+  return Boolean(unit && unit.hp <= 0)
+}
+
 export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: ApplyEventContext): CombatState {
   let newState = { ...state }
   const logLine = formatCombatLogEntry(event)
@@ -22,6 +27,20 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
   // Update simTime if timestamp present
   if (typeof event.timestamp === 'number') {
     newState.simTime = event.timestamp
+  }
+
+  // Death is authoritative. Ignore late replay/SSE events for dead units.
+  const stateChangingTypes = new Set([
+    'attack', 'unit_attack', 'mana_update', 'stat_buff', 'shield_applied',
+    'shield_broken', 'unit_stunned', 'damage_over_time_applied',
+    'damage_over_time_tick', 'damage_over_time_expired', 'effect_expired',
+    'unit_heal', 'heal', 'hp_regen', 'regen_gain'
+  ])
+  const involvedIds = [event.unit_id, event.attacker_id, event.target_id].filter(
+    (id): id is string => Boolean(id)
+  )
+  if (stateChangingTypes.has(event.type) && involvedIds.some(id => isUnitDead(state, id))) {
+    return newState
   }
 
   switch (event.type) {

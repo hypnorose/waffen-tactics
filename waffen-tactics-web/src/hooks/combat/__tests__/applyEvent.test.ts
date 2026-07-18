@@ -675,6 +675,28 @@ describe('applyCombatEvent - Effect Handling', () => {
   })
 
   describe('Combat presentation summary', () => {
+    it('should ignore late mana and attack events after unit death', () => {
+      const died = applyCombatEvent(state, {
+        type: 'unit_died', unit_id: 'player_0', unit_name: 'TestPlayer',
+        seq: 20, timestamp: 3
+      }, { simTime: 3 })
+
+      const afterMana = applyCombatEvent(died, {
+        type: 'mana_update', unit_id: 'player_0', current_mana: 80,
+        max_mana: 100, amount: 80, seq: 21, timestamp: 3.1
+      }, { simTime: 3.1 })
+      const afterAttack = applyCombatEvent(afterMana, {
+        type: 'unit_attack', attacker_id: 'player_0', target_id: 'opp_0',
+        attacker_current_mana: 0, attacker_max_mana: 100, target_hp: 1,
+        damage: 99, applied_damage: 99, seq: 22, timestamp: 3.2
+      }, { simTime: 3.2 })
+
+      expect(afterAttack.playerUnits[0].hp).toBe(0)
+      expect(afterAttack.playerUnits[0].current_mana).toBe(0)
+      expect(afterAttack.opponentUnits[0].hp).toBe(600)
+      expect(afterAttack.combatSummary?.totalDamageByUnit['player_0']).toBeUndefined()
+    })
+
     it('should apply authoritative current and max mana from mana_update', () => {
       state.playerUnits[0].current_mana = 70
       state.playerUnits[0].max_mana = 100
