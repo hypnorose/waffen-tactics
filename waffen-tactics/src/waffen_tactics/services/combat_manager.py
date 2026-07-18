@@ -9,6 +9,7 @@ from ..services.data_loader import GameData
 import logging
 import copy
 from .event_canonicalizer import emit_damage
+from .items import ITEMS
 
 bot_logger = logging.getLogger('waffen_tactics')
 
@@ -70,13 +71,23 @@ class CombatManager:
                     buffed_stats['defense'] += int(ui.persistent_buffs.get('defense', 0))
                     buffed_stats['attack_speed'] += ui.persistent_buffs.get('attack_speed', 0)
 
+                item_effects = []
+                for item_id in getattr(ui, 'items', []):
+                    item = ITEMS.get(item_id)
+                    if not item:
+                        continue
+                    for stat, value in item.get('stats', {}).items():
+                        if stat in buffed_stats:
+                            buffed_stats[stat] += value
+                    item_effects.append({'type': 'item', 'item_id': item_id, 'description': item.get('description', '')})
+
                 hp = buffed_stats['hp']
                 attack = buffed_stats['attack']
                 defense = buffed_stats['defense']
                 attack_speed = buffed_stats['attack_speed']
 
                 # Get active effects
-                effects_a = self.synergy_engine.get_active_effects(unit, active_synergies)
+                effects_a = self.synergy_engine.get_active_effects(unit, active_synergies) + item_effects
 
                 team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats, position=ui.position, base_stats=base_stats, star_level=ui.star_level, passive=getattr(unit, 'passive', None)))
 

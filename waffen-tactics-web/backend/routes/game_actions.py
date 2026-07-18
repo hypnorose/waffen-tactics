@@ -10,6 +10,8 @@ from services.game_actions_service import (
     buy_unit_action, sell_unit_action, move_to_board_action, switch_line_action,
     move_to_bench_action, reroll_shop_action, buy_xp_action, toggle_shop_lock_action
 )
+from services.item_actions import equip_item, combine_item
+from waffen_tactics.services.items import all_item_payloads
 
 # Initialize services
 DB_PATH = str(Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')
@@ -126,4 +128,25 @@ def toggle_shop_lock(user_id):
     if not success:
         return jsonify({'error': message}), 400
 
+    return jsonify({'message': message, 'state': enrich_player_state(player)})
+
+def get_items():
+    return jsonify(all_item_payloads())
+
+def equip_item_route(user_id):
+    data = request.json or {}
+    player = run_async(db_manager.load_player(int(user_id)))
+    success, message = equip_item(player, data.get('instance_id'), data.get('item_id'))
+    if not success:
+        return jsonify({'error': message}), 400
+    run_async(db_manager.save_player(player))
+    return jsonify({'message': message, 'state': enrich_player_state(player)})
+
+def combine_item_route(user_id):
+    data = request.json or {}
+    player = run_async(db_manager.load_player(int(user_id)))
+    success, message = combine_item(player, data.get('first_item'), data.get('second_item'))
+    if not success:
+        return jsonify({'error': message}), 400
+    run_async(db_manager.save_player(player))
     return jsonify({'message': message, 'state': enrich_player_state(player)})

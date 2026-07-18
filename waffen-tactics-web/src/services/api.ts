@@ -91,6 +91,9 @@ export const gameAPI = {
   
   getTraits: () => 
     api.get('/game/traits'),
+  getItems: () => api.get('/game/items'),
+  equipItem: (instanceId: string, itemId: string) => api.post('/game/equip-item', { instance_id: instanceId, item_id: itemId }),
+  combineItem: (firstItem: string, secondItem: string) => api.post('/game/combine-item', { first_item: firstItem, second_item: secondItem }),
   ensurePlayerAvatar: (payload?: { avatarUrl?: string }) =>
     api.post('/game/player-avatar', payload || {}),
 }

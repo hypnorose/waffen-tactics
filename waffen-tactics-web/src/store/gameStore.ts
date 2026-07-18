@@ -19,6 +19,7 @@ export interface UnitInstance {
   unit_id: string
   star_level: number
   position: 'front' | 'back'
+  items?: string[]
 }
 
 export interface Synergy {
@@ -49,6 +50,7 @@ export interface PlayerState {
   xp_to_next_level: number
   shop_odds: number[]
   synergies: Synergy[]
+  item_inventory: string[]
 }
 
 interface GameState {

@@ -14,6 +14,7 @@ class UnitInstance:
     persistent_buffs: Dict[str, float] = field(default_factory=dict)  # persistent stat buffs accumulated over rounds
     base_stats: Optional[Dict[str, float]] = None  # computed base stats (for frontend display)
     buffed_stats: Optional[Dict[str, float]] = None  # computed buffed stats (for frontend display)
+    items: List[str] = field(default_factory=list)
     
     def __post_init__(self):
         if self.instance_id is None:
@@ -47,6 +48,7 @@ class PlayerState:
     last_shop: List[str] = field(default_factory=list)  # Last 5 unit IDs offered
     shop_rerolls: int = 0
     locked_shop: bool = False
+    item_inventory: List[str] = field(default_factory=lambda: ['spices', 'orangeade', 'coat', 'safe', 'socks', 'notebook'])
     
     # Timestamps
     created_at: Optional[datetime] = None
@@ -133,15 +135,16 @@ class PlayerState:
             'level': self.level,
             'xp': self.xp,
             'hp': self.hp,
-            'bench': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
+            'bench': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'items': u.items, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
                      for u in self.bench],
-            'board': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'position': u.position, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
+            'board': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'position': u.position, 'items': u.items, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
                      for u in self.board],
             'round_number': self.round_number,
             'wins': self.wins,
             'losses': self.losses,
             'streak': self.streak,
             'last_shop': self.last_shop,
+            'item_inventory': self.item_inventory,
             'shop_rerolls': self.shop_rerolls,
             'locked_shop': self.locked_shop,
             'max_board_size': self.max_board_size,
@@ -159,7 +162,8 @@ class PlayerState:
                 unit_id=u['unit_id'],
                 star_level=u['star_level'],
                 instance_id=u.get('instance_id'),
-                persistent_buffs=u.get('persistent_buffs', {})
+                persistent_buffs=u.get('persistent_buffs', {}),
+                items=u.get('items', [])
             )
             for u in data.get('bench', [])
         ]
@@ -169,7 +173,8 @@ class PlayerState:
                 star_level=u['star_level'],
                 instance_id=u.get('instance_id'),
                 position=u.get('position', 'front'),
-                persistent_buffs=u.get('persistent_buffs', {})
+                persistent_buffs=u.get('persistent_buffs', {}),
+                items=u.get('items', [])
             )
             for u in data.get('board', [])
         ]
@@ -198,6 +203,7 @@ class PlayerState:
             last_shop=data.get('last_shop', []),
             shop_rerolls=data.get('shop_rerolls', 0),
             locked_shop=data.get('locked_shop', False),
+            item_inventory=data.get('item_inventory', ['spices', 'orangeade', 'coat', 'safe', 'socks', 'notebook']),
             created_at=created_at,
             last_played=last_played,
         )

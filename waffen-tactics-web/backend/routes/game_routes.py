@@ -39,7 +39,7 @@ from routes.auth import auth_bp, require_auth, verify_token
 # Import refactored modules
 from .game_state_utils import run_async, enrich_player_state
 from .game_management import get_state, start_game, reset_game, surrender_game, init_sample_bots
-from .game_actions import buy_unit, sell_unit, move_to_board, switch_line, move_to_bench, reroll_shop, buy_xp, toggle_shop_lock
+from .game_actions import buy_unit, sell_unit, move_to_board, switch_line, move_to_bench, reroll_shop, buy_xp, toggle_shop_lock, get_items, equip_item_route, combine_item_route
 from .game_data import get_leaderboard, get_leaderboard_data, get_units, get_traits
 from .game_combat import start_combat
 
@@ -121,6 +121,20 @@ def get_units_route():
 @game_bp.route('/traits', methods=['GET'])
 def get_traits_route():
     return get_traits()
+
+@game_bp.route('/items', methods=['GET'])
+def get_items_route():
+    return get_items()
+
+@game_bp.route('/equip-item', methods=['POST'])
+@require_auth
+def equip_item_route_api(user_id):
+    return equip_item_route(user_id)
+
+@game_bp.route('/combine-item', methods=['POST'])
+@require_auth
+def combine_item_route_api(user_id):
+    return combine_item_route(user_id)
 
 @game_bp.route('/combat', methods=['POST'])
 def start_combat_route():

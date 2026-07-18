@@ -11,6 +11,7 @@ import TraitsInfoModal from '../components/TraitsInfoModal'
 import NotificationModal from '../components/NotificationModal'
 import { loadUnits } from '../data/units'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
+import ItemsPanel from '../components/ItemsPanel'
 
 export default function Game() {
   const { user, logout } = useAuthStore()
@@ -382,6 +383,7 @@ export default function Game() {
         </div>
 
         {/* Shop Section */}
+        {!isGameOver && <ItemsPanel playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />}
         {!isGameOver && (
           <div className="card">
             <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
