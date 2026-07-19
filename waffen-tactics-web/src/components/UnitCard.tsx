@@ -51,6 +51,7 @@ export default function UnitCard({
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [tooltipTop, setTooltipTop] = useState<number | null>(null)
   const [tooltipSide, setTooltipSide] = useState<'left' | 'right'>('right')
+  const [itemTooltipVisible, setItemTooltipVisible] = useState(false)
 
   const getRoleEmoji = (role?: string) => {
     switch (role) {
@@ -143,7 +144,7 @@ export default function UnitCard({
         disabled ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
-      {(
+      {!itemTooltipVisible && (
         <div
           className="hidden group-hover:block absolute p-3 rounded-lg z-[100] shadow-2xl text-xs w-[240px] border-2 pointer-events-none"
           ref={tooltipRef}
@@ -364,7 +365,7 @@ export default function UnitCard({
           ))}
         </div>
 
-        <EquippedItems itemIds={items} />
+        <EquippedItems itemIds={items} onTooltipChange={setItemTooltipVisible} />
 
         {lastRoundStats?.participated && !detailed && (
           <div className="flex items-center justify-center gap-2 border-t border-slate-700/80 pt-1 text-[9px] leading-none">

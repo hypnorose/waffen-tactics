@@ -1,8 +1,8 @@
 import { ITEM_PRESENTATION } from '../data/items'
 
-export default function EquippedItems({ itemIds }: { itemIds?: string[] }) {
+export default function EquippedItems({ itemIds, onTooltipChange }: { itemIds?: string[]; onTooltipChange?: (visible: boolean) => void }) {
   if (!itemIds?.length) return null
-  return <div className="relative z-20 flex min-h-7 items-center justify-center gap-1 px-1 mb-1">
+  return <div className="relative z-20 flex min-h-7 items-center justify-center gap-1 px-1 mb-1" onMouseEnter={() => onTooltipChange?.(true)} onMouseLeave={() => onTooltipChange?.(false)}>
     {itemIds.slice(0, 3).map((itemId, index) => {
       const item = ITEM_PRESENTATION[itemId] || { icon: '◆', name: itemId, details: 'Brak opisu przedmiotu.' }
       return <div key={`${itemId}-${index}`} className="group relative flex h-6 w-6 items-center justify-center rounded border border-amber-300/70 bg-slate-950/90 text-sm shadow" title={item.name}>
