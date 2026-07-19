@@ -149,7 +149,7 @@ export default function Bench({ playerState, onUpdate, onNotification, onEquipIt
                 💰
               </button>
             </div>
-            <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
+            <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
           </div>
         ))}
         {/* Show one placeholder if bench is not full */}

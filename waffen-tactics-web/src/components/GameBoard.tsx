@@ -228,7 +228,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
                 >
                   {lineType === 'front' ? '⬇' : '⬆'}
                 </button>
-                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} lastRoundStats={roundStatsByUnit?.[unitInstance.instance_id]} />
+                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} lastRoundStats={roundStatsByUnit?.[unitInstance.instance_id]} />
               </div>
             )
           } else {

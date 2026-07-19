@@ -1,6 +1,7 @@
 import { getUnit, getCostBorderColor, getFactionColor } from '../data/units'
 import { useRef, useState } from 'react'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
+import EquippedItems from './EquippedItems'
 
 interface UnitCardProps {
   unitId: string
@@ -28,6 +29,7 @@ interface UnitCardProps {
     current_mana?: number
   }
   lastRoundStats?: CombatUnitRoundStats
+  items?: string[]
 }
 
 export default function UnitCard({
@@ -42,6 +44,7 @@ export default function UnitCard({
   baseStats,
   buffedStats,
   lastRoundStats,
+  items,
 }: UnitCardProps) {
   const unit = getUnit(unitId)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -301,6 +304,7 @@ export default function UnitCard({
           boxShadow: `0 0 10px ${getCostBorderColor(unit.cost)}40`,
         }}
       >
+        <EquippedItems itemIds={items} />
         {starLevel > 1 && (
           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
             <div className="flex items-center gap-0.5 px-1 py-0.5">
