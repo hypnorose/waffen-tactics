@@ -2,6 +2,7 @@ import { getUnit, getCostBorderColor, getFactionColor } from '../data/units'
 import { useRef, useState } from 'react'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import EquippedItems from './EquippedItems'
+import { ITEM_PRESENTATION } from '../data/items'
 
 interface UnitCardProps {
   unitId: string
@@ -195,6 +196,21 @@ export default function UnitCard({
               <div className="mb-2 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-100">
                 <div className="mb-1 font-semibold text-amber-300">Pasywka</div>
                 <div>{unit.passive.description}</div>
+              </div>
+            )}
+            {items && items.length > 0 && (
+              <div className="mb-2 rounded border border-amber-300/40 bg-amber-500/10 p-2 text-xs text-slate-100">
+                <div className="mb-1 font-semibold text-amber-300">Wyposażenie</div>
+                <div className="space-y-2">
+                  {items.slice(0, 3).map((itemId) => {
+                    const item = ITEM_PRESENTATION[itemId] || { icon: '◆', name: itemId, details: 'Brak opisu przedmiotu.' }
+                    return <div key={itemId} className="border-b border-slate-700/70 pb-1 last:border-0 last:pb-0">
+                      <div className="font-semibold text-amber-100">{item.icon} {item.name}</div>
+                      {item.stats && <div className="text-emerald-200">{item.stats}</div>}
+                      <div className="text-slate-300">{item.details}</div>
+                    </div>
+                  })}
+                </div>
               </div>
             )}
           </div>
