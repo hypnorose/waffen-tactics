@@ -249,12 +249,6 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
   return (
     <div className="space-y-6">
       {/* Construction Notice */}
-      <div className="bg-yellow-500/20 border-2 border-yellow-500/50 rounded-lg p-4 text-center">
-        {/* <div className="text-sm text-yellow-700">
-          Funkcjonalności są w trakcie rozwoju. Przepraszamy za niedogodności!
-        </div> */}
-      </div>
-
       {/* Front Line */}
       {renderUnitGrid(frontLineUnits, 'Linia Frontowa', 'front')}
       

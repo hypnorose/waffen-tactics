@@ -304,7 +304,6 @@ export default function UnitCard({
           boxShadow: `0 0 10px ${getCostBorderColor(unit.cost)}40`,
         }}
       >
-        <EquippedItems itemIds={items} />
         {starLevel > 1 && (
           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
             <div className="flex items-center gap-0.5 px-1 py-0.5">
@@ -364,6 +363,8 @@ export default function UnitCard({
             </span>
           ))}
         </div>
+
+        <EquippedItems itemIds={items} />
 
         {lastRoundStats?.participated && !detailed && (
           <div className="flex items-center justify-center gap-2 border-t border-slate-700/80 pt-1 text-[9px] leading-none">
