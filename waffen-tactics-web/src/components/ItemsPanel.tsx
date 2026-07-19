@@ -14,6 +14,7 @@ const ICONS: Record<string, string> = {
 
 export default function ItemsPanel({ playerState, onUpdate, onNotification }: Props) {
   const [items, setItems] = useState<Item[]>([])
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const [combining, setCombining] = useState<[string, string] | null>(null)
   const combineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const draggedItem = useRef<string | null>(null)
@@ -45,6 +46,27 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification }: Pr
     setCombining(null)
   }
 
+  const statLabels: Record<string, string> = {
+    attack: 'Obrażenia', defense: 'Obrona', hp: 'Maks. HP', attack_speed: 'Szybkość ataku',
+    mana_regen: 'Regeneracja many', max_mana: 'Maks. mana', hp_regen_per_sec: 'Regeneracja HP/s'
+  }
+
+  const formatStat = (stat: string, value: number) => {
+    const amount = value > 0 ? `+${value}` : `${value}`
+    if (stat === 'attack_speed') return `${amount} ataku/s`
+    if (stat === 'hp_regen_per_sec') return `${amount} HP/s`
+    return `${amount} ${statLabels[stat] || stat}`
+  }
+
+  const renderTooltip = (item: Item) => <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 z-50 w-64 -translate-x-1/2 rounded-lg border border-amber-300/60 bg-slate-950 px-3 py-2 text-left text-xs shadow-2xl">
+    <div className="mb-1 flex items-center gap-2 text-sm font-bold text-amber-100"><span className="text-lg">{ICONS[item.id] || '◆'}</span>{item.name}</div>
+    <div className="mb-2 text-[10px] uppercase tracking-wide text-slate-400">{item.kind === 'combined' ? 'Przedmiot połączony' : 'Przedmiot bazowy'}</div>
+    <div className="space-y-0.5 text-emerald-200">{Object.entries(item.stats).map(([stat, value]) => <div key={stat}>{formatStat(stat, value)}</div>)}</div>
+    {item.description && <div className="mt-2 border-t border-slate-700 pt-2 leading-snug text-slate-200">{item.description}</div>}
+    {item.components && <div className="mt-2 border-t border-slate-700 pt-2 text-[11px] text-indigo-200">Składniki: {item.components.map(component => itemById.get(component)?.name || component).join(' + ')}</div>}
+    <div className="mt-2 text-[10px] text-slate-500">Przeciągnij na kartę jednostki lub drugi przedmiot</div>
+  </div>
+
   const renderItem = (itemId: string, index: number, equipped = false) => {
     const item = itemById.get(itemId)
     if (!item) return null
@@ -62,12 +84,14 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification }: Pr
         const source = event.dataTransfer.getData('text/item-id')
         if (source && source !== itemId && item.kind === 'base') finishCombine(source, itemId)
       }}
-      onMouseLeave={cancelCombine}
+      onMouseEnter={() => setHoveredItem(itemId)}
+      onMouseLeave={() => { setHoveredItem(null); cancelCombine() }}
       title={`${item.name}${item.description ? ` — ${item.description}` : ''}`}
       className={`relative flex items-center justify-center w-12 h-12 rounded-lg border-2 text-2xl select-none transition-all ${item.kind === 'combined' ? 'border-amber-300 bg-amber-500/15' : 'border-slate-500 bg-slate-800/80'} ${isCombining ? 'scale-110 ring-2 ring-amber-300 animate-pulse' : 'hover:border-amber-300 hover:-translate-y-0.5'} ${equipped ? 'w-9 h-9 text-lg' : 'cursor-grab active:cursor-grabbing'}`}>
       {ICONS[itemId] || '◆'}
       {!equipped && <span className="absolute -bottom-1 -right-1 rounded-full bg-slate-950 px-1 text-[9px] text-slate-300">{item.kind === 'combined' ? '★' : '×'}</span>}
       {isCombining && <span className="absolute -bottom-5 whitespace-nowrap text-[10px] text-amber-200">łączenie…</span>}
+      {hoveredItem === itemId && !equipped && renderTooltip(item)}
     </div>
   }
 
