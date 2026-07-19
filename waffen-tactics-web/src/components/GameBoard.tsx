@@ -11,9 +11,10 @@ interface GameBoardProps {
   onUpdate: (state: any) => void
   onNotification: (message: string, type?: 'error' | 'success' | 'info') => void
   roundStatsByUnit?: Record<string, CombatUnitRoundStats>
+  onEquipItem?: (instanceId: string, itemId: string) => void
 }
 
-export default function GameBoard({ playerState, onUpdate, onNotification, roundStatsByUnit }: GameBoardProps) {
+export default function GameBoard({ playerState, onUpdate, onNotification, roundStatsByUnit, onEquipItem }: GameBoardProps) {
   const [loading, setLoading] = useState(false)
   const [traits, setTraits] = useState<any[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -187,6 +188,8 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
               <div 
                 key={unitInstance.instance_id} 
                 className={`relative ${detailedView ? 'max-w-[14rem]' : 'max-w-[9rem]'}`}
+                onDragOver={event => { if (event.dataTransfer.types.includes('text/item-id')) event.preventDefault() }}
+                onDrop={event => { event.preventDefault(); const itemId = event.dataTransfer.getData('text/item-id'); if (itemId) onEquipItem?.(unitInstance.instance_id, itemId) }}
                 draggable
                 onDragStart={(e) => {
                   setIsDragging(true)

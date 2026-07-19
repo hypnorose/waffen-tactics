@@ -7,9 +7,10 @@ interface BenchProps {
   playerState: any
   onUpdate: (state: any) => void
   onNotification: (message: string, type?: 'error' | 'success' | 'info') => void
+  onEquipItem?: (instanceId: string, itemId: string) => void
 }
 
-export default function Bench({ playerState, onUpdate, onNotification }: BenchProps) {
+export default function Bench({ playerState, onUpdate, onNotification, onEquipItem }: BenchProps) {
   const [loading, setLoading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -118,6 +119,8 @@ export default function Bench({ playerState, onUpdate, onNotification }: BenchPr
           <div 
             key={unitInstance.instance_id} 
             className={`flex-shrink-0 relative ${detailedView ? '' : 'max-w-[9rem]'}`}
+            onDragOver={(e) => { if (e.dataTransfer.types.includes('text/item-id')) e.preventDefault() }}
+            onDrop={(e) => { e.preventDefault(); const itemId = e.dataTransfer.getData('text/item-id'); if (itemId) onEquipItem?.(unitInstance.instance_id, itemId) }}
             draggable
             onDragStart={(e) => {
               setIsDragging(true)

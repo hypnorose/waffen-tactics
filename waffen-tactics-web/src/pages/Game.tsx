@@ -39,6 +39,16 @@ export default function Game() {
     setNotificationType('error')
   }
 
+  const handleEquipItem = async (instanceId: string, itemId: string) => {
+    try {
+      const response = await gameAPI.equipItem(instanceId, itemId)
+      setPlayerState(response.data.state)
+      showNotificationModal(response.data.message, 'success')
+    } catch (err: any) {
+      showNotificationModal(err.response?.data?.error || 'Nie można założyć przedmiotu')
+    }
+  }
+
   useEffect(() => {
     initGame()
   }, [])
@@ -351,6 +361,7 @@ export default function Game() {
       </div>
 
       <div className={`container mx-auto px-4 py-6 max-w-7xl space-y-4 ${isGameOver ? 'pointer-events-none opacity-50' : ''}`}>
+        {!isGameOver && <ItemsPanel playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />}
         {/* Board Section */}
         <div className="card">
           <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
@@ -364,7 +375,7 @@ export default function Game() {
             </span>
             {isGameOver && <span className="text-sm text-red-500 font-normal ml-2">(Gra zakończona - tylko podgląd)</span>}
           </h2>
-          <GameBoard playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} roundStatsByUnit={lastRoundStatsByUnit} />
+          <GameBoard playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} onEquipItem={handleEquipItem} roundStatsByUnit={lastRoundStatsByUnit} />
         </div>
 
         {/* Bench Section */}
@@ -379,11 +390,10 @@ export default function Game() {
               [{playerState.bench.length}/{playerState.max_bench_size}]
             </span>
           </h2>
-          <Bench playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />
+          <Bench playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} onEquipItem={handleEquipItem} />
         </div>
 
         {/* Shop Section */}
-        {!isGameOver && <ItemsPanel playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />}
         {!isGameOver && (
           <div className="card">
             <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
