@@ -95,6 +95,11 @@ class UnitManager:
         if not unit:
             return False, "Błąd danych jednostki!"
         
+        # Equipped items are returned intact when their unit is sold.
+        returned_items = list(getattr(unit_instance, 'items', []) or [])
+        if returned_items:
+            player.item_inventory.extend(returned_items)
+
         # Calculate sell value (cost * star_level)
         sell_value = unit.cost * unit_instance.star_level
         player.gold += sell_value

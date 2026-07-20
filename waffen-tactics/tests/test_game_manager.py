@@ -48,6 +48,21 @@ def test_sell_unit_from_bench(gm):
     assert all(u.instance_id != inst.instance_id for u in player.bench)
 
 
+@pytest.mark.parametrize("location", ["bench", "board"])
+def test_sell_unit_returns_equipped_items(gm, location):
+    player = PlayerState(user_id=30)
+    unit_sample = gm.data.units[0]
+    equipped_items = ["spices", "orangeade", "sugar_rush"]
+    inst = UnitInstance(unit_id=unit_sample.id, items=equipped_items)
+    getattr(player, location).append(inst)
+
+    ok, _ = gm.sell_unit(player, inst.instance_id)
+
+    assert ok
+    assert player.item_inventory[-len(equipped_items):] == equipped_items
+    assert inst not in getattr(player, location)
+
+
 def test_move_to_board_and_back(gm):
     player = PlayerState(user_id=4)
     unit_sample = gm.data.units[0]
