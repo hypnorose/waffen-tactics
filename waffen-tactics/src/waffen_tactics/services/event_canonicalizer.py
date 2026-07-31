@@ -298,6 +298,22 @@ def emit_mana_change(
     unit_side: Optional[str] = None,
 ):
     ts = timestamp if timestamp is not None else _now_ts()
+
+    # Death is terminal for combat state.  The frontend intentionally ignores
+    # late mutations for dead units, so mutating mana here would make the
+    # authoritative snapshot impossible to replay.  Keep this guard in the
+    # canonical emitter as a final safety net for every caller (regen, traits,
+    # scheduled attacks, and future effects).
+    if getattr(recipient, '_dead', False):
+        return None
+    try:
+        if int(getattr(recipient, 'hp', None)) <= 0:
+            return None
+    except (TypeError, ValueError):
+        # Compatibility recipients without an HP value are allowed to use the
+        # canonical mana emitter; their liveness is unknown here.
+        pass
+
     # Apply the mana change to recipient.mana (canonical mutation)
     try:
         cur = int(getattr(recipient, 'mana', 0))

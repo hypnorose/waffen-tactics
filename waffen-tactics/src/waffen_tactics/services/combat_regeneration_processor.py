@@ -23,6 +23,12 @@ class CombatRegenerationProcessor:
         """Apply HP and mana regeneration for both teams."""
         # Team A regen
         for idx_u, u in enumerate(team_a):
+            # A defeated unit must not accumulate or receive any regeneration.
+            # In particular, mana changes after unit_died are ignored by the
+            # frontend and would otherwise desync subsequent snapshots.
+            if a_hp[idx_u] <= 0 or getattr(u, '_dead', False):
+                continue
+
             # HP regeneration
             if a_hp[idx_u] > 0 and getattr(u, 'hp_regen_per_sec', 0.0) > 0:
                 heal = u.hp_regen_per_sec * dt
@@ -69,6 +75,10 @@ class CombatRegenerationProcessor:
 
         # Team B regen
         for idx_u, u in enumerate(team_b):
+            # Keep liveness handling symmetric across both teams.
+            if b_hp[idx_u] <= 0 or getattr(u, '_dead', False):
+                continue
+
             # HP regeneration
             if b_hp[idx_u] > 0 and getattr(u, 'hp_regen_per_sec', 0.0) > 0:
                 heal_b = u.hp_regen_per_sec * dt

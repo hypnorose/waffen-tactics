@@ -21,6 +21,12 @@ class CombatPerSecondBuffProcessor:
         """Apply per-second buffs for both teams."""
         # Team A buffs
         for idx_u, u in enumerate(team_a):
+            # Do not apply any timed mutation (including mana regeneration) to
+            # a defeated unit.  The HP arrays are the simulator's source of
+            # truth, while _dead covers already-emitted death events.
+            if a_hp[idx_u] <= 0 or getattr(u, '_dead', False):
+                continue
+
             for eff in getattr(u, 'effects', []):
                 if eff.get('type') == 'per_second_buff':
                     stat = eff.get('stat')
@@ -97,6 +103,10 @@ class CombatPerSecondBuffProcessor:
 
         # Team B buffs
         for idx_u, u in enumerate(team_b):
+            # Match Team A's terminal-death behavior.
+            if b_hp[idx_u] <= 0 or getattr(u, '_dead', False):
+                continue
+
             for eff in getattr(u, 'effects', []):
                 if eff.get('type') == 'per_second_buff':
                     stat = eff.get('stat')

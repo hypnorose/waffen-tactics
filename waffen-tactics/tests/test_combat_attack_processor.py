@@ -289,6 +289,38 @@ class TestCombatAttackProcessor(unittest.TestCase):
         assert scheduled.get('called', False) is True
         assert defending_hp[0] == 100, "defending_hp must not be mutated by compute when scheduler is present"
 
+    def test_scheduled_attack_is_cancelled_when_participant_dies_before_impact(self):
+        """A delayed impact must not mutate state after its attacker or target dies."""
+        for dead_participant in ('attacker', 'target'):
+            with self.subTest(dead_participant=dead_participant):
+                attacker = MockUnit('player_1', 'Warrior')
+                defender = MockUnit('opp_1', 'Goblin')
+                scheduled = {}
+
+                def dummy_schedule_event(deliver_at, action_callable):
+                    scheduled['action'] = action_callable
+
+                self.processor.schedule_event = dummy_schedule_event
+                self.processor._process_team_attacks(
+                    attacking_team=[attacker],
+                    defending_team=[defender],
+                    attacking_hp=[100],
+                    defending_hp=[100],
+                    time=1.0,
+                    log=[],
+                    event_callback=lambda *_: None,
+                    side='team_a'
+                )
+
+                if dead_participant == 'attacker':
+                    attacker.hp = 0
+                else:
+                    defender.hp = 0
+
+                self.assertEqual(scheduled['action'](), [])
+                self.assertEqual(defender.hp, 0 if dead_participant == 'target' else 100)
+                self.assertEqual(attacker.mana, 50)
+
 
 if __name__ == '__main__':
     unittest.main()

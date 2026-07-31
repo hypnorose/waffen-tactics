@@ -206,6 +206,16 @@ class CombatAttackProcessor:
                     def action():
                         from .event_canonicalizer import emit_damage, emit_unit_died
                         results = []
+
+                        # The animation was scheduled from a previously live
+                        # pair, but either participant can die before impact.
+                        # Never mutate or emit a late attack in that case: the
+                        # replay client treats death as terminal as well.
+                        if getattr(attacker, '_dead', False) or getattr(attacker, 'hp', 0) <= 0:
+                            return results
+                        if getattr(target_obj, '_dead', False) or getattr(target_obj, 'hp', 0) <= 0:
+                            return results
+
                         dmg_payload = None
                         action_plan = dict(passive_plan or {})
                         # Prepare hp_arrays and resolve target index at delivery time.
@@ -328,7 +338,8 @@ class CombatAttackProcessor:
                                     unit_index=ally_index,
                                     unit_side=side_val,
                                 )
-                                results.append(('mana_update', mana_payload))
+                                if mana_payload:
+                                    results.append(('mana_update', mana_payload))
 
                         # Bonus/attack-count control and secondary pressure.
                         if action_plan.get('stun'):

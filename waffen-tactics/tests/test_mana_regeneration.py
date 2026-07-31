@@ -11,6 +11,7 @@ sys.path.insert(0, '/home/ubuntu/waffen-tactics-game/waffen-tactics/src')
 
 from waffen_tactics.services.combat_shared import CombatSimulator, CombatUnit
 from waffen_tactics.services.data_loader import Stats
+from waffen_tactics.services.event_canonicalizer import emit_mana_change
 
 
 class TestManaRegeneration(unittest.TestCase):
@@ -360,6 +361,88 @@ class TestManaRegeneration(unittest.TestCase):
 
         # Should have no mana_regen events
         self.assertEqual(len(mana_regen_events), 0, "Should have no mana_update events for unit with no regeneration")
+
+    def test_dead_units_do_not_regenerate_or_accumulate_mana(self):
+        """A post-death regen tick must not mutate state or emit replay events."""
+        dead_a = CombatUnit(
+            id="dead_a", name="Dead A", hp=0, attack=10, defense=5,
+            attack_speed=1.0, max_mana=100, mana_regen=8,
+            stats=self.stats_high_regen, effects=[]
+        )
+        dead_b = CombatUnit(
+            id="dead_b", name="Dead B", hp=0, attack=10, defense=5,
+            attack_speed=1.0, max_mana=50, mana_regen=3,
+            stats=self.stats_low_regen, effects=[]
+        )
+        dead_a.mana = 20
+        dead_b.mana = 30
+        events = []
+
+        self.simulator._process_regeneration(
+            [dead_a], [dead_b], [0], [0], 1.0, [], 1.0,
+            lambda event_type, data: events.append((event_type, data))
+        )
+
+        self.assertEqual(dead_a.mana, 20)
+        self.assertEqual(dead_b.mana, 30)
+        self.assertFalse(hasattr(dead_a, '_mana_regen_accumulator'))
+        self.assertFalse(hasattr(dead_b, '_mana_regen_accumulator'))
+        self.assertEqual(events, [])
+
+    def test_dead_units_do_not_receive_per_second_buffs(self):
+        """Timed stats and trait mana regeneration share the terminal-death rule."""
+        dead_a = CombatUnit(
+            id="dead_a", name="Dead A", hp=0, attack=10, defense=5,
+            attack_speed=1.0, max_mana=100, mana_regen=0,
+            stats=self.stats_high_regen,
+            effects=[
+                {'type': 'per_second_buff', 'stat': 'attack', 'value': 5},
+                {'type': 'mana_regen', 'value': 7},
+            ]
+        )
+        dead_b = CombatUnit(
+            id="dead_b", name="Dead B", hp=0, attack=10, defense=5,
+            attack_speed=1.0, max_mana=50, mana_regen=0,
+            stats=self.stats_low_regen,
+            effects=[
+                {'type': 'per_second_buff', 'stat': 'defense', 'value': 5},
+                {'type': 'mana_regen', 'value': 7},
+            ]
+        )
+        events = []
+
+        self.simulator._process_per_second_buffs(
+            [dead_a], [dead_b], [0], [0], 1.0, [],
+            lambda event_type, data: events.append((event_type, data))
+        )
+
+        self.assertEqual(dead_a.attack, 10)
+        self.assertEqual(dead_b.defense, 5)
+        self.assertEqual(dead_a.mana, 0)
+        self.assertEqual(dead_b.mana, 0)
+        self.assertEqual(events, [])
+
+    def test_canonical_mana_emitter_rejects_dead_unit(self):
+        """Future callers cannot desync a dead unit even if they miss a liveness check."""
+        dead = CombatUnit(
+            id="dead", name="Dead", hp=0, attack=10, defense=5,
+            attack_speed=1.0, max_mana=100, mana_regen=0,
+            stats=self.stats_high_regen, effects=[]
+        )
+        dead.mana = 40
+        mana_arrays = {'team_a': [40]}
+        events = []
+
+        payload = emit_mana_change(
+            lambda event_type, data: events.append((event_type, data)),
+            dead, 10, side='team_a', timestamp=1.0,
+            mana_arrays=mana_arrays, unit_index=0, unit_side='team_a'
+        )
+
+        self.assertIsNone(payload)
+        self.assertEqual(dead.mana, 40)
+        self.assertEqual(mana_arrays['team_a'], [40])
+        self.assertEqual(events, [])
 
     def test_mana_regeneration_events_mana_attack_separate(self):
         """Test that mana events are emitted correctly for both regen and attacks"""
