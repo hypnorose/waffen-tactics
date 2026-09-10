@@ -68,6 +68,15 @@ Record:
 Build success is not replay proof. A passing Python reconstructor is not proof
 that the browser Game View renders the same result.
 
+For `regen_gain`, the canonical event must include the finite
+`post_hp_regen_per_sec` value after exactly one authoritative mutation. Replay
+must apply that post-state to `unit.buffed_stats.hp_regen_per_sec` and keep the
+display-only `regenMap` entry; it must not infer the value from
+`amount_per_sec` or overwrite the reducer from a snapshot. A runtime export
+such as `desync_logs_1789057936444.json` is evidence of the symptom and must be
+reproduced by a deterministic reducer/compare test before the release issue is
+advanced.
+
 ## 4. Revision alignment before deployment
 
 Before using `deploy.ps1`, confirm:

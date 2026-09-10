@@ -231,6 +231,31 @@ def test_dot_tick_mapping_rejects_shield_absorption_without_post_shield():
         })
 
 
+def test_regen_mapping_preserves_canonical_post_regen():
+    payload = map_event_to_sse_payload('regen_gain', {
+        'unit_id': 'u1',
+        'unit_name': 'Regenerator',
+        'amount_per_sec': 6,
+        'total_amount': 30,
+        'duration': 5,
+        'post_hp_regen_per_sec': 6,
+        'seq': 147,
+    })
+
+    assert payload['post_hp_regen_per_sec'] == 6
+
+
+def test_regen_mapping_rejects_missing_canonical_post_regen():
+    with pytest.raises(RuntimeError, match='post_hp_regen_per_sec'):
+        map_event_to_sse_payload('regen_gain', {
+            'unit_id': 'u1',
+            'amount_per_sec': 6,
+            'total_amount': 30,
+            'duration': 5,
+            'seq': 147,
+        })
+
+
 def test_effect_mapping_requires_canonical_effect_type():
     with pytest.raises(RuntimeError, match='canonical effect.type'):
         map_event_to_sse_payload('effect_applied', {

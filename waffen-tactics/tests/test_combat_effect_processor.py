@@ -256,6 +256,31 @@ class TestCombatEffectProcessor:
         # Verify event emission
         mock_emit_stat_buff.assert_called_once()
 
+    def test_apply_actions_hp_regen_with_callback_applies_once_and_emits_post_state(self, effect_processor):
+        unit = CombatUnit(
+            id='regen-action', name='Regen Action', hp=100, attack=10, defense=5,
+            attack_speed=1.0, max_mana=100
+        )
+        events = []
+
+        effect_processor._apply_actions(
+            unit,
+            [{
+                'type': 'stat_buff',
+                'stats': ['hp_regen_per_sec'],
+                'value': 6,
+                'is_percentage': False,
+                'target': 'self',
+            }],
+            [100], 0, 1.0, [],
+            lambda event_type, payload: events.append((event_type, payload)),
+            'team_a', [unit], [100]
+        )
+
+        assert unit.hp_regen_per_sec == 6.0
+        assert [event_type for event_type, _ in events] == ['regen_gain']
+        assert events[0][1]['post_hp_regen_per_sec'] == 6.0
+
     @patch('waffen_tactics.services.combat_effect_processor.emit_stat_buff')
     def test_apply_actions_kill_buff_defense(self, mock_emit_stat_buff, effect_processor, mock_combat_unit, mock_event_callback):
         """Test applying kill buff for defense"""

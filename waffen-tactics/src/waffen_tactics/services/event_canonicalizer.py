@@ -707,6 +707,10 @@ def emit_regen_gain(
         'amount_per_sec': amount_per_sec,
         'total_amount': total_amount,
         'duration': duration,
+        # The replay must apply the authoritative post-state instead of
+        # inferring it from amount_per_sec. This also makes the event useful
+        # when multiple regen sources are active at the same time.
+        'post_hp_regen_per_sec': actual_regen,
         'side': side,
         'target': target,
         'timestamp': ts,

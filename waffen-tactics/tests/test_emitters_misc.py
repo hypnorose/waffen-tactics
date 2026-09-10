@@ -351,6 +351,7 @@ def test_emit_regen_gain_applies_and_payload():
     assert hasattr(u, 'hp_regen_per_sec')
     assert u.hp_regen_per_sec >= 1.5
     assert p['amount_per_sec'] == 1.5
+    assert p['post_hp_regen_per_sec'] == u.hp_regen_per_sec
 
 
 def test_emit_damage_fails_closed_when_target_hp_mutation_is_rejected():

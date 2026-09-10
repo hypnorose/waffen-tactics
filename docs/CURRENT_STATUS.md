@@ -6,11 +6,18 @@ Linear project: `Waffen Tactics — Content, Runtime & Production`
 
 Linear is the source of truth for issue status, ownership, dependencies, milestones, and user decisions. This file is a repository handoff snapshot; it does not replace the Linear workflow.
 
+## 2026-09-10 runtime desync follow-up
+
+- Plane `WFT-130` tracks the user-supplied runtime export `desync_logs_1789057936444.json`: at `seq=147`, `opp_0` had UI `buffed_stats.hp_regen_per_sec=0` versus server `6` after `regen_gain`.
+- The fix keeps HP regeneration authoritative in the shared core, transports `post_hp_regen_per_sec`, reconstructs it in the frontend reducer, and prevents action-based callback paths from double-applying the stat. The regression test reproduces the `seq=147` shape and confirms zero desyncs against the matching snapshot.
+- Verified on the local working tree: core `421 passed, 25 skipped, 22 subtests`; backend `390 passed, 8 skipped, 5 subtests`; frontend typecheck, lint, Vitest `165 passed`, and production build pass; `git diff --check` is clean.
+- No deployment was performed. WFT-16 remains open for authenticated Game View/manual runtime evidence, final approved-revision alignment, and rollback evidence.
+
 ## Verified automated evidence
 
-- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q 'waffen-tactics\\tests'` — **420 passed, 25 skipped, 22 subtests passed**, with no warnings.
-- Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **387 passed, 8 skipped, 5 subtests passed**, with no warnings.
-- Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **162 passed across 8 files**.
+- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q 'waffen-tactics\\tests'` — **421 passed, 25 skipped, 22 subtests passed**, with no warnings.
+- Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **390 passed, 8 skipped, 5 subtests passed**, with no warnings.
+- Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **165 passed across 9 files**.
 - Frontend production build: `npm run build` — pass. Vite reports only stale Browserslist data; the build succeeds.
 - Operational/release docs tests after the root-owned Caddy discovery fix: `3 passed, 1 skipped`; scoped `git diff --check` is clean. Linux shell syntax was checked on the deployed VPS with `bash -n`.
 - `python -m compileall -q waffen-tactics\\src waffen-tactics\\tests` — pass.

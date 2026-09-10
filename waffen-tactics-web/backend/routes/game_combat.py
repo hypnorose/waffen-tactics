@@ -114,6 +114,12 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'regen_gain':
+        post_regen = data.get('post_hp_regen_per_sec')
+        if isinstance(post_regen, bool) or not isinstance(post_regen, (int, float)) or not math.isfinite(float(post_regen)):
+            raise RuntimeError(
+                f"regen_gain missing required post_hp_regen_per_sec at seq={data.get('seq')} "
+                f"payload_keys={sorted(list(data.keys()))}"
+            )
         res = {
             'type': 'regen_gain',
             'unit_id': data.get('unit_id'),
@@ -121,6 +127,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'amount_per_sec': data.get('amount_per_sec'),
             'total_amount': data.get('total_amount'),
             'duration': data.get('duration'),
+            'post_hp_regen_per_sec': post_regen,
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }

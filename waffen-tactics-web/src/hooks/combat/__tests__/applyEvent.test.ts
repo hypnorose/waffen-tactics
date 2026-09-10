@@ -13,6 +13,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { applyCombatEvent, CombatReplayValidationError } from '../applyEvent'
+import { compareCombatStates } from '../desync'
 import { CombatState, CombatEvent } from '../types'
 
 // Helper to create initial combat state
@@ -832,6 +833,47 @@ describe('applyCombatEvent - Effect Handling', () => {
       const opponent = newState.opponentUnits.find(u => u.id === 'opp_0')
       expect(opponent!.attack_speed).toBeCloseTo(1.0)
       expect(opponent!.effects).toHaveLength(0)
+    })
+  })
+
+  describe('regen_gain events', () => {
+    it('reconstructs the authoritative HP regeneration post-state', () => {
+      const next = applyCombatEvent(state, {
+        type: 'regen_gain',
+        unit_id: 'opp_0',
+        amount_per_sec: 6,
+        total_amount: 30,
+        duration: 5,
+        post_hp_regen_per_sec: 6,
+        seq: 147,
+        timestamp: 12.5
+      }, { simTime: 12.5 })
+
+      expect(next.opponentUnits[0].buffed_stats?.hp_regen_per_sec).toBe(6)
+      expect(next.regenMap.opp_0).toEqual({ amount_per_sec: 6, total_amount: 30, expiresAt: 17.5 })
+      expect(state.opponentUnits[0].buffed_stats?.hp_regen_per_sec).toBe(0)
+      expect(compareCombatStates(next, {
+        player_units: next.playerUnits,
+        opponent_units: [{
+          ...next.opponentUnits[0],
+          buffed_stats: { ...next.opponentUnits[0].buffed_stats, hp_regen_per_sec: 6 }
+        }]
+      }, {
+        type: 'state_snapshot',
+        seq: 148,
+        timestamp: 12.5
+      })).toEqual([])
+    })
+
+    it('rejects a regen event without the canonical post-state', () => {
+      expect(() => applyCombatEvent(state, {
+        type: 'regen_gain',
+        unit_id: 'opp_0',
+        amount_per_sec: 6,
+        total_amount: 30,
+        duration: 5,
+        seq: 147
+      }, { simTime: 12.5 })).toThrow('missing required post_hp_regen_per_sec')
     })
   })
 

@@ -484,10 +484,20 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'regen_gain':
       requireKnownUnit(newState, event, event.unit_id)
+      if (typeof event.post_hp_regen_per_sec !== 'number' || !Number.isFinite(event.post_hp_regen_per_sec)) {
+        throw new CombatReplayValidationError(event, 'missing required post_hp_regen_per_sec', event.unit_id)
+      }
       if (event.unit_id) {
         const dur = event.duration || 5
         const expiresAt = ctx.simTime + dur // Use simTime for expiry
         newState.regenMap = { ...newState.regenMap, [event.unit_id]: { amount_per_sec: event.amount_per_sec || 0, total_amount: event.total_amount || 0, expiresAt } }
+        updateKnownUnitById(newState, event, event.unit_id, unit => ({
+          ...unit,
+          buffed_stats: {
+            ...(unit.buffed_stats || {}),
+            hp_regen_per_sec: event.post_hp_regen_per_sec
+          }
+        }))
         if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       }
       break

@@ -19,6 +19,7 @@ export interface Unit {
     defense?: number
     attack_speed?: number
     max_mana?: number
+    hp_regen_per_sec?: number
   }
   current_mana?: number
   max_mana?: number
@@ -81,6 +82,9 @@ export interface CombatEvent {
   state?: any // PlayerState
   amount_per_sec?: number
   total_amount?: number
+  // Required on canonical regen_gain transport events; optional here so
+  // fixtures can still describe older payloads that replay must reject.
+  post_hp_regen_per_sec?: number
   timestamp?: number
   seq?: number
   // Mana events and combat metadata

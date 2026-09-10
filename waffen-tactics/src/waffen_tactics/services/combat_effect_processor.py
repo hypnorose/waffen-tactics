@@ -649,10 +649,14 @@ class CombatEffectProcessor:
                         if event_callback:
                             emit_stat_buff(event_callback, recipient, 'damage_reduction', added, value_type='flat', duration=None, permanent=False, source=unit, side=side, timestamp=time, cause='effect')
                     elif st == 'hp_regen_per_sec':
-                        recipient.hp_regen_per_sec += float(added)
                         log.append(f"{recipient.name} gains +{float(added):.2f} HP Regen/sec (stat_buff)")
                         if event_callback:
+                            # emit_regen_gain owns the canonical mutation and
+                            # emits the post-state used by replay. Mutating
+                            # here first would apply action-based regen twice.
                             emit_regen_gain(event_callback, recipient, added, side=side, timestamp=time)
+                        else:
+                            recipient.hp_regen_per_sec += float(added)
 
                 # Apply according to target
                 if target == 'self':

@@ -85,6 +85,7 @@ class TestEventCanonicalizer(unittest.TestCase):
         self.assertAlmostEqual(u.hp_regen_per_sec, 2.5)
         self.assertEqual(events[0][0], 'regen_gain')
         self.assertEqual(events[0][1]['amount_per_sec'], 2.5)
+        self.assertEqual(events[0][1]['post_hp_regen_per_sec'], 2.5)
 
     def test_emit_unit_died_sets_flags_and_payload(self):
         u = DummyUnit()
