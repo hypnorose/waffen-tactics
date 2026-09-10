@@ -49,3 +49,24 @@ def test_player_facing_effect_description_and_expiry_survive_sse_mapping():
     assert payload['description'] == 'Ogłuszenie z pasywki'
     assert payload['caster_name'] == 'Caster'
     assert payload['effect']['expires_at'] == 7.5
+
+
+def test_canonical_context_fields_survive_for_event_types_without_explicit_mapping():
+    payload = gc.map_event_to_sse_payload('stat_buff', {
+        'seq': 45,
+        'unit_id': 'tank',
+        'unit_name': 'Tank',
+        'stat': 'defense',
+        'amount': 20,
+        'applied_delta': 20,
+        'effect_id': 'buff-45',
+        'trigger': 'on_ally_death',
+        'target': 'lowest_hp_ally',
+        'description': 'Wzmocnienie po śmierci sojusznika',
+        'expires_at': 9.5,
+    })
+
+    assert payload['trigger'] == 'on_ally_death'
+    assert payload['target'] == 'lowest_hp_ally'
+    assert payload['description'] == 'Wzmocnienie po śmierci sojusznika'
+    assert payload['expires_at'] == 9.5

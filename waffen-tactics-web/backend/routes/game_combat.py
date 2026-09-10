@@ -37,6 +37,24 @@ game_manager = GameManager()
 # the delivery model is a committed batch/replay, not a live event stream.
 COMBAT_DELIVERY_MODE = 'batch_replay'
 
+# These fields are canonical event context, not presentation-derived data.
+# Preserve them at the transport boundary for every event type so live and
+# replay consumers receive the same player-facing explanation when a producer
+# emits it. Event-specific mappings still own authoritative state fields.
+_PLAYER_FACING_CONTEXT_FIELDS = (
+    'trigger',
+    'target',
+    'scope',
+    'limit',
+    'duration',
+    'expires_at',
+    'description',
+    'cause',
+    'source_id',
+    'target_id',
+    'target_name',
+)
+
 
 def _combat_response_headers():
     return {
@@ -55,6 +73,19 @@ def _require_effect_id(data: dict, event_type: str):
             f"{event_type} missing required effect_id at seq={data.get('seq')}"
         )
     return effect_id
+
+
+def _preserve_player_facing_context(payload: dict, data: dict) -> None:
+    """Keep canonical explanation metadata available to live and replay UI.
+
+    Event-specific mappers remain the owners of state and compatibility
+    aliases. This helper only fills context fields that are present in the
+    authoritative event and absent from that event's explicit payload shape;
+    it never invents values or overwrites an explicit mapping.
+    """
+    for field in _PLAYER_FACING_CONTEXT_FIELDS:
+        if field in data and data[field] is not None and field not in payload:
+            payload[field] = data[field]
 
 
 def map_event_to_sse_payload(event_type: str, data: dict):
@@ -541,6 +572,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
 
     # Attach seq and event_id centrally so every SSE payload carries them when available
     if res is not None:
+        _preserve_player_facing_context(res, data)
         # Prefer existing seq on the mapped payload, but fall back to provided data
         if 'seq' not in res or res.get('seq') is None:
             if 'seq' in data:
