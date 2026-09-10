@@ -35,6 +35,33 @@ class CombatEventReconstructor:
             raise ValueError(f"{context} requires a non-empty string effect_id")
         return effect_id
 
+    @staticmethod
+    def _preserve_item_context(effect: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Copy item identity and stack/value context without deriving state."""
+        for field in (
+            'item_id', 'item_effect_id', 'item_effect', 'stack', 'stacks',
+            'stack_cap', 'value_before', 'value_after',
+        ):
+            if field in event_data and event_data[field] is not None:
+                effect[field] = event_data[field]
+        return effect
+
+    @staticmethod
+    def _validate_item_context(event_data: Dict[str, Any]) -> None:
+        """Reject a partial item identity before any replay mutation."""
+        has_item_context = any(
+            event_data.get(field) is not None
+            for field in ('item_id', 'item_effect_id')
+        )
+        if not has_item_context:
+            return
+        for field in ('item_id', 'item_effect_id'):
+            value = event_data.get(field)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(
+                    f"item event seq={event_data.get('seq')} requires non-empty string {field}"
+                )
+
     def initialize_from_snapshot(self, snapshot_data: Dict[str, Any]):
         """Initialize reconstruction from a state_snapshot event."""
         def normalize_unit(u):
@@ -65,6 +92,7 @@ class CombatEventReconstructor:
         """Process a single event and update the reconstructed state."""
         seq = event_data.get('seq', 'N/A')
         # print(f"Processing event: type={event_type}, seq={seq}")
+        self._validate_item_context(event_data)
 
         if event_type in ['attack', 'unit_attack']:
             self._process_damage_event(event_data)
@@ -272,7 +300,7 @@ class CombatEventReconstructor:
         unit_dict['shield'] = event_data['post_shield']
         # Add shield effect
         eid = effect_id
-        effect = {
+        effect = self._preserve_item_context({
             'id': eid,
             'type': 'shield',
             'amount': amount,
@@ -280,7 +308,7 @@ class CombatEventReconstructor:
             'source': event_data.get('source', unit_id),
             'expires_at': event_data.get('timestamp', 0) + (duration or 0),
             'applied_amount': amount  # Store for reversion
-        }
+        }, event_data)
         unit_dict['effects'].append(effect)
         print(f"  Applied shield to unit {unit_id}: post_shield={unit_dict['shield']}")
 
@@ -343,7 +371,7 @@ class CombatEventReconstructor:
                 f"at seq={event_data.get('seq')}: {event_data}"
             )
         # Build canonical effect object matching snapshot shape
-        eff = {
+        eff = self._preserve_item_context({
             'id': effect_id,
             'type': 'damage_over_time',
             'damage': damage,
@@ -354,7 +382,7 @@ class CombatEventReconstructor:
             'next_tick_time': event_data.get('next_tick_time'),
             'expires_at': event_data.get('expires_at'),
             'source': event_data.get('source') or event_data.get('caster_id') or event_data.get('caster_name')
-        }
+        }, event_data)
         unit_dict.setdefault('effects', [])
         # Avoid duplicates by id
         existing_ids = {e.get('id') for e in unit_dict.get('effects', []) if e.get('id')}
@@ -385,7 +413,7 @@ class CombatEventReconstructor:
         if unit_dict is None:
             raise ValueError(f"effect_applied references unknown unit_id={unit_id}")
 
-        effect = dict(effect_data)
+        effect = self._preserve_item_context(dict(effect_data), event_data)
         if effect_object_id != effect_id:
             raise ValueError(
                 f"effect_applied effect id mismatch at seq={event_data.get('seq')}: "
@@ -455,7 +483,7 @@ class CombatEventReconstructor:
         except Exception:
             effect_type = 'debuff'
 
-        effect = {
+        effect = self._preserve_item_context({
             'id': eid,
             'type': effect_type,
             'stat': stat,
@@ -466,7 +494,7 @@ class CombatEventReconstructor:
             'source': event_data.get('source') or event_data.get('source_id'),
             'expires_at': event_data.get('timestamp', 0) + (duration or 0),
             'applied_delta': delta  # Store for reversion
-        }
+        }, event_data)
         unit_dict['effects'].append(effect)
 
     def _process_hp_regen_event(self, event_data: Dict[str, Any]):
@@ -506,13 +534,13 @@ class CombatEventReconstructor:
         if not unit_dict:
             raise ValueError(f"unit_stunned references unknown unit_id={unit_id}")
         # Create a canonical stun effect entry similar to emitter shape
-        eff = {
+        eff = self._preserve_item_context({
             'id': effect_id,
             'type': 'stun',
             'duration': duration,
             'source': source,
             'expires_at': (timestamp + float(duration)) if (duration and duration > 0) else None,
-        }
+        }, event_data)
         unit_dict.setdefault('effects', [])
         unit_dict['effects'].append(eff)
         print(f"  Reconstructed stun on unit {unit_id}: duration={duration}, source={source}")

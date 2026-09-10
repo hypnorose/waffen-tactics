@@ -55,6 +55,21 @@ _PLAYER_FACING_CONTEXT_FIELDS = (
     'target_name',
 )
 
+# Item effects use the existing canonical effect/event path.  These fields are
+# optional for non-item events, but when either item identity is present the
+# pair is mandatory so transport cannot silently turn an item proc into an
+# anonymous generic effect.
+_ITEM_EVENT_CONTEXT_FIELDS = (
+    'item_id',
+    'item_effect_id',
+    'item_effect',
+    'stack',
+    'stacks',
+    'stack_cap',
+    'value_before',
+    'value_after',
+)
+
 
 def _combat_response_headers():
     return {
@@ -86,6 +101,32 @@ def _preserve_player_facing_context(payload: dict, data: dict) -> None:
     for field in _PLAYER_FACING_CONTEXT_FIELDS:
         if field in data and data[field] is not None and field not in payload:
             payload[field] = data[field]
+
+
+def _preserve_item_event_context(payload: dict, data: dict, event_type: str) -> None:
+    """Validate and preserve canonical item context through the SSE boundary."""
+    has_item_context = any(data.get(field) is not None for field in ('item_id', 'item_effect_id'))
+    if not has_item_context:
+        return
+
+    for field in ('item_id', 'item_effect_id'):
+        value = data.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise RuntimeError(
+                f"{event_type} item context requires non-empty string {field} at seq={data.get('seq')}"
+            )
+
+    for field in _ITEM_EVENT_CONTEXT_FIELDS:
+        if field in data and data[field] is not None and field not in payload:
+            payload[field] = data[field]
+
+    effect = payload.get('effect')
+    if isinstance(effect, dict):
+        effect = dict(effect)
+        for field in _ITEM_EVENT_CONTEXT_FIELDS:
+            if field in data and data[field] is not None and field not in effect:
+                effect[field] = data[field]
+        payload['effect'] = effect
 
 
 def map_event_to_sse_payload(event_type: str, data: dict):
@@ -572,6 +613,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
 
     # Attach seq and event_id centrally so every SSE payload carries them when available
     if res is not None:
+        _preserve_item_event_context(res, data, event_type)
         _preserve_player_facing_context(res, data)
         # Prefer existing seq on the mapped payload, but fall back to provided data
         if 'seq' not in res or res.get('seq') is None:

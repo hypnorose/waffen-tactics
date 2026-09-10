@@ -49,6 +49,34 @@ function requireEffectId(
   return effectId
 }
 
+function validateItemEventContext(event: CombatEvent): void {
+  const hasItemContext = event.item_id !== undefined || event.item_effect_id !== undefined
+  if (!hasItemContext) return
+
+  for (const [field, value] of [
+    ['item_id', event.item_id],
+    ['item_effect_id', event.item_effect_id],
+  ] as const) {
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new CombatReplayValidationError(event, `item context requires non-empty string ${field}`, event.unit_id)
+    }
+  }
+}
+
+function itemEffectContext(event: CombatEvent): Partial<EffectSummary> {
+  if (event.item_id === undefined) return {}
+  return {
+    item_id: event.item_id,
+    item_effect_id: event.item_effect_id,
+    item_effect: event.item_effect,
+    stack: event.stack,
+    stacks: event.stacks,
+    stack_cap: event.stack_cap,
+    value_before: event.value_before,
+    value_after: event.value_after,
+  }
+}
+
 function updateKnownUnitById(
   state: CombatState,
   event: CombatEvent,
@@ -78,6 +106,7 @@ function hasCanonicalPositions(units: Unit[] | undefined, side: string, seq?: nu
 }
 
 export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: ApplyEventContext): CombatState {
+  validateItemEventContext(event)
   let newState = { ...state }
   const logLine = formatCombatLogEntry(event)
   let shouldUpdateSummary = true
@@ -276,6 +305,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         const effect: EffectSummary = {
           id: statBuffEffectId,
           type: effectType,
+          ...itemEffectContext(event),
           stat: event.stat,
           value: amountNum,
           value_type: event.value_type,
@@ -520,6 +550,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           const effect: EffectSummary = {
             id: shieldEffectId,
             type: 'shield',
+            ...itemEffectContext(event),
             amount: event.amount,
             duration: event.duration,
             caster_name: event.caster_name,
@@ -552,6 +583,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       {
         const canonicalEffect: EffectSummary = {
           ...event.effect,
+          ...itemEffectContext(event),
           id: appliedEffectId,
           type: event.effect.type,
           expiresAt: event.effect.expires_at,
@@ -586,6 +618,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         const effect: EffectSummary = {
           id: stunEffectId,
           type: 'stun',
+          ...itemEffectContext(event),
           duration: event.duration,
           caster_name: event.caster_name,
           expiresAt: event.duration ? ctx.simTime + event.duration : undefined
@@ -619,6 +652,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         const effect: EffectSummary = {
           id: dotEffectId,
           type: 'damage_over_time',
+          ...itemEffectContext(event),
           damage: event.damage,
           duration: event.duration,
           ticks: event.ticks,

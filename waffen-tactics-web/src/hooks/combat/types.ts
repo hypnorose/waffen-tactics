@@ -122,6 +122,14 @@ export interface CombatEvent {
   effect_id?: string
   effect_type?: string
   effect?: any
+  item_id?: string
+  item_effect_id?: string
+  item_effect?: Record<string, unknown>
+  stack?: number
+  stacks?: number
+  stack_cap?: number
+  value_before?: number
+  value_after?: number
   expires_at?: number
   next_tick_time?: number
   passive_id?: string
@@ -163,6 +171,14 @@ export interface EffectSummary {
   value_type?: string
   permanent?: boolean
   source?: string
+  item_id?: string
+  item_effect_id?: string
+  item_effect?: Record<string, unknown>
+  stack?: number
+  stacks?: number
+  stack_cap?: number
+  value_before?: number
+  value_after?: number
 }
 
 export interface CombatSummaryEntry {

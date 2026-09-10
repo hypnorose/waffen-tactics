@@ -388,6 +388,55 @@ describe('applyCombatEvent - Effect Handling', () => {
     })
   })
 
+  describe('item effect context', () => {
+    it('keeps item identity, stack and before/after values on replay effects', () => {
+      const next = applyCombatEvent(state, {
+        type: 'stat_buff',
+        unit_id: 'player_0',
+        stat: 'defense',
+        amount: 0.5,
+        applied_delta: 0.5,
+        effect_id: 'item-effect-1',
+        item_id: 'fap_folder',
+        item_effect_id: 'fap_folder:per_hit_received_stack',
+        stack: 2,
+        stacks: 2,
+        stack_cap: 30,
+        value_before: 1.5,
+        value_after: 2,
+        seq: 4,
+        timestamp: 4,
+      }, { simTime: 4 })
+
+      expect(next.playerUnits[0].effects).toEqual([
+        expect.objectContaining({
+          item_id: 'fap_folder',
+          item_effect_id: 'fap_folder:per_hit_received_stack',
+          stack: 2,
+          stacks: 2,
+          stack_cap: 30,
+          value_before: 1.5,
+          value_after: 2,
+        })
+      ])
+    })
+
+    it('rejects partial item identity before mutating replay state', () => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'effect_applied',
+        unit_id: 'player_0',
+        effect_id: 'item-effect-2',
+        item_id: 'fap_folder',
+        effect: { id: 'item-effect-2', type: 'item_effect' },
+        seq: 5,
+      }, { simTime: 5 })).toThrow('[REPLAY_VALIDATION] effect_applied event seq=5 item context requires non-empty string item_effect_id')
+
+      expect(state).toEqual(original)
+    })
+  })
+
   describe('effect identity validation', () => {
     it.each(invalidEffectIds)('rejects invalid stat_buff effect_id: %p before mutation', (effectId) => {
       const original = JSON.parse(JSON.stringify(state)) as CombatState
