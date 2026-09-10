@@ -16,6 +16,12 @@ from waffen_tactics.services.progression import ProgressionService
 from waffen_tactics.services.database import DatabaseManager
 from waffen_tactics.models.player import PlayerProfile, TeamSnapshot
 
+
+def is_player_side_win(result):
+    """Return whether a shared combat result reports a player-side win."""
+    return isinstance(result, dict) and result.get("winner") == "team_a"
+
+
 async def reset_leaderboard(db_path: str):
     """Reset the leaderboard"""
     db = DatabaseManager(db_path)
@@ -66,7 +72,7 @@ def demo_round():
     for line in result.get("log", [])[:20]:
         print(line)
 
-    prog.award_post_combat(player, won=(result["winner"] == "A"))
+    prog.award_post_combat(player, won=is_player_side_win(result))
     print("Post-combat:", player)
 
 async def main():
