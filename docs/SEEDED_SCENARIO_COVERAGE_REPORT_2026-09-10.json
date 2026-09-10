@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "source_of_truth": [
+    "waffen-tactics/units.json",
+    "waffen-tactics/traits.json",
+    "waffen-tactics/src/waffen_tactics/services/passive_definitions.py",
+    "docs/SEEDED_SCENARIO_MATRIX_2026-09-09.json"
+  ],
+  "generated_by": "tools/seeded_coverage_report.py",
+  "automated_evidence_only": true,
+  "canonical_counts": {
+    "units": 52,
+    "passive_definitions": 52,
+    "traits": 21,
+    "trigger_families": 16,
+    "matrix_scenarios": 12
+  },
+  "failure_domains": {
+    "data": {
+      "status": "automated_contract",
+      "reference": "waffen-tactics/units.json + traits.json + passive_definitions.py",
+      "scope": "canonical IDs, counts, descriptions, and unit/passive alignment"
+    },
+    "runtime": {
+      "status": "automated_contract",
+      "reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py",
+      "scope": "seeded shared-core replay and trigger-family execution"
+    },
+    "emitter": {
+      "status": "automated_contract",
+      "reference": "waffen-tactics/tests/test_golden_replay_contract.py",
+      "scope": "ordered canonical event stream and authoritative event payloads"
+    },
+    "reconstructor": {
+      "status": "automated_contract",
+      "reference": "waffen-tactics-web/backend/tests/test_golden_replay_contract.py",
+      "scope": "backend event reconstruction against the approved snapshot"
+    },
+    "ui": {
+      "status": "automated_contract",
+      "reference": "waffen-tactics-web/src/hooks/combat/__tests__/realEventReplay.test.ts",
+      "scope": "frontend replay and snapshot desync detection"
+    }
+  },
+  "coverage": {
+    "unit": {
+      "status": "automated_evidence",
+      "canonical_count": 52,
+      "covered_count": 52,
+      "uncovered_ids": [],
+      "passive_ids_without_unit": [],
+      "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_matrix_replays_every_canonical_definition_deterministically",
+      "evidence": "One deterministic shared-simulator replay is executed for every canonical passive keyed by unit ID."
+    },
+    "trait": {
+      "status": "automated_evidence",
+      "canonical_count": 21,
+      "covered_count": 21,
+      "trait_names": [
+        "Denciak",
+        "Femboy",
+        "Gamer",
+        "Haker",
+        "Hitman",
+        "Konfident",
+        "Normik",
+        "Prostaczka",
+        "Spell",
+        "Srebrna Gwardia",
+        "Starokurwy",
+        "Streamer",
+        "Szachista",
+        "Wygnaniec",
+        "XN HomoKomando",
+        "XN Jugend",
+        "XN KGB",
+        "XN Mod",
+        "XN Monter",
+        "XN Waffen",
+        "XN Yakuza"
+      ],
+      "boundary_states": [
+        "below",
+        "exact",
+        "next"
+      ],
+      "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_trait_threshold_matrix_covers_below_exact_and_next_boundary",
+      "evidence": "Every canonical trait tier is exercised below threshold, at threshold, and at the next threshold where present."
+    },
+    "trigger_family": {
+      "status": "automated_evidence",
+      "canonical_count": 16,
+      "covered_count": 16,
+      "families": [
+        "ally_threshold",
+        "attack_count",
+        "attack_count_same_target",
+        "bonus_attack",
+        "conditional_attack",
+        "kill",
+        "position_scope_start",
+        "position_start",
+        "start_effect",
+        "start_enemy_debuff",
+        "start_enemy_highest_attack",
+        "start_scope_stat",
+        "start_stat",
+        "start_target",
+        "start_target_bonus",
+        "threshold"
+      ],
+      "positive_and_negative_paths": true,
+      "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_trigger_family_matrix_has_positive_and_negative_path",
+      "evidence": "One explicit runtime representative provides a positive and negative or boundary path for every loaded family."
+    },
+    "edge_case": {
+      "status": "automated_evidence",
+      "canonical_count": 7,
+      "covered_count": 7,
+      "scenarios": [
+        {
+          "scenario_id": "frontline_then_backline",
+          "seed": 158001,
+          "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_default_targeting_uses_frontline_then_reaches_backline",
+          "fixture_or_runner": "waffen-tactics/tests/test_approved_combat_rules.py"
+        },
+        {
+          "scenario_id": "no_legal_target_noop",
+          "seed": 158002,
+          "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_no_legal_target_is_a_noop_and_clears_stale_focus",
+          "fixture_or_runner": "waffen-tactics/tests/test_approved_combat_rules.py"
+        },
+        {
+          "scenario_id": "team_a_before_team_b_same_tick",
+          "seed": 158003,
+          "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_attack_phase_is_team_a_before_team_b_at_same_tick",
+          "fixture_or_runner": "waffen-tactics/tests/test_approved_combat_rules.py"
+        },
+        {
+          "scenario_id": "full_tempo_bonus_attack",
+          "seed": 158004,
+          "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_full_mana_produces_one_bonus_basic_attack_without_skill_event",
+          "fixture_or_runner": "waffen-tactics/tests/test_approved_combat_rules.py"
+        },
+        {
+          "scenario_id": "enemy_death_trigger",
+          "seed": 158005,
+          "test_reference": "waffen-tactics/tests/test_combat_shared.py::test_on_enemy_death_event_callback",
+          "fixture_or_runner": "waffen-tactics/tests/test_combat_shared.py"
+        },
+        {
+          "scenario_id": "ally_death_trigger_once",
+          "seed": 158006,
+          "test_reference": "waffen-tactics/tests/test_combat_shared.py::test_on_ally_death_trigger_once",
+          "fixture_or_runner": "waffen-tactics/tests/test_combat_shared.py"
+        },
+        {
+          "scenario_id": "low_hp_threshold",
+          "seed": 158007,
+          "test_reference": "waffen-tactics/tests/test_combat_effect_processor.py::TestCombatEffectProcessor::test_process_ally_hp_below_triggers",
+          "fixture_or_runner": "waffen-tactics/tests/test_combat_effect_processor.py"
+        }
+      ],
+      "evidence": "The seeded matrix includes targeting, no-target, ordering, full-mana, death, trigger-once, and HP-threshold boundaries."
+    },
+    "cross_layer_replay": {
+      "status": "automated_evidence",
+      "layers": {
+        "data": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json",
+        "runtime": "waffen-tactics/tests/test_golden_replay_contract.py",
+        "emitter": "waffen-tactics/tests/test_golden_replay_contract.py",
+        "reconstructor": "waffen-tactics-web/backend/tests/test_golden_replay_contract.py",
+        "ui": "waffen-tactics-web/src/hooks/combat/__tests__/realEventReplay.test.ts"
+      },
+      "evidence": {
+        "scenario_id": "canonical_replay_snapshot_parity",
+        "seed": 158009,
+        "test_reference": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json",
+        "fixture_or_runner": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json"
+      },
+      "missing_event_fails": true
+    }
+  },
+  "manual_runtime": {
+    "status": "pending",
+    "required_evidence": [
+      "authenticated Game View at 1280x720",
+      "authenticated Game View at 1920x1080",
+      "live combat and replay readability",
+      "post-deploy VPS status and logs",
+      "rollback evidence for the approved revision"
+    ],
+    "not_proven_by": [
+      "pytest",
+      "frontend tests",
+      "typecheck",
+      "lint",
+      "production build"
+    ]
+  }
+}
