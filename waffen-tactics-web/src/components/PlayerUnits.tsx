@@ -1,17 +1,15 @@
 import { memo } from 'react'
 import { motion } from 'framer-motion'
 import CombatUnitCard from './CombatUnitCard'
-import type { CombatUnitRoundStats } from '../hooks/combat/types'
 
 interface Props {
   units: any[]
   regenMap: Record<string, any>
   activeAttackerId?: string | null
   activeTargetId?: string | null
-  roundStatsByUnit?: Record<string, CombatUnitRoundStats>
 }
 
-const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerId, activeTargetId, roundStatsByUnit }: Props) {
+const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerId, activeTargetId }: Props) {
   const frontUnits = units.filter(u => u.position === 'front')
   const backUnits = units.filter(u => u.position === 'back')
   return (
@@ -32,7 +30,6 @@ const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerI
                   regen={regenMap[u.id]}
                   isActiveAttacker={u.id === activeAttackerId}
                   isActiveTarget={u.id === activeTargetId}
-                  roundStats={roundStatsByUnit?.[u.id]}
                 />
               </motion.div>
             ))}
@@ -54,7 +51,6 @@ const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerI
                   regen={regenMap[u.id]}
                   isActiveAttacker={u.id === activeAttackerId}
                   isActiveTarget={u.id === activeTargetId}
-                  roundStats={roundStatsByUnit?.[u.id]}
                 />
               </motion.div>
             ))}
