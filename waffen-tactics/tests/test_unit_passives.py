@@ -145,6 +145,18 @@ def test_position_passive_changes_the_starting_mode_without_skill_cast():
     assert any(payload.get("effect") == "passive_ready" for event_type, payload in front_events if event_type == "passive_triggered")
 
 
+def test_passive_trigger_event_carries_authoritative_display_name():
+    unit = make_unit("named_passive")
+    unit.passive = {"name": "Jajcarz", "description": "Stunuje po bonus attacku."}
+    events = []
+
+    PassiveProcessor()._emit(lambda event_type, payload: events.append((event_type, payload)), unit, "on_bonus_attack", "passive_ready", "team_a", 1.25)
+
+    assert events[0][0] == "passive_triggered"
+    assert events[0][1]["passive_name"] == "Jajcarz"
+    assert events[0][1]["description"] == "Stunuje po bonus attacku."
+
+
 def test_full_mana_bonus_attack_can_feed_team_mana_without_skill_cast():
     caster = make_unit("yossarian", "yossarian", max_mana=20, attack_speed=2.0)
     ally = make_unit("ally", max_mana=100, attack_speed=2.0)

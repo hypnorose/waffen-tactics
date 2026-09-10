@@ -124,6 +124,7 @@ export interface CombatEvent {
   expires_at?: number
   next_tick_time?: number
   passive_id?: string
+  passive_name?: string
   description?: string
   value?: any
   applied_delta?: number  // Authoritative delta applied by backend (for stat_buff events)

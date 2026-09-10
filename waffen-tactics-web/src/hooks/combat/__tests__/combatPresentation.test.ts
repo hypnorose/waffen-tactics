@@ -8,6 +8,15 @@ import {
 import { CombatEvent } from '../types'
 
 describe('combatPresentation', () => {
+  it('includes the passive display name in passive activation logs', () => {
+    expect(formatCombatLogEntry({
+      type: 'passive_triggered',
+      unit_name: 'Fiko',
+      passive_name: 'Jajcarz',
+      description: 'Ogłusza po bonus attacku.',
+    })).toBe('[PASSIVE] Fiko — Jajcarz: Ogłusza po bonus attacku.')
+  })
+
   it('formats bonus attacks and updates summary metrics', () => {
     const summary = createCombatSummary()
     const attack: CombatEvent = {

@@ -130,7 +130,7 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
     case 'animation_start':
       return null
     case 'passive_triggered':
-      return tag('PASSIVE', `${event.unit_name || event.unit_id || 'Unit'}: ${event.description || event.effect || 'efekt aktywny'}`)
+      return tag('PASSIVE', `${event.unit_name || event.unit_id || 'Unit'}${event.passive_name ? ` — ${event.passive_name}` : ''}: ${event.description || event.effect || 'efekt aktywny'}`)
     case 'unit_attack': {
       const prefix = event.bonus_attack ? 'BONUS' : 'ATK'
       const damage = formatAmount(event.damage ?? event.applied_damage)

@@ -53,6 +53,7 @@ class PassiveProcessor:
             "passive_id": getattr(unit, "id", None),
             "unit_id": getattr(unit, "id", None),
             "unit_name": getattr(unit, "name", None),
+            "passive_name": (self._definition(unit) or {}).get("name"),
             "description": (self._definition(unit) or {}).get("description"),
             "trigger": trigger,
             "effect": effect,

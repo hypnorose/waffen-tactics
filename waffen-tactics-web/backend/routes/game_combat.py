@@ -233,6 +233,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'passive_id': data.get('passive_id'),
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
+            'passive_name': data.get('passive_name'),
             'description': data.get('description'),
             'trigger': data.get('trigger'),
             'effect': data.get('effect'),
