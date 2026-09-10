@@ -9,18 +9,18 @@ Linear is the source of truth for issue status, ownership, dependencies, milesto
 ## 2026-09-10 release-gate refresh
 
 - The current release owner is `DEF-164`, which remains `In Review` with `Needs Manual Test`; its 43 structural blockers are `Done`.
-- The current committed source-of-truth is aligned with `origin/main` and the tracked working tree is clean; the latest relevant implementation commits are `ef51193` (viewport-clamped combat overlay) and `fa2ae9e` (combat-card metric ownership).
-- The canonical local automated gate passed after these implementation commits: core `548 passed, 25 skipped, 22 subtests`; backend `396 passed, 8 skipped, 5 subtests`; frontend lint, typecheck, Vitest `193 passed across 15 files`, and production build pass; `git diff --check` is clean.
+- The current committed source-of-truth is aligned with `origin/main` and the tracked working tree is clean; the latest relevant implementation commits include `c83108d` (short-viewport combat cards) and `a30e32f` (fail-closed item matrix contract).
+- The canonical local automated gate passed after these implementation commits: core `558 passed, 25 skipped, 22 subtests`; backend `396 passed, 8 skipped, 5 subtests`; frontend lint, typecheck, Vitest `195 passed across 15 files`, and production build pass; `git diff --check` is clean.
 - The explicitly authorized `deploy.ps1 -RunTests` deployment completed successfully for `509a63473246dad173051b8da0ceb43086aee9b8`: the VPS HEAD now matches local/origin, backend/frontend/Caddy are running, application listeners remain loopback-only, public `/` and `/api/game/traits` return HTTP 200, and direct public ports 3000/8000 are refused. The VPS tracked tree is clean; pre-existing unrelated untracked drift remains preserved. Logs show normal startup/request activity; the only warnings are the expected Flask development-server notice, stale Browserslist data, and the unrelated SSH port-forward notice.
-- User-supplied authenticated Game View evidence confirms combat, victory/defeat, live/replay, mana, bonus attack, and status behavior at both `1280x720` and `1920x1080`. The remaining visual defect is a combat overlay frame clipped at `1280x720`; commit `ef51193` addresses it and WFT-155 tracks the post-fix recheck. Future replay scrubbing and active-buff hover inspection are tracked by WFT-156 and WFT-157.
+- User-supplied authenticated Game View evidence confirms combat, victory/defeat, live/replay, mana, bonus attack, and status behavior at both `1280x720` and `1920x1080`. The viewport frame is improved, but the lower player formation remained clipped at `1280x720`; commit `c83108d` compacts combat cards for short viewports and WFT-155 tracks the post-fix recheck. Future replay scrubbing and active-buff hover inspection are tracked by WFT-156 and WFT-157.
 
 The older `WFT-130`/`WFT-16` runtime snapshot below is retained as historical evidence from an earlier handoff; current release tracking uses the `DEF-*` issues above.
 
 ## Verified automated evidence
 
-- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q 'waffen-tactics\\tests'` — **548 passed, 25 skipped, 22 subtests passed**, with no warnings.
+- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q 'waffen-tactics\\tests'` — **558 passed, 25 skipped, 22 subtests passed**, with no warnings.
 - Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **396 passed, 8 skipped, 5 subtests passed**, with no warnings.
-- Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **189 passed across 13 files**.
+- Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **195 passed across 15 files**.
 - Frontend production build: `npm run build` — pass. Vite reports only stale Browserslist data; the build succeeds.
 - Operational/release docs tests after the root-owned Caddy discovery fix: `3 passed, 1 skipped`; scoped `git diff --check` is clean. Linux shell syntax was checked on the deployed VPS with `bash -n`.
 - `python -m compileall -q waffen-tactics\\src waffen-tactics\\tests` — pass.
@@ -135,6 +135,7 @@ DEF-279 now makes the legacy CLI demo consume the shared simulator's canonical `
 - `DEF-278` is `Done`: canonical `emit_effect_applied` now distinguishes an omitted ID (generated UUID) from an explicitly supplied ID (validated non-empty string), failing closed before state mutation or event delivery for malformed identities. Focused/full core and backend verification passed; no content, fixture, legacy-archive, or deployment state changed.
 - `DEF-279` is `Done`: the legacy CLI demo now maps shared `team_a/team_b` results to its player win/loss progression path, with focused, full shared-core, backend, and CLI smoke verification recorded in Linear. No canonical unit, trait, combat formula, web route, or legacy archive files changed.
 - `DEF-269` is `Backlog + Needs User`: the shared stat-buff runtime has duplicated recipient/application paths and silently maps unsupported targets to `self`; canonicalization awaits the explicit unknown-target contract decision recorded in the issue.
+- `WFT-140` is `In Review`: the technical item-matrix boundary now validates explicit item/effect contracts, exactly 6 bases, 21 unique recipe pairs including A+A, and rejects duplicate or unknown references. Synthetic fixtures only are covered by the shared-core suite; the author-approved 6-base/21-recipe matrix is still required before item runtime/API/replay work can consume it.
 - New-set authoring and contract work remains author-led (`Needs User`/`Manual-only`); do not promote draft content into active datasets without approval.
 
 ## Next continuation
