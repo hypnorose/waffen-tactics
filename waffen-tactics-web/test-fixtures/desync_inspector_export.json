@@ -1,0 +1,25 @@
+[
+  {
+    "unit_id": "opp_0",
+    "unit_name": "xntentacion",
+    "seq": 147,
+    "timestamp": 4.2,
+    "diff": {
+      "buffed_stats": {
+        "ui": {"hp_regen_per_sec": 0},
+        "server": {"hp_regen_per_sec": 6}
+      }
+    },
+    "pending_events": [],
+    "note": "event regen_gain diff (opponent)",
+    "recent_events": [
+      {
+        "type": "regen_gain",
+        "unit_id": "opp_0",
+        "amount_per_sec": 6,
+        "duration": 5,
+        "seq": 147
+      }
+    ]
+  }
+]

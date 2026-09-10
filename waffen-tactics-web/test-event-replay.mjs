@@ -222,6 +222,44 @@ function applyCombatEvent(state, event, ctx) {
       }
       break
 
+    case 'regen_gain': {
+      if (typeof event.unit_id !== 'string' || !event.unit_id.trim()) {
+        throw new Error(`[REPLAY_VALIDATION] regen_gain event seq=${event.seq ?? 'unknown'} missing required unit_id`)
+      }
+      if (typeof event.post_hp_regen_per_sec !== 'number' || !Number.isFinite(event.post_hp_regen_per_sec)) {
+        throw new Error(`[REPLAY_VALIDATION] regen_gain event seq=${event.seq ?? 'unknown'} missing required post_hp_regen_per_sec`)
+      }
+
+      const units = event.unit_id.startsWith('opp_') ? newState.opponentUnits : newState.playerUnits
+      if (!units.some(unit => unit.id === event.unit_id)) {
+        throw new Error(`[REPLAY_VALIDATION] regen_gain event seq=${event.seq ?? 'unknown'} references unknown unit_id=${event.unit_id}`)
+      }
+
+      const duration = event.duration || 5
+      newState.regenMap = {
+        ...newState.regenMap,
+        [event.unit_id]: {
+          amount_per_sec: event.amount_per_sec || 0,
+          total_amount: event.total_amount || 0,
+          expiresAt: newState.simTime + duration
+        }
+      }
+      const updateFn = (u) => ({
+        ...u,
+        buffed_stats: {
+          ...(u.buffed_stats || {}),
+          hp_regen_per_sec: event.post_hp_regen_per_sec
+        }
+      })
+      if (event.unit_id.startsWith('opp_')) {
+        newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
+      } else {
+        newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
+      }
+      newState.combatLog = [...newState.combatLog, `💚 ${event.unit_name || event.unit_id} dostaje +${event.amount_per_sec ?? 0} HP/s przez ${duration}s`]
+      break
+    }
+
     case 'mana_update':
       if (event.unit_id) {
         if (event.current_mana !== undefined && event.current_mana !== null) {
@@ -497,6 +535,12 @@ function compareCombatStates(uiState, serverState, seq, timestamp) {
       diff.defense = { ui: uiUnit.defense, server: serverUnit.defense }
     }
 
+    const uiRegen = uiUnit.buffed_stats?.hp_regen_per_sec ?? 0
+    const serverRegen = serverUnit.buffed_stats?.hp_regen_per_sec ?? 0
+    if (Math.abs(uiRegen - serverRegen) > 0.01) {
+      diff['buffed_stats.hp_regen_per_sec'] = { ui: uiRegen, server: serverRegen }
+    }
+
     if (Object.keys(diff).length > 0) {
       diffs.push({
         unit_id: unitId,
@@ -556,6 +600,24 @@ function loadEventStream(filepath) {
   } else {
     return content.trim().split('\n').filter(l => l.trim()).map(line => JSON.parse(line))
   }
+}
+
+function validateCanonicalEventStream(events) {
+  if (!Array.isArray(events) || events.length === 0) {
+    throw new Error('Replay input must be a non-empty JSON array or JSONL event stream')
+  }
+
+  events.forEach((event, index) => {
+    if (!event || typeof event !== 'object' || Array.isArray(event)) {
+      throw new Error(`Replay record ${index + 1} must be a JSON object`)
+    }
+    if (typeof event.type !== 'string' || !event.type.trim()) {
+      if (event.diff && event.recent_events) {
+        throw new Error(`Replay record ${index + 1} is a DesyncInspector diagnostic export, not a canonical event stream`)
+      }
+      throw new Error(`Replay record ${index + 1} missing required type field`)
+    }
+  })
 }
 
 function validateEventStream(events) {
@@ -652,6 +714,7 @@ function main() {
 
   try {
     const events = loadEventStream(filepath)
+    validateCanonicalEventStream(events)
     const result = validateEventStream(events)
 
     process.exit(result.success ? 0 : 1)

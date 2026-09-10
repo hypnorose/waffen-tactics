@@ -154,6 +154,17 @@ Each event must have:
 State snapshot events must additionally have:
 - `game_state`: Object with `player_units` and `opponent_units` arrays
 
+### Diagnostic exports are not replay streams
+
+Files exported by `DesyncInspector` (for example, a top-level array containing
+`unit_id`, `diff`, `pending_events`, `note`, and `recent_events`) are diagnostic
+evidence, not canonical event streams. The standalone replay harness rejects
+such records because they do not have a top-level event `type`. Use the
+embedded diagnostic data to reproduce the symptom in a reducer test, then use
+a canonical JSON array or JSONL event stream for replay validation. Canonical
+`regen_gain` events must include the authoritative
+`post_hp_regen_per_sec` field.
+
 ## Debugging Desyncs
 
 When desyncs are detected:

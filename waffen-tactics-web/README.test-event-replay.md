@@ -22,7 +22,13 @@ node test-event-replay.mjs ../desync_logs_1766289011979.json
 ## Exit Codes
 
 - `0`: All events applied correctly, no desyncs
-- `1`: Desyncs detected OR error occurred
+- `1`: Desyncs detected, malformed input, or replay error
+
+The input must be a canonical event stream: every record must be a JSON object
+with a non-empty `type` field. A `DesyncInspector` diagnostic export such as
+`desync_logs_1789057936444.json` is not an event stream; the harness rejects it
+with exit code `1` instead of reporting a false-green success. Canonical
+`regen_gain` events must include `post_hp_regen_per_sec`.
 
 ## Example Output
 
