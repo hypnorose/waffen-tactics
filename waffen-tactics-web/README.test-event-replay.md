@@ -28,7 +28,9 @@ The input must be a canonical event stream: every record must be a JSON object
 with a non-empty `type` field. A `DesyncInspector` diagnostic export such as
 `desync_logs_1789057936444.json` is not an event stream; the harness rejects it
 with exit code `1` instead of reporting a false-green success. Canonical
-`regen_gain` events must include `post_hp_regen_per_sec`.
+`regen_gain` events must include `post_hp_regen_per_sec`, and `shield_applied`
+events must include `post_shield`. The harness assigns these authoritative
+post-state values directly instead of deriving them from event amounts.
 
 ## Example Output
 

@@ -400,24 +400,33 @@ function applyCombatEvent(state, event, ctx) {
       break
 
     case 'shield_applied':
-      if (event.unit_id && typeof event.amount === 'number') {
-        const updateFn = (u) => {
-          const newShield = (u.shield || 0) + event.amount
-          const effect = {
-            type: 'shield',
-            amount: event.amount,
-            duration: event.duration,
-            caster_name: event.caster_name,
-            expiresAt: event.duration ? ctx.simTime + event.duration : undefined,
-            applied_amount: event.amount
-          }
-          return { ...u, effects: [...(u.effects || []), effect], shield: Math.max(0, newShield) }
+      if (typeof event.unit_id !== 'string' || !event.unit_id.trim()) {
+        throw new Error(`[REPLAY_VALIDATION] shield_applied event seq=${event.seq ?? 'unknown'} missing required unit_id`)
+      }
+      if (typeof event.post_shield !== 'number' || !Number.isFinite(event.post_shield)) {
+        throw new Error(`[REPLAY_VALIDATION] shield_applied event seq=${event.seq ?? 'unknown'} missing required post_shield`)
+      }
+
+      const units = event.unit_id.startsWith('opp_') ? newState.opponentUnits : newState.playerUnits
+      if (!units.some(unit => unit.id === event.unit_id)) {
+        throw new Error(`[REPLAY_VALIDATION] shield_applied event seq=${event.seq ?? 'unknown'} references unknown unit_id=${event.unit_id}`)
+      }
+
+      const updateFn = (u) => {
+        const effect = {
+          type: 'shield',
+          amount: event.amount,
+          duration: event.duration,
+          caster_name: event.caster_name,
+          expiresAt: event.duration ? ctx.simTime + event.duration : undefined,
+          applied_amount: event.amount
         }
-        if (event.unit_id.startsWith('opp_')) {
-          newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
-        } else {
-          newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
-        }
+        return { ...u, effects: [...(u.effects || []), effect], shield: event.post_shield }
+      }
+      if (event.unit_id.startsWith('opp_')) {
+        newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateFn)
+      } else {
+        newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateFn)
       }
       newState.combatLog = [...newState.combatLog, `🛡️ ${event.unit_name} zyskuje ${event.amount} tarczy na ${event.duration}s`]
       break

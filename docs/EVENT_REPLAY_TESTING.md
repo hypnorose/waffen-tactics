@@ -163,7 +163,9 @@ such records because they do not have a top-level event `type`. Use the
 embedded diagnostic data to reproduce the symptom in a reducer test, then use
 a canonical JSON array or JSONL event stream for replay validation. Canonical
 `regen_gain` events must include the authoritative
-`post_hp_regen_per_sec` field.
+`post_hp_regen_per_sec` field, and `shield_applied` events must include the
+authoritative `post_shield` field. Replay assigns both post-state values
+directly; it must not infer them from an event amount.
 
 ## Debugging Desyncs
 

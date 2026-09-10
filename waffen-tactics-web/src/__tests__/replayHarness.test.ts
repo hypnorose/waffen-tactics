@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process'
 
 const harness = path.resolve(__dirname, '../../test-event-replay.mjs')
 const diagnosticFixture = path.resolve(__dirname, '../../test-fixtures/desync_inspector_export.json')
+const shieldFixture = path.resolve(__dirname, '../../test-fixtures/canonical_shield_post_state.json')
 
 function runHarness(filePath: string) {
   return spawnSync(process.execPath, [harness, filePath], {
@@ -66,6 +67,13 @@ describe('standalone replay CLI input contract', () => {
     expect(`${result.stdout}\n${result.stderr}`).toContain('DesyncInspector diagnostic export')
   })
 
+  it('reconstructs shield_applied from canonical post_shield instead of amount arithmetic', () => {
+    const result = runHarness(shieldFixture)
+
+    expect(result.status).toBe(0)
+    expect(`${result.stdout}\n${result.stderr}`).toContain('SUCCESS: No desyncs detected!')
+  })
+
   it.each(['array', 'jsonl'] as const)('validates canonical %s replay input', (format) => {
     const tempRoot = mkdtempSync(path.join(tmpdir(), 'wft-replay-'))
     try {
@@ -95,6 +103,35 @@ describe('standalone replay CLI input contract', () => {
 
       expect(result.status).not.toBe(0)
       expect(`${result.stdout}\n${result.stderr}`).toContain('missing required type field')
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects shield_applied without canonical post_shield', () => {
+    const tempRoot = mkdtempSync(path.join(tmpdir(), 'wft-replay-'))
+    try {
+      const unit = {
+        id: 'opp_0',
+        name: 'Test Opponent',
+        hp: 100,
+        max_hp: 100,
+        shield: 5,
+        attack: 10,
+        defense: 5,
+        current_mana: 0,
+        effects: []
+      }
+      const eventFile = path.join(tempRoot, 'missing-post-shield.json')
+      writeFileSync(eventFile, JSON.stringify([
+        { type: 'units_init', seq: 1, player_units: [], opponent_units: [unit] },
+        { type: 'shield_applied', seq: 2, unit_id: 'opp_0', amount: 10, effect_id: 'shield-1' }
+      ]), 'utf8')
+
+      const result = runHarness(eventFile)
+
+      expect(result.status).not.toBe(0)
+      expect(`${result.stdout}\n${result.stderr}`).toContain('missing required post_shield')
     } finally {
       rmSync(tempRoot, { recursive: true, force: true })
     }
