@@ -49,6 +49,18 @@ describe('combatPresentation', () => {
     })
   })
 
+  it('formats skill casts with the canonical caster, target, and damage', () => {
+    expect(formatCombatLogEntry({
+      type: 'skill_cast',
+      caster_id: 'mage',
+      caster_name: 'Mage',
+      skill_name: 'Arcane Bolt',
+      target_id: 'goblin',
+      target_name: 'Goblin',
+      damage: 42,
+    })).toBe('[SKILL] Mage używa Arcane Bolt na Goblin za 42 obrażeń')
+  })
+
   it('tracks first death and round result text', () => {
     const summary = createCombatSummary()
     const death: CombatEvent = {

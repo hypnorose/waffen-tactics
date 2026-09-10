@@ -20,6 +20,8 @@ function tagStyle(tag: string | null) {
       return { background: 'rgba(239, 68, 68, 0.16)', color: '#fecaca', border: '1px solid rgba(239, 68, 68, 0.35)' }
     case 'BONUS':
       return { background: 'rgba(249, 115, 22, 0.18)', color: '#fdba74', border: '1px solid rgba(249, 115, 22, 0.35)' }
+    case 'SKILL':
+      return { background: 'rgba(168, 85, 247, 0.18)', color: '#e9d5ff', border: '1px solid rgba(168, 85, 247, 0.35)' }
     case 'DEATH':
       return { background: 'rgba(71, 85, 105, 0.18)', color: '#cbd5e1', border: '1px solid rgba(71, 85, 105, 0.3)' }
     case 'BUFF':

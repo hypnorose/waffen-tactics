@@ -165,6 +165,17 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
         : ''
       return tag(prefix, `${attacker} -> ${target} za ${damage}${mana}`)
     }
+    case 'skill_cast': {
+      const caster = event.caster_name || event.caster_id || event.unit_name || 'Unit'
+      const skill = event.skill_name || 'umiejętność'
+      const target = event.target_name || event.target_id
+      const damage = event.damage ?? event.applied_damage
+      const targetText = target ? ` na ${target}` : ''
+      const damageText = typeof damage === 'number' && Number.isFinite(damage)
+        ? ` za ${formatAmount(damage)} obrażeń`
+        : ''
+      return tag('SKILL', `${caster} używa ${skill}${targetText}${damageText}`)
+    }
     case 'unit_died':
       return tag('DEATH', `${event.unit_name || event.unit_id || 'Unit'} pada`)
     case 'gold_reward':
