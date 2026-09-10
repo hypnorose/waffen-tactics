@@ -9,7 +9,7 @@ Linear is the source of truth for issue status, ownership, dependencies, milesto
 ## Verified automated evidence
 
 - Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q` — **383 passed, 24 skipped, 22 subtests passed**, with no warnings.
-- Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **305 passed, 8 skipped, 5 subtests passed**, with no warnings.
+- Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **307 passed, 8 skipped, 5 subtests passed**, with no warnings.
 - Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **128 passed across 8 files**.
 - Frontend production build: `npm run build` — pass. Vite reports only stale Browserslist data; the build succeeds.
 - `python -m compileall -q waffen-tactics\\src waffen-tactics\\tests` — pass.
@@ -60,7 +60,7 @@ DEF-267 now routes canonical `per_second`, `per_round`, and `on_ally_hp_below` r
 
 ## Open gates
 
-- `DEF-164` is `In Review` with `Needs Manual Test`. Its completed runtime/release blockers include `DEF-200`, `DEF-209`, `DEF-210`, `DEF-211`, `DEF-213`, `DEF-214`, `DEF-215`, `DEF-216`, `DEF-219`, `DEF-220`, `DEF-222`, `DEF-225`, `DEF-242`, `DEF-243`, `DEF-244`, `DEF-245`, `DEF-246`, `DEF-247`, `DEF-248`, `DEF-249`, `DEF-250`, `DEF-251`, `DEF-252`, `DEF-253`, `DEF-254`, `DEF-255`, `DEF-256`, `DEF-257`, `DEF-258`, `DEF-259`, `DEF-260`, `DEF-261`, `DEF-263`, `DEF-265`, `DEF-266`, and `DEF-267`; `DEF-192` is the remaining fixture/release-evidence dependency before the manual release gate can be completed.
+- `DEF-164` is `In Review` with `Needs Manual Test` and `Blocked`. Its completed runtime/release blockers include `DEF-200`, `DEF-209`, `DEF-210`, `DEF-211`, `DEF-213`, `DEF-214`, `DEF-215`, `DEF-216`, `DEF-219`, `DEF-220`, `DEF-222`, `DEF-225`, `DEF-242`, `DEF-243`, `DEF-244`, `DEF-245`, `DEF-246`, `DEF-247`, `DEF-248`, `DEF-249`, `DEF-250`, `DEF-251`, `DEF-252`, `DEF-253`, `DEF-254`, `DEF-255`, `DEF-256`, `DEF-257`, `DEF-258`, `DEF-259`, `DEF-260`, `DEF-261`, `DEF-263`, `DEF-265`, `DEF-266`, and `DEF-267`; `DEF-268` is the remaining active structural blocker before the manual release gate can be completed.
 - `DEF-268` is `In Review + Needs Manual Test`: the local operational scripts now share cwd/config-aware Caddy discovery, cover relative and absolute config argv, and refuse to start a duplicate when shutdown does not complete. Linux `bash -n` and the matcher contract passed via read-only SSH stdin; the fix is not deployed to VPS yet and structurally blocks `DEF-164` until its deployment/manual boundary is verified.
 - `DEF-192` is `Done`: the current local working-tree `waffen-tactics-web/backend/events_test_fresh.json` is the explicitly approved source of truth. Its frozen SHA-256, byte size, event count, sequence range, scenario, and event-type coverage are recorded in `events_test_fresh.provenance.json`; no historical VPS or `HEAD` fixture was restored.
 - Release acceptance still needs Game View checks at 1280x720 and 1920x1080, backend/frontend revision alignment, deployment/VPS status and logs, and rollback evidence.
@@ -108,6 +108,7 @@ DEF-267 now routes canonical `per_second`, `per_round`, and `on_ally_hp_below` r
 - `DEF-267` is `Done`: canonical periodic and threshold records now use one shared simulator lifecycle with mirror-aware canonical emissions and deterministic trigger state. Automated verification is green; release Game View/deployment evidence remains separately tracked. No periodic/threshold content values were changed.
 - `DEF-235` is `Backlog + Needs User`: `skip_per_round_buffs` currently gates per-second processing while the start-of-combat per-round block remains unconditional. No runtime change was made; the intended round/trait timing contract must be chosen before splitting or renaming the controls.
 - `DEF-199` is `Backlog + Needs User`: the author must choose fixed, capped, or intentionally round-scaled milestone rewards before economy sign-off. No numeric balance change has been made for that decision.
+- `DEF-269` is `Backlog + Needs User`: the shared stat-buff runtime has duplicated recipient/application paths and silently maps unsupported targets to `self`; canonicalization awaits the explicit unknown-target contract decision recorded in the issue.
 - New-set authoring and contract work remains author-led (`Needs User`/`Manual-only`); do not promote draft content into active datasets without approval.
 
 ## Next continuation
@@ -115,7 +116,7 @@ DEF-267 now routes canonical `per_second`, `per_round`, and `on_ally_hp_below` r
 1. Finish `DEF-268`, then deploy and verify the operational restart behavior when deployment is explicitly authorized.
 2. Complete the manual/runtime portion of `DEF-164` (Game View at 1280x720 and 1920x1080 plus release-owner sign-off), without treating green automated tests or HTTP checks as visual runtime proof.
 3. Resolve the author decisions in `DEF-199` and `DEF-235` when available; keep new-set authoring gated behind approval.
-3. After the gameplay/economy contracts are approved, rerun the seeded audits and compare their JSON artifacts before any permanent tuning.
+4. After the gameplay/economy contracts are approved, rerun the seeded audits and compare their JSON artifacts before any permanent tuning.
 
 ## Legacy boundary
 
