@@ -8,7 +8,7 @@ from ..services.data_loader import GameData
 import logging
 import copy
 from .event_canonicalizer import emit_damage
-from .items import ITEMS
+from .items import ITEMS, apply_item_stats
 from .combat_errors import CombatExecutionError, InvalidCombatInputError
 from .stat_scaling import scaled_attack, scaled_hp, validate_position
 
@@ -78,21 +78,30 @@ class CombatManager:
                 for item_id in getattr(ui, 'items', []):
                     item = ITEMS.get(item_id)
                     if not item:
-                        continue
-                    for stat, value in item.get('stats', {}).items():
-                        if stat in buffed_stats:
-                            buffed_stats[stat] += value
-                    item_effects.append({'type': 'item', 'item_id': item_id, 'description': item.get('description', '')})
+                        raise InvalidCombatInputError(f"Unknown equipped item: {item_id!r}")
+                    item_effects.append({
+                        'type': 'item',
+                        'item_id': item_id,
+                        'description': item.get('description', ''),
+                        'effect': copy.deepcopy(item.get('effect')),
+                    })
+
+                # Keep combat and player-state projections on one item-stat
+                # contract. Structured item effects remain available to the
+                # later combat/replay wiring task.
+                buffed_stats = apply_item_stats(buffed_stats, getattr(ui, 'items', []))
 
                 hp = buffed_stats['hp']
                 attack = buffed_stats['attack']
                 defense = buffed_stats['defense']
                 attack_speed = buffed_stats['attack_speed']
+                combat_stats = copy.deepcopy(unit.stats)
+                combat_stats.hp = int(hp)
 
                 # Get active effects
                 effects_a = self.synergy_engine.get_active_effects(unit, active_synergies) + item_effects
 
-                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats, position=validate_position(ui.position), base_stats=base_stats, star_level=ui.star_level, passive=getattr(unit, 'passive', None)))
+                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=combat_stats, position=validate_position(ui.position), base_stats=base_stats, star_level=ui.star_level, passive=getattr(unit, 'passive', None)))
 
             # Opponent team
             opponent_units = [u for u in opponent_board]

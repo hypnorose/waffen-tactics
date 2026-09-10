@@ -18,8 +18,10 @@ def equip_item(player, instance_id, item_id):
     return True, f"Założono: {ITEMS[item_id]['name']}"
 
 def combine_item(player, first, second):
-    if first == second or first not in player.item_inventory or second not in player.item_inventory:
-        return False, 'Potrzebujesz dwóch różnych przedmiotów bazowych'
+    if first not in player.item_inventory or second not in player.item_inventory:
+        return False, 'Potrzebujesz dwóch przedmiotów bazowych'
+    if first == second and player.item_inventory.count(first) < 2:
+        return False, 'Potrzebujesz dwóch przedmiotów bazowych'
     result = combine_item_ids(first, second)
     if not result:
         return False, 'Te przedmioty nie mają receptury'

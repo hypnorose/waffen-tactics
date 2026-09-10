@@ -2,7 +2,7 @@ import { getUnit, getCostBorderColor, getFactionColor, getPassiveTitle } from '.
 import { useRef, useState } from 'react'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import EquippedItems from './EquippedItems'
-import { ITEM_PRESENTATION } from '../data/items'
+import { formatItemStat, ITEM_ICONS, type Item } from '../data/items'
 
 interface UnitCardProps {
   unitId: string
@@ -31,6 +31,7 @@ interface UnitCardProps {
   }
   lastRoundStats?: CombatUnitRoundStats
   items?: string[]
+  itemCatalog?: Item[]
 }
 
 export default function UnitCard({
@@ -46,8 +47,10 @@ export default function UnitCard({
   buffedStats,
   lastRoundStats,
   items,
+  itemCatalog = [],
 }: UnitCardProps) {
   const unit = getUnit(unitId)
+  const itemById = new Map(itemCatalog.map(item => [item.id, item]))
   const passiveTitle = getPassiveTitle(unit?.passive)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
@@ -202,12 +205,12 @@ export default function UnitCard({
               <div className="mb-2 rounded border border-amber-300/40 bg-amber-500/10 p-2 text-xs text-slate-100">
                 <div className="mb-1 font-semibold text-amber-300">Wyposażenie</div>
                 <div className="space-y-2">
-                  {items.slice(0, 3).map((itemId) => {
-                    const item = ITEM_PRESENTATION[itemId] || { icon: '◆', name: itemId, details: 'Brak opisu przedmiotu.' }
-                    return <div key={itemId} className="border-b border-slate-700/70 pb-1 last:border-0 last:pb-0">
-                      <div className="font-semibold text-amber-100">{item.icon} {item.name}</div>
-                      {item.stats && <div className="text-emerald-200">{item.stats}</div>}
-                      <div className="text-slate-300">{item.details}</div>
+                  {items.slice(0, 3).map((itemId, index) => {
+                    const item = itemById.get(itemId)
+                    return <div key={`${itemId}-${index}`} className="border-b border-slate-700/70 pb-1 last:border-0 last:pb-0">
+                      <div className="font-semibold text-amber-100">{ITEM_ICONS[itemId] || '◆'} {item?.name || itemId}</div>
+                      {item && <div className="text-emerald-200">{Object.entries(item.stats).map(([stat, value]) => formatItemStat(stat, value)).join(', ')}</div>}
+                      {item?.description && <div className="text-slate-300">{item.description}</div>}
                     </div>
                   })}
                 </div>
@@ -381,7 +384,7 @@ export default function UnitCard({
           ))}
         </div>
 
-        <EquippedItems itemIds={items} />
+        <EquippedItems itemIds={items} itemCatalog={itemCatalog} />
 
         {lastRoundStats?.participated && !detailed && (
           <div className="flex items-center justify-center gap-2 border-t border-slate-700/80 pt-1 text-[9px] leading-none">

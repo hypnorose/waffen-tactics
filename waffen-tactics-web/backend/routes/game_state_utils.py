@@ -8,7 +8,7 @@ from copy import deepcopy
 from waffen_tactics.models.player_state import PlayerState
 from waffen_tactics.services.game_manager import GameManager
 from waffen_tactics.services.shop import RARITY_ODDS_BY_LEVEL
-from waffen_tactics.services.items import ITEMS
+from waffen_tactics.services.items import apply_item_stats
 from waffen_tactics.services.stat_scaling import scaled_attack, scaled_hp
 
 
@@ -126,10 +126,7 @@ def enrich_player_state(player: PlayerState) -> dict:
                 if stat in buffed_stats:
                     buffed_stats[stat] += value
 
-            for item_id in getattr(ui, 'items', []):
-                for stat, value in ITEMS.get(item_id, {}).get('stats', {}).items():
-                    if stat in buffed_stats:
-                        buffed_stats[stat] += value
+            buffed_stats = apply_item_stats(buffed_stats, getattr(ui, 'items', []))
 
             # Add max_mana and current_mana to buffed_stats
             buffed_stats['max_mana'] = base_max_mana

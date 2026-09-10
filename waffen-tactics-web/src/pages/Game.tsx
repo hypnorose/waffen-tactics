@@ -12,6 +12,7 @@ import NotificationModal from '../components/NotificationModal'
 import { loadUnits } from '../data/units'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import ItemsPanel from '../components/ItemsPanel'
+import type { Item } from '../data/items'
 
 export default function Game() {
   const { user, logout } = useAuthStore()
@@ -26,6 +27,7 @@ export default function Game() {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<'24h' | 'all'>('24h')
   const [lastRoundStatsByUnit, setLastRoundStatsByUnit] = useState<Record<string, CombatUnitRoundStats>>({})
+  const [itemCatalog, setItemCatalog] = useState<Item[]>([])
 
   const showNotificationModal = (message: string, type: 'error' | 'success' | 'info' = 'error') => {
     setNotificationMessage(message)
@@ -80,7 +82,9 @@ export default function Game() {
     setError(null)
 
     try {
-      // Load canonical units before loading state that references unit IDs.
+      // Load canonical catalogs before loading state that references their IDs.
+      const itemResponse = await gameAPI.getItems()
+      setItemCatalog(itemResponse.data)
       await loadUnits()
       await loadGameState()
     } catch (err) {
@@ -373,7 +377,7 @@ export default function Game() {
       </div>
 
       <div className={`container mx-auto px-4 py-6 max-w-7xl space-y-4 ${isGameOver ? 'pointer-events-none opacity-50' : ''}`}>
-        {!isGameOver && <ItemsPanel playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />}
+        {!isGameOver && <ItemsPanel playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} itemCatalog={itemCatalog} />}
         {/* Board Section */}
         <div className="card">
           <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
@@ -387,7 +391,7 @@ export default function Game() {
             </span>
             {isGameOver && <span className="text-sm text-red-500 font-normal ml-2">(Gra zakończona - tylko podgląd)</span>}
           </h2>
-          <GameBoard playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} onEquipItem={handleEquipItem} roundStatsByUnit={lastRoundStatsByUnit} />
+          <GameBoard playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} onEquipItem={handleEquipItem} roundStatsByUnit={lastRoundStatsByUnit} itemCatalog={itemCatalog} />
         </div>
 
         {/* Bench Section */}
@@ -402,7 +406,7 @@ export default function Game() {
               [{playerState.bench.length}/{playerState.max_bench_size}]
             </span>
           </h2>
-          <Bench playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} onEquipItem={handleEquipItem} />
+          <Bench playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} onEquipItem={handleEquipItem} itemCatalog={itemCatalog} />
         </div>
 
         {/* Shop Section */}

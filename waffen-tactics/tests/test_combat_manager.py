@@ -258,3 +258,18 @@ class TestCombatManager:
         mock_synergy_engine.compute.assert_called()
         mock_synergy_engine.apply_stat_buffs.assert_called()
         mock_synergy_engine.get_active_effects.assert_called()
+
+    @patch('waffen_tactics.services.combat_manager.CombatSimulator')
+    def test_combat_unit_receives_canonical_item_max_hp(self, mock_combat_sim, combat_manager, player_state, opponent_board):
+        """The combat projection must retain item-derived max HP, not only current HP."""
+        player_state.board = [player_state.board[0]]
+        player_state.board[0].items = ['plaszcz_200_welny']
+        mock_sim_instance = Mock()
+        mock_sim_instance.simulate.return_value = {'winner': 'team_a', 'duration': 1.0, 'log': []}
+        mock_combat_sim.return_value = mock_sim_instance
+
+        combat_manager.start_combat(player_state, opponent_board)
+
+        combat_unit = mock_sim_instance.simulate.call_args.args[0][0]
+        assert combat_unit.max_hp == 700
+        assert combat_unit.hp == 700

@@ -2,15 +2,17 @@ import { useState } from 'react'
 import UnitCard from './UnitCard'
 import { useGameStore } from '../store/gameStore'
 import { gameAPI } from '../services/api'
+import type { Item } from '../data/items'
 
 interface BenchProps {
   playerState: any
   onUpdate: (state: any) => void
   onNotification: (message: string, type?: 'error' | 'success' | 'info') => void
   onEquipItem?: (instanceId: string, itemId: string) => void
+  itemCatalog?: Item[]
 }
 
-export default function Bench({ playerState, onUpdate, onNotification, onEquipItem }: BenchProps) {
+export default function Bench({ playerState, onUpdate, onNotification, onEquipItem, itemCatalog = [] }: BenchProps) {
   const [loading, setLoading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -149,7 +151,7 @@ export default function Bench({ playerState, onUpdate, onNotification, onEquipIt
                 💰
               </button>
             </div>
-            <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
+            <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} itemCatalog={itemCatalog} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
           </div>
         ))}
         {/* Show one placeholder if bench is not full */}

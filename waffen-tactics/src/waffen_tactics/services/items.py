@@ -1,45 +1,109 @@
-"""Authoritative item definitions and two-component recipes."""
+"""Canonical item definitions and two-component recipes.
 
-# Each base item has one comparable stat budget. Recipes inherit the two
-# component packages, so every completed item is equally strong numerically.
+The approved WFT-139 matrix is the only content source used by the runtime.
+This module deliberately fails closed when the source is missing, malformed,
+or no longer carries the accepted contract.
+"""
+
+from __future__ import annotations
+
+import copy
+import json
+from pathlib import Path
+from typing import Any, Mapping
+
+from .item_contract import validate_item_matrix
+
+
+MATRIX_PATH = Path(__file__).resolve().parents[3] / "item_recipe_matrix_wft139.json"
+EXPECTED_MATRIX_ID = "WFT-139"
+EXPECTED_MATRIX_STATUS = "approved-runtime-contract"
+
+
+class ItemSourceError(ValueError):
+    """Raised when the approved item source cannot be activated safely."""
+
+
+def _load_approved_matrix() -> dict[str, Any]:
+    with MATRIX_PATH.open(encoding="utf-8") as handle:
+        matrix = json.load(handle)
+
+    if not isinstance(matrix, dict):
+        raise ItemSourceError("WFT-139 item source must be an object")
+    if matrix.get("matrix_id") != EXPECTED_MATRIX_ID:
+        raise ItemSourceError("Unexpected item matrix identity")
+    if matrix.get("status") != EXPECTED_MATRIX_STATUS:
+        raise ItemSourceError("WFT-139 item matrix is not approved for runtime")
+
+    base_items = matrix.get("base_items")
+    recipes = matrix.get("recipes")
+    if not isinstance(base_items, list) or not isinstance(recipes, list):
+        raise ItemSourceError("WFT-139 item matrix must contain base_items and recipes lists")
+
+    records = [*base_items, *recipes]
+    validate_item_matrix(records)
+    return matrix
+
+
+def _runtime_item(record: Mapping[str, Any]) -> dict[str, Any]:
+    item = copy.deepcopy(dict(record))
+    if item["kind"] == "combined":
+        # Keep the API-compatible description while preserving the complete
+        # structured effect contract for future combat/replay wiring.
+        item["description"] = item["effect"]["description"]
+    return item
+
+
+_MATRIX = _load_approved_matrix()
 BASE_ITEMS = {
-    'spices': {'name': '20kg przypraw', 'kind': 'base', 'stats': {'attack': 8}},
-    'orangeade': {'name': 'Oranżada helena', 'kind': 'base', 'stats': {'mana_regen': 3}},
-    'coat': {'name': 'Płaszcz 100% wełna', 'kind': 'base', 'stats': {'hp': 100}},
-    'safe': {'name': 'Mobilny sejf', 'kind': 'base', 'stats': {'defense': 12}},
-    'socks': {'name': 'Zakolanówki Edyty', 'kind': 'base', 'stats': {'attack_speed': 0.12}},
-    'notebook': {'name': 'Notatnik miłości', 'kind': 'base', 'stats': {'hp_regen_per_sec': 2}},
+    item["id"]: _runtime_item(item)
+    for item in _MATRIX["base_items"]
 }
-
 _RECIPES = {
- ('spices','orangeade'): ('sugar_rush','Przyprawiona oranżada',{'attack':8,'mana_regen':3},'Pełna mana wzmacnia następny bonusowy atak o 20%.'),
- ('spices','coat'): ('seasoned_armor','Wełniana panierka',{'attack':8,'hp':100},'Pierwszy atak przeciwko właścicielowi zadaje 25% mniej obrażeń.'),
- ('spices','safe'): ('contraband','Przyprawiony sejf',{'attack':8,'defense':12},'Ataki przeciw tarczom zadają 25% więcej obrażeń.'),
- ('spices','socks'): ('hot_feet','Ostre tempo',{'attack':8,'attack_speed':0.12},'Bonusowy atak daje 10 many.'),
- ('spices','notebook'): ('recipe_for_love','Przepis na miłość',{'attack':8,'hp_regen_per_sec':2},'Leczy właściciela za 8% zadanych obrażeń.'),
- ('orangeade','coat'): ('warm_drink','Ciepły kubrak',{'mana_regen':3,'hp':100},'Poniżej 50% HP tworzy tarczę równą 12% maksymalnego HP.'),
- ('orangeade','safe'): ('emergency_reserve','Rezerwa awaryjna',{'mana_regen':3,'defense':12},'Startuje z tarczą równą 15% maksymalnego HP.'),
- ('orangeade','socks'): ('bubbly_steps','Bąbelkowe kroki',{'mana_regen':3,'attack_speed':0.12},'Co trzeci atak daje 5 dodatkowej many.'),
- ('orangeade','notebook'): ('sweet_memory','Słodkie wspomnienie',{'mana_regen':3,'hp_regen_per_sec':2},'Otrzymane leczenie daje 10% szybkości ataku na 3 sekundy.'),
- ('coat','safe'): ('fortified_vault','Wełniany bunkier',{'hp':100,'defense':12},'Pierwsze obrażenia w walce są zmniejszone o 50%.'),
- ('coat','socks'): ('woolen_stride','Wełniany sprint',{'hp':100,'attack_speed':0.12},'Przy pełnym HP zadaje 12% więcej obrażeń.'),
- ('coat','notebook'): ('love_warmth','Ciepło miłości',{'hp':100,'hp_regen_per_sec':2},'Regeneracja HP jest zwiększona o 50%.'),
- ('safe','socks'): ('quick_draw','Szybki sejf',{'defense':12,'attack_speed':0.12},'Pierwszy atak wybiera cel z najmniejszym HP.'),
- ('safe','notebook'): ('secure_heart','Bezpieczne serce',{'defense':12,'hp_regen_per_sec':2},'Otrzymywane obrażenia są zmniejszone o 8%.'),
- ('socks','notebook'): ('love_on_the_move','Miłość w ruchu',{'attack_speed':0.12,'hp_regen_per_sec':2},'Co piąty atak leczy za 12% zadanych obrażeń.'),
+    tuple(sorted(recipe["components"])): (
+        recipe["id"],
+        recipe["name"],
+        copy.deepcopy(recipe["stats"]),
+        recipe["effect_description"],
+    )
+    for recipe in _MATRIX["recipes"]
 }
+ITEMS = {
+    item["id"]: _runtime_item(item)
+    for item in [*_MATRIX["base_items"], *(_MATRIX["recipes"])]
+}
+RECIPES = {pair: value[0] for pair, value in _RECIPES.items()}
 
-ITEMS = dict(BASE_ITEMS)
-for (left, right), (item_id, name, stats, description) in _RECIPES.items():
-    ITEMS[item_id] = {'name': name, 'kind': 'combined', 'components': [left, right], 'stats': stats, 'description': description}
 
-RECIPES = {tuple(sorted(pair)): value[0] for pair, value in _RECIPES.items()}
+def apply_item_stats(base_stats: Mapping[str, float], item_ids: list[str] | tuple[str, ...]) -> dict[str, float]:
+    """Apply equipped item stat packages through one shared contract.
 
-def item_payload(item_id):
-    return {'id': item_id, **ITEMS[item_id]}
+    Unknown item IDs are rejected instead of being silently ignored, so a
+    stale save cannot produce a partially buffed combat or UI projection.
+    """
 
-def all_item_payloads():
+    updated = dict(base_stats)
+    for item_id in item_ids:
+        if not isinstance(item_id, str) or item_id not in ITEMS:
+            raise ItemSourceError(f"Unknown equipped item: {item_id!r}")
+        for stat, value in ITEMS[item_id]["stats"].items():
+            updated[stat] = updated.get(stat, 0) + value
+    return updated
+
+
+def item_payload(item_id: str) -> dict[str, Any]:
+    return {"id": item_id, **copy.deepcopy(ITEMS[item_id])}
+
+
+def all_item_payloads() -> list[dict[str, Any]]:
     return [item_payload(item_id) for item_id in ITEMS]
 
-def combine_item_ids(first, second):
+
+def combine_item_ids(first: Any, second: Any) -> str | None:
+    """Return the canonical result for a legal unordered pair, or ``None``."""
+
+    if not isinstance(first, str) or not isinstance(second, str):
+        return None
+    if first not in BASE_ITEMS or second not in BASE_ITEMS:
+        return None
     return RECIPES.get(tuple(sorted((first, second))))

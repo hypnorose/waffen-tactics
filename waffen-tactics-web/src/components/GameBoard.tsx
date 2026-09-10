@@ -5,6 +5,7 @@ import { gameAPI } from '../services/api'
 import { getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
 import { getAllUnits, getCostBorderColor } from '../data/units'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
+import type { Item } from '../data/items'
 
 interface GameBoardProps {
   playerState: any
@@ -12,9 +13,10 @@ interface GameBoardProps {
   onNotification: (message: string, type?: 'error' | 'success' | 'info') => void
   roundStatsByUnit?: Record<string, CombatUnitRoundStats>
   onEquipItem?: (instanceId: string, itemId: string) => void
+  itemCatalog?: Item[]
 }
 
-export default function GameBoard({ playerState, onUpdate, onNotification, roundStatsByUnit, onEquipItem }: GameBoardProps) {
+export default function GameBoard({ playerState, onUpdate, onNotification, roundStatsByUnit, onEquipItem, itemCatalog = [] }: GameBoardProps) {
   const [loading, setLoading] = useState(false)
   const [traits, setTraits] = useState<any[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -228,7 +230,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
                 >
                   {lineType === 'front' ? '⬇' : '⬆'}
                 </button>
-                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} lastRoundStats={roundStatsByUnit?.[unitInstance.instance_id]} />
+                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} itemCatalog={itemCatalog} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} lastRoundStats={roundStatsByUnit?.[unitInstance.instance_id]} />
               </div>
             )
           } else {

@@ -1,23 +1,76 @@
-export const ITEM_PRESENTATION: Record<string, { icon: string; name: string; stats?: string; details: string }> = {
-  spices: { icon: '🌶️', name: '20kg przypraw', stats: '+8 ataku', details: 'Zwiększa atak jednostki.' },
-  orangeade: { icon: '🥤', name: 'Oranżada helena', stats: '+3 regeneracji many', details: 'Jednostka szybciej ładuje manę.' },
-  coat: { icon: '🧥', name: 'Płaszcz 100% wełna', stats: '+100 maks. HP', details: 'Zwiększa maksymalne zdrowie jednostki.' },
-  safe: { icon: '🔐', name: 'Mobilny sejf', stats: '+12 obrony', details: 'Zmniejsza obrażenia otrzymywane przez jednostkę.' },
-  socks: { icon: '🧦', name: 'Zakolanówki Edyty', stats: '+0,12 ataku/s', details: 'Jednostka atakuje częściej.' },
-  notebook: { icon: '💌', name: 'Notatnik miłości', stats: '+2 HP/s', details: 'Jednostka regeneruje 2 HP na sekundę.' },
-  sugar_rush: { icon: '✨', name: 'Przyprawiona oranżada', stats: '+8 ataku, +3 regeneracji many', details: 'Pełna mana wzmacnia następny bonusowy atak o 20%.' },
-  seasoned_armor: { icon: '🛡️', name: 'Wełniana panierka', stats: '+8 ataku, +100 maks. HP', details: 'Pierwszy atak przeciwko właścicielowi zadaje 25% mniej obrażeń.' },
-  contraband: { icon: '🌶️🔐', name: 'Przyprawiony sejf', stats: '+8 ataku, +12 obrony', details: 'Ataki przeciwko tarczom zadają 25% więcej obrażeń.' },
-  hot_feet: { icon: '🔥', name: 'Ostre tempo', stats: '+8 ataku, +0,12 ataku/s', details: 'Bonusowy atak daje 10 many.' },
-  recipe_for_love: { icon: '💖', name: 'Przepis na miłość', stats: '+8 ataku, +2 HP/s', details: 'Leczy właściciela za 8% zadanych obrażeń.' },
-  warm_drink: { icon: '☕', name: 'Ciepły kubrak', stats: '+3 regeneracji many, +100 maks. HP', details: 'Poniżej 50% HP tworzy tarczę równą 12% maksymalnego HP.' },
-  emergency_reserve: { icon: '🧰', name: 'Rezerwa awaryjna', stats: '+3 regeneracji many, +12 obrony', details: 'Startuje z tarczą równą 15% maksymalnego HP.' },
-  bubbly_steps: { icon: '🫧', name: 'Bąbelkowe kroki', stats: '+3 regeneracji many, +0,12 ataku/s', details: 'Co trzeci atak daje 5 dodatkowej many.' },
-  sweet_memory: { icon: '🍬', name: 'Słodkie wspomnienie', stats: '+3 regeneracji many, +2 HP/s', details: 'Otrzymane leczenie daje 10% szybkości ataku na 3 sekundy.' },
-  fortified_vault: { icon: '🏰', name: 'Wełniany bunkier', stats: '+100 maks. HP, +12 obrony', details: 'Pierwsze obrażenia w walce są zmniejszone o 50%.' },
-  woolen_stride: { icon: '🏃', name: 'Wełniany sprint', stats: '+100 maks. HP, +0,12 ataku/s', details: 'Przy pełnym HP zadaje 12% więcej obrażeń.' },
-  love_warmth: { icon: '❤️‍🔥', name: 'Ciepło miłości', stats: '+100 maks. HP, +2 HP/s', details: 'Regeneracja HP jest zwiększona o 50%.' },
-  quick_draw: { icon: '⚡', name: 'Szybki sejf', stats: '+12 obrony, +0,12 ataku/s', details: 'Pierwszy atak wybiera cel z najmniejszym HP.' },
-  secure_heart: { icon: '💙', name: 'Bezpieczne serce', stats: '+12 obrony, +2 HP/s', details: 'Otrzymywane obrażenia są zmniejszone o 8%.' },
-  love_on_the_move: { icon: '💞', name: 'Miłość w ruchu', stats: '+0,12 ataku/s, +2 HP/s', details: 'Co piąty atak leczy za 12% zadanych obrażeń.' },
+export interface ItemEffect {
+  family: string
+  description: string
+  trigger: string
+  target: string
+  scope: string
+  order: string
+  duration: number | null
+  stacking: { mode: string; max_stacks: number }
+  cap: number | null
+  reset_between_fights: boolean
+  rng: { mode: string; seed: string }
+  replay: { mode: string; event_types: string[] }
+  parameters?: Record<string, unknown>
+}
+
+export interface Item {
+  id: string
+  name: string
+  kind: 'base' | 'combined'
+  components: string[]
+  stats: Record<string, number>
+  effect: ItemEffect | null
+  description?: string
+  content_version: string
+}
+
+// Icons are presentation-only. Names, stats, components, and descriptions
+// always come from the backend WFT-139 catalog.
+export const ITEM_ICONS: Record<string, string> = {
+  spices: '🌶️',
+  orangeade: '🥤',
+  coat: '🧥',
+  safe: '🔐',
+  socks: '🧦',
+  notebook: '💌',
+  etf_przyprawowy: '✨',
+  helena_o_smaku_kurkumy: '🌶️🥤',
+  plaszcz_ze_100_bawelny: '🌶️🧥',
+  skrytka_na_oregano: '🌶️🔐',
+  ponetne_stopki: '🌶️🧦',
+  pikante_slowka: '🌶️💌',
+  mandarynkowy_sodastream: '🥤✨',
+  bluza_z_bytom: '🥤🧥',
+  kolekcja_syropow: '🥤🔐',
+  kremik_owocowy: '🥤🧦',
+  telewizor_4k_50_cali: '🥤💌',
+  plaszcz_200_welny: '🧥✨',
+  forteca_z_ksiazek: '🧥🔐',
+  fartuszek_femboya: '🧥🧦',
+  full_plate_cum_armor: '🧥💌',
+  skruszony_zab: '🔐✨',
+  zestaw_do_makijazu_po_edycie: '🔐🧦',
+  fap_folder: '🔐💌',
+  stopki_rozmiar_44: '🧦✨',
+  idealny_traf: '🧦💌',
+  encyklopedia_seksu: '💌✨',
+}
+
+const ITEM_STAT_LABELS: Record<string, string> = {
+  attack: 'Obrażenia',
+  defense: 'Obrona',
+  hp: 'Maks. HP',
+  attack_speed: 'Szybkość ataku',
+  mana_regen: 'Regeneracja many',
+  max_mana: 'Maks. mana',
+  hp_regen_per_sec: 'Regeneracja HP/s',
+  lifesteal_percent: 'Life steal (%)',
+}
+
+export const formatItemStat = (stat: string, value: number) => {
+  const amount = value > 0 ? `+${value}` : `${value}`
+  if (stat === 'attack_speed') return `${amount} ataku/s`
+  if (stat === 'hp_regen_per_sec') return `${amount} HP/s`
+  return `${amount} ${ITEM_STAT_LABELS[stat] || stat}`
 }
