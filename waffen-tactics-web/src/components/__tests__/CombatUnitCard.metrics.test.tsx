@@ -46,6 +46,8 @@ const combatUnit = {
   factions: [],
   classes: [],
   avatar: '/avatars/test.png',
+  current_mana: 100,
+  max_mana: 100,
 }
 
 const tableUnitStats = {
@@ -68,7 +70,7 @@ describe('combat and table unit metric ownership', () => {
     document.body.replaceChildren()
   })
 
-  it('keeps DPS and received-per-second metrics off the combat card, including its tooltip', () => {
+  it('keeps DPS, received-per-second metrics, and the old BONUS badge off the combat card', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
 
@@ -79,6 +81,7 @@ describe('combat and table unit metric ownership', () => {
 
     expect(container.textContent).not.toContain('DPS')
     expect(container.textContent).not.toContain('Przyjęte/s')
+    expect(container.textContent).not.toContain('BONUS')
 
     act(() => {
       container.firstElementChild?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
@@ -86,6 +89,7 @@ describe('combat and table unit metric ownership', () => {
 
     expect(container.textContent).not.toContain('DPS')
     expect(container.textContent).not.toContain('Przyjęte/s')
+    expect(container.textContent).not.toContain('BONUS')
   })
 
   it('keeps the same metrics available on the between-battle table card', () => {

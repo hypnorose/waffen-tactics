@@ -70,7 +70,6 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   const displayMaxMana = unit.buffed_stats?.max_mana ?? 100
   const displayMana = unit.current_mana ?? 0
   const displayHpRegen = unit.buffed_stats?.hp_regen_per_sec ?? 0
-  const hasBonusReady = unit.hp > 0 && displayMaxMana > 0 && displayMana >= displayMaxMana
   const activeBorder = isActiveTarget ? '#fb923c' : isActiveAttacker ? '#fde047' : getRarityColor(unit.cost)
 
   // Resolve avatar source robustly: prefer server-side unit data via getUnit(),
@@ -147,26 +146,6 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
           )
         })}
       </div>
-      {hasBonusReady && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '6px',
-            left: '6px',
-            background: 'linear-gradient(90deg,#f59e0b,#f97316)',
-            color: '#1f1300',
-            padding: '2px 6px',
-            borderRadius: '999px',
-            fontSize: '10px',
-            fontWeight: 800,
-            boxShadow: '0 4px 10px rgba(249,115,22,0.2)',
-            zIndex: 40,
-          }}
-          title="Bonus attack ready"
-        >
-          BONUS
-        </div>
-      )}
       {/* Old inline attack/skill/target visuals removed in favor of projectile VFX */}
 
       {/* Unit avatar (robust source resolution with fallback) */}

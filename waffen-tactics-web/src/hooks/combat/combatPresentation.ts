@@ -1,5 +1,9 @@
 import { CombatEvent, CombatSummary, CombatSummaryEntry, CombatSummaryFocus, CombatUnitRoundStats } from './types'
 
+export function getCombatAttackProjectileEmoji(event: Pick<CombatEvent, 'bonus_attack'>): string {
+  return event.bonus_attack ? '⚡' : '🗡️'
+}
+
 export function createCombatSummary(): CombatSummary {
   return {
     totalDamageByUnit: {},

@@ -5,6 +5,7 @@ import { useCombatSSEBuffer } from './combat/useCombatSSEBuffer'
 import { computeDelayMs } from './combat/replayTiming'
 import { applyCombatEvent, CombatReplayValidationError } from './combat/applyEvent'
 import { compareCombatStates } from './combat/desync'
+import { getCombatAttackProjectileEmoji } from './combat/combatPresentation'
 import { useProjectileSystem } from './useProjectileSystem'
 import { CombatState, CombatEvent, CombatUnitRoundStats, DesyncEntry } from './combat/types'
 
@@ -292,13 +293,30 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
     // Trigger projectile VFX for animation_start events
     if (event.type === 'animation_start' && event.attacker_id && event.target_id) {
-      const emoji = '🗡️'
+      const emoji = getCombatAttackProjectileEmoji(event)
       setPendingProjectiles(p => p + 1)
       spawnProjectileRef.current({ 
         fromId: event.attacker_id, 
         toId: event.target_id, 
         emoji,
         duration: (event.duration || 0.3) * 1000, // convert to ms
+        onComplete: () => {
+          setPendingProjectiles(p => p - 1)
+        }
+      })
+    }
+
+    // Bonus attacks are authoritative unit_attack events in the current
+    // stream. Their animation_start predecessor may be emitted without the
+    // optional bonus flag, so render the distinct impact marker here at the
+    // actual hit instead of deriving a persistent card state from mana.
+    if (event.type === 'unit_attack' && event.bonus_attack && event.attacker_id && event.target_id) {
+      setPendingProjectiles(p => p + 1)
+      spawnProjectileRef.current({
+        fromId: event.attacker_id,
+        toId: event.target_id,
+        emoji: getCombatAttackProjectileEmoji(event),
+        duration: 220,
         onComplete: () => {
           setPendingProjectiles(p => p - 1)
         }

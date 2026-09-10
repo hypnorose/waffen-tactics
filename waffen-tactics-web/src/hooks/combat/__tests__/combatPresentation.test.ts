@@ -2,12 +2,19 @@ import { describe, expect, it } from 'vitest'
 import {
   createCombatSummary,
   formatCombatLogEntry,
+  getCombatAttackProjectileEmoji,
   getTopDamageDealer,
   updateCombatSummary,
 } from '../combatPresentation'
 import { CombatEvent } from '../types'
 
 describe('combatPresentation', () => {
+  it('uses a distinct projectile marker only for canonical bonus attacks', () => {
+    expect(getCombatAttackProjectileEmoji({ bonus_attack: false })).toBe('🗡️')
+    expect(getCombatAttackProjectileEmoji({})).toBe('🗡️')
+    expect(getCombatAttackProjectileEmoji({ bonus_attack: true })).toBe('⚡')
+  })
+
   it('includes the passive display name in passive activation logs', () => {
     expect(formatCombatLogEntry({
       type: 'passive_triggered',
