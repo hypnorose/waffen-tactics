@@ -44,6 +44,18 @@ def _combat_response_headers():
         'X-Combat-Delivery-Mode': COMBAT_DELIVERY_MODE,
         'X-Combat-Live-Stream': 'false',
     }
+
+
+def _require_effect_id(data: dict, event_type: str):
+    """Require the canonical non-empty string effect identity at the SSE boundary."""
+    effect_id = data.get('effect_id')
+    if not isinstance(effect_id, str) or not effect_id.strip():
+        raise RuntimeError(
+            f"{event_type} missing required effect_id at seq={data.get('seq')}"
+        )
+    return effect_id
+
+
 def map_event_to_sse_payload(event_type: str, data: dict):
     """Map internal combat events to SSE payload dicts.
 
@@ -230,7 +242,13 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             raise RuntimeError(
                 f"effect_applied missing canonical effect object at seq={data.get('seq')}"
             )
-        if not data.get('effect_id') or effect.get('id') != data.get('effect_id'):
+        effect_id = _require_effect_id(data, event_type)
+        embedded_effect_id = effect.get('id')
+        if not isinstance(embedded_effect_id, str) or not embedded_effect_id.strip():
+            raise RuntimeError(
+                f"effect_applied missing canonical effect.id at seq={data.get('seq')}"
+            )
+        if embedded_effect_id != effect_id:
             raise RuntimeError(
                 f"effect_applied effect identity mismatch at seq={data.get('seq')}"
             )
@@ -242,7 +260,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'type': 'effect_applied',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
-            'effect_id': data.get('effect_id'),
+            'effect_id': effect_id,
             'effect_type': data.get('effect_type') or effect.get('type'),
             'effect': effect,
             'source_id': data.get('source_id') or effect.get('source'),
@@ -253,6 +271,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'shield_applied':
+        effect_id = _require_effect_id(data, event_type)
         post_shield = data.get('post_shield')
         if post_shield is None:
             # Accept the pre-contract emitter alias only at this boundary;
@@ -279,7 +298,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'post_shield': post_shield,
             'unit_shield': post_shield,
             'effect': eff,
-            'effect_id': data.get('effect_id'),
+            'effect_id': effect_id,
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -302,11 +321,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
     except Exception:
         pass
     if event_type == 'unit_stunned':
-        effect_id = data.get('effect_id')
-        if not isinstance(effect_id, str) or not effect_id.strip():
-            raise RuntimeError(
-                f"unit_stunned missing required effect_id at seq={data.get('seq')}"
-            )
+        effect_id = _require_effect_id(data, event_type)
         eff = {'type': 'stun', 'duration': data.get('duration')}
         res = {
             'type': 'unit_stunned',
@@ -326,10 +341,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             raise RuntimeError(
                 f"damage_over_time_applied missing required unit_id at seq={data.get('seq')}"
             )
-        if not data.get('effect_id'):
-            raise RuntimeError(
-                f"damage_over_time_applied missing required effect_id at seq={data.get('seq')}"
-            )
+        effect_id = _require_effect_id(data, event_type)
         if not isinstance(damage, (int, float)) or isinstance(damage, bool) or not math.isfinite(damage) or damage <= 0:
             raise RuntimeError(
                 f"damage_over_time_applied missing canonical damage at seq={data.get('seq')}"
@@ -345,7 +357,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'duration': data.get('duration'),
             'interval': data.get('interval'),
             'ticks': data.get('ticks'),
-            'id': data.get('effect_id'),
+            'id': effect_id,
             'next_tick_time': data.get('next_tick_time'),
             'expires_at': data.get('expires_at'),
             'source': data.get('source'),
@@ -362,7 +374,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'interval': data.get('interval'),
             'ticks': data.get('ticks'),
             'effect': eff,
-            'effect_id': data.get('effect_id'),
+            'effect_id': effect_id,
             'next_tick_time': data.get('next_tick_time'),
             'expires_at': data.get('expires_at'),
             'source': data.get('source'),
@@ -404,11 +416,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
         # Explicit expire event for DoT effects — include effect id and
         # authoritative unit HP so reconstructors can remove the effect
         # exactly when the server considers it expired.
-        effect_id = data.get('effect_id')
-        if not isinstance(effect_id, str) or not effect_id.strip():
-            raise RuntimeError(
-                f"damage_over_time_expired missing required effect_id at seq={data.get('seq')}"
-            )
+        effect_id = _require_effect_id(data, event_type)
         res = {
             'type': 'damage_over_time_expired',
             'unit_id': data.get('unit_id'),
@@ -422,11 +430,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'effect_expired':
-        effect_id = data.get('effect_id')
-        if not isinstance(effect_id, str) or not effect_id.strip():
-            raise RuntimeError(
-                f"effect_expired missing required effect_id at seq={data.get('seq')}"
-            )
+        effect_id = _require_effect_id(data, event_type)
         res = {
             'type': 'effect_expired',
             'unit_id': data.get('unit_id'),

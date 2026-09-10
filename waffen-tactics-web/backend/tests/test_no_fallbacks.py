@@ -84,6 +84,50 @@ def test_shield_mapping_rejects_amount_only_payload():
         })
 
 
+@pytest.mark.parametrize('event_type,payload', [
+    ('shield_applied', {
+        'unit_id': 'u1', 'amount': 10, 'post_shield': 20,
+    }),
+    ('damage_over_time_applied', {
+        'unit_id': 'u1', 'damage': 10, 'expires_at': 3.0,
+    }),
+    ('effect_applied', {
+        'unit_id': 'u1', 'effect': {'id': 'effect-1', 'type': 'mana_lock'},
+    }),
+])
+@pytest.mark.parametrize('effect_id', [None, '', '   ', 123])
+def test_effect_application_mapping_requires_non_empty_string_effect_id(event_type, payload, effect_id):
+    with pytest.raises(RuntimeError, match=f'{event_type}.*effect_id'):
+        map_event_to_sse_payload(event_type, {
+            'seq': 15,
+            **payload,
+            'effect_id': effect_id,
+        })
+
+
+@pytest.mark.parametrize('effect_id', [None, '', '   ', 123])
+def test_effect_application_mapping_rejects_invalid_embedded_effect_id(effect_id):
+    with pytest.raises(RuntimeError, match='effect_applied.*effect.id'):
+        map_event_to_sse_payload('effect_applied', {
+            'unit_id': 'u1',
+            'effect_id': 'effect-1',
+            'effect': {'id': effect_id, 'type': 'mana_lock'},
+            'seq': 16,
+        })
+
+
+def test_effect_application_mapping_preserves_valid_string_identity_in_both_fields():
+    payload = map_event_to_sse_payload('effect_applied', {
+        'unit_id': 'u1',
+        'effect_id': 'effect-1',
+        'effect': {'id': 'effect-1', 'type': 'mana_lock'},
+        'seq': 17,
+    })
+
+    assert payload['effect_id'] == 'effect-1'
+    assert payload['effect']['id'] == 'effect-1'
+
+
 def test_expiration_mapping_preserves_canonical_post_state_fields():
     out = map_event_to_sse_payload('effect_expired', {
         'unit_id': 'u1',
