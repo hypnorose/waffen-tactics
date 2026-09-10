@@ -67,3 +67,17 @@ def test_post_combat_rewards_have_no_parts_on_regular_round():
 
     assert reward["item_parts"] == []
     assert player.item_inventory == []
+
+
+def test_item_part_rewards_are_fail_closed_for_combined_item_chooser():
+    player = PlayerState(user_id=1, gold=10, round_number=3, item_inventory=[])
+
+    with pytest.raises(ValueError, match="unknown base item"):
+        apply_post_combat_rewards(
+            player,
+            completed_round_number=3,
+            chooser=lambda choices: "etf_przyprawowy",
+        )
+
+    assert player.item_inventory == []
+    assert player.gold == 10

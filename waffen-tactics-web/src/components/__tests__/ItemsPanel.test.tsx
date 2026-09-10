@@ -52,4 +52,45 @@ describe('ItemsPanel tooltip ownership', () => {
 
     expect(container.querySelectorAll('.pointer-events-none')).toHaveLength(1)
   })
+
+  it('renders canonical names, stats, and descriptions from the API catalog', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    await act(async () => {
+      root = createRoot(container)
+      root.render(
+        <ItemsPanel
+          itemCatalog={[{
+            id: 'etf_przyprawowy',
+            name: 'ETF przyprawowy',
+            kind: 'combined',
+            components: ['spices', 'spices'],
+            stats: { attack: 30 },
+            description: '+30 ataku.',
+            effect: null,
+            content_version: 'wft139-approved-2026-09-10',
+          }] as any}
+          playerState={{ item_inventory: ['etf_przyprawowy'] } as any}
+          onUpdate={vi.fn()}
+          onNotification={vi.fn()}
+        />,
+      )
+      await Promise.resolve()
+    })
+
+    const itemEntry = container.querySelector('[aria-label^="ETF przyprawowy"]')
+    expect(itemEntry).not.toBeNull()
+    expect(itemEntry?.getAttribute('aria-label')).toContain('+30 ataku.')
+
+    await act(async () => {
+      itemEntry?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).toContain('ETF przyprawowy')
+    expect(container.textContent).toContain('Obrażenia')
+    expect(container.textContent).toContain('+30 Obrażenia')
+    expect(container.textContent).toContain('+30 ataku.')
+  })
 })
