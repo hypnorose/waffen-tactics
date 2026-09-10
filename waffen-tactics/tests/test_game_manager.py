@@ -52,7 +52,7 @@ def test_sell_unit_from_bench(gm):
 def test_sell_unit_returns_equipped_items(gm, location):
     player = PlayerState(user_id=30)
     unit_sample = gm.data.units[0]
-    equipped_items = ["spices", "orangeade", "sugar_rush"]
+    equipped_items = ["spices", "orangeade", "plaszcz_200_welny"]
     inst = UnitInstance(unit_id=unit_sample.id, items=equipped_items)
     getattr(player, location).append(inst)
 

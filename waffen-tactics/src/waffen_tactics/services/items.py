@@ -24,6 +24,40 @@ class ItemSourceError(ValueError):
     """Raised when the approved item source cannot be activated safely."""
 
 
+LEGACY_ITEM_IDS = frozenset({"sugar_rush", "seasoned_armor", "contraband"})
+
+
+def validate_persistent_item_ids(
+    item_ids: Any,
+    location: str,
+    *,
+    max_count: int | None = None,
+) -> None:
+    """Validate item IDs at a durable player-state boundary.
+
+    Inventory and equipped loadout are the only persistent item state.  This
+    deliberately rejects stale/legacy IDs instead of dropping or remapping
+    them, because a partial loadout would silently change gameplay.
+    """
+
+    if not isinstance(item_ids, list):
+        raise ItemSourceError(f"Persistent item state {location} must be a list")
+    if max_count is not None and len(item_ids) > max_count:
+        raise ItemSourceError(
+            f"Persistent item state {location} exceeds the {max_count}-item limit"
+        )
+
+    for index, item_id in enumerate(item_ids):
+        if not isinstance(item_id, str) or item_id not in ITEMS:
+            if isinstance(item_id, str) and item_id in LEGACY_ITEM_IDS:
+                raise ItemSourceError(
+                    f"Legacy item ID at {location}[{index}] is not in the approved WFT-139 catalog: {item_id!r}"
+                )
+            raise ItemSourceError(
+                f"Unknown persistent item ID at {location}[{index}]: {item_id!r}"
+            )
+
+
 def _load_approved_matrix() -> dict[str, Any]:
     with MATRIX_PATH.open(encoding="utf-8") as handle:
         matrix = json.load(handle)

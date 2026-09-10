@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from datetime import datetime
 from ..services.stat_scaling import validate_position
+from ..services.items import validate_persistent_item_ids
 
 
 @dataclass
@@ -129,6 +130,14 @@ class PlayerState:
     
     def to_dict(self) -> Dict:
         """Convert to dictionary for storage"""
+        validate_persistent_item_ids(self.item_inventory, 'item_inventory')
+        for location, units in (('bench', self.bench), ('board', self.board)):
+            for index, unit in enumerate(units):
+                validate_persistent_item_ids(
+                    unit.items,
+                    f'{location}[{index}].items',
+                    max_count=3,
+                )
         return {
             'user_id': self.user_id,
             'username': self.username,
@@ -136,9 +145,9 @@ class PlayerState:
             'level': self.level,
             'xp': self.xp,
             'hp': self.hp,
-            'bench': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'items': u.items, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
+            'bench': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'items': u.items, 'persistent_buffs': getattr(u, 'persistent_buffs', {})}
                      for u in self.bench],
-            'board': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'position': u.position, 'items': u.items, 'persistent_buffs': getattr(u, 'persistent_buffs', {}), 'base_stats': u.base_stats, 'buffed_stats': u.buffed_stats} 
+            'board': [{'unit_id': u.unit_id, 'star_level': u.star_level, 'instance_id': u.instance_id, 'position': u.position, 'items': u.items, 'persistent_buffs': getattr(u, 'persistent_buffs', {})}
                      for u in self.board],
             'round_number': self.round_number,
             'wins': self.wins,
@@ -158,6 +167,20 @@ class PlayerState:
     @classmethod
     def from_dict(cls, data: Dict) -> 'PlayerState':
         """Create from dictionary"""
+        inventory = data.get(
+            'item_inventory',
+            ['spices', 'orangeade', 'coat', 'safe', 'socks', 'notebook'],
+        )
+        validate_persistent_item_ids(inventory, 'item_inventory')
+
+        for location in ('bench', 'board'):
+            for index, unit_data in enumerate(data.get(location, [])):
+                validate_persistent_item_ids(
+                    unit_data.get('items', []),
+                    f'{location}[{index}].items',
+                    max_count=3,
+                )
+
         bench = [
             UnitInstance(
                 unit_id=u['unit_id'],
@@ -204,7 +227,7 @@ class PlayerState:
             last_shop=data.get('last_shop', []),
             shop_rerolls=data.get('shop_rerolls', 0),
             locked_shop=data.get('locked_shop', False),
-            item_inventory=data.get('item_inventory', ['spices', 'orangeade', 'coat', 'safe', 'socks', 'notebook']),
+            item_inventory=inventory,
             created_at=created_at,
             last_played=last_played,
         )
