@@ -92,6 +92,7 @@ export interface CombatEvent {
   // Mana events and combat metadata
   caster_id?: string
   caster_name?: string
+  healer_name?: string
   skill_name?: string
   current_mana?: number
   max_mana?: number
@@ -126,6 +127,9 @@ export interface CombatEvent {
   passive_id?: string
   passive_name?: string
   description?: string
+  scope?: string
+  limit?: number | string
+  reason?: string
   value?: any
   applied_delta?: number  // Authoritative delta applied by backend (for stat_buff events)
   // Animation events

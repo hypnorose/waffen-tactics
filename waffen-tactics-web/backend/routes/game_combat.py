@@ -128,6 +128,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'total_amount': data.get('total_amount'),
             'duration': data.get('duration'),
             'post_hp_regen_per_sec': post_regen,
+            'target': data.get('target'),
+            'cause': data.get('cause'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -188,6 +190,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'duration': data.get('duration'),
             'applied_delta': data.get('applied_delta'),
             'side': data.get('side'),
+            'cause': data.get('cause'),
+            'source_id': data.get('source_id'),
             'effect': eff,
             'effect_id': effect_id,
             'timestamp': data.get('timestamp', time.time()),
@@ -238,6 +242,10 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'trigger': data.get('trigger'),
             'effect': data.get('effect'),
             'target_id': data.get('target_id'),
+            'target_name': data.get('target_name'),
+            'scope': data.get('scope'),
+            'limit': data.get('limit'),
+            'cause': data.get('cause'),
             'preference': data.get('preference'),
             'side': data.get('side'),
             'timestamp': data.get('timestamp', time.time()),
@@ -277,6 +285,12 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'source_id': data.get('source_id') or effect.get('source'),
             'caster_id': data.get('caster_id') or effect.get('source'),
             'caster_name': data.get('caster_name'),
+            'description': data.get('description'),
+            'target_id': data.get('target_id'),
+            'target_name': data.get('target_name'),
+            'scope': data.get('scope'),
+            'limit': data.get('limit'),
+            'cause': data.get('cause'),
             'side': data.get('side'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
@@ -308,6 +322,10 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'duration': data.get('duration'),
             'post_shield': post_shield,
             'unit_shield': post_shield,
+            'source_id': data.get('source_id'),
+            'target_id': data.get('target_id'),
+            'target_name': data.get('target_name'),
+            'cause': data.get('cause'),
             'effect': eff,
             'effect_id': effect_id,
             'timestamp': data.get('timestamp', time.time()),
@@ -343,6 +361,10 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'duration': data.get('duration'),
             'effect': eff,
             'effect_id': effect_id,
+            'source_id': data.get('source_id'),
+            'target_id': data.get('target_id'),
+            'target_name': data.get('target_name'),
+            'cause': data.get('cause'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -389,6 +411,11 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'next_tick_time': data.get('next_tick_time'),
             'expires_at': data.get('expires_at'),
             'source': data.get('source'),
+            'cause': data.get('cause'),
+            'target_id': data.get('target_id'),
+            'target_name': data.get('target_name'),
+            'scope': data.get('scope'),
+            'limit': data.get('limit'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -426,6 +453,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'side': data.get('side'),
             'effect': eff,
             'effect_id': effect_id,
+            'cause': data.get('cause'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }

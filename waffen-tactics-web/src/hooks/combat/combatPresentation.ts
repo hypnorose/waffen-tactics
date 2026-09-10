@@ -108,6 +108,30 @@ function pickUnitName(event: CombatEvent): string {
   return event.attacker_name || event.caster_name || event.unit_name || event.target_name || event.message || 'Unknown'
 }
 
+function formatEventContext(
+  event: CombatEvent,
+  options: { includeDescription?: boolean; includeDuration?: boolean } = {}
+): string {
+  const parts: string[] = []
+  const source = event.caster_name || event.healer_name || event.source || event.caster_id || event.source_id
+  const unitName = event.unit_name || event.unit_id
+
+  if (source && source !== unitName) parts.push(`źródło: ${source}`)
+  if (event.target_name && event.target_name !== unitName) parts.push(`cel: ${event.target_name}`)
+  if (event.cause) parts.push(`powód: ${event.cause}`)
+  if (event.scope) parts.push(`zakres: ${event.scope}`)
+  if (event.limit !== undefined && event.limit !== null && event.limit !== '') parts.push(`limit: ${event.limit}`)
+  if (options.includeDuration !== false && event.duration !== undefined && event.duration !== null) {
+    parts.push(`czas: ${formatAmount(event.duration)}s`)
+  }
+  if (event.expires_at !== undefined && event.expires_at !== null) {
+    parts.push(`wygasa: ${formatAmount(event.expires_at)}s`)
+  }
+  if (options.includeDescription !== false && event.description) parts.push(event.description)
+
+  return parts.length > 0 ? ` (${parts.join(', ')})` : ''
+}
+
 function buildSummaryFocus(event: CombatEvent): CombatSummaryFocus | null {
   if (event.type !== 'unit_attack' && event.type !== 'animation_start') return null
   return {
@@ -130,7 +154,7 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
     case 'animation_start':
       return null
     case 'passive_triggered':
-      return tag('PASSIVE', `${event.unit_name || event.unit_id || 'Unit'}${event.passive_name ? ` — ${event.passive_name}` : ''}: ${event.description || event.effect || 'efekt aktywny'}`)
+      return tag('PASSIVE', `${event.unit_name || event.unit_id || 'Unit'}${event.passive_name ? ` — ${event.passive_name}` : ''}: ${event.description || event.effect || 'efekt aktywny'}${formatEventContext(event, { includeDescription: false })}`)
     case 'unit_attack': {
       const prefix = event.bonus_attack ? 'BONUS' : 'ATK'
       const damage = formatAmount(event.damage ?? event.applied_damage)
@@ -153,7 +177,7 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
       const stat = event.stat || 'stat'
       const duration = event.duration ? ` for ${formatAmount(event.duration)}s` : ''
       const suffix = isPercentageEvent(event) ? '%' : ''
-      return tag(prefix, `${event.unit_name || event.unit_id || 'Unit'} ${sign}${formatAmount(Math.abs(rawAmount))}${suffix} ${stat}${duration}`)
+      return tag(prefix, `${event.unit_name || event.unit_id || 'Unit'} ${sign}${formatAmount(Math.abs(rawAmount))}${suffix} ${stat}${duration}${formatEventContext(event, { includeDuration: false })}`)
     }
     case 'mana_update':
       return tag('MANA', `${event.unit_name || event.unit_id || 'Unit'} ${event.current_mana ?? 0}/${event.max_mana ?? 0}`)
@@ -163,21 +187,21 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
       return tag('RESULT', event.message || 'PRZEGRANA')
     case 'unit_heal':
     case 'heal':
-      return tag('HEAL', `${event.unit_name || event.unit_id || 'Unit'} +${formatAmount(event.amount)} HP`)
+      return tag('HEAL', `${event.unit_name || event.unit_id || 'Unit'} +${formatAmount(event.amount)} HP${formatEventContext(event)}`)
     case 'hp_regen':
       return tag('REGEN', `${event.unit_name || event.unit_id || 'Unit'} regeneruje +${formatAmount(event.amount)} HP`)
     case 'regen_gain':
-      return tag('REGEN', `${event.unit_name || event.unit_id || 'Unit'} dostaje +${formatAmount(event.total_amount)} HP przez ${formatAmount(event.duration || 0)}s`)
+      return tag('REGEN', `${event.unit_name || event.unit_id || 'Unit'} dostaje +${formatAmount(event.total_amount)} HP przez ${formatAmount(event.duration || 0)}s${formatEventContext(event, { includeDuration: false })}`)
     case 'shield_applied':
-      return tag('SHIELD', `${event.unit_name || event.unit_id || 'Unit'} +${formatAmount(event.amount)} shield`)
+      return tag('SHIELD', `${event.unit_name || event.unit_id || 'Unit'} +${formatAmount(event.amount)} shield${formatEventContext(event)}`)
     case 'effect_applied':
-      return tag('EFFECT', `${event.unit_name || event.unit_id || 'Unit'} gains ${event.effect_type || event.effect?.type || 'effect'}`)
+      return tag('EFFECT', `${event.unit_name || event.unit_id || 'Unit'} gains ${event.effect_type || event.effect?.type || 'effect'}${formatEventContext(event)}`)
     case 'shield_broken':
       return tag('SHIELD BREAK', `${event.unit_name || event.unit_id || 'Unit'} traci tarczę (${formatAmount(event.amount)})`)
     case 'unit_stunned':
-      return tag('STUN', `${event.unit_name || event.unit_id || 'Unit'} oszolomiony na ${formatAmount(event.duration)}s`)
+      return tag('STUN', `${event.unit_name || event.unit_id || 'Unit'} oszolomiony na ${formatAmount(event.duration)}s${formatEventContext(event, { includeDuration: false })}`)
     case 'damage_over_time_applied':
-      return tag('DOT', `${event.unit_name || event.unit_id || 'Unit'} otrzymuje DoT (${event.ticks || '?'} ticki)`)
+      return tag('DOT', `${event.unit_name || event.unit_id || 'Unit'} otrzymuje DoT (${event.ticks || '?'} ticki)${formatEventContext(event)}`)
     case 'damage_over_time_tick':
       return formatDotTickLog(event)
     case 'damage_over_time_expired':

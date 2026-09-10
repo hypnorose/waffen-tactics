@@ -81,6 +81,41 @@ describe('combatPresentation', () => {
     })).toContain('+20 health')
   })
 
+  it('keeps canonical effect context visible in the shared live/replay log formatter', () => {
+    const log = formatCombatLogEntry({
+      type: 'stat_buff',
+      unit_name: 'Tank',
+      caster_name: 'Support',
+      amount: 20,
+      stat: 'defense',
+      duration: 3,
+      cause: 'on_enemy_death',
+      scope: 'team',
+      limit: 1,
+    })
+
+    expect(log).toContain('źródło: Support')
+    expect(log).toContain('powód: on_enemy_death')
+    expect(log).toContain('zakres: team')
+    expect(log).toContain('limit: 1')
+    expect(log).toContain('for 3s')
+  })
+
+  it('shows effect description and expiry metadata when canonical fields are present', () => {
+    const log = formatCombatLogEntry({
+      type: 'effect_applied',
+      unit_name: 'Target',
+      caster_name: 'Caster',
+      effect_type: 'stun',
+      description: 'Ogłuszenie z pasywki',
+      expires_at: 7.5,
+    })
+
+    expect(log).toContain('źródło: Caster')
+    expect(log).toContain('wygasa: 7.50s')
+    expect(log).toContain('Ogłuszenie z pasywki')
+  })
+
   it('does not present fully shield-absorbed DoT as HP loss', () => {
     const event: CombatEvent = {
       type: 'damage_over_time_tick',

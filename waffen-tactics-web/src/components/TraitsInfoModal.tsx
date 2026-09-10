@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { gameAPI } from '../services/api'
 import { getCostColor } from '../data/units'
+import { getTraitThresholdDescription } from '../data/traits'
 
 interface TraitsInfoModalProps {
   isOpen: boolean
@@ -48,93 +49,6 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
     } finally {
       setLoading(false)
     }
-  }
-
-  const replacePlaceholders = (description: string, effect: any) => {
-    let desc = description
-
-    // Handle modular effects - new structure where effect is array of effects for that tier
-    if (Array.isArray(effect) && effect.length > 0) {
-      const modularEffect = effect[0] // First effect in the tier's effect array
-      if (modularEffect.rewards && modularEffect.rewards.length > 0) {
-        const reward = modularEffect.rewards[0] // Assume first reward for now
-        const isPercentageValue = (value: any) => (
-          value?.is_percentage === true ||
-          value?.value_type === 'percentage' ||
-          value?.value_type === 'percentage_of_max' ||
-          value?.value_type === 'percentage_of_collected'
-        )
-        const formatRewardValue = (value: any) => {
-          if (value == null || value === '') return ''
-          return `${value}${isPercentageValue(value) ? '%' : ''}`
-        }
-        const formatSignedRewardValue = (value: any) => {
-          const formatted = formatRewardValue(value)
-          return Number(value?.value) > 0 ? `+${formatted}` : formatted
-        }
-
-        // Replace modular effect placeholders
-        desc = desc.replace(/<rewards\.stat>/g, reward.stat || '')
-        desc = desc.replace(/<rewards\.value>/g, formatSignedRewardValue(reward))
-        desc = desc.replace(/<rewards\.value_type>/g, reward.value_type || '')
-        desc = desc.replace(/<rewards\.resource>/g, reward.resource || '')
-        desc = desc.replace(/<rewards\.duration>/g, reward.duration || '')
-        desc = desc.replace(/<rewards\.duration_seconds>/g, reward.duration_seconds || '')
-        desc = desc.replace(/<rewards\.collect_stat>/g, reward.collect_stat || '')
-
-        // Handle conditions placeholders
-        if (modularEffect.conditions) {
-          desc = desc.replace(/<conditions\.chance_percent>/g, modularEffect.conditions.chance_percent || '')
-          desc = desc.replace(/<conditions\.threshold_percent>/g, modularEffect.conditions.threshold_percent || '')
-          desc = desc.replace(/<conditions\.max_triggers>/g, modularEffect.conditions.max_triggers || '')
-        }
-
-        // Handle trigger placeholder
-        desc = desc.replace(/<trigger>/g, modularEffect.trigger || '')
-
-        // Also handle legacy <v> placeholder for traits that use it with modular effects
-        // For traits with multiple rewards of the same value, use that value
-        const allValues = modularEffect.rewards.map((r: any) => r.value).filter((v: any) => v !== undefined)
-        const uniqueValues = [...new Set(allValues)]
-        if (uniqueValues.length === 1) {
-          // All rewards have the same value
-          const value = uniqueValues[0] as number
-          const isPercentage = modularEffect.rewards.some((r: any) => isPercentageValue(r))
-          desc = desc.replace(/<v>/g, isPercentage ? `${value}%` : value.toString())
-        } else {
-          // Different values - use the first one for <v> (fallback)
-          const isPercentage = isPercentageValue(reward)
-          desc = desc.replace(/<v>/g, isPercentage ? `${reward.value}%` : (reward.value as number)?.toString() || '')
-        }
-
-        return desc
-      }
-    }
-
-    // Fallback to legacy effect handling
-    if (effect && effect.actions && effect.actions[0]) {
-      const action = effect.actions[0]
-      desc = desc.replace(/<v>/g, action.value || '')
-      desc = desc.replace(/<d>/g, action.duration || '')
-      const chance = action.chance || action.chance_percent
-      if (chance && chance !== 100) {
-        desc = desc.replace(/<c>/g, chance)
-      } else {
-        // If chance is 100 or not present, remove <c>% if present
-        desc = desc.replace(/<c>% /g, '')
-      }
-    } else {
-      // For effects without actions, like per_second_buff
-      desc = desc.replace(/<v>/g, (effect && effect.value) || '')
-      desc = desc.replace(/<d>/g, (effect && effect.duration) || '')
-      const chance = effect && (effect.chance || effect.chance_percent)
-      if (chance && chance !== 100) {
-        desc = desc.replace(/<c>/g, chance)
-      } else {
-        desc = desc.replace(/<c>% /g, '')
-      }
-    }
-    return desc
   }
 
   if (!isOpen) return null
@@ -197,7 +111,7 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
                           {threshold}+
                         </span>
                         <span className="text-text/80">
-                          {replacePlaceholders(trait.threshold_descriptions?.[index] || `Poziom ${index + 1}`, trait.effects?.[index])}
+                          {getTraitThresholdDescription(trait, index)}
                         </span>
                       </div>
                     ))}
