@@ -1,12 +1,12 @@
 # WFT-139 — macierz 21 receptur itemów
 
-Status: **prototyp / input autora / oczekuje review i akceptacji**  
-Źródło: Plane, WFT-139, komentarz `58175dd5-e14e-49f5-8ffe-359fa02bca56`, 2026-09-10  
+Status: **zaakceptowana macierz contentu; implementacja runtime i balans pozostają osobnymi zadaniami**<br>
+Źródło: Plane, WFT-139, komentarz `58175dd5-e14e-49f5-8ffe-359fa02bca56`, 2026-09-10<br>
 Zakres: 6 bazowych itemów, 15 par różnych itemów oraz 6 kombinacji `A + A`.
 
-To jest trwała kopia tabeli zapisanej w Plane. Nie oznacza akceptacji finalnego contentu
-i nie jest aktywnym datasetem runtime. Wcześniejsze AI-generated propozycje są zastąpione
-przez ten input dopiero po akceptacji autora.
+To jest trwała kopia zaakceptowanej tabeli zapisanej w Plane. Jest źródłem prawdy dla
+receptur, ale nie jest jeszcze aktywnym datasetem runtime. Wcześniejsze AI-generated
+propozycje zostały zastąpione przez ten input autora.
 
 ## Bazowe itemy
 
@@ -58,6 +58,7 @@ przez ten input dopiero po akceptacji autora.
 
 ## Następny krok
 
-WFT-139 pozostaje w Backlogu z etykietą `Needs User`. Potrzebna jest akceptacja autora
-macierzy, a następnie osobny pass balansu i dopiero potem implementacja w aktywnym
-systemie itemów. Legacy item data pozostaje bez zmian.
+WFT-139 może być oznaczone jako zakończone po stronie decyzji/contentu. Następne kroki to
+kontrakt runtime WFT-140, implementacja jednego źródła danych oraz auto-combine/persistence
+zgodnie z zależnościami zapisanymi w Plane. Osobny pass balansu nadal jest wymagany przed
+traktowaniem liczb jako finalnych. Legacy item data pozostaje bez zmian.
