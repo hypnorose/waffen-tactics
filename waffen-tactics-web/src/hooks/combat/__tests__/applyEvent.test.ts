@@ -1443,7 +1443,7 @@ describe('applyCombatEvent - Effect Handling', () => {
 
       expect(unit.current_mana).toBe(71)
       expect(unit.max_mana).toBe(80)
-      expect(newState.combatLog[newState.combatLog.length - 1]).toContain('71/80')
+      expect(newState.combatLog.some(line => line.includes('[MANA]'))).toBe(false)
     })
 
     it('should clamp malformed mana above the authoritative maximum', () => {

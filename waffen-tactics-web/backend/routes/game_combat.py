@@ -149,6 +149,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'post_hp': data.get('post_hp'),
             'unit_hp': data.get('unit_hp'),
             'unit_max_hp': data.get('unit_max_hp') or data.get('max_hp'),
+            'cause': data.get('cause'),
+            'source_id': data.get('source_id') or data.get('healer_id') or data.get('caster_id'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -160,6 +162,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
             'side': data.get('side'),
+            'cause': data.get('cause'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -192,6 +195,9 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'side': data.get('side'),
             'cause': data.get('cause'),
             'source_id': data.get('source_id'),
+            'target_name': data.get('target_name'),
+            'scope': data.get('scope'),
+            'limit': data.get('limit'),
             'effect': eff,
             'effect_id': effect_id,
             'timestamp': data.get('timestamp', time.time()),
@@ -471,6 +477,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'post_hp': data.get('post_hp'),
             'unit_hp': data.get('unit_hp'),
             'side': data.get('side'),
+            'cause': data.get('cause'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -494,6 +501,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'applied_delta': data.get('applied_delta'),
             'applied_amount': data.get('applied_amount'),
             'side': data.get('side'),
+            'cause': data.get('cause'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -508,6 +516,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_hp': data.get('unit_hp'),  # Authoritative HP after regen
             'unit_max_hp': data.get('unit_max_hp'),
             'side': data.get('side'),
+            'cause': data.get('cause'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }

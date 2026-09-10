@@ -180,7 +180,9 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
       return tag(prefix, `${event.unit_name || event.unit_id || 'Unit'} ${sign}${formatAmount(Math.abs(rawAmount))}${suffix} ${stat}${duration}${formatEventContext(event, { includeDuration: false })}`)
     }
     case 'mana_update':
-      return tag('MANA', `${event.unit_name || event.unit_id || 'Unit'} ${event.current_mana ?? 0}/${event.max_mana ?? 0}`)
+      // Mana remains an authoritative runtime/replay event, but continuous
+      // updates are rendered in the HUD rather than as player-facing log lines.
+      return null
     case 'victory':
       return tag('RESULT', 'ZWYCIESTWO')
     case 'defeat':

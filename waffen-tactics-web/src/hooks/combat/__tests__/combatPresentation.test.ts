@@ -81,6 +81,15 @@ describe('combatPresentation', () => {
     })).toContain('+20 health')
   })
 
+  it('does not render continuous mana updates in the player-facing combat log', () => {
+    expect(formatCombatLogEntry({
+      type: 'mana_update',
+      unit_name: 'Mage',
+      current_mana: 80,
+      max_mana: 100,
+    })).toBeNull()
+  })
+
   it('keeps canonical effect context visible in the shared live/replay log formatter', () => {
     const log = formatCombatLogEntry({
       type: 'stat_buff',

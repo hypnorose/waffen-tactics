@@ -126,6 +126,8 @@ export interface CombatEvent {
   next_tick_time?: number
   passive_id?: string
   passive_name?: string
+  trigger?: string
+  target?: string
   description?: string
   scope?: string
   limit?: number | string
