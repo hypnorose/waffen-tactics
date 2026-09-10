@@ -86,7 +86,7 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification }: Pr
       }}
       onMouseEnter={() => setHoveredItem(itemId)}
       onMouseLeave={() => { setHoveredItem(null); cancelCombine() }}
-      title={`${item.name}${item.description ? ` — ${item.description}` : ''}`}
+      aria-label={`${item.name}${item.description ? ` — ${item.description}` : ''}`}
       className={`relative flex items-center justify-center w-12 h-12 rounded-lg border-2 text-2xl select-none transition-all ${item.kind === 'combined' ? 'border-amber-300 bg-amber-500/15' : 'border-slate-500 bg-slate-800/80'} ${isCombining ? 'scale-110 ring-2 ring-amber-300 animate-pulse' : 'hover:border-amber-300 hover:-translate-y-0.5'} ${equipped ? 'w-9 h-9 text-lg' : 'cursor-grab active:cursor-grabbing'}`}>
       {ICONS[itemId] || '◆'}
       {!equipped && <span className="absolute -bottom-1 -right-1 rounded-full bg-slate-950 px-1 text-[9px] text-slate-300">{item.kind === 'combined' ? '★' : '×'}</span>}
