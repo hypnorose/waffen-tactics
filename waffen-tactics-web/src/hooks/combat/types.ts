@@ -94,6 +94,7 @@ export interface CombatEvent {
   target_name?: string
   unit_name?: string
   amount?: number
+  item_parts?: string[]
   stat?: string
   side?: string
   buff_type?: string

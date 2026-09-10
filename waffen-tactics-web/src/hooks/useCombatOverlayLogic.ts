@@ -45,8 +45,8 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     return saved ? parseFloat(saved) : 1
   })
   const [desyncLogs, setDesyncLogs] = useState<DesyncEntry[]>([])
-  const [storedGoldBreakdown, setStoredGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number } | null>(null)
-  const [displayedGoldBreakdown, setDisplayedGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number } | null>(null)
+  const [storedGoldBreakdown, setStoredGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number, item_parts: string[] } | null>(null)
+  const [displayedGoldBreakdown, setDisplayedGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number, item_parts: string[] } | null>(null)
 
   const { spawnProjectile } = useProjectileSystem()
   const spawnProjectileRef = useRef(spawnProjectile)
@@ -156,7 +156,14 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     // Handle gold income breakdown so UI can display gold notification after replay
     if (event.type === 'gold_income') {
       const breakdown: any = event as any
-      setStoredGoldBreakdown({ base: breakdown.base || 0, interest: breakdown.interest || 0, milestone: breakdown.milestone || 0, win_bonus: breakdown.win_bonus || 0, total: breakdown.total || 0 })
+      setStoredGoldBreakdown({
+        base: breakdown.base || 0,
+        interest: breakdown.interest || 0,
+        milestone: breakdown.milestone || 0,
+        win_bonus: breakdown.win_bonus || 0,
+        total: breakdown.total || 0,
+        item_parts: Array.isArray(breakdown.item_parts) ? breakdown.item_parts : [],
+      })
     }
 
     // Apply event

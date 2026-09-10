@@ -12,6 +12,7 @@ from waffen_tactics.services.stat_scaling import scaled_attack, scaled_hp, valid
 from waffen_tactics.models.player_state import PlayerState
 import json
 from waffen_tactics.services.event_canonicalizer import emit_heal, emit_damage
+from waffen_tactics.services.economy import apply_post_combat_rewards
 from waffen_tactics.services.combat_errors import (
     CombatError,
     CombatExecutionError,
@@ -932,7 +933,6 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
         # Victory
         player.wins += 1
         win_bonus = 1  # +1 gold bonus for winning
-        player.gold += win_bonus
         player.streak += 1
         result_message = "🎉 ZWYCIĘSTWO!"
     elif result['winner'] == 'team_b':
@@ -952,17 +952,7 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
     else:
         raise RuntimeError(f"Unsupported combat winner: {result.get('winner')}")
 
-    # Calculate interest: 1g per 10g (max 5g) from current gold
-    interest = min(5, player.gold // 10)
-    base_income = 5
-
-    # Milestone bonus: rounds 5, 10, 15, 20, etc. give gold equal to round number
-    milestone_bonus = 0
-    if player.round_number % 5 == 0:
-        milestone_bonus = player.round_number
-
-    total_income = base_income + interest + milestone_bonus
-    player.gold += total_income
+    reward = apply_post_combat_rewards(player, player.round_number, win_bonus)
 
     # Generate new shop (unless locked)
     if not player.locked_shop:
@@ -972,11 +962,7 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
         player.locked_shop = False
 
     gold_breakdown = {
-        'base': base_income,
-        'interest': interest,
-        'milestone': milestone_bonus,
-        'win_bonus': win_bonus,
-        'total': total_income + win_bonus
+        **reward,
     }
 
     return game_over, {

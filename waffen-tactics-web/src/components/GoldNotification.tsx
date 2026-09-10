@@ -6,6 +6,7 @@ interface GoldBreakdown {
   milestone: number
   win_bonus: number
   total: number
+  item_parts?: string[]
 }
 
 interface GoldNotificationProps {
@@ -79,6 +80,13 @@ export default function GoldNotification({ breakdown, onDismiss }: GoldNotificat
               <div className="flex justify-between text-yellow-50">
                 <span>🏆 Bonus za zwycięstwo:</span>
                 <span className="font-semibold">+{breakdown.win_bonus}g</span>
+              </div>
+            )}
+
+            {breakdown.item_parts && breakdown.item_parts.length > 0 && (
+              <div className="flex justify-between text-yellow-50">
+                <span>🧩 Części przedmiotów:</span>
+                <span className="font-semibold">+{breakdown.item_parts.length}</span>
               </div>
             )}
           </div>

@@ -45,6 +45,7 @@ class TestCombatService(unittest.TestCase):
         self.mock_player.level = 1  # Set as int
         self.mock_player.xp = 0  # Set as int
         self.mock_player.gold = 10  # Set as int
+        self.mock_player.item_inventory = []
         self.mock_player.streak = 0  # Set as int
         self.mock_player.round_number = 1  # Set as int
         self.mock_player.locked_shop = False

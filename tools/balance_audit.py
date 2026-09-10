@@ -35,6 +35,7 @@ from waffen_tactics.services.combat_manager import CombatManager  # noqa: E402
 from waffen_tactics.services.combat_simulator import CombatSimulator  # noqa: E402
 from waffen_tactics.services.combat_unit import CombatUnit  # noqa: E402
 from waffen_tactics.services.data_loader import load_game_data  # noqa: E402
+from waffen_tactics.services.economy import milestone_reward_counts  # noqa: E402
 from waffen_tactics.services.shop import RARITY_ODDS_BY_LEVEL  # noqa: E402
 from waffen_tactics.services.stat_scaling import scaled_attack, scaled_hp  # noqa: E402
 from waffen_tactics.services.synergy import SynergyEngine  # noqa: E402
@@ -744,16 +745,20 @@ def economy_audit() -> dict[str, Any]:
     gold_rows = []
     for outcome in ("all_losses", "all_wins"):
         gold = 10
+        item_parts = 0
         row = {"path": outcome, "starting_gold": gold}
         for combat in range(1, 21):
             next_round = combat + 1
             win_bonus = 1 if outcome == "all_wins" else 0
             gold += win_bonus
             interest = min(5, gold // 10)
-            milestone = next_round if next_round % 5 == 0 else 0
+            milestone, awarded_parts = milestone_reward_counts(next_round)
             gold += 5 + interest + milestone
-            if next_round in (5, 10, 15, 20):
+            item_parts += awarded_parts
+            if next_round in (3, 5, 10, 15, 20):
                 row[f"after_round_{next_round}"] = gold
+                row[f"item_parts_at_round_{next_round}"] = awarded_parts
+                row[f"cumulative_item_parts_after_round_{next_round}"] = item_parts
         gold_rows.append(row)
 
     upgrade_rows = []
@@ -779,7 +784,13 @@ def economy_audit() -> dict[str, Any]:
         "xp_table": xp_table,
         "xp_paths": xp_rows,
         "gold_paths_without_spending": gold_rows,
-        "income_formula": "base 5 + interest min(5, gold//10) + win bonus 1 + milestone equal to round number every fifth round",
+        "income_formula": "base 5 + interest min(5, gold//10 after win bonus) + win bonus 1 + fixed milestone 5g every fifth completed round",
+        "milestone_reward_contract": {
+            "fixed_gold_on_every_fifth_round": 5,
+            "round_3_item_parts": 3,
+            "fifth_round_item_parts": "1 on every fifth completed round, plus 1/2/3/... extra parts on rounds 10/20/30/...",
+            "item_part_representation": "canonical BASE_ITEMS IDs persisted in PlayerState.item_inventory",
+        },
         "upgrade_roi": upgrade_rows,
     }
 
@@ -932,7 +943,9 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         f"- Shop has 5 offer slots; reroll costs `{report['economy']['reroll_cost']}g`; buying XP costs `{report['economy']['xp_purchase']['gold']}g` for `{report['economy']['xp_purchase']['xp']} XP`.",
         f"- XP path discrepancy: the live route grants +2 XP per combat, while the helper adds another +2 XP on wins (4 XP on a win).",
-        f"- Current milestone formula: `{report['economy']['income_formula']}`. This is a runaway-economy risk at later rounds and is recorded for system-level correction before unit tuning.",
+        f"- Approved income formula: `{report['economy']['income_formula']}`.",
+        "- Approved milestone contract: every fifth completed round grants fixed `5g`; round 3 grants exactly `3` item parts; other fifth-round milestones grant one base item part, with `+1` extra at round 10, `+2` at round 20, `+3` at round 30, and so on.",
+        "- Item parts are canonical `BASE_ITEMS` IDs appended to `PlayerState.item_inventory`, so the persisted inventory is the player-visible reward state.",
         "",
         "| Shop level | Odds by cost | Expected cost/offer | Expected cost/5 offers |",
         "|---:|---|---:|---:|",
@@ -941,18 +954,30 @@ def markdown_report(report: dict[str, Any]) -> str:
         lines.append(f"| {row['level']} | {row['odds_percent']} | {row['expected_cost_per_offer']:.3f} | {row['expected_cost_across_five_offers']:.3f} |")
     lines += [
         "",
+        "| Gold path | Gold after R3 | Gold after R5 | Gold after R10 | Gold after R15 | Gold after R20 | Parts after R3 | Parts after R5 | Parts after R10 | Parts after R15 | Parts after R20 |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for row in report["economy"]["gold_paths_without_spending"]:
+        lines.append(
+            f"| {row['path']} | {row['after_round_3']} | {row['after_round_5']} | {row['after_round_10']} | "
+            f"{row['after_round_15']} | {row['after_round_20']} | {row['cumulative_item_parts_after_round_3']} | "
+            f"{row['cumulative_item_parts_after_round_5']} | {row['cumulative_item_parts_after_round_10']} | "
+            f"{row['cumulative_item_parts_after_round_15']} | {row['cumulative_item_parts_after_round_20']} |"
+        )
+    lines += [
+        "",
         "## Issues found and order of operations",
         "",
-        "1. Normalize system rules first: star scaling contract, XP parity between live route and helper, and milestone economy.",
-        "2. Re-run this audit after those fixes; preserve the seeds and compare raw JSON results.",
+        "1. Preserve the approved economy contract while reviewing the remaining star-scaling and XP-path findings.",
+        "2. Re-run this audit after future rules changes; preserve the seeds and compare raw JSON results.",
         "3. Only then review the per-unit proposals above. No unit values were edited by this audit.",
         "4. Separately confirm whether `miki` and `atomowy_coggers` intentionally have no class.",
         "5. Keep the stale 51-unit/14-trait documentation out of the balance source of truth; this report uses Python runtime and JSON data.",
         "",
         "## Artifacts",
         "",
-        "- Raw machine-readable results: `docs/BALANCE_AUDIT_2026-09-01.json`.",
-        "- Re-run command: `python tools/balance_audit.py`.",
+        f"- Raw machine-readable results: `{report['metadata']['cli']['output_json']}`.",
+        f"- Re-run command: `python tools/balance_audit.py --generated-date {report['metadata']['generated_date']} --output-json {report['metadata']['cli']['output_json']} --output-md {report['metadata']['cli']['output_md']}`.",
         "",
         "## Data vs interpretation",
         "",

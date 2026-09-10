@@ -14,6 +14,7 @@ from waffen_tactics.services.database import (
     InvalidStoredPlayerStateError,
 )
 from waffen_tactics.services.game_manager import GameManager
+from waffen_tactics.services.economy import apply_post_combat_rewards
 from services.combat_service import (
     prepare_player_units_for_combat, prepare_opponent_units_for_combat,
     prepare_round_buffs, run_combat_simulation, process_combat_results, resolve_defeat_hp_mutation,
@@ -814,7 +815,6 @@ def start_combat():
                 # Victory
                 player.wins += 1
                 win_bonus = 1  # +1 gold bonus for winning
-                player.gold += win_bonus
                 player.streak += 1
 
                 stream_chunks.append(f"data: {json.dumps({'type': 'victory', 'message': '🎉 ZWYCIĘSTWO!', 'result_id': combat_result_id, 'seq': 999998})}\n\n")
@@ -843,26 +843,12 @@ def start_combat():
             # complete; remove the intermediate 'end' so the final 'end'
             # (which includes full `state`) is the canonical completion event.
 
-            # Calculate interest: 1g per 10g (max 5g) from current gold
-            interest = min(5, player.gold // 10)
-            base_income = 5
-
-            # Milestone bonus: rounds 5, 10, 15, 20, etc. give gold equal to round number
-            milestone_bonus = 0
-            if player.round_number % 5 == 0:
-                milestone_bonus = player.round_number
-
-            total_income = base_income + interest + milestone_bonus
-            player.gold += total_income
+            reward = apply_post_combat_rewards(player, player.round_number, win_bonus)
 
             # Send gold income notification with breakdown
             gold_breakdown = {
                 'type': 'gold_income',
-                'base': base_income,
-                'interest': interest,
-                'milestone': milestone_bonus,
-                'win_bonus': win_bonus,
-                'total': total_income + win_bonus,
+                **reward,
                 'seq': 999997
             }
             gold_breakdown['result_id'] = combat_result_id
