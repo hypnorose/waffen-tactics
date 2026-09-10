@@ -14,6 +14,10 @@ def test_operational_scripts_use_project_scoped_process_discovery():
     stop = (REPO_ROOT / 'stop-all.sh').read_text(encoding='utf-8')
 
     assert 'readlink "/proc/$pid/cwd"' in scope
+    assert 'sudo -n readlink "/proc/$pid/cwd"' in scope
+    assert 'sudo -n cat "/proc/$pid/cmdline"' in scope
+    assert 'process_cwd "$pid"' in scope
+    assert 'process_cmdline "$pid"' in scope
     assert 'project_pids_for_cwd' in scope
     assert 'project_caddy_pids' in scope
     assert 'case " $cmdline "' in scope

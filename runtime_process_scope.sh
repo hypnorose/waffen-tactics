@@ -3,6 +3,32 @@
 # Shared process discovery for the Waffen Tactics operational scripts.
 # Callers must pass the expected project directory explicitly.
 
+process_cwd() {
+    local pid="$1"
+    local cwd
+
+    cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+    if [ -z "$cwd" ]; then
+        # Caddy runs through sudo and its /proc metadata is not readable by
+        # the deploy user. Keep this fail-closed: a missing sudo permission
+        # yields no owner instead of broad process matching.
+        cwd="$(sudo -n readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+    fi
+    printf '%s\n' "$cwd"
+}
+
+process_cmdline() {
+    local pid="$1"
+    local cmdline
+
+    cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+    if [ -z "$cmdline" ]; then
+        # The privileged reader opens /proc; tr itself remains unprivileged.
+        cmdline="$(sudo -n cat "/proc/$pid/cmdline" 2>/dev/null | tr '\0' ' ' || true)"
+    fi
+    printf '%s\n' "$cmdline"
+}
+
 project_pids_for_cwd() {
     local pattern="$1"
     local expected_cwd="$2"
@@ -10,7 +36,7 @@ project_pids_for_cwd() {
 
     while IFS= read -r pid; do
         [ -n "$pid" ] || continue
-        cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+        cwd="$(process_cwd "$pid")"
         if [ "$cwd" = "$expected_cwd" ]; then
             echo "$pid"
         fi
@@ -24,9 +50,9 @@ project_caddy_pids() {
 
     while IFS= read -r pid; do
         [ -n "$pid" ] || continue
-        cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+        cwd="$(process_cwd "$pid")"
         [ "$cwd" = "$expected_cwd" ] || continue
-        cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+        cmdline="$(process_cmdline "$pid")"
         if caddy_config_matches_project "$cmdline" "$expected_cwd" "$config_name"; then
             echo "$pid"
         fi
