@@ -37,6 +37,18 @@ function requireKnownUnit(state: CombatState, event: CombatEvent, unitId: string
   return unit
 }
 
+function requireEffectId(
+  event: CombatEvent,
+  effectId: unknown = event.effect_id,
+  field = 'effect_id'
+): string {
+  if (typeof effectId !== 'string' || !effectId.trim()) {
+    throw new CombatReplayValidationError(event, `missing required ${field}`, event.unit_id)
+  }
+
+  return effectId
+}
+
 function updateKnownUnitById(
   state: CombatState,
   event: CombatEvent,
@@ -242,6 +254,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       requireKnownUnit(newState, event, event.unit_id)
       if (event.unit_id) {
+        const statBuffEffectId = requireEffectId(event)
         const amountNum = event.amount ?? 0
 
         // Backend MUST provide applied_delta - no fallback calculations
@@ -261,7 +274,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         // Backend sends type in the effect object itself, but we need to detect it here too
         const effectType = (amountNum < 0 || delta < 0) ? 'debuff' : 'buff'
         const effect: EffectSummary = {
-          id: event.effect_id,
+          id: statBuffEffectId,
           type: effectType,
           stat: event.stat,
           value: amountNum,
@@ -432,6 +445,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     case 'damage_over_time_tick':
       requireKnownUnit(newState, event, event.unit_id)
       if (event.unit_id) {
+        requireEffectId(event)
         // Backend MUST provide canonical post_hp - no alias fallback
         if (event.post_hp === undefined || event.post_hp === null) {
           console.error(`⚠️ damage_over_time_tick event ${event.seq} missing required field: post_hp`)
@@ -480,11 +494,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'shield_applied':
       requireKnownUnit(newState, event, event.unit_id)
-      if (!event.effect_id) {
-        console.error(`⚠️ shield_applied event ${event.seq} missing required field: effect_id`)
-        shouldUpdateSummary = false
-        break
-      }
+      const shieldEffectId = requireEffectId(event)
       if (typeof event.amount !== 'number') {
         console.error(`⚠️ shield_applied event ${event.seq} missing required field: amount`)
         shouldUpdateSummary = false
@@ -498,7 +508,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       {
         const updateFn = (u: Unit) => {
           const effect: EffectSummary = {
-            id: event.effect_id,
+            id: shieldEffectId,
             type: 'shield',
             amount: event.amount,
             duration: event.duration,
@@ -518,25 +528,21 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     case 'effect_applied':
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       requireKnownUnit(newState, event, event.unit_id)
-      if (!event.effect_id || !event.effect || typeof event.effect !== 'object') {
-        console.error(`⚠️ effect_applied event ${event.seq} missing canonical effect identity/object for unit ${event.unit_id}`)
-        shouldUpdateSummary = false
-        break
+      const appliedEffectId = requireEffectId(event)
+      if (!event.effect || typeof event.effect !== 'object') {
+        throw new CombatReplayValidationError(event, 'missing canonical effect object', event.unit_id)
       }
-      if (event.effect.id !== event.effect_id) {
-        console.error(`⚠️ effect_applied event ${event.seq} has mismatched canonical effect id for unit ${event.unit_id}`)
-        shouldUpdateSummary = false
-        break
+      const embeddedEffectId = requireEffectId(event, event.effect.id, 'effect.id')
+      if (embeddedEffectId !== appliedEffectId) {
+        throw new CombatReplayValidationError(event, 'canonical effect id does not match effect_id', event.unit_id)
       }
       if (typeof event.effect.type !== 'string' || !event.effect.type.trim()) {
-        console.error(`⚠️ effect_applied event ${event.seq} missing canonical effect.type for unit ${event.unit_id}`)
-        shouldUpdateSummary = false
-        break
+        throw new CombatReplayValidationError(event, 'missing canonical effect.type', event.unit_id)
       }
       {
         const canonicalEffect: EffectSummary = {
           ...event.effect,
-          id: event.effect_id,
+          id: appliedEffectId,
           type: event.effect.type,
           expiresAt: event.effect.expires_at,
           caster_name: event.caster_name,
@@ -564,13 +570,11 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'unit_stunned':
       requireKnownUnit(newState, event, event.unit_id)
-      if (typeof event.effect_id !== 'string' || !event.effect_id.trim()) {
-        throw new CombatReplayValidationError(event, 'missing required effect_id', event.unit_id)
-      }
+      const stunEffectId = requireEffectId(event)
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       if (event.unit_id) {
         const effect: EffectSummary = {
-          id: event.effect_id,
+          id: stunEffectId,
           type: 'stun',
           duration: event.duration,
           caster_name: event.caster_name,
@@ -590,11 +594,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     case 'damage_over_time_applied':
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       requireKnownUnit(newState, event, event.unit_id)
-      if (!event.effect_id) {
-        console.error(`⚠️ damage_over_time_applied event ${event.seq} missing required field: effect_id for unit ${event.unit_id}`)
-        shouldUpdateSummary = false
-        break
-      }
+      const dotEffectId = requireEffectId(event)
       if (typeof event.damage !== 'number' || !Number.isFinite(event.damage) || event.damage <= 0) {
         console.error(`⚠️ damage_over_time_applied event ${event.seq} missing canonical damage for unit ${event.unit_id}`)
         shouldUpdateSummary = false
@@ -607,7 +607,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       }
       {
         const effect: EffectSummary = {
-          id: event.effect_id,
+          id: dotEffectId,
           type: 'damage_over_time',
           damage: event.damage,
           duration: event.duration,
@@ -632,14 +632,9 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'damage_over_time_expired':
       requireKnownUnit(newState, event, event.unit_id)
+      const dotExpiredEffectId = requireEffectId(event)
       if (event.unit_id) {
         // Backend MUST provide effect_id
-        if (!event.effect_id) {
-          console.error(`⚠️ damage_over_time_expired event ${event.seq} missing required field: effect_id`)
-          shouldUpdateSummary = false
-          break
-        }
-
         if (event.post_hp === undefined || event.post_hp === null) {
           console.error(`⚠️ damage_over_time_expired event ${event.seq} missing required field: post_hp`)
           shouldUpdateSummary = false
@@ -649,7 +644,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         // Remove the DoT effect by id
         const removeEffectFn = (u: Unit) => ({
           ...u,
-          effects: u.effects?.filter(e => e.id !== event.effect_id) || []
+          effects: u.effects?.filter(e => e.id !== dotExpiredEffectId) || []
         })
         updateKnownUnitById(newState, event, event.unit_id, removeEffectFn)
         updateKnownUnitById(newState, event, event.unit_id, u => ({ ...u, hp: event.post_hp! }))
@@ -659,24 +654,19 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     case 'effect_expired':
       console.log('[EFFECT_EXPIRED] Processing:', event)
       requireKnownUnit(newState, event, event.unit_id)
+      const expiredEffectId = requireEffectId(event)
       if (event.unit_id) {
         // Backend MUST provide effect_id - no property matching fallback
-        if (!event.effect_id) {
-          console.error(`⚠️ effect_expired event ${event.seq} missing required field: effect_id`)
-          shouldUpdateSummary = false
-          break
-        }
-
         // Find and remove the effect, reverting its stat changes
         const removeAndRevertFn = (u: Unit) => {
-          const expiredEffect = u.effects?.find(e => e.id === event.effect_id)
-          const remainingEffects = u.effects?.filter(e => e.id !== event.effect_id) || []
+          const expiredEffect = u.effects?.find(e => e.id === expiredEffectId)
+          const remainingEffects = u.effects?.filter(e => e.id !== expiredEffectId) || []
 
           console.log('[EFFECT_EXPIRED] Found effect:', expiredEffect, 'remaining:', remainingEffects.length)
 
           if (!expiredEffect) {
             // Fail-fast: expiration without matching effect is a contract violation
-            throw new Error(`[EFFECT_EXPIRED] Missing effect ${event.effect_id} on unit ${u.id} at seq=${event.seq}`)
+            throw new Error(`[EFFECT_EXPIRED] Missing effect ${expiredEffectId} on unit ${u.id} at seq=${event.seq}`)
           }
 
           // Revert stat changes from the expired effect
@@ -689,7 +679,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
             newU.shield = event.post_shield
           } else if (expiredEffect.stat) {
             if (expiredEffect.applied_delta === undefined) {
-              throw new Error(`[EFFECT_EXPIRED] Stat effect ${event.effect_id} missing applied_delta for unit ${u.id} at seq=${event.seq}`)
+              throw new Error(`[EFFECT_EXPIRED] Stat effect ${expiredEffectId} missing applied_delta for unit ${u.id} at seq=${event.seq}`)
             }
             const delta = -expiredEffect.applied_delta  // Negative to revert
             console.log('[EFFECT_EXPIRED] Reverting stat:', expiredEffect.stat, 'delta:', delta)

@@ -56,6 +56,7 @@ function createTestUnit(id: string, name: string, hp: number, attack: number, de
 
 describe('applyCombatEvent - Effect Handling', () => {
   let state: CombatState
+  const invalidEffectIds: unknown[] = [undefined, '', '   ', 123]
 
   beforeEach(() => {
     state = createInitialState()
@@ -101,7 +102,7 @@ describe('applyCombatEvent - Effect Handling', () => {
     const cases: CombatEvent[] = [
       { type: 'attack', target_id: 'opp_0', post_hp: 1, seq: 1 },
       { type: 'unit_heal', unit_id: 'player_0', unit_hp: 999, seq: 2 },
-      { type: 'damage_over_time_tick', unit_id: 'player_0', unit_hp: 1, seq: 3 },
+      { type: 'damage_over_time_tick', unit_id: 'player_0', effect_id: 'dot-1', unit_hp: 1, seq: 3 },
       { type: 'hp_regen', unit_id: 'player_0', unit_hp: 999, seq: 4 },
       { type: 'damage_over_time_expired', unit_id: 'player_0', effect_id: 'dot-1', unit_hp: 999, seq: 5 }
     ]
@@ -295,6 +296,7 @@ describe('applyCombatEvent - Effect Handling', () => {
     const next = applyCombatEvent(shieldedState, {
       type: 'damage_over_time_tick',
       unit_id: 'player_0',
+      effect_id: 'dot-1',
       pre_hp: 500,
       post_hp: 500,
       shield_absorbed: 8,
@@ -315,6 +317,7 @@ describe('applyCombatEvent - Effect Handling', () => {
     const next = applyCombatEvent(shieldedState, {
       type: 'damage_over_time_tick',
       unit_id: 'player_0',
+      effect_id: 'dot-1',
       post_hp: 492,
       shield_absorbed: 8,
       seq: 9,
@@ -357,7 +360,7 @@ describe('applyCombatEvent - Effect Handling', () => {
     })
 
     it('rejects an effect without canonical type even when effect_type is present', () => {
-      const next = applyCombatEvent(state, {
+      expect(() => applyCombatEvent(state, {
         type: 'effect_applied',
         unit_id: 'player_0',
         effect_id: 'missing-type',
@@ -365,22 +368,114 @@ describe('applyCombatEvent - Effect Handling', () => {
         effect: { id: 'missing-type' },
         seq: 2,
         timestamp: 2,
-      }, { simTime: 2 })
+      }, { simTime: 2 })).toThrowError(CombatReplayValidationError)
 
-      expect(next.playerUnits[0].effects).toEqual([])
+      expect(state.playerUnits[0].effects).toEqual([])
     })
 
     it('rejects an effect whose canonical id does not match effect_id', () => {
-      const next = applyCombatEvent(state, {
+      expect(() => applyCombatEvent(state, {
         type: 'effect_applied',
         unit_id: 'player_0',
         effect_id: 'payload-id',
         effect: { id: 'object-id', type: 'mana_lock' },
         seq: 3,
         timestamp: 3,
-      }, { simTime: 3 })
+      }, { simTime: 3 })).toThrowError(CombatReplayValidationError)
 
-      expect(next.playerUnits[0].effects).toEqual([])
+      expect(state.playerUnits[0].effects).toEqual([])
+    })
+  })
+
+  describe('effect identity validation', () => {
+    it.each(invalidEffectIds)('rejects invalid stat_buff effect_id: %p before mutation', (effectId) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'stat_buff', unit_id: 'player_0', stat: 'attack', amount: 2,
+        applied_delta: 2, effect_id: effectId as string, seq: 40
+      }, { simTime: 1 })).toThrowError(CombatReplayValidationError)
+      expect(state).toEqual(original)
+    })
+
+    it.each(invalidEffectIds)('rejects invalid damage_over_time_tick effect_id: %p before mutation', (effectId) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'damage_over_time_tick', unit_id: 'player_0', post_hp: 490,
+        effect_id: effectId as string, seq: 41
+      }, { simTime: 1 })).toThrowError(CombatReplayValidationError)
+      expect(state).toEqual(original)
+    })
+
+    it.each(invalidEffectIds)('rejects invalid shield_applied effect_id: %p before mutation', (effectId) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'shield_applied', unit_id: 'player_0', amount: 10, post_shield: 10,
+        effect_id: effectId as string, seq: 42
+      }, { simTime: 1 })).toThrowError(CombatReplayValidationError)
+      expect(state).toEqual(original)
+    })
+
+    it.each(invalidEffectIds)('rejects invalid damage_over_time_applied effect_id: %p before mutation', (effectId) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'damage_over_time_applied', unit_id: 'player_0', damage: 5, expires_at: 3,
+        effect_id: effectId as string, seq: 43
+      }, { simTime: 1 })).toThrowError(CombatReplayValidationError)
+      expect(state).toEqual(original)
+    })
+
+    it.each(invalidEffectIds)('rejects invalid damage_over_time_expired effect_id: %p before mutation', (effectId) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'damage_over_time_expired', unit_id: 'player_0', post_hp: 500,
+        effect_id: effectId as string, seq: 44
+      }, { simTime: 1 })).toThrowError(CombatReplayValidationError)
+      expect(state).toEqual(original)
+    })
+
+    it.each(invalidEffectIds)('rejects invalid effect_expired effect_id: %p before mutation', (effectId) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'effect_expired', unit_id: 'player_0',
+        effect_id: effectId as string, seq: 45
+      }, { simTime: 1 })).toThrowError(CombatReplayValidationError)
+      expect(state).toEqual(original)
+    })
+
+    it.each(invalidEffectIds)('rejects invalid unit_stunned effect_id: %p before mutation', (effectId) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'unit_stunned', unit_id: 'player_0', duration: 2,
+        effect_id: effectId as string, seq: 46
+      }, { simTime: 1 })).toThrowError(CombatReplayValidationError)
+      expect(state).toEqual(original)
+    })
+
+    it('rejects an invalid embedded effect.id before mutation', () => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'effect_applied', unit_id: 'player_0', effect_id: 'outer-id',
+        effect: { id: 123, type: 'mana_lock' }, seq: 47
+      }, { simTime: 1 })).toThrowError(CombatReplayValidationError)
+      expect(state).toEqual(original)
+    })
+
+    it.each(invalidEffectIds)('rejects invalid effect_applied effect_id: %p before mutation', (effectId) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'effect_applied', unit_id: 'player_0', effect_id: effectId as string,
+        effect: { id: 'embedded-id', type: 'mana_lock' }, seq: 48
+      }, { simTime: 1 })).toThrowError(CombatReplayValidationError)
+      expect(state).toEqual(original)
     })
   })
 
