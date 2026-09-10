@@ -30,3 +30,22 @@ def test_release_validation_gate_separates_automated_and_runtime_evidence():
 
     for fragment in required_fragments:
         assert fragment in document, f"Missing release-gate guidance: {fragment}"
+
+
+def test_historical_desync_checklist_cannot_be_mistaken_for_release_approval():
+    repo_root = Path(__file__).resolve().parents[2]
+    document = (repo_root / "mdfiles" / "DEPLOYMENT_CHECKLIST.md").read_text(
+        encoding="utf-8"
+    )
+
+    for fragment in (
+        "historical checklist",
+        "not a release approval",
+        "docs/RELEASE_VALIDATION_GATE.md",
+        "Do **not** use `git checkout HEAD~1`",
+        "Automated Evidence Only",
+        "authenticated Game View",
+    ):
+        assert fragment in document, f"Missing stale-checklist guard: {fragment}"
+
+    assert "You're Ready!" not in document

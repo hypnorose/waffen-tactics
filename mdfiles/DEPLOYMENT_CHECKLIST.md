@@ -1,12 +1,16 @@
 # Deployment Checklist - Desync Fixes
 
-## Pre-Deployment Verification ✅
+> **Status / release boundary:** This is a historical checklist for the
+> desync-fix work. It is not a release approval and its checkmarks do not
+> prove Game View, deployment, VPS, or rollback acceptance. Use
+> [`docs/RELEASE_VALIDATION_GATE.md`](../docs/RELEASE_VALIDATION_GATE.md) as
+> the canonical current gate on the exact revision intended for deployment.
 
-All fixes have been:
-- ✅ Implemented in code
-- ✅ Tested with comprehensive test suites
-- ✅ Validated with real scenarios (Miki's stun skill)
-- ✅ Documented thoroughly
+## Pre-Deployment Automated Evidence
+
+The historical desync fixes were implemented and covered by automated tests.
+That evidence must remain separate from authenticated Game View, post-deploy
+VPS checks, screenshots, and release-owner approval.
 
 ---
 
@@ -26,6 +30,10 @@ All fixes have been:
 ---
 
 ## Deployment Steps
+
+Run these steps only as an explicitly authorized deployment. Before starting,
+follow the revision-alignment and pre-deployment sections in the canonical
+release gate.
 
 ### Step 1: Stop Services
 ```bash
@@ -115,40 +123,29 @@ After deployment, check these conditions:
 
 ## Rollback Plan (If Needed)
 
-If issues occur, rollback by reverting the commits:
+If issues occur, stop the rollout and preserve the local revision, VPS
+`HEAD`, status, and logs. Do **not** use `git checkout HEAD~1` on individual
+files: that is not a reproducible release rollback and can create an
+unreviewed mixed tree.
 
-### Backend Rollback
-```bash
-cd waffen-tactics/src/waffen_tactics/services/effects
-git checkout HEAD~1 stun.py
-```
-
-### Frontend Rollback
-```bash
-cd waffen-tactics-web/src/hooks/combat
-git checkout HEAD~1 applyEvent.ts
-```
-
-Then rebuild and restart:
-```bash
-cd waffen-tactics-web
-npm run build
-cd ..
-./stop-all.sh
-./start-all.sh
-```
+Choose a release-owner-approved known-good commit, verify it with the
+canonical release gate, and deploy that exact revision through the documented
+deployment procedure. Record the rollback revision, failure owner, and
+post-rollback status/log evidence in Plane.
 
 ---
 
-## Success Criteria
+## Automated Evidence Only
 
-Deployment is successful if:
+This historical checklist can establish only that:
 
 1. ✅ All services start without errors
 2. ✅ Frontend builds successfully
 3. ✅ Combats run without crashes
-4. ✅ DesyncInspector shows minimal/no warnings
-5. ✅ No new errors in backend logs
+4. ✅ Automated desync/replay checks pass for the covered scenarios
+
+It cannot establish authenticated Game View acceptance, public deployment
+health, visual readability at target resolutions, or rollback readiness.
 
 ---
 
@@ -170,8 +167,10 @@ After deployment:
 
 1. Run 3-5 test combats
 2. Check all verification items above
-3. If all checks pass → **You're done!** 🎉
-4. If issues persist → Check if they're the SAME desyncs (unlikely) or NEW ones
+3. If automated checks pass, continue with the canonical release gate and
+   record the required manual/runtime evidence in Plane.
+4. If issues persist, classify them as the same regression or a new issue and
+   preserve the evidence before changing the runtime.
 
 ---
 
@@ -215,6 +214,7 @@ python api.py
 
 ---
 
-## You're Ready! 🚀
+## Release Gate Handoff
 
-All code changes are complete and tested. Just deploy and verify!
+This file alone never authorizes release. Use the canonical release gate and
+leave the final go/no-go decision, runtime evidence, and any waiver in Plane.
