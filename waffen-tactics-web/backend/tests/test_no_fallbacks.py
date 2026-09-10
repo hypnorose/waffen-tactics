@@ -186,3 +186,33 @@ def test_dot_application_mapping_requires_effect_id_and_expiry():
             'damage': 10,
             'seq': 11,
         })
+
+
+def test_stun_mapping_requires_non_empty_effect_id():
+    base = {
+        'unit_id': 'u1',
+        'unit_name': 'Stunned',
+        'duration': 2,
+        'seq': 12,
+    }
+
+    with pytest.raises(RuntimeError, match='unit_stunned.*effect_id'):
+        map_event_to_sse_payload('unit_stunned', base)
+
+    with pytest.raises(RuntimeError, match='unit_stunned.*effect_id'):
+        map_event_to_sse_payload('unit_stunned', {**base, 'effect_id': '   '})
+
+    with pytest.raises(RuntimeError, match='unit_stunned.*effect_id'):
+        map_event_to_sse_payload('unit_stunned', {**base, 'effect_id': 123})
+
+
+def test_stun_mapping_preserves_canonical_effect_id():
+    payload = map_event_to_sse_payload('unit_stunned', {
+        'unit_id': 'u1',
+        'unit_name': 'Stunned',
+        'duration': 2,
+        'effect_id': 'stun-1',
+        'seq': 13,
+    })
+
+    assert payload['effect_id'] == 'stun-1'

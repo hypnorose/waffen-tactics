@@ -302,6 +302,11 @@ def map_event_to_sse_payload(event_type: str, data: dict):
     except Exception:
         pass
     if event_type == 'unit_stunned':
+        effect_id = data.get('effect_id')
+        if not isinstance(effect_id, str) or not effect_id.strip():
+            raise RuntimeError(
+                f"unit_stunned missing required effect_id at seq={data.get('seq')}"
+            )
         eff = {'type': 'stun', 'duration': data.get('duration')}
         res = {
             'type': 'unit_stunned',
@@ -311,7 +316,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'caster_name': data.get('caster_name'),
             'duration': data.get('duration'),
             'effect': eff,
-            'effect_id': data.get('effect_id'),
+            'effect_id': effect_id,
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }

@@ -563,8 +563,11 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'unit_stunned':
-      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       requireKnownUnit(newState, event, event.unit_id)
+      if (typeof event.effect_id !== 'string' || !event.effect_id.trim()) {
+        throw new CombatReplayValidationError(event, 'missing required effect_id', event.unit_id)
+      }
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       if (event.unit_id) {
         const effect: EffectSummary = {
           id: event.effect_id,

@@ -384,6 +384,55 @@ describe('applyCombatEvent - Effect Handling', () => {
     })
   })
 
+  describe('unit_stunned event identity', () => {
+    it('rejects a stun without an effect ID before mutating state', () => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+      expect(() => applyCombatEvent(state, {
+        type: 'unit_stunned',
+        unit_id: 'player_0',
+        duration: 2,
+        seq: 30,
+      }, { simTime: 1 })).toThrowError(CombatReplayValidationError)
+
+      expect(() => applyCombatEvent(state, {
+        type: 'unit_stunned',
+        unit_id: 'player_0',
+        duration: 2,
+        effect_id: '   ',
+        seq: 31,
+      }, { simTime: 1 })).toThrow(
+        '[REPLAY_VALIDATION] unit_stunned event seq=31 missing required effect_id'
+      )
+      expect(state).toEqual(original)
+    })
+
+    it('keeps the canonical stun ID so the matching expiration can remove it', () => {
+      const stunned = applyCombatEvent(state, {
+        type: 'unit_stunned',
+        unit_id: 'player_0',
+        duration: 2,
+        effect_id: 'stun-1',
+        seq: 32,
+        timestamp: 1,
+      }, { simTime: 1 })
+
+      expect(stunned.playerUnits[0].effects).toEqual([
+        expect.objectContaining({ id: 'stun-1', type: 'stun' })
+      ])
+
+      const expired = applyCombatEvent(stunned, {
+        type: 'effect_expired',
+        unit_id: 'player_0',
+        effect_id: 'stun-1',
+        seq: 33,
+        timestamp: 3,
+      }, { simTime: 3 })
+
+      expect(expired.playerUnits[0].effects).toEqual([])
+    })
+  })
+
   describe('damage_over_time_applied events', () => {
     it('installs the canonical DoT payload and preserves server expiry', () => {
       const next = applyCombatEvent(state, {
