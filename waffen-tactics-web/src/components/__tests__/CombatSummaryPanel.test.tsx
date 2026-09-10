@@ -34,4 +34,26 @@ describe('CombatSummaryPanel', () => {
     expect(container.textContent).not.toContain('bonus attacks')
     expect(container.textContent).not.toContain('x bonus')
   })
+
+  it('shows a readable first-death time without exposing the event sequence', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const summary = createCombatSummary()
+    summary.firstDeath = {
+      unit_id: 'opp_0',
+      unit_name: 'Pepe',
+      timestamp: 0,
+      seq: 242,
+    }
+
+    act(() => {
+      root = createRoot(container)
+      root.render(<CombatSummaryPanel summary={summary} synergies={{}} />)
+    })
+
+    expect(container.textContent).toContain('Pepe')
+    expect(container.textContent).toContain('Czas walki: 0.00s')
+    expect(container.textContent).not.toContain('seq')
+    expect(container.textContent).not.toContain('242')
+  })
 })

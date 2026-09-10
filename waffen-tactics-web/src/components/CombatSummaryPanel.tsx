@@ -151,7 +151,9 @@ export default function CombatSummaryPanel({ summary, synergies }: Props) {
           icon={<Skull size={14} />}
           label="Pierwszy upadek"
           value={summary?.firstDeath?.unit_name || summary?.firstDeath?.unit_id || 'brak'}
-          subtitle={summary?.firstDeath?.timestamp ? `seq ${summary.firstDeath.seq ?? '-'} | ${summary.firstDeath.timestamp.toFixed(2)}s` : undefined}
+          subtitle={typeof summary?.firstDeath?.timestamp === 'number'
+            ? `Czas walki: ${summary.firstDeath.timestamp.toFixed(2)}s`
+            : undefined}
           accent="#cbd5e1"
         />
       </div>
