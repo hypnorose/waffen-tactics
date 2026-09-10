@@ -5,6 +5,8 @@ import type { PlayerState } from '../store/gameStore'
 type Item = { id: string; name: string; kind: 'base' | 'combined'; components?: string[]; stats: Record<string, number>; description?: string }
 type Props = { playerState: PlayerState; onUpdate: (state: PlayerState) => void; onNotification: (message: string, type?: 'error' | 'success' | 'info') => void }
 
+export const getItemInstanceKey = (itemId: string, index: number) => `${itemId}-${index}`
+
 const ICONS: Record<string, string> = {
   spices: '🌶️', orangeade: '🥤', coat: '🧥', safe: '🔐', socks: '🧦', notebook: '💌',
   sugar_rush: '✨', seasoned_armor: '🛡️', contraband: '🌶️🔐', hot_feet: '🔥', recipe_for_love: '💖',
@@ -14,7 +16,7 @@ const ICONS: Record<string, string> = {
 
 export default function ItemsPanel({ playerState, onUpdate, onNotification }: Props) {
   const [items, setItems] = useState<Item[]>([])
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const [hoveredItemKey, setHoveredItemKey] = useState<string | null>(null)
   const [combining, setCombining] = useState<[string, string] | null>(null)
   const combineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const draggedItem = useRef<string | null>(null)
@@ -70,8 +72,9 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification }: Pr
   const renderItem = (itemId: string, index: number, equipped = false) => {
     const item = itemById.get(itemId)
     if (!item) return null
+    const itemKey = getItemInstanceKey(itemId, index)
     const isCombining = combining?.includes(itemId) && !equipped
-    return <div key={`${itemId}-${index}`} draggable={!equipped}
+    return <div key={itemKey} draggable={!equipped}
       onDragStart={event => { if (!equipped) { draggedItem.current = itemId; event.dataTransfer.setData('text/item-id', itemId) } }}
       onDragEnd={() => { draggedItem.current = null; cancelCombine() }}
       onDragEnter={event => {
@@ -84,14 +87,14 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification }: Pr
         const source = event.dataTransfer.getData('text/item-id')
         if (source && source !== itemId && item.kind === 'base') finishCombine(source, itemId)
       }}
-      onMouseEnter={() => setHoveredItem(itemId)}
-      onMouseLeave={() => { setHoveredItem(null); cancelCombine() }}
+      onMouseEnter={() => setHoveredItemKey(itemKey)}
+      onMouseLeave={() => { setHoveredItemKey(null); cancelCombine() }}
       aria-label={`${item.name}${item.description ? ` — ${item.description}` : ''}`}
       className={`relative flex items-center justify-center w-12 h-12 rounded-lg border-2 text-2xl select-none transition-all ${item.kind === 'combined' ? 'border-amber-300 bg-amber-500/15' : 'border-slate-500 bg-slate-800/80'} ${isCombining ? 'scale-110 ring-2 ring-amber-300 animate-pulse' : 'hover:border-amber-300 hover:-translate-y-0.5'} ${equipped ? 'w-9 h-9 text-lg' : 'cursor-grab active:cursor-grabbing'}`}>
       {ICONS[itemId] || '◆'}
       {!equipped && <span className="absolute -bottom-1 -right-1 rounded-full bg-slate-950 px-1 text-[9px] text-slate-300">{item.kind === 'combined' ? '★' : '×'}</span>}
       {isCombining && <span className="absolute -bottom-5 whitespace-nowrap text-[10px] text-amber-200">łączenie…</span>}
-      {hoveredItem === itemId && !equipped && renderTooltip(item)}
+      {hoveredItemKey === itemKey && !equipped && renderTooltip(item)}
     </div>
   }
 
