@@ -28,6 +28,7 @@ ITEM_REQUIRED_FIELDS = frozenset(
 )
 EFFECT_REQUIRED_FIELDS = frozenset(
     {
+        "family",
         "description",
         "trigger",
         "target",
@@ -43,6 +44,7 @@ EFFECT_REQUIRED_FIELDS = frozenset(
 )
 RNG_REQUIRED_FIELDS = frozenset({"mode", "seed"})
 REPLAY_REQUIRED_FIELDS = frozenset({"mode", "event_types"})
+STACKING_REQUIRED_FIELDS = frozenset({"mode", "max_stacks"})
 
 
 class ItemContractError(ValueError):
@@ -125,6 +127,8 @@ def validate_item_matrix(items: Sequence[Mapping[str, Any]]) -> None:
             errors.append(f"{path}.stats values must be finite numbers")
 
         effect = item.get("effect")
+        if kind == "base" and "effect" in item and effect is not None:
+            errors.append(f"{path}.effect must be null for a base item")
         if kind == "combined" and not isinstance(effect, Mapping):
             errors.append(f"{path}.effect must be an explicit object for a combined item")
         elif isinstance(effect, Mapping):
@@ -166,15 +170,28 @@ def _validate_effect(effect: Mapping[str, Any], path: str) -> list[str]:
     if missing:
         errors.append(f"{path} missing required fields: {', '.join(missing)}")
 
-    for field in ("description", "trigger", "target", "scope", "order"):
+    for field in ("family", "description", "trigger", "target", "scope", "order"):
         if not _non_empty_string(effect.get(field)):
             errors.append(f"{path}.{field} must be a non-empty string")
 
-    for field in ("duration", "stacking", "cap"):
-        if field not in effect:
-            continue
-        if field == "stacking" and effect[field] is None:
-            errors.append(f"{path}.stacking must be explicit")
+    duration = effect.get("duration")
+    if duration is not None and not _non_negative_finite_number(duration):
+        errors.append(f"{path}.duration must be null or a non-negative finite number")
+
+    stacking = effect.get("stacking")
+    if not isinstance(stacking, Mapping):
+        errors.append(f"{path}.stacking must be an explicit object")
+    else:
+        missing_stacking = sorted(STACKING_REQUIRED_FIELDS - stacking.keys())
+        if missing_stacking:
+            errors.append(
+                f"{path}.stacking missing required fields: {', '.join(missing_stacking)}"
+            )
+        if not _non_empty_string(stacking.get("mode")):
+            errors.append(f"{path}.stacking.mode must be a non-empty string")
+        max_stacks = stacking.get("max_stacks")
+        if not isinstance(max_stacks, int) or isinstance(max_stacks, bool) or max_stacks < 1:
+            errors.append(f"{path}.stacking.max_stacks must be a positive integer")
 
     if not isinstance(effect.get("reset_between_fights"), bool):
         errors.append(f"{path}.reset_between_fights must be a boolean")
@@ -223,3 +240,7 @@ def _non_empty_string(value: Any) -> bool:
 
 def _finite_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value)
+
+
+def _non_negative_finite_number(value: Any) -> bool:
+    return _finite_number(value) and value >= 0

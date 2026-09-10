@@ -10,6 +10,7 @@ BASE_IDS = ["base_a", "base_b", "base_c", "base_d", "base_e", "base_f"]
 
 def _effect():
     return {
+        "family": "synthetic",
         "description": "Synthetic contract fixture; not approved content.",
         "trigger": "on_explicit_test_event",
         "target": "owner",
@@ -94,4 +95,29 @@ def test_contract_rejects_non_object_records_fail_closed():
     matrix[0] = None
 
     with pytest.raises(ItemContractError, match=r"items\[0\] must be an object"):
+        validate_item_matrix(matrix)
+
+
+def test_contract_rejects_non_null_effect_on_base_item():
+    matrix = _valid_matrix()
+    matrix[0]["effect"] = _effect()
+
+    with pytest.raises(ItemContractError, match=r"effect must be null for a base item"):
+        validate_item_matrix(matrix)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("family", "", "family must be a non-empty string"),
+        ("duration", -1, "duration must be null or a non-negative finite number"),
+        ("stacking", {"mode": "refresh"}, "stacking missing required fields"),
+        ("stacking", {"mode": "refresh", "max_stacks": 0}, "max_stacks must be a positive integer"),
+    ],
+)
+def test_contract_rejects_implicit_or_invalid_effect_runtime_fields(field, value, message):
+    matrix = _valid_matrix()
+    matrix[-1]["effect"][field] = value
+
+    with pytest.raises(ItemContractError, match=message):
         validate_item_matrix(matrix)
