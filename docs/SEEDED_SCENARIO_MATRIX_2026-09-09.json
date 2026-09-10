@@ -15,6 +15,7 @@
       "formation": {"team_a": ["front"], "team_b": ["front", "back"]},
       "expected": {"target_order": ["synthetic_front", "synthetic_back"], "event_types": ["unit_attack", "unit_died"]},
       "acceptance": "Default targeting selects the live frontline and reaches the backline only after frontline death.",
+      "coverage": {"positive": "frontline target selected", "boundary": "frontline death exposes backline"},
       "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_default_targeting_uses_frontline_then_reaches_backline"
     },
     {
@@ -25,6 +26,7 @@
       "formation": {"team_a": ["front"], "team_b": ["front"]},
       "expected": {"target_order": [], "event_types": [], "stale_focus": "cleared"},
       "acceptance": "A dead-only opposing team produces no attack event and clears stale focus.",
+      "coverage": {"positive": "no legal target is handled", "negative": "dead-only target list"},
       "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_no_legal_target_is_a_noop_and_clears_stale_focus"
     },
     {
@@ -35,6 +37,7 @@
       "formation": {"team_a": ["front"], "team_b": ["front"]},
       "expected": {"same_tick_attack_order": ["synthetic_fast_a", "synthetic_fast_b"], "event_types": ["unit_attack"]},
       "acceptance": "At the same simulation tick, Team A attack events are emitted before Team B attack events.",
+      "coverage": {"positive": "Team A event precedes Team B", "boundary": "same-tick ordering"},
       "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_attack_phase_is_team_a_before_team_b_at_same_tick"
     },
     {
@@ -45,6 +48,7 @@
       "formation": {"team_a": ["front"], "team_b": ["front"]},
       "expected": {"bonus_attack_count": 1, "skill_cast_count": 0, "event_types": ["unit_attack", "mana_update"]},
       "acceptance": "Full mana creates one bonus basic attack and does not emit a skill cast.",
+      "coverage": {"positive": "full mana emits bonus attack", "negative": "skill cast is absent"},
       "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_full_mana_produces_one_bonus_basic_attack_without_skill_event"
     },
     {
@@ -55,6 +59,7 @@
       "formation": {"team_a": ["front"], "team_b": ["front"]},
       "expected": {"trigger": "on_enemy_death", "event_types": ["unit_died", "stat_buff"]},
       "acceptance": "An enemy death emits the authored attack and defense reward events once per configured recipient.",
+      "coverage": {"positive": "enemy death reward", "boundary": "one reward per configured recipient"},
       "test_reference": "waffen-tactics/tests/test_combat_shared.py::test_on_enemy_death_event_callback"
     },
     {
@@ -65,6 +70,7 @@
       "formation": {"team_a": ["front"], "team_b": ["front", "front", "back"]},
       "expected": {"trigger": "on_ally_death", "gold_reward_count": 1, "event_types": ["unit_died", "gold_reward"]},
       "acceptance": "trigger_once limits the reward to one event for the same ally death.",
+      "coverage": {"positive": "ally death reward", "negative": "trigger_once duplicate suppression"},
       "test_reference": "waffen-tactics/tests/test_combat_shared.py::test_on_ally_death_trigger_once"
     },
     {
@@ -75,6 +81,7 @@
       "formation": {"team_a": ["front", "back"], "team_b": ["front"]},
       "expected": {"trigger": "ally_hp_below", "event_types": ["stat_buff", "unit_heal"]},
       "acceptance": "The low-HP trigger is evaluated against the authoritative HP threshold and marks the effect as triggered.",
+      "coverage": {"positive": "ally crosses HP threshold", "boundary": "threshold crossing"},
       "test_reference": "waffen-tactics/tests/test_combat_effect_processor.py::TestCombatEffectProcessor::test_process_ally_hp_below_triggers"
     },
     {
@@ -85,6 +92,7 @@
       "formation": {"team_a": ["front"], "team_b": ["front"]},
       "expected": {"threshold_states": ["below", "exact", "next"], "event_types": ["trait_activated"]},
       "acceptance": "Trait threshold activation is deterministic and distinguishes below-threshold, exact-threshold, and next-tier states.",
+      "coverage": {"positive": "exact threshold activation", "boundary": "below and next tier"},
       "test_reference": "tools/balance_audit.py::trait_control_audit"
     },
     {
@@ -95,7 +103,30 @@
       "formation": {"team_a": ["front", "back"], "team_b": ["front", "back"]},
       "expected": {"snapshot_desyncs": 0, "dead_units": ["opp_front"], "event_types": ["passive_triggered", "unit_attack", "unit_died", "mana_update", "state_snapshot"]},
       "acceptance": "The same golden event stream reconstructs the authoritative snapshot in core, backend, and frontend without desync.",
+      "coverage": {"positive": "canonical replay reconstruction", "negative": "snapshot desync count must be zero"},
       "test_reference": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json"
+    },
+    {
+      "id": "canonical_passive_seeded_matrix",
+      "seed": 158010,
+      "team_a": ["all_canonical_passive_definitions"],
+      "team_b": ["matrix_target"],
+      "formation": {"team_a": ["front"], "team_b": ["front"]},
+      "expected": {"passive_definitions": 52, "deterministic": true, "unknown_id_fails_closed": true},
+      "acceptance": "Every loaded canonical passive definition runs through a seeded shared-core smoke scenario twice with the same event signature; an unknown passive ID has no fallback definition.",
+      "coverage": {"positive": "every canonical passive definition", "negative": "unknown passive ID"},
+      "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_matrix_replays_every_canonical_definition_deterministically"
+    },
+    {
+      "id": "canonical_trait_threshold_matrix",
+      "seed": 158011,
+      "team_a": ["canonical_trait_threshold_units"],
+      "team_b": ["control_team"],
+      "formation": {"team_a": ["front"], "team_b": ["front"]},
+      "expected": {"trait_count": 21, "deterministic": true, "boundary_states": ["below", "exact", "next"]},
+      "acceptance": "Every loaded canonical trait tier distinguishes below-threshold, exact-threshold and next-tier activation deterministically.",
+      "coverage": {"positive": "exact and next threshold for every canonical trait", "boundary": "below threshold for every canonical trait tier"},
+      "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_trait_threshold_matrix_covers_below_exact_and_next_boundary"
     }
   ]
 }
