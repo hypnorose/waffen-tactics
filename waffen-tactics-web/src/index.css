@@ -63,3 +63,48 @@ body {
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+/* Combat has two stacked unit formations. Keep both formations readable on
+   short desktop viewports without changing the roster UnitCard dimensions. */
+.combat-unit-card {
+  --combat-unit-card-width: 120px;
+  --combat-unit-card-padding: 0.5rem;
+  --combat-unit-card-padding-opponent: 0.25rem;
+  --combat-unit-avatar-height: 60px;
+  --combat-unit-bar-height: 0.5rem;
+  --combat-unit-bar-gap: 0.25rem;
+}
+
+@media (max-height: 760px) {
+  .combat-unit-card {
+    --combat-unit-card-width: 104px;
+    --combat-unit-card-padding: 0.25rem;
+    --combat-unit-card-padding-opponent: 0.125rem;
+    --combat-unit-avatar-height: 46px;
+    --combat-unit-bar-height: 0.375rem;
+    --combat-unit-bar-gap: 0.125rem;
+  }
+
+  .combat-unit-card-name {
+    font-size: 0.65rem;
+    line-height: 0.8rem;
+    margin-bottom: 0.125rem;
+  }
+
+  .combat-unit-card-factions {
+    gap: 0.125rem;
+    margin-bottom: 0.125rem;
+  }
+
+  .combat-unit-card-factions > span {
+    font-size: 8px;
+    line-height: 0.75rem;
+    padding: 0.0625rem 0.1875rem;
+  }
+
+  .combat-unit-card-badges {
+    gap: 0.25rem !important;
+    transform: scale(0.82);
+    transform-origin: top right;
+  }
+}

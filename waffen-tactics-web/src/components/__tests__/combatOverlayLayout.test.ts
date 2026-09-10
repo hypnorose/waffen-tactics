@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { combatUnitCardOpponentSizingStyle, combatUnitCardSizingStyle } from '../combatUnitCardLayout'
 import { combatOverlayBoardStyle, combatOverlayPanelStyle, combatOverlaySidebarStyle } from '../combatOverlayLayout'
 
 describe('combat overlay layout contract', () => {
@@ -16,5 +17,14 @@ describe('combat overlay layout contract', () => {
     expect(combatOverlaySidebarStyle.minHeight).toBe(0)
     expect(combatOverlayBoardStyle.minWidth).toBe(0)
     expect(combatOverlayBoardStyle.minHeight).toBe(0)
+  })
+
+  it('uses CSS sizing variables so short viewports can compact combat cards only', () => {
+    expect(combatUnitCardSizingStyle.width).toBe('var(--combat-unit-card-width, 120px)')
+    expect(combatUnitCardSizingStyle.padding).toBe('var(--combat-unit-card-padding, 0.5rem)')
+    expect(combatUnitCardSizingStyle.avatarHeight).toBe('var(--combat-unit-avatar-height, 60px)')
+    expect(combatUnitCardSizingStyle.barHeight).toBe('var(--combat-unit-bar-height, 0.5rem)')
+    expect(combatUnitCardSizingStyle.barGap).toBe('var(--combat-unit-bar-gap, 0.25rem)')
+    expect(combatUnitCardOpponentSizingStyle.padding).toBe('var(--combat-unit-card-padding-opponent, 0.25rem)')
   })
 })

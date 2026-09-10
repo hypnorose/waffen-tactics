@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { getPassiveTitle, getUnit, type UnitPassive } from '../data/units'
 import { useUnitAnchors } from '../hooks/useUnitAnchors'
+import { combatUnitCardOpponentSizingStyle, combatUnitCardSizingStyle } from './combatUnitCardLayout'
 
 interface Unit {
   id: string
@@ -104,13 +105,13 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   return (
     <div
       ref={rootRef}
-      className="group"
+      className="combat-unit-card group"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
       style={{
         backgroundColor: '#0f172a',
         borderRadius: isOpponent ? '0.25rem' : '0.5rem',
-        padding: isOpponent ? '0.25rem' : '0.5rem',
+        padding: isOpponent ? combatUnitCardOpponentSizingStyle.padding : combatUnitCardSizingStyle.padding,
         border: `2px solid ${unit.hp > 0 ? activeBorder : '#374151'}`,
         opacity: unit.hp > 0 ? 1 : 0.4,
         transition: 'all 0.3s',
@@ -123,12 +124,12 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
           : 'none',
         minWidth: 0,
         position: 'relative',
-        width: '120px',
+        width: combatUnitCardSizingStyle.width,
         flexShrink: 0,
       }}
     >
       {/* Active effect badges */}
-      <div style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '6px', zIndex: 40 }}>
+      <div className="combat-unit-card-badges" style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '6px', zIndex: 40 }}>
         {(unit as any).effects && (unit as any).effects.slice(0,3).map((eff: any, idx: number) => {
           const key = eff.id || `${unit.id}_eff_${idx}`
           let label = ''
@@ -152,7 +153,8 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
       <img
         src={avatarSrc}
         alt={unit.name}
-        style={{ width: '100%', height: '60px', objectFit: 'cover', borderRadius: '0.25rem', marginBottom: '0.25rem' }}
+        className="combat-unit-avatar"
+        style={{ width: '100%', height: combatUnitCardSizingStyle.avatarHeight, objectFit: 'cover', borderRadius: '0.25rem', marginBottom: '0.25rem' }}
         onError={(e: any) => {
           // Fallback to generic avatar if specific file missing
           if (e?.currentTarget && e.currentTarget.src && !e.currentTarget.src.endsWith('/avatars/default.png')) {
@@ -161,12 +163,12 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
         }}
       />
 
-      <div className="text-xs font-bold text-white mb-1 text-center truncate">
+      <div className="combat-unit-card-name text-xs font-bold text-white mb-1 text-center truncate">
         {unit.name} ⭐{unit.star_level}
       </div>
 
       {unit.factions && unit.factions.length > 0 && !isOpponent && (
-        <div className="flex flex-wrap gap-1 justify-center mb-1">
+        <div className="combat-unit-card-factions flex flex-wrap gap-1 justify-center mb-1">
           {unit.factions.slice(0, 2).map((f) => (
             <span key={f} className="text-[9px] px-1 py-0.5 bg-blue-500/30 rounded text-blue-200">
               {f}
@@ -175,7 +177,7 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
         </div>
       )}
 
-      <div className="relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600">
+      <div className="combat-unit-card-bar relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600" style={{ height: combatUnitCardSizingStyle.barHeight }}>
         <div
           className="absolute inset-y-0 left-0"
           style={{
@@ -185,7 +187,7 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
         />
       </div>
 
-      <div className="relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600 mt-1">
+      <div className="combat-unit-card-bar combat-unit-card-mana-bar relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600 mt-1" style={{ height: combatUnitCardSizingStyle.barHeight, marginTop: combatUnitCardSizingStyle.barGap }}>
         <div
           className="absolute inset-y-0 left-0"
           style={{
