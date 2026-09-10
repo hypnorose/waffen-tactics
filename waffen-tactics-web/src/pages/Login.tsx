@@ -47,8 +47,6 @@ export default function Login() {
         </div>
 
         <div className="text-sm text-text/60">
-          <p>51 jednostek</p>
-          <p>14 traitów</p>
           <p>Strategiczny auto-battler</p>
         </div>
       </div>
