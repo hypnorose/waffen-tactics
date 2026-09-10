@@ -136,7 +136,7 @@ fi
 
 log_info "Starting frontend on port 3000"
 cd "$WEB_DIR"
-nohup npm run dev > vite.log 2>&1 &
+nohup npm run dev -- --host 127.0.0.1 > vite.log 2>&1 &
 FRONTEND_PID=$!
 sleep 5
 if ps -p "$FRONTEND_PID" > /dev/null; then

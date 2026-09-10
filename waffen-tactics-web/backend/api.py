@@ -47,6 +47,8 @@ app.register_blueprint(admin_bp, url_prefix='/api/admin')
 DB_PATH = str(Path(__file__).parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')
 db_manager = DatabaseManager(DB_PATH)
 game_manager = GameManager()
+API_HOST = '127.0.0.1'
+API_PORT = 8000
 
 print(f"📦 Using database: {DB_PATH}")
 
@@ -60,10 +62,17 @@ def health():
 
 
 from routes.game_routes import init_sample_bots
+
+
+def run_api_server():
+    """Start the production API behind the local reverse proxy only."""
+    app.run(host=API_HOST, port=API_PORT, debug=False)
+
+
 if __name__ == '__main__':
     # Initialize database
     run_async(db_manager.initialize())
     run_async(init_sample_bots())
     print("✅ Database initialized")
     
-    app.run(host='0.0.0.0', port=8000, debug=False)
+    run_api_server()
