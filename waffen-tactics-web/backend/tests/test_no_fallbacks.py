@@ -216,3 +216,15 @@ def test_stun_mapping_preserves_canonical_effect_id():
     })
 
     assert payload['effect_id'] == 'stun-1'
+
+
+@pytest.mark.parametrize('event_type', ['effect_expired', 'damage_over_time_expired'])
+@pytest.mark.parametrize('effect_id', [None, '', '   ', 123])
+def test_expiration_mapping_requires_non_empty_effect_id(event_type, effect_id):
+    with pytest.raises(RuntimeError, match=f'{event_type}.*effect_id'):
+        map_event_to_sse_payload(event_type, {
+            'unit_id': 'u1',
+            'effect_id': effect_id,
+            'post_hp': 100,
+            'seq': 14,
+        })

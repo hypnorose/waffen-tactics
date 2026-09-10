@@ -478,3 +478,59 @@ def test_per_round_buff_applies():
     res = sim.simulate(a, b)
     log = res.get("log", [])
     assert any("per second" in entry for entry in log)
+
+
+@pytest.mark.parametrize('effect_id', [None, '', '   ', 123])
+def test_regular_effect_expiration_rejects_invalid_id_before_mutation(effect_id):
+    effect = {
+        'id': effect_id,
+        'type': 'shield',
+        'applied_amount': 3,
+        'expires_at': 1.0,
+    }
+    unit = make_unit('u1', 'Unit', effects=[effect])
+    unit.shield = 3
+    original_effects = list(unit.effects)
+    events = []
+    hp_mirror = [unit.hp]
+
+    with pytest.raises(RuntimeError, match='effect_id'):
+        CombatSimulator(dt=0.1, timeout=1)._process_effect_expiration_for_team(
+            [unit], hp_list=hp_mirror, time=1.0,
+            event_callback=lambda event_type, payload: events.append((event_type, payload)),
+        )
+
+    assert unit.shield == 3
+    assert unit.effects == original_effects
+    assert hp_mirror == [unit.hp]
+    assert events == []
+
+
+@pytest.mark.parametrize('effect_id', [None, '', '   ', 123])
+def test_dot_processing_rejects_invalid_id_before_tick_mutation(effect_id):
+    effect = {
+        'id': effect_id,
+        'type': 'damage_over_time',
+        'damage': 5,
+        'damage_type': 'physical',
+        'ticks_remaining': 1,
+        'total_ticks': 1,
+        'next_tick_time': 1.0,
+        'interval': 1.0,
+        'expires_at': 1.0,
+    }
+    unit = make_unit('u1', 'Unit', hp=100, effects=[effect])
+    original_effects = list(unit.effects)
+    events = []
+    hp_mirror = [unit.hp]
+
+    with pytest.raises(RuntimeError, match='effect_id'):
+        CombatSimulator(dt=0.1, timeout=1)._process_dot_for_team(
+            [unit], hp_list=hp_mirror, time=1.0,
+            event_callback=lambda event_type, payload: events.append((event_type, payload)),
+        )
+
+    assert unit.hp == 100
+    assert unit.effects == original_effects
+    assert hp_mirror == [100]
+    assert events == []

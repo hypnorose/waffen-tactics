@@ -404,11 +404,16 @@ def map_event_to_sse_payload(event_type: str, data: dict):
         # Explicit expire event for DoT effects — include effect id and
         # authoritative unit HP so reconstructors can remove the effect
         # exactly when the server considers it expired.
+        effect_id = data.get('effect_id')
+        if not isinstance(effect_id, str) or not effect_id.strip():
+            raise RuntimeError(
+                f"damage_over_time_expired missing required effect_id at seq={data.get('seq')}"
+            )
         res = {
             'type': 'damage_over_time_expired',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
-            'effect_id': data.get('effect_id'),
+            'effect_id': effect_id,
             'pre_hp': data.get('pre_hp'),
             'post_hp': data.get('post_hp'),
             'unit_hp': data.get('unit_hp'),
@@ -417,11 +422,16 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'effect_expired':
+        effect_id = data.get('effect_id')
+        if not isinstance(effect_id, str) or not effect_id.strip():
+            raise RuntimeError(
+                f"effect_expired missing required effect_id at seq={data.get('seq')}"
+            )
         res = {
             'type': 'effect_expired',
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
-            'effect_id': data.get('effect_id'),
+            'effect_id': effect_id,
             'pre_hp': data.get('pre_hp'),
             'post_hp': data.get('post_hp'),
             'unit_hp': data.get('unit_hp'),

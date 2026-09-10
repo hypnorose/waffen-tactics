@@ -735,3 +735,14 @@ def test_effect_expired_and_dot_expired_payloads():
     assert p2['post_hp'] == 8
     assert any(call[0] == 'effect_expired' for call in calls)
     assert any(call[0] == 'damage_over_time_expired' for call in calls)
+
+
+@pytest.mark.parametrize('effect_id', [None, '', '   ', 123])
+def test_expiration_emitters_reject_invalid_effect_ids(effect_id):
+    unit = DummyUnit()
+
+    with pytest.raises(ValueError, match='effect_id'):
+        emit_effect_expired(None, unit, effect_id)
+
+    with pytest.raises(ValueError, match='effect_id'):
+        emit_damage_over_time_expired(None, unit, effect_id)

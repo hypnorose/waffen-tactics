@@ -13,6 +13,16 @@ from ..engine.combat_state import CombatState
 from ..engine.event_dispatcher import EventDispatcher
 
 
+def _require_runtime_effect_id(effect_id: Any, unit: Any, effect_type: str, phase: str) -> str:
+    """Fail before state mutation when a runtime effect lacks its identity."""
+    if not isinstance(effect_id, str) or not effect_id.strip():
+        raise RuntimeError(
+            f"Cannot process {phase} for unit={getattr(unit, 'id', None)} "
+            f"effect_type={effect_type!r}: missing required effect_id"
+        )
+    return effect_id
+
+
 class _DispatcherEventSink:
     """Event sink that wraps callbacks with EventDispatcher middleware.
 
@@ -132,6 +142,9 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
             for j, effect in enumerate(list(unit.effects)):
                 if effect.get('type') != 'damage_over_time':
                     continue
+                effect_id = _require_runtime_effect_id(
+                    effect.get('id'), unit, 'damage_over_time', 'DoT tick/expiration'
+                )
                 next_tick = effect.get('next_tick_time', 0)
                 if time < next_tick:
                     continue
@@ -143,7 +156,7 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                 tick_index = (total_ticks - before_ticks) + 1 if total_ticks and before_ticks is not None else None
 
                 from .event_canonicalizer import emit_damage_over_time_tick, emit_damage_over_time_expired
-                payload = emit_damage_over_time_tick(event_callback, unit, damage, damage_type=damage_type, side=side, timestamp=time, effect_id=effect.get('id'), tick_index=tick_index, total_ticks=total_ticks)
+                payload = emit_damage_over_time_tick(event_callback, unit, damage, damage_type=damage_type, side=side, timestamp=time, effect_id=effect_id, tick_index=tick_index, total_ticks=total_ticks)
 
                 authoritative_hp = int(getattr(unit, 'hp', hp_list[i]))
                 hp_list[i] = max(0, authoritative_hp)
@@ -156,9 +169,9 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                     effect['ticks_remaining'] = ticks_remaining
                     effect['next_tick_time'] = time + interval
                 else:
-                    effects_to_remove.append(j)
+                    effects_to_remove.append((j, effect_id))
 
-            for j in reversed(effects_to_remove):
+            for j, effect_id in reversed(effects_to_remove):
                 try:
                     effect_count = len(unit.effects)
                     expected_effect = unit.effects[j]
@@ -183,7 +196,7 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                 emit_damage_over_time_expired(
                     event_callback,
                     unit,
-                    expired.get('id'),
+                    effect_id,
                     unit_hp=hp_list[i],
                     side=side,
                     timestamp=time,
@@ -230,6 +243,9 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                 # must abort the lifecycle transition before state changes or
                 # a canonical expiration event can be published.
                 effect_id = effect.get('id')
+                effect_id = _require_runtime_effect_id(
+                    effect_id, unit, effect.get('type'), 'effect expiration'
+                )
                 try:
                     current_effects = list(unit.effects or [])
                     if any(not isinstance(candidate, dict) for candidate in current_effects):

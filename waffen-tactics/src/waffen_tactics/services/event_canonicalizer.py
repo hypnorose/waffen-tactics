@@ -17,6 +17,13 @@ def _deliver_canonical_event(
         event_callback(event_type, payload)
 
 
+def _require_non_empty_effect_id(effect_id: Any, event_type: str) -> str:
+    """Reject lifecycle events that cannot identify their effect."""
+    if not isinstance(effect_id, str) or not effect_id.strip():
+        raise ValueError(f"{event_type} requires a non-empty string effect_id")
+    return effect_id
+
+
 def emit_effect_applied(
     event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
     recipient: Any,
@@ -1375,6 +1382,7 @@ def emit_effect_expired(
     This function MUST raise exceptions on invalid inputs so callers can
     detect problems early (no silent fallbacks).
     """
+    effect_id = _require_non_empty_effect_id(effect_id, 'effect_expired')
     ts = timestamp if timestamp is not None else _now_ts()
 
     payload = {
@@ -1423,6 +1431,7 @@ def emit_damage_over_time_expired(
     This function intentionally raises on unexpected failures so test
     harnesses and callers surface errors immediately.
     """
+    effect_id = _require_non_empty_effect_id(effect_id, 'damage_over_time_expired')
     ts = timestamp if timestamp is not None else _now_ts()
 
     payload = {
