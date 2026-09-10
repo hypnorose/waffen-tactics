@@ -152,11 +152,11 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
               <CombatSpeedSlider combatSpeed={combatSpeed} setCombatSpeed={setCombatSpeed} />
             </div>
 
-            <div style={combatOverlayBoardStyle}>
-              <div style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
+            <div className="combat-overlay-board" style={combatOverlayBoardStyle}>
+              <div className="combat-opponent-slot" style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
                 <OpponentUnits units={opponentUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} />
               </div>
-              <div style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <div className="combat-player-slot" style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
                 <PlayerUnits units={playerUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} />
               </div>
 

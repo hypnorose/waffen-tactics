@@ -15,14 +15,14 @@ const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttac
   const backUnits = units.filter(u => u.position === 'back')
 
   return (
-    <div className="bg-gray-800 rounded-lg p-3 border border-gray-700" style={{ flexShrink: 0, width: '100%' }}>
+    <div className="combat-units-panel bg-gray-800 rounded-lg p-3 border border-gray-700" style={{ flexShrink: 0, width: '100%' }}>
       <h3 className="text-sm font-bold text-red-400 mb-2 text-center">⚔️ Przeciwnik</h3>
       
       {/* Back Line (now displayed first) */}
       {backUnits.length > 0 && (
-        <div className="mb-3">
+        <div className="combat-unit-line mb-3">
           <div className="text-xs text-gray-400 mb-1">Linia Tylna</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', maxHeight: '200px', overflow: 'visible' }}>
+          <div className="combat-unit-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', maxHeight: '200px', overflow: 'visible' }}>
             {backUnits.map((u: any) => (
               <motion.div
                 key={u.id}
@@ -45,7 +45,7 @@ const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttac
       {frontUnits.length > 0 && (
         <div>
           <div className="text-xs text-gray-400 mb-1">Linia Frontowa</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', maxHeight: '200px', overflow: 'visible' }}>
+          <div className="combat-unit-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', maxHeight: '200px', overflow: 'visible' }}>
             {frontUnits.map((u: any) => (
               <motion.div
                 key={u.id}
