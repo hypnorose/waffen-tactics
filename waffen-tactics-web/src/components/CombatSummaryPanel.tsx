@@ -1,18 +1,11 @@
 import type { ReactNode } from 'react'
-import { Trophy, Swords, Skull, Target, Sparkles, Medal } from 'lucide-react'
-import { CombatSummary, CombatSummaryFocus } from '../hooks/combat/types'
+import { Trophy, Swords, Skull, Sparkles, Medal } from 'lucide-react'
+import { CombatSummary } from '../hooks/combat/types'
 import { getTopDamageDealer } from '../hooks/combat/combatPresentation'
 
 interface Props {
   summary?: CombatSummary | null
   synergies: Record<string, { count: number; tier: number }>
-}
-
-function formatFocus(focus: CombatSummaryFocus | null | undefined): string {
-  if (!focus) return 'brak'
-  const attacker = focus.attacker_name || focus.attacker_id || 'Unknown'
-  const target = focus.target_name || focus.target_id || 'Unknown'
-  return `${attacker} -> ${target}`
 }
 
 function resultTone(result?: string | null) {
@@ -144,13 +137,6 @@ export default function CombatSummaryPanel({ summary, synergies }: Props) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
-        <StatCard
-          icon={<Target size={14} />}
-          label="Fokus"
-          value={formatFocus(summary?.focus)}
-          subtitle={summary?.focus?.bonus_attack ? 'bonus attack ready' : 'normal target selection'}
-          accent={summary?.focus?.bonus_attack ? '#fdba74' : '#bfdbfe'}
-        />
         <StatCard
           icon={<Swords size={14} />}
           label={hasDamageTie ? 'Remis obrażeń' : 'Najwięcej obrażeń'}

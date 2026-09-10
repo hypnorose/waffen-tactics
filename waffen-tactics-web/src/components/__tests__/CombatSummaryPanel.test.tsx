@@ -30,6 +30,9 @@ describe('CombatSummaryPanel', () => {
     })
 
     expect(container.textContent).toContain('Podsumowanie walki')
+    expect(container.textContent).not.toContain('Fokus')
+    expect(container.textContent).not.toContain('normal target selection')
+    expect(container.textContent).not.toContain('bonus attack ready')
     expect(container.textContent).not.toContain('Tempo')
     expect(container.textContent).not.toContain('bonus attacks')
     expect(container.textContent).not.toContain('x bonus')
