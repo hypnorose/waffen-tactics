@@ -128,6 +128,45 @@ def test_effect_application_mapping_preserves_valid_string_identity_in_both_fiel
     assert payload['effect']['id'] == 'effect-1'
 
 
+@pytest.mark.parametrize('event_type,payload', [
+    ('stat_buff', {
+        'unit_id': 'u1', 'stat': 'attack', 'applied_delta': 2,
+    }),
+    ('damage_over_time_tick', {
+        'unit_id': 'u1', 'post_hp': 90,
+    }),
+])
+@pytest.mark.parametrize('effect_id', [None, '', '   ', 123])
+def test_stateful_effect_mapping_requires_non_empty_string_effect_id(event_type, payload, effect_id):
+    with pytest.raises(RuntimeError, match=f'{event_type}.*effect_id'):
+        map_event_to_sse_payload(event_type, {
+            'seq': 18,
+            **payload,
+            'effect_id': effect_id,
+        })
+
+
+def test_stateful_effect_mapping_preserves_valid_string_identity_in_both_fields():
+    stat_payload = map_event_to_sse_payload('stat_buff', {
+        'unit_id': 'u1',
+        'stat': 'attack',
+        'applied_delta': 2,
+        'effect_id': 'buff-1',
+        'seq': 19,
+    })
+    dot_payload = map_event_to_sse_payload('damage_over_time_tick', {
+        'unit_id': 'u1',
+        'post_hp': 90,
+        'effect_id': 'dot-1',
+        'seq': 20,
+    })
+
+    assert stat_payload['effect_id'] == 'buff-1'
+    assert stat_payload['effect']['id'] == 'buff-1'
+    assert dot_payload['effect_id'] == 'dot-1'
+    assert dot_payload['effect']['id'] == 'dot-1'
+
+
 def test_expiration_mapping_preserves_canonical_post_state_fields():
     out = map_event_to_sse_payload('effect_expired', {
         'unit_id': 'u1',

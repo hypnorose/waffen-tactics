@@ -154,6 +154,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'stat_buff':
+        effect_id = _require_effect_id(data, event_type)
         if data.get('applied_delta') is None:
             raise RuntimeError(
                 f"stat_buff missing required applied_delta at seq={data.get('seq')} payload_keys={sorted(list(data.keys()))}"
@@ -161,6 +162,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
         # Build an effect summary so the UI can show badges on unit cards
         eff = {
             'type': data.get('buff_type', 'buff'),
+            'id': effect_id,
             'stat': data.get('stat'),
             'amount': data.get('amount') or data.get('value'),
             'value_type': data.get('value_type'),
@@ -179,7 +181,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'applied_delta': data.get('applied_delta'),
             'side': data.get('side'),
             'effect': eff,
-            'effect_id': data.get('effect_id'),
+            'effect_id': effect_id,
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -382,6 +384,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'damage_over_time_tick':
+        effect_id = _require_effect_id(data, event_type)
         post_shield = data.get('post_shield')
         if post_shield is None:
             # Compatibility alias is accepted only at the transport boundary.
@@ -392,7 +395,12 @@ def map_event_to_sse_payload(event_type: str, data: dict):
                 f"damage_over_time_tick with shield absorption missing canonical post_shield at seq={data.get('seq')} "
                 f"payload_keys={sorted(list(data.keys()))}"
             )
-        eff = {'type': 'damage_over_time', 'damage': data.get('damage'), 'damage_type': data.get('damage_type')}
+        eff = {
+            'type': 'damage_over_time',
+            'damage': data.get('damage'),
+            'damage_type': data.get('damage_type'),
+            'id': effect_id,
+        }
         res = {
             'type': 'damage_over_time_tick',
             'unit_id': data.get('unit_id'),
@@ -408,7 +416,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_shield': data.get('unit_shield', post_shield),
             'side': data.get('side'),
             'effect': eff,
-            'effect_id': data.get('effect_id') or (data.get('effect') or {}).get('id'),
+            'effect_id': effect_id,
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
