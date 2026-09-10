@@ -69,3 +69,69 @@ def test_scheduled_event_keeps_emission_state_until_delivery():
 
     assert delivered[0]['_event_game_state']['player_units'][0]['hp'] == 100
     assert delivered[0]['_event_game_state']['opponent_units'][0]['hp'] == 100
+
+
+def test_buffered_bonus_attack_events_keep_per_event_snapshots():
+    """A passive event must not inherit later bonus-hit HP/mana mutations."""
+    from services.combat_service import run_combat_simulation
+    from waffen_tactics.models.unit import CombatUnitStats
+    from waffen_tactics.services.combat_unit import CombatUnit
+
+    attacker_stats = CombatUnitStats(
+        hp=500,
+        attack=40,
+        defense=0,
+        max_mana=100,
+        attack_speed=1.0,
+        mana_on_attack=0,
+    )
+    attacker = CombatUnit(
+        id='passive-attacker',
+        name='Passive attacker',
+        hp=500,
+        attack=40,
+        defense=0,
+        attack_speed=1.0,
+        max_mana=100,
+        stats=attacker_stats,
+        passive={'effect': 'attack_speed', 'value': 20, 'duration': 2},
+    )
+    target = CombatUnit(
+        id='bonus-target',
+        name='Bonus target',
+        hp=100,
+        attack=1,
+        defense=0,
+        attack_speed=0.0,
+        max_mana=100,
+        stats=CombatUnitStats(
+            hp=100,
+            attack=1,
+            defense=0,
+            max_mana=100,
+            attack_speed=0.0,
+            mana_on_attack=0,
+        ),
+    )
+    attacker.mana = 100
+
+    result = run_combat_simulation([attacker], [target], attach_game_state=True)
+    events = result['events']
+    stat_index, stat_payload = next(
+        (index, payload)
+        for index, (event_type, payload) in enumerate(events)
+        if event_type == 'stat_buff' and payload.get('unit_id') == attacker.id
+    )
+    bonus_index, bonus_payload = next(
+        (index, payload)
+        for index, (event_type, payload) in enumerate(events)
+        if event_type == 'unit_attack' and payload.get('bonus_attack')
+    )
+
+    assert stat_index < bonus_index
+    stat_state = stat_payload['game_state']
+    bonus_state = bonus_payload['game_state']
+    assert stat_state['player_units'][0]['current_mana'] == 100
+    assert stat_state['opponent_units'][0]['hp'] == 60
+    assert bonus_state['player_units'][0]['current_mana'] == 0
+    assert bonus_state['opponent_units'][0]['hp'] == 20

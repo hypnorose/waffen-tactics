@@ -52,7 +52,7 @@ class _DispatcherEventSink:
             # Preserve the authoritative state at emission time. Without this,
             # the backend may build the event's game_state when it is delivered
             # in a later tick, making the snapshot describe a future state.
-            if isinstance(data, dict):
+            if isinstance(data, dict) and '_event_game_state' not in data:
                 data['_event_game_state'] = self.simulator._capture_runtime_state()
             self.simulator._enqueue_scheduled_event(ts, event_type, data if isinstance(data, dict) else {'payload': data})
             return

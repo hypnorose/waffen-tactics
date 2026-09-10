@@ -240,9 +240,21 @@ class CombatAttackProcessor:
                             if unit_index is None:
                                 raise RuntimeError(f"Target unit {target_id} not found in {unit_side} at delivery_ts={deliver_ts}")
 
+                        # Results from one scheduled action are buffered until
+                        # the action returns, but their mutations happen at
+                        # different points in the action. Capture a snapshot
+                        # when each result is created; otherwise the first
+                        # passive/stat event would inherit the post-attack
+                        # HP/mana state from later mutations in this batch.
+                        def append_result(ev_type, ev_payload):
+                            payload = dict(ev_payload) if isinstance(ev_payload, dict) else ev_payload
+                            if isinstance(payload, dict) and hasattr(self, '_capture_runtime_state'):
+                                payload['_event_game_state'] = self._capture_runtime_state()
+                            results.append((ev_type, payload))
+
                         # Bonus attacks get one passive hook. The hook cannot
                         # schedule another bonus attack.
-                        local_collector = lambda ev_type, ev_payload: results.append((ev_type, ev_payload))
+                        local_collector = append_result
                         if bonus_attack and getattr(self, 'passive_processor', None):
                             bonus_plan = self.passive_processor.bonus_attack_plan(
                                 attacker,
@@ -259,7 +271,7 @@ class CombatAttackProcessor:
                             broken_amount = int(getattr(target_obj, 'shield', 0) or 0)
                             target_obj.shield = 0
                             target_obj.effects = [e for e in (getattr(target_obj, 'effects', []) or []) if not (isinstance(e, dict) and e.get('type') == 'shield')]
-                            results.append(('shield_broken', {
+                            append_result('shield_broken', {
                                 'type': 'shield_broken',
                                 'unit_id': getattr(target_obj, 'id', None),
                                 'unit_name': getattr(target_obj, 'name', None),
@@ -267,7 +279,7 @@ class CombatAttackProcessor:
                                 'side': side_val,
                                 'timestamp': deliver_ts,
                                 'cause': 'passive',
-                            }))
+                            })
 
                         action_damage = self._calculate_damage(
                             attacker,
@@ -325,10 +337,10 @@ class CombatAttackProcessor:
                             bonus_attack=bonus_attack,
                             dmg_payload=dmg_payload,
                         )
-                        results.append(('unit_attack', ua))
+                        append_result('unit_attack', ua)
 
                         if mana_payload:
-                            results.append(('mana_update', mana_payload))
+                            append_result('mana_update', mana_payload)
 
                         # Bonus attack team-mana effects are ordinary mana
                         # updates, intentionally without a skill event.
@@ -347,13 +359,13 @@ class CombatAttackProcessor:
                                     unit_side=side_val,
                                 )
                                 if mana_payload:
-                                    results.append(('mana_update', mana_payload))
+                                    append_result('mana_update', mana_payload)
 
                         # Bonus/attack-count control and secondary pressure.
                         if action_plan.get('stun'):
                             stun_payload = emit_unit_stunned(None, target_obj, duration=action_plan['stun'], source=attacker, side=side_val, timestamp=deliver_ts)
                             if stun_payload:
-                                results.append(('unit_stunned', stun_payload))
+                                append_result('unit_stunned', stun_payload)
                         secondary_scope = action_plan.get('secondary_scope')
                         if secondary_scope:
                             target_team = self.team_b if side_val == 'team_a' else self.team_a
@@ -371,7 +383,7 @@ class CombatAttackProcessor:
                                 secondary_payload = emit_damage(None, attacker, secondary, raw_damage=secondary_damage, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='passive_secondary', emit_event=False, hp_arrays=hp_arrays, unit_index=secondary_index, unit_side=secondary_side, bonus_attack=bonus_attack)
                                 secondary_attack = self._build_unit_attack_payload(attacker, secondary, secondary_damage, side_val, deliver_ts, secondary_payload.get('pre_hp', secondary.hp), secondary_payload.get('post_hp', secondary.hp), bonus_attack=bonus_attack, dmg_payload=secondary_payload)
                                 secondary_attack['cause'] = 'passive_secondary'
-                                results.append(('unit_attack', secondary_attack))
+                                append_result('unit_attack', secondary_attack)
 
                         # The target-side threshold passives see authoritative
                         # pre/post HP after the hit has been applied.
@@ -443,9 +455,6 @@ class CombatAttackProcessor:
                             # after the passive kill hook has been recorded.
                             from .modular_effect_processor import TriggerType
                             if hasattr(self, 'modular_effect_processor') and self.modular_effect_processor:
-                                def _local_collector(ev_type, ev_payload):
-                                    results.append((ev_type, ev_payload))
-
                                 context = {
                                     'current_unit': attacker,
                                     'all_units': attacking_team + defending_team,
@@ -459,7 +468,7 @@ class CombatAttackProcessor:
                                     'killer_unit': attacker,
                                     'triggered_rewards': set(),
                                 }
-                                self.modular_effect_processor.process_trigger(TriggerType.ON_ENEMY_DEATH, context, _local_collector)
+                                self.modular_effect_processor.process_trigger(TriggerType.ON_ENEMY_DEATH, context, append_result)
                                 ally_ctx = {
                                     'all_units': attacking_team + defending_team,
                                     'enemy_units': attacking_team,
@@ -469,7 +478,7 @@ class CombatAttackProcessor:
                                     'dead_ally': target_obj,
                                     'triggered_rewards': set(),
                                 }
-                                self.modular_effect_processor.process_trigger(TriggerType.ON_ALLY_DEATH, ally_ctx, _local_collector)
+                                self.modular_effect_processor.process_trigger(TriggerType.ON_ALLY_DEATH, ally_ctx, append_result)
 
                         return results
                     return action
