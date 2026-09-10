@@ -150,6 +150,9 @@ export interface CombatEvent {
 export interface EffectSummary {
   id?: string
   type: string
+  name?: string
+  effect_name?: string
+  description?: string
   amount?: number
   stat?: string
   duration?: number
@@ -171,6 +174,11 @@ export interface EffectSummary {
   value_type?: string
   permanent?: boolean
   source?: string
+  source_id?: string
+  cause?: string
+  target?: string
+  scope?: string
+  trigger?: string
   item_id?: string
   item_effect_id?: string
   item_effect?: Record<string, unknown>

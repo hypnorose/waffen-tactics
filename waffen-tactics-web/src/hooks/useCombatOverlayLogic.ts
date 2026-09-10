@@ -461,6 +461,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     handleGoldDismiss,
     defeatMessage: combatState.defeatMessage,
     combatSummary: combatState.combatSummary,
+    simTime: combatState.simTime,
     activeAttackerId: combatState.combatSummary?.focus?.attacker_id ?? null,
     activeTargetId: combatState.combatSummary?.focus?.target_id ?? null,
     desyncLogs,

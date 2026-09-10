@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { getPassiveTitle, getUnit, type UnitPassive } from '../data/units'
 import { useUnitAnchors } from '../hooks/useUnitAnchors'
+import type { EffectSummary } from '../hooks/combat/types'
 import { combatUnitCardOpponentSizingStyle, combatUnitCardSizingStyle } from './combatUnitCardLayout'
+import CombatEffectBadge from './CombatEffectBadge'
 
 interface Unit {
   id: string
@@ -33,6 +35,7 @@ interface Unit {
     hp_regen_per_sec?: number
   }
   current_mana?: number
+  effects?: EffectSummary[]
 }
 
 interface Props {
@@ -41,6 +44,7 @@ interface Props {
   regen?: { amount_per_sec: number } | undefined
   isActiveAttacker?: boolean
   isActiveTarget?: boolean
+  currentTime?: number
 }
 
 const getRarityColor = (cost?: number) => {
@@ -53,7 +57,7 @@ const getRarityColor = (cost?: number) => {
   return '#6b7280'
 }
 
-export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget }: Props) {
+export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget, currentTime }: Props) {
   const passiveTitle = getPassiveTitle(unit.passive)
   const [showTooltip, setShowTooltip] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -129,23 +133,10 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
       }}
     >
       {/* Active effect badges */}
-      <div className="combat-unit-card-badges" style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '6px', zIndex: 40 }}>
-        {(unit as any).effects && (unit as any).effects.slice(0,3).map((eff: any, idx: number) => {
-          const key = eff.id || `${unit.id}_eff_${idx}`
-          let label = ''
-          let bg = 'rgba(255,255,255,0.06)'
-          if (eff.type === 'shield') { label = '🛡️'; bg = 'linear-gradient(90deg,#60a5fa,#3b82f6)'; }
-          else if (eff.type === 'stun') { label = '😵'; bg = 'linear-gradient(90deg,#f87171,#fb7185)'; }
-          else if (eff.type === 'damage_over_time') { label = '🔥'; bg = 'linear-gradient(90deg,#fb923c,#f97316)'; }
-          else if (eff.type === 'debuff' || eff.type === 'stat_debuff') { label = '🔻'; bg = 'linear-gradient(90deg,#f43f5e,#ef4444)'; }
-          else { label = '✨'; bg = 'linear-gradient(90deg,#a78bfa,#8b5cf6)'; }
-          const ttl = eff.expiresAt ? Math.max(0, Math.round((eff.expiresAt - Date.now()) / 1000)) : null
-          return (
-            <div key={key} title={`${eff.type}${eff.amount ? ` ${eff.amount}` : ''}${ttl !== null ? ` • ${ttl}s` : ''}`} style={{ minWidth: 22, height: 22, borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', boxShadow: '0 6px 16px rgba(0,0,0,0.35)', background: bg }}>
-              <span>{label}</span>
-            </div>
-          )
-        })}
+      <div className="combat-unit-card-badges" style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '6px', maxWidth: 'calc(100% - 12px)', zIndex: 40 }}>
+        {(unit.effects || []).map((effect, idx) => (
+          <CombatEffectBadge key={`${effect.id || effect.type}-${idx}`} effect={effect} currentTime={currentTime} index={idx} />
+        ))}
       </div>
       {/* Old inline attack/skill/target visuals removed in favor of projectile VFX */}
 

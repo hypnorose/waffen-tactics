@@ -7,9 +7,10 @@ interface Props {
   regenMap: Record<string, any>
   activeAttackerId?: string | null
   activeTargetId?: string | null
+  currentTime?: number
 }
 
-const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttackerId, activeTargetId }: Props) {
+const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttackerId, activeTargetId, currentTime }: Props) {
   const frontUnits = units.filter(u => u.position === 'front')
   const backUnits = units.filter(u => u.position === 'back')
 
@@ -32,6 +33,7 @@ const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttac
                   regen={regenMap[u.id]}
                   isActiveAttacker={u.id === activeAttackerId}
                   isActiveTarget={u.id === activeTargetId}
+                  currentTime={currentTime}
                 />
               </motion.div>
             ))}
@@ -54,6 +56,7 @@ const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttac
                   regen={regenMap[u.id]}
                   isActiveAttacker={u.id === activeAttackerId}
                   isActiveTarget={u.id === activeTargetId}
+                  currentTime={currentTime}
                 />
               </motion.div>
             ))}
