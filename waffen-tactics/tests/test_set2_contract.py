@@ -77,6 +77,12 @@ def test_set2_traits_contract_accepts_explicit_author_count_when_provided():
     assert validate_set2_traits(_traits(), expected_count=13) == []
 
 
+def test_set2_traits_contract_defaults_to_accepted_twelve_trait_scope():
+    errors = validate_set2_traits(_traits())
+
+    assert "traits must contain exactly 12 records, got 13" in errors
+
+
 def test_set2_traits_contract_rejects_unsorted_thresholds_and_missing_effect_contract():
     traits = deepcopy(_traits(1))
     traits[0]["thresholds"] = [4, 2]

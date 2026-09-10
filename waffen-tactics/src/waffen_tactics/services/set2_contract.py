@@ -14,6 +14,7 @@ from typing import Any
 
 SET2_ROSTER_SIZE = 32
 SET2_COST_DISTRIBUTION = {1: 6, 2: 7, 3: 8, 4: 6, 5: 5}
+SET2_TRAIT_COUNT = 12
 
 
 def _is_positive_int(value: Any) -> bool:
@@ -143,12 +144,13 @@ def validate_set2_roster(
 def validate_set2_traits(
     traits: Any,
     *,
-    expected_count: int | None = None,
+    expected_count: int | None = SET2_TRAIT_COUNT,
 ) -> list[str]:
     """Return deterministic validation errors for tiered Set 2 trait data.
 
-    ``expected_count`` is intentionally optional while the author decision
-    between the 12-trait draft and the 13-trait task scope is unresolved.
+    The accepted Set 2 contract contains 12 traits.  ``expected_count`` stays
+    overridable so callers can validate an explicitly scoped fixture without
+    weakening the default contract.
     """
 
     if not isinstance(traits, Sequence) or isinstance(traits, (str, bytes)):
