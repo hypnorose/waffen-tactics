@@ -208,5 +208,5 @@ waffen-tactics/
 - Leaderboards
 - Trait effect visual indicators
 - Combat replay system
-- Item system
+- Approved WFT-139 Set 2 item matrix is documented; runtime contract and canonical-source migration remain in WFT-140/WFT-141+
 - Economy balancing

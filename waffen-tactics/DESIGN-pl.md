@@ -208,7 +208,7 @@ waffen-tactics/
 - Rankingi
 - Wizualne wskaźniki efektów traitów
 - System replay walki
-- System itemów
+- Zaakceptowana macierz itemów Setu 2 z WFT-139 jest udokumentowana; kontrakt runtime i migracja do jednego źródła pozostają w WFT-140/WFT-141+
 - Balansowanie ekonomii
 
 ## Statystyki w UI

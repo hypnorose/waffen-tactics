@@ -493,7 +493,7 @@ Traity (synergies) aktywują się gdy masz określoną liczbę jednostek danej f
 - **3★ carry** z dobrymi synergami
 - **Tier 3-4 traits** (5-7 jednostek)
 - **Pozycjonowanie** (obecnie auto)
-- **Itemizacja** (do implementacji)
+- **Itemizacja**: legacy runtime istnieje; zaakceptowana macierz Setu 2 (WFT-139) jest udokumentowana, a migracja do kanonicznego runtime pozostaje w WFT-140/WFT-141+
 
 ---
 
@@ -540,7 +540,7 @@ Twój wynik jest automatycznie zapisywany gdy HP spadnie do 0!
 - Aplikowanie efektów traits w walce
 - Unikalne umiejętności jednostek
 - System pozycjonowania
-- Itemki
+- Migracja zaakceptowanego systemu itemów Setu 2 do kanonicznego runtime
 - Shop lock
 
 ---
