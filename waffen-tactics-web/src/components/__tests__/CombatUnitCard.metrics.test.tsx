@@ -111,4 +111,46 @@ describe('combat and table unit metric ownership', () => {
     expect(container.textContent).toContain('DPS 12.0')
     expect(container.textContent).toContain('-HP/s 6.0')
   })
+
+  it('shows canonical item details and an explicit stale id in the unit tooltip', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    act(() => {
+      root = createRoot(container)
+      root.render(
+        <UnitCard
+          unitId="unit-1"
+          items={['etf_przyprawowy', 'legacy_item_id']}
+          itemCatalog={[{
+            id: 'etf_przyprawowy',
+            name: 'ETF przyprawowy',
+            kind: 'combined',
+            components: ['spices', 'spices'],
+            stats: { attack: 30 },
+            effect: {
+              family: 'per_attack_stack',
+              description: '+30 ataku.',
+              trigger: 'on_attack',
+              target: 'owner',
+              scope: 'self',
+              order: 'stat/shield application',
+              duration: 2,
+              stacking: { mode: 'additive', max_stacks: 10 },
+              cap: 10,
+              reset_between_fights: true,
+              rng: { mode: 'none', seed: 'test-seed' },
+              replay: { mode: 'canonical_event', event_types: ['stat_buff'] },
+            },
+            content_version: 'wft139-approved-2026-09-10',
+          }] as any}
+        />,
+      )
+    })
+
+    expect(container.textContent).toContain('ETF przyprawowy')
+    expect(container.textContent).toContain('+30 Obrażenia')
+    expect(container.textContent).toContain('Aktywacja: Przy ataku · 2 s')
+    expect(container.textContent).toContain('Nieznany przedmiot: legacy_item_id')
+  })
 })

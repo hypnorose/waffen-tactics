@@ -2,7 +2,7 @@ import { getUnit, getCostBorderColor, getFactionColor, getPassiveTitle } from '.
 import { useRef, useState } from 'react'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import EquippedItems from './EquippedItems'
-import { formatItemStat, ITEM_ICONS, type Item } from '../data/items'
+import { formatItemStat, formatItemTrigger, ITEM_ICONS, type Item } from '../data/items'
 
 interface UnitCardProps {
   unitId: string
@@ -208,9 +208,10 @@ export default function UnitCard({
                   {items.slice(0, 3).map((itemId, index) => {
                     const item = itemById.get(itemId)
                     return <div key={`${itemId}-${index}`} className="border-b border-slate-700/70 pb-1 last:border-0 last:pb-0">
-                      <div className="font-semibold text-amber-100">{ITEM_ICONS[itemId] || '◆'} {item?.name || itemId}</div>
+                      <div className={`font-semibold ${item ? 'text-amber-100' : 'text-red-200'}`}>{ITEM_ICONS[itemId] || '◆'} {item?.name || `Nieznany przedmiot: ${itemId}`}</div>
                       {item && <div className="text-emerald-200">{Object.entries(item.stats).map(([stat, value]) => formatItemStat(stat, value)).join(', ')}</div>}
                       {item?.description && <div className="text-slate-300">{item.description}</div>}
+                      {item?.effect && <div className="text-cyan-200">Aktywacja: {formatItemTrigger(item.effect.trigger)}{item.effect.duration !== null ? ` · ${item.effect.duration} s` : ''}</div>}
                     </div>
                   })}
                 </div>

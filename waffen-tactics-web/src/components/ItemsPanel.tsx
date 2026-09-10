@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { gameAPI } from '../services/api'
 import type { PlayerState } from '../store/gameStore'
-import { ITEM_ICONS, formatItemStat, type Item } from '../data/items'
+import { formatItemStat, formatItemTrigger, getRecipePreview, ITEM_ICONS, type Item } from '../data/items'
 
 type Props = { playerState: PlayerState; onUpdate: (state: PlayerState) => void; onNotification: (message: string, type?: 'error' | 'success' | 'info') => void; itemCatalog?: Item[] }
 
@@ -48,14 +48,28 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
     <div className="mb-2 text-[10px] uppercase tracking-wide text-slate-400">{item.kind === 'combined' ? 'Przedmiot połączony' : 'Przedmiot bazowy'}</div>
     <div className="space-y-0.5 text-emerald-200">{Object.entries(item.stats).map(([stat, value]) => <div key={stat}>{formatItemStat(stat, value)}</div>)}</div>
     {item.description && <div className="mt-2 border-t border-slate-700 pt-2 leading-snug text-slate-200">{item.description}</div>}
+    {item.effect && <div className="mt-2 border-t border-slate-700 pt-2 text-[11px] text-cyan-200">
+      <div>Aktywacja: {formatItemTrigger(item.effect.trigger)}</div>
+      {item.effect.duration !== null && <div>Czas działania: {item.effect.duration} s</div>}
+      {item.effect.stacking.max_stacks > 1 && <div>Stacki: maks. {item.effect.stacking.max_stacks}</div>}
+    </div>}
     {item.components && <div className="mt-2 border-t border-slate-700 pt-2 text-[11px] text-indigo-200">Składniki: {item.components.map(component => itemById.get(component)?.name || component).join(' + ')}</div>}
     <div className="mt-2 text-[10px] text-slate-500">Przeciągnij na kartę jednostki lub drugi przedmiot</div>
   </div>
 
   const renderItem = (itemId: string, index: number, equipped = false) => {
     const item = itemById.get(itemId)
-    if (!item) return null
     const itemKey = getItemInstanceKey(itemId, index)
+    if (!item) return <div
+      key={itemKey}
+      data-item-state="stale"
+      aria-label={`Nieznany przedmiot: ${itemId}`}
+      title={`Nieznany przedmiot: ${itemId}`}
+      className="relative flex h-12 w-12 items-center justify-center rounded-lg border-2 border-red-400/80 bg-red-950/40 text-lg text-red-200"
+    >
+      ⚠️
+      <span className="sr-only">Nieznany przedmiot: {itemId}</span>
+    </div>
     const isCombining = combining?.includes(itemId) && !equipped
     return <div key={itemKey} draggable={!equipped}
       onDragStart={event => { if (!equipped) { draggedItem.current = { itemId, index }; event.dataTransfer.setData('text/item-id', itemId); event.dataTransfer.setData('text/item-index', `${index}`) } }}
@@ -91,6 +105,13 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
       {owned.map((itemId, index) => renderItem(itemId, index))}
       {!owned.length && <span className="text-sm text-text/50">Brak przedmiotów</span>}
     </div>
-    {combining && <div className="mt-3 text-center text-xs text-amber-200">Przytrzymaj przedmiot na drugim, aby utworzyć {itemById.get(items.find(item => item.components?.includes(combining[0]) && item.components?.includes(combining[1]))?.id || '')?.name || 'nowy przedmiot'}.</div>}
+    {combining && (() => {
+      const preview = getRecipePreview(items, combining[0], combining[1])
+      return <div className="mt-3 text-center text-xs text-amber-200">
+        {preview
+          ? <>Przytrzymaj przedmiot na drugim, aby utworzyć {preview.name}.</>
+          : <>Brak receptury dla tej pary przedmiotów.</>}
+      </div>
+    })()}
   </section>
 }

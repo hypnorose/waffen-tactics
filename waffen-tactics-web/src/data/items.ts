@@ -74,3 +74,30 @@ export const formatItemStat = (stat: string, value: number) => {
   if (stat === 'hp_regen_per_sec') return `${amount} HP/s`
   return `${amount} ${ITEM_STAT_LABELS[stat] || stat}`
 }
+
+const ITEM_TRIGGER_LABELS: Record<string, string> = {
+  on_equip: 'Po założeniu',
+  start_of_combat: 'Na początku walki',
+  on_hit: 'Po trafieniu',
+  on_attack: 'Przy ataku',
+  on_bonus_attack: 'Przy bonusowym ataku',
+  on_damage_dealt: 'Po zadaniu obrażeń',
+  periodic_timer: 'Okresowo',
+  on_self_hp_at_or_below_threshold: 'Po spadku HP do progu',
+  on_ordinary_attack_count: 'Co określoną liczbę zwykłych ataków',
+  on_mana_gain: 'Po uzyskaniu many',
+  on_direct_hit_received: 'Po otrzymaniu bezpośredniego trafienia',
+  on_ordinary_attack: 'Przy zwykłym ataku',
+  start_of_combat_and_on_ally_death: 'Na początku walki i po śmierci sojusznika',
+}
+
+export const formatItemTrigger = (trigger: string) => ITEM_TRIGGER_LABELS[trigger] || trigger
+
+export const getRecipePreview = (catalog: Item[], first: string, second: string) => {
+  const pair = [first, second].sort().join('\u0000')
+  return catalog.find(item => (
+    item.kind === 'combined'
+      && item.components.length === 2
+      && item.components.slice().sort().join('\u0000') === pair
+  ))
+}
