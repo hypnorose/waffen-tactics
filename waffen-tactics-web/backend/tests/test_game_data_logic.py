@@ -1,9 +1,12 @@
 """
 Tests for game data business logic (pure functions, no Flask dependencies)
 """
+import json
 import os
+import re
 import sys
 import pytest
+from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
 # Add paths for imports
@@ -11,6 +14,67 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'waffen-t
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from routes.game_data import get_leaderboard_data, get_units_data, get_traits_data
+from waffen_tactics.services.passive_definitions import PASSIVE_DEFINITIONS
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+class TestCanonicalPlayerFacingData:
+    """Guard the backend-to-frontend description contract for canonical data."""
+
+    def test_canonical_units_have_player_facing_descriptions(self):
+        canonical_units = json.loads(
+            (REPO_ROOT / 'waffen-tactics' / 'units.json').read_text(encoding='utf-8')
+        )['units']
+        canonical_ids = {unit['id'] for unit in canonical_units}
+
+        units = get_units_data()
+        units_by_id = {unit['id']: unit for unit in units}
+
+        assert set(units_by_id) == canonical_ids
+        assert set(PASSIVE_DEFINITIONS) == canonical_ids
+
+        for unit_id in sorted(canonical_ids):
+            unit = units_by_id[unit_id]
+            skill = unit['skill']
+            passive = unit['passive']
+
+            assert isinstance(skill, dict), f'{unit_id} is missing skill data'
+            assert str(skill.get('name', '')).strip(), f'{unit_id} skill has no name'
+            assert str(skill.get('description', '')).strip(), f'{unit_id} skill has no description'
+            assert isinstance(passive, dict), f'{unit_id} is missing passive data'
+            assert str(passive.get('kind', '')).strip(), f'{unit_id} passive has no kind'
+            assert str(passive.get('description', '')).strip(), f'{unit_id} passive has no description'
+
+    def test_canonical_traits_have_resolved_threshold_descriptions(self):
+        canonical_traits = json.loads(
+            (REPO_ROOT / 'waffen-tactics' / 'traits.json').read_text(encoding='utf-8')
+        )['traits']
+        canonical_names = {trait['name'] for trait in canonical_traits}
+
+        traits = get_traits_data()
+        traits_by_name = {trait['name']: trait for trait in traits}
+
+        assert set(traits_by_name) == canonical_names
+
+        for trait_name in sorted(canonical_names):
+            trait = traits_by_name[trait_name]
+            descriptions = trait['threshold_descriptions']
+
+            assert str(trait.get('description', '')).strip(), f'{trait_name} has no base description'
+            assert len(descriptions) == len(trait['thresholds']), (
+                f'{trait_name} threshold description count does not match thresholds'
+            )
+            assert all(str(description).strip() for description in descriptions), (
+                f'{trait_name} has an empty threshold description'
+            )
+            unresolved = [
+                description
+                for description in descriptions
+                if re.search(r'<[^>]+>', str(description))
+            ]
+            assert not unresolved, f'{trait_name} has unresolved placeholders: {unresolved}'
 
 
 class TestGetLeaderboardData:
