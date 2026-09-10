@@ -1,3 +1,5 @@
+import type { UnitPassive } from '../../data/units'
+
 export interface Unit {
   id: string
   name: string
@@ -27,7 +29,7 @@ export interface Unit {
   persistent_buffs?: Record<string, number>
   avatar?: string
   skill?: any
-  passive?: { description: string; [key: string]: any }
+  passive?: UnitPassive
 }
 
 export interface DesyncEntry {

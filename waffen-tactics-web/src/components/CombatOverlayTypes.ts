@@ -1,4 +1,5 @@
 import { PlayerState } from '../store/gameStore'
+import type { UnitPassive } from '../data/units'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 
 export interface Unit {
@@ -11,7 +12,7 @@ export interface Unit {
   cost?: number
   factions?: string[]
   classes?: string[]
-  passive?: { description: string; [key: string]: any }
+  passive?: UnitPassive
   buffed_stats?: {
     hp?: number
     attack?: number

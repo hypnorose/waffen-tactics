@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { getUnit } from '../data/units'
+import { getPassiveTitle, getUnit, type UnitPassive } from '../data/units'
 import { useUnitAnchors } from '../hooks/useUnitAnchors'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 
@@ -23,10 +23,7 @@ interface Unit {
     mana_cost?: number
     effects: any[]
   }
-  passive?: {
-    description: string
-    [key: string]: any
-  }
+  passive?: UnitPassive
   buffed_stats?: {
     hp?: number
     attack?: number
@@ -58,6 +55,7 @@ const getRarityColor = (cost?: number) => {
 }
 
 export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget, roundStats }: Props) {
+  const passiveTitle = getPassiveTitle(unit.passive)
   const [showTooltip, setShowTooltip] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const { register } = useUnitAnchors()
@@ -269,7 +267,7 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
           )}
           {unit.passive?.description && (
             <div className="mb-3 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-100">
-              <div className="mb-1 font-semibold text-amber-300">Pasywka</div>
+              {passiveTitle && <div className="mb-1 font-semibold text-amber-300">{passiveTitle}</div>}
               <div>{unit.passive.description}</div>
             </div>
           )}

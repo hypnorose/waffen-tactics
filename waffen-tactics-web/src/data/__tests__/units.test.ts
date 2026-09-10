@@ -53,3 +53,18 @@ describe('canonical unit data loading', () => {
     expect(getAllUnits()).toEqual([unit])
   })
 })
+
+describe('passive presentation data', () => {
+  it('uses the passive name as its display title', async () => {
+    const { getPassiveTitle } = await importUnitsModule()
+
+    expect(getPassiveTitle({ name: 'Jajcarz', description: 'Efekt' })).toBe('Jajcarz')
+  })
+
+  it('supports title as a compatibility field and has no generic fallback', async () => {
+    const { getPassiveTitle } = await importUnitsModule()
+
+    expect(getPassiveTitle({ title: 'Walkover', description: 'Efekt' })).toBe('Walkover')
+    expect(getPassiveTitle({ description: 'Efekt' })).toBeNull()
+  })
+})

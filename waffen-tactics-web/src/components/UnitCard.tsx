@@ -1,4 +1,4 @@
-import { getUnit, getCostBorderColor, getFactionColor } from '../data/units'
+import { getUnit, getCostBorderColor, getFactionColor, getPassiveTitle } from '../data/units'
 import { useRef, useState } from 'react'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import EquippedItems from './EquippedItems'
@@ -48,6 +48,7 @@ export default function UnitCard({
   items,
 }: UnitCardProps) {
   const unit = getUnit(unitId)
+  const passiveTitle = getPassiveTitle(unit?.passive)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [tooltipTop, setTooltipTop] = useState<number | null>(null)
@@ -193,7 +194,7 @@ export default function UnitCard({
             </div>
             {unit.passive?.description && (
               <div className="mb-2 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-100">
-                <div className="mb-1 font-semibold text-amber-300">Pasywka</div>
+                {passiveTitle && <div className="mb-1 font-semibold text-amber-300">{passiveTitle}</div>}
                 <div>{unit.passive.description}</div>
               </div>
             )}

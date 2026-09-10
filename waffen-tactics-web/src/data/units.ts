@@ -1,5 +1,13 @@
 import axios from 'axios'
 
+export interface UnitPassive {
+  name?: string
+  title?: string
+  description: string
+  kind?: string
+  [key: string]: any
+}
+
 export interface Unit {
   id: string
   name: string
@@ -15,11 +23,7 @@ export interface Unit {
     mana_cost?: number
     effects: any[]
   }
-  passive?: {
-    description: string
-    kind?: string
-    [key: string]: any
-  }
+  passive?: UnitPassive
   stats?: {
     hp: number
     attack: number
@@ -59,6 +63,13 @@ export async function loadUnits(): Promise<void> {
 
 export function getUnit(unitId: string): Unit | undefined {
   return UNITS_CACHE[unitId]
+}
+
+export function getPassiveTitle(passive?: UnitPassive): string | null {
+  const candidate = passive?.name ?? passive?.title
+  return typeof candidate === 'string' && candidate.trim().length > 0
+    ? candidate.trim()
+    : null
 }
 
 export function getAllUnits(): Unit[] {
