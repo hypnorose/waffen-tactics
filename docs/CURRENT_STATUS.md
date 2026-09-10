@@ -137,6 +137,7 @@ DEF-279 now makes the legacy CLI demo consume the shared simulator's canonical `
 - `DEF-269` is `Backlog + Needs User`: the shared stat-buff runtime has duplicated recipient/application paths and silently maps unsupported targets to `self`; canonicalization awaits the explicit unknown-target contract decision recorded in the issue.
 - `WFT-139` is author-approved: the 6-base/21-recipe matrix, including all 6 A+A pairs, is preserved in [`docs/ITEM_RECIPE_MATRIX_WFT139.md`](ITEM_RECIPE_MATRIX_WFT139.md) and the WFT-139 Plane comment. It is the recipe source of truth; this does not activate runtime data or finalize balance.
 - `WFT-140` is `In Review`: the technical item-matrix boundary now validates explicit item/effect contracts, exactly 6 bases, 21 unique recipe pairs including A+A, and rejects duplicate or unknown references. Synthetic fixtures only are covered by the shared-core suite; runtime/API/replay work can consume the matrix after the contract is finalized.
+- `WFT-149` is `In Progress`: the approved content is now represented in `waffen-tactics/item_recipe_matrix_wft139.json`; four seeded contract tests cover exact 6+21 cardinality, all A+A pairs, symmetric lookup, and approved names/stats/effect prose. Full runtime/replay effect contracts remain gated by WFT-140, and the JSON is not loaded by active runtime yet.
 - New-set authoring and contract work remains author-led (`Needs User`/`Manual-only`); do not promote draft content into active datasets without approval.
 
 ## Next continuation

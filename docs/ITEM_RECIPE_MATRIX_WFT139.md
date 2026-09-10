@@ -4,6 +4,8 @@ Status: **zaakceptowana macierz contentu; implementacja runtime i balans pozosta
 Źródło: Plane, WFT-139, komentarz `58175dd5-e14e-49f5-8ffe-359fa02bca56`, 2026-09-10<br>
 Zakres: 6 bazowych itemów, 15 par różnych itemów oraz 6 kombinacji `A + A`.
 
+Machine-readable copy: [`waffen-tactics/item_recipe_matrix_wft139.json`](../waffen-tactics/item_recipe_matrix_wft139.json).
+
 To jest trwała kopia zaakceptowanej tabeli zapisanej w Plane. Jest źródłem prawdy dla
 receptur, ale nie jest jeszcze aktywnym datasetem runtime. Wcześniejsze AI-generated
 propozycje zostały zastąpione przez ten input autora.
