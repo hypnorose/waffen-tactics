@@ -68,7 +68,7 @@ effect prose; the final runtime contract must make every behavior explicit.
 - `waffen-tactics/tests/test_wft139_recipe_matrix.py` verifies the approved matrix
   and accepted contract: 6 bases, all 21 unordered pairs, A+A, symmetric lookup,
   exact names/stats/effect descriptions, explicit caps and per-fight reset.
-- The shared-core gate after this documentation/data slice is **568 passed, 25
+- The shared-core gate after this documentation/data slice is **573 passed, 25
   skipped, 22 subtests passed**.
 - These automated checks do not prove live runtime, frontend presentation, SSE or
   replay acceptance. Those require the corresponding WFT-142–WFT-148 work and

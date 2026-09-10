@@ -9,8 +9,8 @@ Linear is the source of truth for issue status, ownership, dependencies, milesto
 ## 2026-09-10 release-gate refresh
 
 - The current release owner is `DEF-164`, which remains `In Review` with `Needs Manual Test`; its 43 structural blockers are `Done`.
-- The current committed source-of-truth is aligned with `origin/main` and the tracked working tree is clean; the latest relevant implementation commits include `c83108d` (short-viewport combat cards), `a30e32f` (fail-closed item matrix contract) and `3125ff0` (approved WFT-139 content matrix tests).
-- The canonical local automated gate passed after these implementation commits: core `568 passed, 25 skipped, 22 subtests`; backend `396 passed, 8 skipped, 5 subtests`; frontend lint, typecheck, Vitest `195 passed across 15 files`, and production build pass; `git diff --check` is clean.
+- The current committed source-of-truth is aligned with `origin/main` and the tracked working tree is clean; the latest relevant implementation commits include `c83108d` (short-viewport combat cards), `a30e32f` (fail-closed item matrix contract), `3125ff0` (approved WFT-139 content matrix tests), `e78af3c` (item-system source map) and `031960c` (accepted WFT-140 runtime contract encoded).
+- The canonical local automated gate passed after these implementation commits: core `573 passed, 25 skipped, 22 subtests`; backend `396 passed, 8 skipped, 5 subtests`; frontend lint, typecheck, Vitest `195 passed across 15 files`, and production build pass; `git diff --check` is clean.
 - The explicitly authorized `deploy.ps1 -RunTests` deployment completed successfully for `509a63473246dad173051b8da0ceb43086aee9b8`: the VPS HEAD now matches local/origin, backend/frontend/Caddy are running, application listeners remain loopback-only, public `/` and `/api/game/traits` return HTTP 200, and direct public ports 3000/8000 are refused. The VPS tracked tree is clean; pre-existing unrelated untracked drift remains preserved. Logs show normal startup/request activity; the only warnings are the expected Flask development-server notice, stale Browserslist data, and the unrelated SSH port-forward notice.
 - User-supplied authenticated Game View evidence confirms combat, victory/defeat, live/replay, mana, bonus attack, and status behavior at both `1280x720` and `1920x1080`. The viewport frame is improved, but the lower player formation remained clipped at `1280x720`; commit `c83108d` compacts combat cards for short viewports and WFT-155 tracks the post-fix recheck. Future replay scrubbing and active-buff hover inspection are tracked by WFT-156 and WFT-157.
 
@@ -18,7 +18,7 @@ The older `WFT-130`/`WFT-16` runtime snapshot below is retained as historical ev
 
 ## Verified automated evidence
 
-- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q 'waffen-tactics\\tests'` — **568 passed, 25 skipped, 22 subtests passed**, with no warnings.
+- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q 'waffen-tactics\\tests'` — **573 passed, 25 skipped, 22 subtests passed**, with no warnings.
 - Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **396 passed, 8 skipped, 5 subtests passed**, with no warnings.
 - Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **195 passed across 15 files**.
 - Frontend production build: `npm run build` — pass. Vite reports only stale Browserslist data; the build succeeds.
