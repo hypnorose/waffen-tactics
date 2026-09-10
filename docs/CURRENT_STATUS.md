@@ -10,7 +10,7 @@ Linear is the source of truth for issue status, ownership, dependencies, milesto
 
 - Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q` — **383 passed, 24 skipped, 22 subtests passed**, with no warnings.
 - Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **307 passed, 8 skipped, 5 subtests passed**, with no warnings.
-- Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **128 passed across 8 files**.
+- Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **127 passed across 8 files**.
 - Frontend production build: `npm run build` — pass. Vite reports only stale Browserslist data; the build succeeds.
 - `python -m compileall -q waffen-tactics\\src waffen-tactics\\tests` — pass.
 - Dataset validators: `PYTHONIOENCODING=utf-8 python tools/scripts/validate_units.py` passes from the repository root and an unrelated working directory, checking **52 units and 21 traits**; malformed non-object unit/trait records now produce structured validation errors (`DEF-232`); `python waffen-tactics/scripts/validate_all_skills.py` checks all **52 unit skills** successfully and rejects missing, null, or malformed canonical skills (`DEF-229`, `DEF-231`).
