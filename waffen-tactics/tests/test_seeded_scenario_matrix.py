@@ -46,3 +46,8 @@ def test_seeded_scenario_matrix_is_complete_and_reproducible_by_reference():
     with (REPO_ROOT / "waffen-tactics" / "traits.json").open(encoding="utf-8") as handle:
         canonical_traits = json.load(handle)["traits"]
     assert trait_matrix["expected"]["trait_count"] == len(canonical_traits)
+
+    family_matrix = next(item for item in scenarios if item["id"] == "canonical_passive_trigger_family_matrix")
+    canonical_families = sorted({definition["kind"] for definition in PASSIVE_DEFINITIONS.values()})
+    assert family_matrix["expected"]["trigger_families"] == canonical_families
+    assert family_matrix["expected"]["positive_and_negative_paths"] is True

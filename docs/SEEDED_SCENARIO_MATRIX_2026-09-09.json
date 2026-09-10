@@ -127,6 +127,37 @@
       "acceptance": "Every loaded canonical trait tier distinguishes below-threshold, exact-threshold and next-tier activation deterministically.",
       "coverage": {"positive": "exact and next threshold for every canonical trait", "boundary": "below threshold for every canonical trait tier"},
       "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_trait_threshold_matrix_covers_below_exact_and_next_boundary"
+    },
+    {
+      "id": "canonical_passive_trigger_family_matrix",
+      "seed": 158012,
+      "team_a": ["canonical_passive_family_representatives"],
+      "team_b": ["matrix_target"],
+      "formation": {"team_a": ["front"], "team_b": ["front"]},
+      "expected": {
+        "trigger_families": [
+          "ally_threshold",
+          "attack_count",
+          "attack_count_same_target",
+          "bonus_attack",
+          "conditional_attack",
+          "kill",
+          "position_scope_start",
+          "position_start",
+          "start_effect",
+          "start_enemy_debuff",
+          "start_enemy_highest_attack",
+          "start_scope_stat",
+          "start_stat",
+          "start_target",
+          "start_target_bonus",
+          "threshold"
+        ],
+        "positive_and_negative_paths": true
+      },
+      "acceptance": "Every canonical passive trigger family has an executable positive scenario and a boundary or negative scenario, including start-passive idempotence and trigger isolation.",
+      "coverage": {"positive": "every canonical trigger family fires through its runtime processor", "negative": "below-threshold, below-counter, non-matching target, non-kill, and repeated-start paths remain inactive or idempotent"},
+      "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_trigger_family_matrix_has_positive_and_negative_path"
     }
   ]
 }
