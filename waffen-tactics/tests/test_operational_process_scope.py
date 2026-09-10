@@ -33,6 +33,7 @@ def test_start_uses_shared_caddy_discovery_and_refuses_duplicate_restart():
 
     assert '. "$SCRIPT_DIR/runtime_process_scope.sh"' in start
     assert 'project_caddy_pids "$WEB_DIR" "Caddyfile"' in start
+    assert 'sudo pgrep caddy' not in start
     assert 'pgrep -a caddy' not in start
     assert 'refusing to start a duplicate' in start
     assert 'caddy_config_matches_project' in scope

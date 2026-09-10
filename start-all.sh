@@ -164,7 +164,7 @@ if ! command -v caddy >/dev/null 2>&1; then
 else
     sudo nohup caddy run --config Caddyfile > caddy.log 2>&1 &
     sleep 3
-    if sudo pgrep caddy >/dev/null 2>&1; then
+    if [ -n "$(project_caddy_pids "$WEB_DIR" "Caddyfile")" ]; then
         log_success "Caddy started"
     else
         log_warning "Caddy did not start"
