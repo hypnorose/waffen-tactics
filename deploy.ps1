@@ -40,8 +40,10 @@ Write-Host "Deploy target: ${HostAlias}:$RemotePath"
 Write-Host "Git branch:    $Branch"
 
 if ($RunTests) {
-    Invoke-Step "Core tests" { python -m pytest -q 'waffen-tactics\tests' }
-    Invoke-Step "Backend tests" { python -m pytest -q 'waffen-tactics-web\backend\tests' }
+    Invoke-Step "Core tests" { python -W error -m pytest -q 'waffen-tactics\tests' }
+    Invoke-Step "Backend tests" { python -W error -m pytest -q 'waffen-tactics-web\backend' }
+    Invoke-Step "Frontend typecheck" { Push-Location 'waffen-tactics-web'; try { npm run typecheck } finally { Pop-Location } }
+    Invoke-Step "Frontend lint" { Push-Location 'waffen-tactics-web'; try { npm run lint } finally { Pop-Location } }
     Invoke-Step "Frontend tests" { Push-Location 'waffen-tactics-web'; try { npx vitest run } finally { Pop-Location } }
     Invoke-Step "Frontend production build" { Push-Location 'waffen-tactics-web'; try { npm run build } finally { Pop-Location } }
 }
