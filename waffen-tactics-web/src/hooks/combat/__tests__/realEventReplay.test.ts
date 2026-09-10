@@ -522,4 +522,37 @@ describe('Shared approved replay golden fixture', () => {
     expect(state.opponentUnits.find(unit => unit.id === 'opp_back')?.hp).toBe(80)
     expect(state.playerUnits.find(unit => unit.id === 'p_front')?.current_mana).toBe(10)
   })
+
+  it('reports a desync when a canonical mutation event is omitted', () => {
+    const events = loadEventDump('test_fixtures/approved_replay_golden.json')
+      .filter(event => event.seq !== 6)
+    const initialState = initializeStateFromDump(events)
+    expect(initialState).not.toBeNull()
+
+    let state = initialState!
+    let desyncs: ReturnType<typeof compareCombatStates> = []
+    for (const event of events) {
+      if (event.type === 'units_init') continue
+
+      state = applyCombatEvent(state, event as CombatEvent, {
+        simTime: event.timestamp || 0
+      })
+
+      if (event.type === 'state_snapshot') {
+        desyncs = compareCombatStates(state, {
+          player_units: event.player_units,
+          opponent_units: event.opponent_units
+        }, event as CombatEvent)
+      }
+    }
+
+    expect(desyncs).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        unit_id: 'opp_back',
+        diff: expect.objectContaining({
+          hp: { ui: 100, server: 80 }
+        })
+      })
+    ]))
+  })
 })

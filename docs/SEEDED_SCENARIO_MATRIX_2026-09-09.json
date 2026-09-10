@@ -101,10 +101,22 @@
       "team_a": ["p_front", "p_back"],
       "team_b": ["opp_front", "opp_back"],
       "formation": {"team_a": ["front", "back"], "team_b": ["front", "back"]},
-      "expected": {"snapshot_desyncs": 0, "dead_units": ["opp_front"], "event_types": ["passive_triggered", "unit_attack", "unit_died", "mana_update", "state_snapshot"]},
+      "expected": {"snapshot_desyncs": 0, "missing_event_fails": true, "dead_units": ["opp_front"], "event_types": ["passive_triggered", "unit_attack", "unit_died", "mana_update", "state_snapshot"]},
       "acceptance": "The same golden event stream reconstructs the authoritative snapshot in core, backend, and frontend without desync.",
       "coverage": {"positive": "canonical replay reconstruction", "negative": "snapshot desync count must be zero"},
-      "test_reference": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json"
+      "test_reference": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json",
+      "test_references": [
+        "waffen-tactics/tests/test_golden_replay_contract.py",
+        "waffen-tactics-web/backend/tests/test_golden_replay_contract.py",
+        "waffen-tactics-web/src/hooks/combat/__tests__/realEventReplay.test.ts"
+      ],
+      "evidence_domains": {
+        "data": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json",
+        "runtime": "waffen-tactics/tests/test_golden_replay_contract.py",
+        "emitter": "waffen-tactics/tests/test_golden_replay_contract.py",
+        "reconstructor": "waffen-tactics-web/backend/tests/test_golden_replay_contract.py",
+        "ui": "waffen-tactics-web/src/hooks/combat/__tests__/realEventReplay.test.ts"
+      }
     },
     {
       "id": "canonical_passive_seeded_matrix",

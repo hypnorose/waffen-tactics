@@ -17,7 +17,7 @@ tests and audit runner.
 | Ally death trigger once | 158006 | A front / B front+back | One gold reward for one death | `test_combat_shared.py` |
 | Low-HP threshold | 158007 | A front+back / B front | Authoritative threshold trigger | `test_combat_effect_processor.py` |
 | Trait threshold control | 158008 | A front / B front | Below/exact/next tier states | `tools/balance_audit.py` |
-| Canonical replay parity | 158009 | A front+back / B front+back | Zero snapshot desyncs | `approved_replay_golden.json` |
+| Canonical replay parity | 158009 | A front+back / B front+back | Zero snapshot desyncs; omitted mutation must desync | core/backend/frontend golden replay tests |
 
 ## Reproducibility contract
 
@@ -25,6 +25,8 @@ tests and audit runner.
 - The matrix validator rejects duplicate or missing seeds, incomplete formation
   metadata, missing acceptance notes, and missing runner references.
 - The core, backend, and frontend replay tests consume the same
-  `approved_replay_golden.json` fixture for the cross-layer parity row.
+  `approved_replay_golden.json` fixture for the cross-layer parity row. The
+  frontend test also removes one canonical mutation event and requires a
+  snapshot diff, proving that missing events are not silently accepted.
 - A scenario failure is classified by the owning runner: data, runtime,
   emitter, reconstructor, UI, or audit tooling.

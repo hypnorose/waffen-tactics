@@ -35,7 +35,13 @@ def test_seeded_scenario_matrix_is_complete_and_reproducible_by_reference():
 
     replay = next(item for item in scenarios if item["id"] == "canonical_replay_snapshot_parity")
     assert replay["expected"]["snapshot_desyncs"] == 0
+    assert replay["expected"]["missing_event_fails"] is True
     assert (REPO_ROOT / replay["test_reference"]).exists()
+    assert replay["test_references"]
+    for reference in replay["test_references"]:
+        assert (REPO_ROOT / reference).exists(), f"Missing cross-layer runner reference: {reference}"
+    assert set(replay["evidence_domains"]) == {"data", "runtime", "emitter", "reconstructor", "ui"}
+    assert replay["evidence_domains"]["data"] == replay["test_reference"]
 
     passive_matrix = next(item for item in scenarios if item["id"] == "canonical_passive_seeded_matrix")
     assert passive_matrix["expected"]["deterministic"] is True
