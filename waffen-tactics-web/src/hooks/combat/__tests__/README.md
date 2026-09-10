@@ -25,7 +25,7 @@ Integration tests using actual backend combat dumps:
 
 ### Install Dependencies
 ```bash
-cd /home/ubuntu/waffen-tactics-game/waffen-tactics-web
+cd waffen-tactics-web
 npm install
 ```
 

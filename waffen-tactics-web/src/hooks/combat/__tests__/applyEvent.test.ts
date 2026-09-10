@@ -1304,17 +1304,3 @@ describe('applyCombatEvent - Effect Handling', () => {
     })
   })
 })
-
-describe('applyCombatEvent - Real Event Dump Replay', () => {
-  it('should replay real combat events from dump without errors', async () => {
-    // This test will use actual event dumps from backend
-    // For now, it's a placeholder - we'll load real events in the next iteration
-
-    const state = createInitialState()
-
-    // TODO: Load events from /home/ubuntu/waffen-tactics-game/waffen-tactics-web/backend/events_desync_team.json
-    // and replay them through applyCombatEvent to ensure no crashes or state corruption
-
-    expect(true).toBe(true)
-  })
-})
