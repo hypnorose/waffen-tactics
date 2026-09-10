@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { useCombatSSEBuffer } from './combat/useCombatSSEBuffer'
 import { computeDelayMs } from './combat/replayTiming'
 import { applyCombatEvent, CombatReplayValidationError } from './combat/applyEvent'
+import { createEmptyCombatState, reconstructCombatState } from './combat/replayController'
 import { compareCombatStates } from './combat/desync'
 import { getCombatAttackProjectileEmoji } from './combat/combatPresentation'
 import { useProjectileSystem } from './useProjectileSystem'
@@ -19,21 +20,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
   const { token } = useAuthStore()
   const { bufferedEvents, isBufferedComplete } = useCombatSSEBuffer(token || '')
   const [playhead, setPlayhead] = useState(0)
-  const [combatState, setCombatState] = useState<CombatState>({
-    playerUnits: [],
-    opponentUnits: [],
-    combatLog: [],
-    isFinished: false,
-    victory: null,
-    finalState: null,
-    synergies: {},
-    traits: [],
-    opponentInfo: null,
-    regenMap: {},
-    simTime: 0,
-    defeatMessage: undefined,
-    combatSummary: undefined
-  })
+  const [combatState, setCombatState] = useState<CombatState>(createEmptyCombatState)
   const combatStateRef = useRef(combatState)
 
   useEffect(() => {
@@ -53,6 +40,8 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
   const spawnProjectileRef = useRef(spawnProjectile)
   const [pendingProjectiles, setPendingProjectiles] = useState(0)
   const [allEventsReplayed, setAllEventsReplayed] = useState(false)
+  const [replayPaused, setReplayPaused] = useState(false)
+  const [replaySeekError, setReplaySeekError] = useState<string | null>(null)
   const recentEventsRef = useRef<CombatEvent[]>([])
   const lastAppliedPlayheadRef = useRef<number>(-1)
   const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -103,6 +92,46 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
   const clearDesyncLogs = () => setDesyncLogs([])
 
+  const clearReplayTimerAndPause = () => {
+    clearReplayTimer()
+    setReplayPaused(true)
+  }
+
+  const seekReplay = (targetIndex: number) => {
+    clearReplayTimerAndPause()
+
+    try {
+      const reconstructed = reconstructCombatState(bufferedEvents, targetIndex)
+      setReplaySeekError(null)
+      setCombatState(reconstructed)
+      combatStateRef.current = reconstructed
+      recentEventsRef.current = bufferedEvents.slice(0, targetIndex + 1).slice(-50)
+      lastAppliedPlayheadRef.current = targetIndex
+      setPlayhead(Math.max(0, targetIndex))
+      setAllEventsReplayed(isBufferedComplete && targetIndex === bufferedEvents.length - 1)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Nie udało się odtworzyć wybranego stanu replayu.'
+      setReplaySeekError(message)
+    }
+  }
+
+  const restartReplay = () => {
+    if (bufferedEvents.length === 0) {
+      setReplaySeekError('Replay nie ma jeszcze żadnych zdarzeń do odtworzenia.')
+      return
+    }
+    seekReplay(0)
+  }
+
+  const toggleReplay = () => {
+    if (replayPaused) {
+      setReplaySeekError(null)
+      setReplayPaused(false)
+      return
+    }
+    clearReplayTimerAndPause()
+  }
+
   const exportDesyncJSON = () => {
     try {
       return JSON.stringify(desyncLogs, null, 2)
@@ -125,6 +154,11 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     
     if (!replayEnabled) {
       console.log('[REPLAY LOOP] Gate closed, clearing timer')
+      clearReplayTimer()
+      return
+    }
+
+    if (replayPaused) {
       clearReplayTimer()
       return
     }
@@ -338,7 +372,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
     // Schedule next
     scheduleNextEvent(event, playhead)
-  }, [replayEnabled, isBufferedComplete, bufferedEvents, playhead, combatSpeed])
+  }, [replayEnabled, replayPaused, isBufferedComplete, bufferedEvents, playhead, combatSpeed])
 
   // Start replay when buffered
   useEffect(() => {
@@ -379,6 +413,8 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     lastAppliedPlayheadRef.current = -1
     recentEventsRef.current = []
     setAllEventsReplayed(false)
+    setReplayPaused(false)
+    setReplaySeekError(null)
     setPlayhead(0)
   }, [replayEnabled, bufferedEvents])
 
@@ -462,6 +498,13 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     defeatMessage: combatState.defeatMessage,
     combatSummary: combatState.combatSummary,
     simTime: combatState.simTime,
+    replayEvents: bufferedEvents,
+    replayEventIndex: bufferedEvents.length > 0 ? Math.min(playhead, bufferedEvents.length - 1) : 0,
+    replayPlaying: replayEnabled && !replayPaused && bufferedEvents.length > 0,
+    replaySeekError,
+    restartReplay,
+    toggleReplay,
+    seekReplay,
     activeAttackerId: combatState.combatSummary?.focus?.attacker_id ?? null,
     activeTargetId: combatState.combatSummary?.focus?.target_id ?? null,
     desyncLogs,

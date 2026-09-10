@@ -12,6 +12,7 @@ import SynergiesPanel from './SynergiesPanel'
 import CombatSpeedSlider from './CombatSpeedSlider'
 import CombatLogModal from './CombatLogModal'
 import DesyncInspector from './DesyncInspector'
+import ReplayControls from './ReplayControls'
 import { CombatOverlayProps } from './CombatOverlayTypes'
 import { UnitAnchorsProvider } from '../hooks/useUnitAnchors'
 import { ProjectileProvider } from '../hooks/useProjectileSystem'
@@ -53,6 +54,13 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     activeAttackerId,
     activeTargetId,
     simTime,
+    replayEvents,
+    replayEventIndex,
+    replayPlaying,
+    replaySeekError,
+    restartReplay,
+    toggleReplay,
+    seekReplay,
     desyncLogs,
     clearDesyncLogs,
     exportDesyncJSON
@@ -163,6 +171,16 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
               )}
 
               <CombatLogModal showLog={showLog} setShowLog={setShowLog} combatLog={combatLog} logEndRef={logEndRef} />
+              <ReplayControls
+                eventCount={replayEvents.length}
+                currentIndex={replayEventIndex}
+                currentEvent={replayEvents[replayEventIndex]}
+                isPlaying={replayPlaying}
+                error={replaySeekError}
+                onRestart={restartReplay}
+                onTogglePlay={toggleReplay}
+                onSeek={seekReplay}
+              />
             </div>
           </div>
 
