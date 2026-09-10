@@ -53,6 +53,8 @@ load_nvm() {
 PROJECT_ROOT="/home/ubuntu/waffen-tactics-game"
 WEB_DIR="$PROJECT_ROOT/waffen-tactics-web"
 BACKEND_DIR="$WEB_DIR/backend"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/runtime_process_scope.sh"
 
 echo "=============================================="
 echo " Waffen Tactics - start"
@@ -64,20 +66,29 @@ if [ ! -d "$PROJECT_ROOT" ]; then
 fi
 
 log_info "Stopping existing project processes"
-for pid in $(pgrep -f "api.py" 2>/dev/null || true); do
-    if [ -L "/proc/$pid/cwd" ] && readlink "/proc/$pid/cwd" 2>/dev/null | grep -q "$BACKEND_DIR"; then
-        kill "$pid" 2>/dev/null || true
-        log_info "Stopped backend pid=$pid"
+while IFS= read -r pid; do
+    kill "$pid" 2>/dev/null || true
+    log_info "Stopped backend pid=$pid"
+done < <(project_pids_for_cwd "api.py" "$BACKEND_DIR")
+while IFS= read -r pid; do
+    kill "$pid" 2>/dev/null || true
+    log_info "Stopped frontend pid=$pid"
+done < <(project_pids_for_cwd "vite" "$WEB_DIR")
+
+while IFS= read -r pid; do
+    sudo kill "$pid" 2>/dev/null || true
+    log_info "Stopped project Caddy pid=$pid"
+done < <(project_caddy_pids "$WEB_DIR" "Caddyfile")
+
+for attempt in 1 2 3 4 5; do
+    if [ -z "$(project_caddy_pids "$WEB_DIR" "Caddyfile")" ]; then
+        break
     fi
+    sleep 1
 done
-for pid in $(pgrep -f "vite" 2>/dev/null || true); do
-    if [ -L "/proc/$pid/cwd" ] && readlink "/proc/$pid/cwd" 2>/dev/null | grep -q "$WEB_DIR"; then
-        kill "$pid" 2>/dev/null || true
-        log_info "Stopped frontend pid=$pid"
-    fi
-done
-if pgrep -a caddy 2>/dev/null | grep -q "$WEB_DIR/Caddyfile"; then
-    sudo pkill -f "caddy.*$WEB_DIR/Caddyfile" 2>/dev/null || true
+if [ -n "$(project_caddy_pids "$WEB_DIR" "Caddyfile")" ]; then
+    log_error "Project Caddy did not stop; refusing to start a duplicate"
+    exit 1
 fi
 sleep 2
 log_success "Existing processes stopped"

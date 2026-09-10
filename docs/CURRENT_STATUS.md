@@ -61,6 +61,7 @@ DEF-267 now routes canonical `per_second`, `per_round`, and `on_ally_hp_below` r
 ## Open gates
 
 - `DEF-164` is `In Review` with `Needs Manual Test`. Its completed runtime/release blockers include `DEF-200`, `DEF-209`, `DEF-210`, `DEF-211`, `DEF-213`, `DEF-214`, `DEF-215`, `DEF-216`, `DEF-219`, `DEF-220`, `DEF-222`, `DEF-225`, `DEF-242`, `DEF-243`, `DEF-244`, `DEF-245`, `DEF-246`, `DEF-247`, `DEF-248`, `DEF-249`, `DEF-250`, `DEF-251`, `DEF-252`, `DEF-253`, `DEF-254`, `DEF-255`, `DEF-256`, `DEF-257`, `DEF-258`, `DEF-259`, `DEF-260`, `DEF-261`, `DEF-263`, `DEF-265`, `DEF-266`, and `DEF-267`; `DEF-192` is the remaining fixture/release-evidence dependency before the manual release gate can be completed.
+- `DEF-268` is `In Progress`: the local operational scripts now share cwd/config-aware Caddy discovery, cover relative and absolute config argv, and refuse to start a duplicate when shutdown does not complete. The fix is not deployed to VPS yet and structurally blocks `DEF-164` until its deployment/manual boundary is verified.
 - `DEF-192` is `Done`: the current local working-tree `waffen-tactics-web/backend/events_test_fresh.json` is the explicitly approved source of truth. Its frozen SHA-256, byte size, event count, sequence range, scenario, and event-type coverage are recorded in `events_test_fresh.provenance.json`; no historical VPS or `HEAD` fixture was restored.
 - Release acceptance still needs Game View checks at 1280x720 and 1920x1080, backend/frontend revision alignment, deployment/VPS status and logs, and rollback evidence.
 - Deployment evidence on 2026-09-10: VPS revision `7fd85e8291673451771f03918d42aae8aa561134` is running; backend and Vite listen on `127.0.0.1:8000` and `127.0.0.1:3000`, Caddy owns the public TLS listener, public `/` and `/api/game/traits` return 200, and external direct access to ports 3000/8000 is blocked. The tracked VPS branch is clean, but unrelated untracked VPS drift remains and is not treated as release approval.
@@ -111,8 +112,9 @@ DEF-267 now routes canonical `per_second`, `per_round`, and `on_ally_hp_below` r
 
 ## Next continuation
 
-1. Complete the manual/runtime portion of `DEF-164` (Game View at 1280x720 and 1920x1080 plus release-owner sign-off), without treating green automated tests or HTTP checks as visual runtime proof.
-2. Resolve the author decisions in `DEF-199` and `DEF-235` when available; keep new-set authoring gated behind approval.
+1. Finish `DEF-268`, then deploy and verify the operational restart behavior when deployment is explicitly authorized.
+2. Complete the manual/runtime portion of `DEF-164` (Game View at 1280x720 and 1920x1080 plus release-owner sign-off), without treating green automated tests or HTTP checks as visual runtime proof.
+3. Resolve the author decisions in `DEF-199` and `DEF-235` when available; keep new-set authoring gated behind approval.
 3. After the gameplay/economy contracts are approved, rerun the seeded audits and compare their JSON artifacts before any permanent tuning.
 
 ## Legacy boundary

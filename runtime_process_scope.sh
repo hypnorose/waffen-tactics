@@ -27,12 +27,26 @@ project_caddy_pids() {
         cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
         [ "$cwd" = "$expected_cwd" ] || continue
         cmdline="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
-        case " $cmdline " in
-            *" --config $config_name "*|*" --config $expected_cwd/$config_name "*)
-                echo "$pid"
-                ;;
-        esac
+        if caddy_config_matches_project "$cmdline" "$expected_cwd" "$config_name"; then
+            echo "$pid"
+        fi
     done < <(pgrep -x caddy 2>/dev/null || true)
+}
+
+caddy_config_matches_project() {
+    local cmdline="$1"
+    local expected_cwd="$2"
+    local config_name="${3:-Caddyfile}"
+    local absolute_config="$expected_cwd/$config_name"
+
+    case " $cmdline " in
+        *" --config $config_name "*|*" --config $absolute_config "*|*" --config=$config_name "*|*" --config=$absolute_config "*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
 }
 
 project_process_report() {
