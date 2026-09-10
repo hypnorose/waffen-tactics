@@ -73,6 +73,15 @@ def test_set2_roster_contract_rejects_duplicate_ids_and_incomplete_modular_passi
     assert "unit[2].passive missing required field 'limit'" in errors
 
 
+def test_set2_roster_contract_rejects_removed_trait_membership():
+    roster = _roster()
+    roster[0]["traits"][0] = "Żołnierz mentora"
+
+    errors = validate_set2_roster(roster)
+
+    assert "unit[0].traits contains removed Set 2 trait: Żołnierz mentora" in errors
+
+
 def test_set2_traits_contract_accepts_explicit_author_count_when_provided():
     assert validate_set2_traits(_traits(), expected_count=13) == []
 
@@ -81,6 +90,15 @@ def test_set2_traits_contract_defaults_to_accepted_twelve_trait_scope():
     errors = validate_set2_traits(_traits())
 
     assert "traits must contain exactly 12 records, got 13" in errors
+
+
+def test_set2_traits_contract_rejects_removed_trait_record():
+    traits = _traits(12)
+    traits[0]["name"] = "Żołnierz mentora"
+
+    errors = validate_set2_traits(traits)
+
+    assert "trait[0].name is a removed Set 2 trait: Żołnierz mentora" in errors
 
 
 def test_set2_traits_contract_rejects_unsorted_thresholds_and_missing_effect_contract():

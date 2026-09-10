@@ -1,8 +1,9 @@
 """Fail-closed structural checks for the author-led Set 2 data contract.
 
-This module deliberately contains no Set 2 names, numbers, trait effects, or
-runtime dispatch.  It validates data supplied by the author before a future
-dataset is allowed to become a canonical runtime source.
+This module contains only the locked structural invariants and explicit
+removals from the author contract.  It does not contain balance values, trait
+effects, or runtime dispatch.  It validates data supplied by the author before
+a future dataset is allowed to become a canonical runtime source.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from typing import Any
 SET2_ROSTER_SIZE = 32
 SET2_COST_DISTRIBUTION = {1: 6, 2: 7, 3: 8, 4: 6, 5: 5}
 SET2_TRAIT_COUNT = 12
+SET2_REMOVED_TRAIT_NAMES = frozenset({"Żołnierz mentora"})
 
 
 def _is_positive_int(value: Any) -> bool:
@@ -118,10 +120,16 @@ def validate_set2_roster(
         traits = record.get("traits")
         if not isinstance(traits, list) or not all(_non_empty_string(item) for item in traits):
             errors.append(f"{path}.traits must be a list of non-empty strings")
-        elif len(traits) != 2 and not _non_empty_string(record.get("trait_exception")):
-            errors.append(
-                f"{path} must contain exactly two traits or a non-empty 'trait_exception'"
+        else:
+            removed_traits = sorted(set(traits).intersection(SET2_REMOVED_TRAIT_NAMES))
+            errors.extend(
+                f"{path}.traits contains removed Set 2 trait: {trait_name}"
+                for trait_name in removed_traits
             )
+            if len(traits) != 2 and not _non_empty_string(record.get("trait_exception")):
+                errors.append(
+                    f"{path} must contain exactly two traits or a non-empty 'trait_exception'"
+                )
 
         passive = record.get("passive")
         errors.extend(_validate_modular_effect(passive, f"{path}.passive"))
@@ -175,6 +183,8 @@ def validate_set2_traits(
 
         if not _non_empty_string(trait.get("name")):
             errors.append(f"{path}.name must be a non-empty string")
+        elif trait["name"] in SET2_REMOVED_TRAIT_NAMES:
+            errors.append(f"{path}.name is a removed Set 2 trait: {trait['name']}")
 
         thresholds = trait.get("thresholds")
         valid_thresholds = (
