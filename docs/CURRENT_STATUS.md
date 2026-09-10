@@ -8,7 +8,7 @@ Linear is the source of truth for issue status, ownership, dependencies, milesto
 
 ## Verified automated evidence
 
-- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q` — **383 passed, 24 skipped, 22 subtests passed**, with no warnings.
+- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q tests` — **384 passed, 25 skipped, 22 subtests passed**, with no warnings.
 - Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **307 passed, 8 skipped, 5 subtests passed**, with no warnings.
 - Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **127 passed across 8 files**.
 - Frontend production build: `npm run build` — pass. Vite reports only stale Browserslist data; the build succeeds.
