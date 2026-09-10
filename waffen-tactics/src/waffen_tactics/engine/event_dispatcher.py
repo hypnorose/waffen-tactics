@@ -108,11 +108,12 @@ class EventDispatcher:
                 # Log to stdout/stderr so the test harness can see failures
                 try:
                     print(f"[EVENT EMIT ERROR] type={event_type} seq={seq_value} error={e}")
-                except Exception as e:
-                    raise
+                except Exception:
+                    # Logging must not hide the original delivery failure.
+                    pass
                 # Do not advance self._event_seq on failure — this keeps
                 # seqs tightly coupled to successfully-delivered events.
-                return
+                raise
 
             # If we got here, the event was delivered successfully —
             # advance the dispatcher sequence counter to the value used.

@@ -7,6 +7,38 @@ on:
     branches: [ main, master ]
 
 jobs:
+  frontend-quality:
+    name: Frontend Quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: waffen-tactics-web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: waffen-tactics-web/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm run test:run
+
+      - name: Production build
+        run: npm run build
+
   # Shared job defaults: Python setup and cache helper reused across jobs
   unit-tests:
     name: Unit Tests
@@ -43,14 +75,16 @@ jobs:
         run: |
           set -euo pipefail
           # Run only unit tests (integration marked tests excluded)
-          pytest -q -m "not integration"
+          PYTHONIOENCODING=utf-8 PYTHONUTF8=1 python -m pytest -ra -W error::pytest.PytestReturnNotNoneWarning -m "not integration"
 
       - name: Upload unit test logs
-        if: failure()
+        if: failure() && (hashFiles('.pytest_cache/**') != '' || hashFiles('tmp_replay_runs/**') != '')
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-logs
-          path: .pytest_cache || tmp_replay_runs || .
+          path: |
+            .pytest_cache
+            tmp_replay_runs
 
   integration-tests:
     name: Integration Tests
@@ -88,11 +122,11 @@ jobs:
         run: |
           set -euo pipefail
           # Run only integration tests (marked with @pytest.mark.integration)
-          pytest -q -m integration
+          PYTHONIOENCODING=utf-8 PYTHONUTF8=1 python -m pytest -ra -W error::pytest.PytestReturnNotNoneWarning -m integration
 
       - name: Upload integration artifacts
-        if: always()
+        if: always() && hashFiles('tmp_replay_runs/**') != ''
         uses: actions/upload-artifact@v4
         with:
           name: integration-artifacts
-          path: tmp_replay_runs || .
+          path: tmp_replay_runs

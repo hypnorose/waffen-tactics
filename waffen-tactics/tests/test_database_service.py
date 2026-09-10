@@ -1,4 +1,5 @@
 import pytest
+
 # Dodatkowe testy DatabaseManager
 from waffen_tactics.models.player_state import PlayerState, UnitInstance
 
@@ -63,21 +64,11 @@ async def test_get_random_opponent(db):
     assert opp is not None
     assert opp['nickname'] in ("RealPlayer", "Bot1", "Bot2")
 
-import pytest
-import asyncio
 import sys
 import os
 import tempfile
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 from waffen_tactics.services.database import DatabaseManager
-
-import pytest_asyncio
-
-@pytest_asyncio.fixture
-async def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
-    loop.close()
 
 @pytest.fixture
 def db_path():

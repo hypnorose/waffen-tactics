@@ -80,6 +80,43 @@ def test_move_to_board_and_back(gm):
     assert all(u.instance_id != inst.instance_id for u in player.board)
 
 
+def test_invalid_position_is_rejected_without_mutating_bench_or_board(gm):
+    player = PlayerState(user_id=40)
+    unit_sample = gm.data.units[0]
+    inst = UnitInstance(unit_id=unit_sample.id, position='front')
+    player.bench.append(inst)
+
+    ok, message = gm.move_to_board(player, inst.instance_id, 'middle')
+
+    assert not ok
+    assert 'Nieprawidłowa pozycja' in message
+    assert player.bench == [inst]
+    assert player.board == []
+    assert inst.position == 'front'
+
+
+def test_invalid_switch_position_is_rejected_without_mutating_board(gm):
+    player = PlayerState(user_id=41)
+    unit_sample = gm.data.units[0]
+    inst = UnitInstance(unit_id=unit_sample.id, position='front')
+    player.board.append(inst)
+
+    ok, message = gm.switch_line(player, inst.instance_id, 'middle')
+
+    assert not ok
+    assert 'Nieprawidłowa pozycja' in message
+    assert player.board == [inst]
+    assert inst.position == 'front'
+
+
+def test_invalid_persisted_position_is_rejected_at_state_boundary():
+    with pytest.raises(ValueError, match='Unsupported unit position'):
+        PlayerState.from_dict({
+            'user_id': 42,
+            'board': [{'unit_id': 'unit_001', 'star_level': 1, 'position': 'middle'}],
+        })
+
+
 def test_try_auto_upgrade(gm):
     player = PlayerState(user_id=5)
     unit_sample = gm.data.units[0]

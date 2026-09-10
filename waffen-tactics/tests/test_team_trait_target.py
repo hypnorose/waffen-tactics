@@ -8,8 +8,9 @@ def make_unit(uid, name, factions=None, classes=None, atk_speed=1.0):
     return Unit(id=uid, name=name, cost=1, factions=factions or [], classes=classes or [], stats=stats, skill=skill)
 
 
-def test_team_target_trait_applies_to_non_trait_units():
-    # Trait declares target: team, threshold 3 -> should apply to all teammates
+def test_team_target_death_trait_attaches_to_non_trait_units_without_static_buff():
+    # Trait declares target: team, threshold 3 -> its death effect is attached
+    # to all teammates, but does not become a start-of-combat stat bonus.
     traits = [
         {
             "name": "XN Waffen",
@@ -54,8 +55,12 @@ def test_team_target_trait_applies_to_non_trait_units():
     b3 = engine.apply_stat_buffs(base_stats, u3, active)
     b4 = engine.apply_stat_buffs(base_stats, u4, active)
 
-    # All units (including u4) should have their attack_speed increased by 10%
-    assert b1["attack_speed"] == 1.1
-    assert b2["attack_speed"] == 1.1
-    assert b3["attack_speed"] == 1.1
-    assert b4["attack_speed"] == 1.1
+    # Death-trigger rewards must not be applied statically.
+    assert b1["attack_speed"] == 1.0
+    assert b2["attack_speed"] == 1.0
+    assert b3["attack_speed"] == 1.0
+    assert b4["attack_speed"] == 1.0
+
+    # The same effect is still attached to every team member for the death
+    # dispatcher, including the non-trait unit.
+    assert all(engine.get_active_effects(unit, active) for unit in units)

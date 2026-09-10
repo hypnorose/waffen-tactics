@@ -4,6 +4,7 @@ Game management - handlers for game lifecycle management
 from flask import request, jsonify
 from pathlib import Path
 import sys
+import logging
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'src'))
@@ -22,18 +23,40 @@ from services.game_management_service import (
 DB_PATH = str(Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')
 db_manager = DatabaseManager(DB_PATH)
 game_manager = GameManager()
+logger = logging.getLogger(__name__)
+
+
+def _internal_error_response(operation, exc):
+    """Return a safe lifecycle error while retaining server-side correlation."""
+    request_id = getattr(request, 'request_id', 'unknown')
+    logger.error(
+        'game lifecycle failed operation=%s request_id=%s error_type=%s',
+        operation,
+        request_id,
+        type(exc).__name__,
+    )
+    response = jsonify({
+        'error': 'Internal server error',
+        'code': 'internal_error',
+        'request_id': request_id,
+    })
+    response.headers['X-Request-ID'] = request_id
+    return response, 500
 
 
 def get_state(user_id):
     """Get current game state"""
-    player_data = get_player_state_data(user_id)
+    try:
+        player_data = get_player_state_data(user_id)
 
-    if not player_data:
-        return jsonify({'error': 'No game found', 'needs_start': True}), 404
+        if not player_data:
+            return jsonify({'error': 'No game found', 'needs_start': True}), 404
 
-    # Enrich the data with computed fields
-    player = run_async(db_manager.load_player(int(user_id)))
-    return jsonify(enrich_player_state(player))
+        # Enrich the data with computed fields
+        player = run_async(db_manager.load_player(int(user_id)))
+        return jsonify(enrich_player_state(player))
+    except Exception as exc:
+        return _internal_error_response('get_state', exc)
 
 
 def start_game(user_id):
@@ -43,8 +66,8 @@ def start_game(user_id):
         # Enrich the data with computed fields
         player = run_async(db_manager.load_player(int(user_id)))
         return jsonify(enrich_player_state(player))
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return _internal_error_response('start_game', exc)
 
 
 def reset_game(user_id):
@@ -56,8 +79,8 @@ def reset_game(user_id):
         return jsonify({'message': 'Gra zresetowana!', 'state': enrich_player_state(player)})
     except ValueError as e:
         return jsonify({'error': str(e)}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return _internal_error_response('reset_game', exc)
 
 
 def surrender_game(user_id, payload):
@@ -70,8 +93,8 @@ def surrender_game(user_id, payload):
         return jsonify({'message': 'Poddano grę!', 'state': enrich_player_state(player)})
     except ValueError as e:
         return jsonify({'error': str(e)}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return _internal_error_response('surrender_game', exc)
 
 
 async def init_sample_bots():

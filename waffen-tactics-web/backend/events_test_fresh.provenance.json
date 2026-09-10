@@ -1,0 +1,44 @@
+{
+  "fixture": "events_test_fresh.json",
+  "approval": {
+    "linear_issue": "DEF-192",
+    "approved_on": "2026-09-10",
+    "decision": "The current local working-tree fixture is the source of truth.",
+    "repository_head": "7fd85e8291673451771f03918d42aae8aa561134",
+    "source_state": "working-tree fixture explicitly approved by the release owner"
+  },
+  "scenario": {
+    "name": "canonical first four units versus next four units",
+    "generator": "generate_fresh_test.py",
+    "player_units": ["rafcikd", "falconbalkon", "piwniczak", "capybara"],
+    "opponent_units": ["kubica", "denvii", "miki", "yossarian"],
+    "positions": "front for every unit",
+    "star_level": 1,
+    "generation_seed": null,
+    "seed_status": "The approved pre-existing artifact has no recorded generation seed.",
+    "determinism": "The approved JSON is a frozen replay input; its hash and coverage are locked below. Future generated dumps require an explicit seed and output path."
+  },
+  "fixture_snapshot": {
+    "sha256": "9f5589a9579df7e9056eb3da35353009059e5609e33141c1fa12e975b3cd1590",
+    "bytes": 601547,
+    "event_count": 329,
+    "sequence": {
+      "first": 1,
+      "last": 329
+    },
+    "event_type_counts": {
+      "animation_start": 68,
+      "mana_update": 73,
+      "state_snapshot": 110,
+      "unit_attack": 73,
+      "unit_died": 5
+    },
+    "event_types": [
+      "animation_start",
+      "mana_update",
+      "state_snapshot",
+      "unit_attack",
+      "unit_died"
+    ]
+  }
+}

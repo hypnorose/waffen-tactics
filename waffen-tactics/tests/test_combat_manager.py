@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 from waffen_tactics.services.combat_manager import CombatManager
+from waffen_tactics.services.combat_errors import CombatExecutionError, InvalidCombatInputError
 from waffen_tactics.services.data_loader import GameData
 from waffen_tactics.services.synergy import SynergyEngine
 from waffen_tactics.models.player_state import PlayerState, UnitInstance
@@ -90,6 +91,7 @@ class TestCombatManager:
         assert player_state.streak == 1
 
         # Verify combat simulator was called
+        mock_combat_sim.assert_called_once_with(timeout=120)
         mock_sim_instance.simulate.assert_called_once()
 
     @patch('waffen_tactics.services.combat_manager.CombatSimulator')
@@ -177,41 +179,71 @@ class TestCombatManager:
         player = PlayerState(user_id=1)
         player.board = []  # Empty board
 
-        result = combat_manager.start_combat(player, opponent_board)
-
-        assert result['winner'] == 'opponent'
-        assert 'Nie masz jednostek na planszy!' in result['reason']
-        assert result['damage_taken'] == 10
+        with pytest.raises(InvalidCombatInputError):
+            combat_manager.start_combat(player, opponent_board)
 
     @patch('waffen_tactics.services.combat_manager.CombatSimulator')
     def test_start_combat_exception_handling(self, mock_combat_sim, combat_manager, player_state, opponent_board, mock_synergy_engine):
-        """Test that exceptions in simulation are handled gracefully"""
-        # Mock first simulate call to raise exception
+        """Simulation exceptions do not become a fallback player victory."""
         mock_sim_instance = Mock()
-        mock_sim_instance.simulate.side_effect = [Exception("Simulation error"), {
-            'winner': 'team_a',
-            'duration': 5.0,
-            'log': ['Fallback combat']
-        }]
+        mock_sim_instance.simulate.side_effect = Exception("Simulation error")
         mock_combat_sim.return_value = mock_sim_instance
 
-        result = combat_manager.start_combat(player_state, opponent_board)
+        initial_state = (player_state.hp, player_state.wins, player_state.losses, player_state.round_number)
+        with pytest.raises(CombatExecutionError):
+            combat_manager.start_combat(player_state, opponent_board)
 
-        # Should still return a valid result despite first exception
-        assert 'winner' in result
-        assert result['winner'] == 'player'
+        assert (player_state.hp, player_state.wins, player_state.losses, player_state.round_number) == initial_state
+        assert mock_sim_instance.simulate.call_count == 1
 
-        # Verify simulate was called twice (first failed, second succeeded)
-        assert mock_sim_instance.simulate.call_count == 2
+    @patch('waffen_tactics.services.combat_manager.emit_damage')
+    @patch('waffen_tactics.services.combat_manager.CombatSimulator')
+    def test_defeat_damage_emitter_failure_fails_closed(
+        self,
+        mock_combat_sim,
+        mock_emit_damage,
+        combat_manager,
+        player_state,
+        opponent_board,
+    ):
+        """A failed canonical HP mutation cannot become a partial defeat."""
+        mock_sim_instance = Mock()
+        mock_sim_instance.simulate.return_value = {
+            'winner': 'team_b',
+            'duration': 3.0,
+            'log': ['Combat started', 'Opponent wins'],
+        }
+        mock_combat_sim.return_value = mock_sim_instance
+        mock_emit_damage.side_effect = RuntimeError('canonical emitter unavailable')
+
+        initial_state = (
+            player_state.hp,
+            player_state.wins,
+            player_state.losses,
+            player_state.streak,
+            player_state.round_number,
+        )
+
+        with pytest.raises(CombatExecutionError, match='Failed to apply defeat damage'):
+            combat_manager.start_combat(player_state, opponent_board, {'level': 2})
+
+        assert (
+            player_state.hp,
+            player_state.wins,
+            player_state.losses,
+            player_state.streak,
+            player_state.round_number,
+        ) == initial_state
+        mock_emit_damage.assert_called_once()
 
     def test_unit_lookup_by_id(self, combat_manager, mock_data, player_state):
         """Test that units are correctly looked up by ID from GameData"""
         # Test with valid unit IDs
-        result = combat_manager.start_combat(player_state, [])
+        with pytest.raises(InvalidCombatInputError):
+            combat_manager.start_combat(player_state, [])
 
         # The method should attempt to look up units
         # This is more of an integration test, but verifies the lookup logic
-        assert isinstance(result, dict)
 
     @patch('waffen_tactics.services.combat_manager.CombatSimulator')
     def test_synergy_engine_integration(self, mock_combat_sim, combat_manager, player_state, opponent_board, mock_synergy_engine):

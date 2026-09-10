@@ -2,6 +2,7 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from datetime import datetime
+from ..services.stat_scaling import validate_position
 
 
 @dataclass
@@ -172,7 +173,7 @@ class PlayerState:
                 unit_id=u['unit_id'],
                 star_level=u['star_level'],
                 instance_id=u.get('instance_id'),
-                position=u.get('position', 'front'),
+                position=validate_position(u.get('position', 'front')),
                 persistent_buffs=u.get('persistent_buffs', {}),
                 items=u.get('items', [])
             )

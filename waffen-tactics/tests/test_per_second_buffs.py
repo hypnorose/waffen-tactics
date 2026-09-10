@@ -24,6 +24,25 @@ class DummyUnit:
             self.hp = value
 
 
+class RejectingHpUnit(DummyUnit):
+    """Unit fixture whose canonical HP setter rejects runtime mutations."""
+
+    def __init__(self, *args, **kwargs):
+        self._accept_hp_writes = True
+        super().__init__(*args, **kwargs)
+        self._accept_hp_writes = False
+
+    @property
+    def hp(self):
+        return self._hp
+
+    @hp.setter
+    def hp(self, value):
+        if not self._accept_hp_writes:
+            raise PermissionError("HP mutation rejected by test unit")
+        self._hp = int(value)
+
+
 def make_event_callback(events):
     def cb(ev_type, payload):
         events.append((ev_type, payload))
@@ -277,6 +296,112 @@ class TestPerSecondBuffs(unittest.TestCase):
         ev_type, payload = events[0]
         self.assertEqual(payload['side'], 'team_b')
         self.assertEqual(payload['value'], 4)
+
+    def test_per_second_hp_regen_commits_unit_and_mirror_for_both_teams(self):
+        """Canonical HP mutation and its simulator mirror must commit together."""
+        for side in ('team_a', 'team_b'):
+            with self.subTest(side=side):
+                unit = DummyUnit(
+                    id=f'test_unit_{side}', name='TestUnit', hp=50, max_hp=100
+                )
+                unit.effects = [{
+                    'type': 'per_second_buff',
+                    'stat': 'hp',
+                    'value': 5,
+                    'is_percentage': False,
+                }]
+                events = []
+                hp_mirror = [50]
+                team_a = [unit] if side == 'team_a' else []
+                team_b = [unit] if side == 'team_b' else []
+                a_hp = hp_mirror if side == 'team_a' else []
+                b_hp = hp_mirror if side == 'team_b' else []
+
+                self.processor._process_per_second_buffs(
+                    team_a, team_b, a_hp, b_hp,
+                    time=1.0, log=[], event_callback=make_event_callback(events)
+                )
+
+                self.assertEqual(unit.hp, 55)
+                self.assertEqual(hp_mirror, [55])
+                self.assertEqual(len(events), 1)
+                event_type, payload = events[0]
+                self.assertEqual(event_type, 'hp_regen')
+                self.assertEqual(payload['pre_hp'], 50)
+                self.assertEqual(payload['post_hp'], 55)
+                self.assertEqual(payload['unit_hp'], 55)
+                self.assertEqual(payload['side'], side)
+
+    def test_per_second_hp_regen_rejection_leaves_unit_mirror_and_events_unchanged(self):
+        """A rejected canonical setter must not advance the HP mirror or emit success."""
+        for side in ('team_a', 'team_b'):
+            with self.subTest(side=side):
+                unit = RejectingHpUnit(
+                    id=f'rejecting_{side}', name='RejectingUnit', hp=50, max_hp=100
+                )
+                unit.effects = [{
+                    'type': 'per_second_buff',
+                    'stat': 'hp',
+                    'value': 5,
+                    'is_percentage': False,
+                }]
+                events = []
+                hp_mirror = [50]
+                team_a = [unit] if side == 'team_a' else []
+                team_b = [unit] if side == 'team_b' else []
+                a_hp = hp_mirror if side == 'team_a' else []
+                b_hp = hp_mirror if side == 'team_b' else []
+
+                with self.assertRaises(PermissionError):
+                    self.processor._process_per_second_buffs(
+                        team_a, team_b, a_hp, b_hp,
+                        time=1.0, log=[], event_callback=make_event_callback(events)
+                    )
+
+                self.assertEqual(unit.hp, 50)
+                self.assertEqual(hp_mirror, [50])
+                self.assertEqual(events, [])
+
+    def test_per_second_hp_regen_callback_failure_rolls_back_canonical_unit(self):
+        """A downstream event failure must not leave canonical HP ahead of its mirror."""
+        unit = DummyUnit(id='callback_failure', name='CallbackFailureUnit', hp=50, max_hp=100)
+        unit.effects = [{
+            'type': 'per_second_buff',
+            'stat': 'hp',
+            'value': 5,
+            'is_percentage': False,
+        }]
+        a_hp = [50]
+
+        def failing_callback(_event_type, _payload):
+            raise RuntimeError("event sink rejected HP regen")
+
+        with self.assertRaises(RuntimeError):
+            self.processor._process_per_second_buffs(
+                [unit], [], a_hp, [], time=1.0, log=[],
+                event_callback=failing_callback,
+            )
+
+        self.assertEqual(unit.hp, 50)
+        self.assertEqual(a_hp, [50])
+
+    def test_per_second_hp_regen_without_callback_preserves_mirror_only_compatibility(self):
+        """Direct no-callback callers retain the historical mirror-only path."""
+        unit = DummyUnit(id='no_callback_hp', name='NoCallbackUnit', hp=50, max_hp=100)
+        unit.effects = [{
+            'type': 'per_second_buff',
+            'stat': 'hp',
+            'value': 5,
+            'is_percentage': False,
+        }]
+        a_hp = [50]
+
+        self.processor._process_per_second_buffs(
+            [unit], [], a_hp, [], time=1.0, log=[], event_callback=None
+        )
+
+        self.assertEqual(unit.hp, 50)
+        self.assertEqual(a_hp, [55])
 
     def test_multiple_per_second_buffs_same_unit(self):
         """Test that multiple per-second buffs on the same unit are applied"""

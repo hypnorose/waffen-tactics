@@ -51,11 +51,13 @@ class CombatEffectProcessor:
         # Prevent duplicate processing for the same death within a simulation tick
         if getattr(target, '_death_processed', False):
             return
+        previous_death_processed = getattr(target, '_death_processed', False)
         try:
             target._death_processed = True
-        except Exception:
-            # If target is malformed, bail out
-            return
+        except Exception as exc:
+            raise RuntimeError(
+                f"Cannot mark death processing for unit={getattr(target, 'id', None)}"
+            ) from exc
 
         # Increment collected stats for the killer if they have relevant effects
         if killer:
@@ -146,7 +148,11 @@ class CombatEffectProcessor:
             emit_unit_died(event_callback, target, side=target_side, timestamp=time, unit_hp=pre_hp,
                           hp_arrays=hp_arrays, unit_index=unit_index, unit_side=target_side)
         except Exception:
-            pass
+            try:
+                target._death_processed = previous_death_processed
+            except Exception:
+                pass
+            raise
 
         try:
             print(f"[DEATH DEBUG] emitted unit_died for {getattr(target,'id',None)}; attacking_team_len={len(attacking_team) if attacking_team is not None else 'None'}; attacking_ids={[getattr(u,'id',None) for u in (attacking_team or [])]}")
@@ -258,20 +264,32 @@ class CombatEffectProcessor:
             add_per_sec = total_amount / duration
             if add_per_sec > 0:
                 if target == 'self':
-                    unit.hp_regen_per_sec += add_per_sec
                     log.append(f"[{time:.2f}s] {unit.name} gains +{total_amount:.2f} HP over {duration}s (+{add_per_sec:.2f} HP/s)")
                     if event_callback:
                         emit_regen_gain(event_callback, unit, add_per_sec, total_amount=total_amount, duration=duration, side=side, timestamp=time)
+                    else:
+                        unit.hp_regen_per_sec += add_per_sec
                 elif target == 'team' and attacking_team and attacking_hp:
                     # Apply to all surviving units in attacking team
                     survivors = [u for u, hp in zip(attacking_team, attacking_hp) if hp > 0]
                     if survivors:
                         per_unit = add_per_sec / len(survivors)
-                        for u in survivors:
-                            u.hp_regen_per_sec += per_unit
                         log.append(f"[{time:.2f}s] Team gains +{total_amount:.2f} HP over {duration}s (+{add_per_sec:.2f} HP/s total)")
                         if event_callback:
-                            emit_regen_gain(event_callback, unit, add_per_sec, total_amount=total_amount, duration=duration, side=side, target='team', timestamp=time)
+                            for recipient in survivors:
+                                emit_regen_gain(
+                                    event_callback,
+                                    recipient,
+                                    per_unit,
+                                    total_amount=per_unit * duration,
+                                    duration=duration,
+                                    side=side,
+                                    target='team',
+                                    timestamp=time,
+                                )
+                        else:
+                            for recipient in survivors:
+                                recipient.hp_regen_per_sec += per_unit
 
     def _apply_actions(
         self,

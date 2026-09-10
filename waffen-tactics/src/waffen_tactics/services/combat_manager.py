@@ -3,13 +3,14 @@ from typing import List, Dict, Optional
 from ..models.player_state import PlayerState
 from ..models.unit import Unit
 from ..services.synergy import SynergyEngine
-from ..services.combat_shared import CombatSimulator as SharedCombatSimulator, CombatUnit
-from ..services.combat import CombatSimulator
+from ..services.combat_shared import CombatSimulator, CombatUnit
 from ..services.data_loader import GameData
 import logging
 import copy
 from .event_canonicalizer import emit_damage
 from .items import ITEMS
+from .combat_errors import CombatExecutionError, InvalidCombatInputError
+from .stat_scaling import scaled_attack, scaled_hp, validate_position
 
 bot_logger = logging.getLogger('waffen_tactics')
 
@@ -26,6 +27,13 @@ class CombatManager:
         Simulate combat between player board and opponent
         Returns combat result with winner, log, etc.
         """
+        if not getattr(player, 'board', None):
+            raise InvalidCombatInputError('Player board is empty')
+        if not opponent_board:
+            raise InvalidCombatInputError('Opponent board is empty')
+        if any(not hasattr(unit, 'stats') for unit in opponent_board):
+            raise InvalidCombatInputError('Opponent board contains malformed unit data')
+
         # Convert player board to Units
         player_units = []
         for ui in player.board:
@@ -33,15 +41,10 @@ class CombatManager:
             if unit:
                 player_units.append(unit)
 
-        if not player_units:
-            bot_logger.error(f"[COMBAT] No player units found! Board has {len(player.board)} units")
-            return {
-                'winner': 'opponent',
-                'reason': 'Nie masz jednostek na planszy!',
-                'damage_taken': 10,
-                'log': ['Błąd: brak jednostek na planszy'],
-                'duration': 0.0
-            }
+        if len(player_units) != len(player.board):
+            raise InvalidCombatInputError(
+                f"Player board contains {len(player.board) - len(player_units)} unknown unit entries"
+            )
 
         # Build buffed CombatUnit lists
         try:
@@ -55,8 +58,8 @@ class CombatManager:
 
                 # Apply buffs using SynergyEngine
                 # Calculate base stats with star scaling
-                base_hp = int(unit.stats.hp * (1.6 ** (ui.star_level - 1)))
-                base_attack = int(unit.stats.attack * (1.4 ** (ui.star_level - 1)))
+                base_hp = scaled_hp(unit.stats.hp, ui.star_level)
+                base_attack = scaled_attack(unit.stats.attack, ui.star_level)
                 base_defense = int(unit.stats.defense)
                 base_attack_speed = float(unit.stats.attack_speed)
                 
@@ -89,7 +92,7 @@ class CombatManager:
                 # Get active effects
                 effects_a = self.synergy_engine.get_active_effects(unit, active_synergies) + item_effects
 
-                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats, position=ui.position, base_stats=base_stats, star_level=ui.star_level, passive=getattr(unit, 'passive', None)))
+                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=unit.stats, position=validate_position(ui.position), base_stats=base_stats, star_level=ui.star_level, passive=getattr(unit, 'passive', None)))
 
             # Opponent team
             opponent_units = [u for u in opponent_board]
@@ -117,15 +120,18 @@ class CombatManager:
 
                 team_b_combat.append(CombatUnit(id=f"b_{i}", name=u.name, hp=hp_b, attack=attack_b, defense=defense_b, attack_speed=attack_speed_b, effects=effects_b, max_mana=u.stats.max_mana, stats=u.stats, position='front', base_stats={'hp': hp_b, 'attack': attack_b, 'defense': defense_b, 'attack_speed': attack_speed_b, 'max_mana': u.stats.max_mana}, star_level=1, passive=getattr(u, 'passive', None)))
 
-            shared = CombatSimulator()
-            result = shared.simulate(team_a_combat, team_b_combat, timeout=120, event_callback=None, round_number=player.round_number)
+            # The shared simulator owns the timeout as constructor state; keep
+            # the manager on that same production path after the runtime
+            # consolidation removed the per-call timeout argument.
+            shared = CombatSimulator(timeout=120)
+            result = shared.simulate(team_a_combat, team_b_combat, event_callback=None, round_number=player.round_number)
+            if not isinstance(result, dict) or result.get('winner') not in ('team_a', 'team_b'):
+                raise CombatExecutionError('Combat simulator returned a non-domain outcome')
+        except (InvalidCombatInputError, CombatExecutionError):
+            raise
         except Exception as e:
-            bot_logger.error(f"[COMBAT] Error in simulation: {e}")
-            # Create empty teams for fallback
-            team_a_combat = []
-            team_b_combat = []
-            shared = CombatSimulator()
-            result = shared.simulate(team_a_combat, team_b_combat, timeout=120, event_callback=None, round_number=player.round_number)
+            bot_logger.exception('[COMBAT] Simulation failed; no defeat fallback will be applied')
+            raise CombatExecutionError('Combat simulation failed', cause=e) from e
 
         bot_logger.info(f"[COMBAT] Result: {result['winner']}, Duration: {result.get('duration', 0):.1f}s, Log lines: {len(result.get('log', []))}")
 
@@ -147,8 +153,6 @@ class CombatManager:
                         for stat, value in permanent_buffs.items():
                             ui.persistent_buffs[stat] = ui.persistent_buffs.get(stat, 0) + value
         else:
-            player.losses += 1
-            player.streak = min(0, player.streak) - 1
             # Calculate damage based on star levels of surviving opponents
             surviving_stars = sum(unit.star_level for unit in team_b_combat if unit.hp > 0)
             opponent_level = opponent_info.get('level', 1) if opponent_info else 1
@@ -156,11 +160,14 @@ class CombatManager:
             # Apply damage to player via canonical emitter so HP mutation is centralized
             try:
                 emit_damage(None, None, player, raw_damage=damage, emit_event=False)
-            except Exception:
-                try:
-                    player.hp -= damage
-                except Exception:
-                    pass
+            except Exception as exc:
+                bot_logger.exception('[COMBAT] Failed to apply canonical defeat damage; failing closed')
+                raise CombatExecutionError('Failed to apply defeat damage', cause=exc) from exc
+
+            # Only record defeat progression after the authoritative HP mutation
+            # succeeds; an emitter failure must not leave partial result state.
+            player.losses += 1
+            player.streak = min(0, player.streak) - 1
             result['winner'] = 'opponent'
 
         result['damage_taken'] = damage

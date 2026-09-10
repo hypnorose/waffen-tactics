@@ -39,7 +39,7 @@ def test_seq_advances_and_hp_normalization():
     assert 'target_hp' not in payload
 
 
-def test_seq_not_advanced_on_callback_exception():
+def test_callback_exception_is_not_swallowed_and_seq_is_not_advanced():
     a = SimpleUnit('a2')
     b = SimpleUnit('b2')
     a_hp = [a.hp]
@@ -51,8 +51,9 @@ def test_seq_not_advanced_on_callback_exception():
     d = EventDispatcher([a], [b], a_hp, b_hp)
     wrapped = d.wrap_callback(failing_cb)
 
-    # calling should not raise, and seq should not advance
-    wrapped('unit_attack', {'target_id': b.id})
+    with pytest.raises(RuntimeError, match='fail'):
+        wrapped('unit_attack', {'target_id': b.id})
+
     assert d.get_current_seq() == 0
 
 

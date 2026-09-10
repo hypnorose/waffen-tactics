@@ -8,9 +8,18 @@ from pathlib import Path
 from waffen_tactics.services.database import DatabaseManager
 from waffen_tactics.services.game_manager import GameManager
 from waffen_tactics.services.combat_shared import CombatSimulator, CombatUnit
+from waffen_tactics.services.stat_scaling import scaled_attack, scaled_hp, validate_position
 from waffen_tactics.models.player_state import PlayerState
 import json
 from waffen_tactics.services.event_canonicalizer import emit_heal, emit_damage
+from waffen_tactics.services.combat_errors import (
+    CombatError,
+    CombatExecutionError,
+    InvalidCombatInputError,
+)
+import logging
+
+logger = logging.getLogger('waffen_tactics.combat_service')
 
 # Load game configuration from JSON (allows easy tuning without code changes)
 CONFIG_PATH = Path(__file__).parent.parent / 'game_config.json'
@@ -195,6 +204,71 @@ def resolve_defeat_hp_mutation(
     return {'hp_loss': int(hp_loss), 'pre_hp': int(pre_hp), 'post_hp': int(post_hp)}
 
 
+def resolve_persisted_team_units(
+    entries: Any,
+    side: str,
+    *,
+    require_saved_entries: bool = False,
+) -> List[Tuple[Any, Any]]:
+    """Resolve every persisted team entry against canonical unit data.
+
+    Combat preparation must never silently remove an entry from an
+    authoritative player board or database-backed opponent team.  Returning
+    the original entries alongside their templates lets callers preserve
+    ordering/metadata while keeping this validation in one place.
+    """
+    if not isinstance(entries, list):
+        raise InvalidCombatInputError(
+            f"Malformed {side} combat team: expected a list"
+        )
+
+    resolved = []
+    for index, entry in enumerate(entries):
+        if require_saved_entries and not isinstance(entry, dict):
+            raise InvalidCombatInputError(
+                f"Malformed {side} team entry at index {index}: expected an object"
+            )
+
+        try:
+            if isinstance(entry, str):
+                unit_id = entry
+            elif isinstance(entry, dict):
+                unit_id = (
+                    entry.get('unit_id')
+                    or entry.get('template_id')
+                    or entry.get('id')
+                )
+            else:
+                unit_id = getattr(entry, 'unit_id', None)
+        except Exception as exc:
+            raise InvalidCombatInputError(
+                f"Malformed {side} team entry at index {index}"
+            ) from exc
+
+        if not isinstance(unit_id, str) or not unit_id.strip():
+            raise InvalidCombatInputError(
+                f"Malformed {side} team entry at index {index}: missing unit_id"
+            )
+
+        if require_saved_entries and 'star_level' not in entry:
+            raise InvalidCombatInputError(
+                f"Malformed {side} team entry at index {index}: missing star_level"
+            )
+
+        unit = next(
+            (candidate for candidate in game_manager.data.units if candidate.id == unit_id),
+            None,
+        )
+        if unit is None:
+            raise InvalidCombatInputError(
+                f"Unknown {side} unit at index {index}: {unit_id}"
+            )
+
+        resolved.append((entry, unit))
+
+    return resolved
+
+
 def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[Tuple[List[CombatUnit], List[Dict[str, Any]], Dict[str, Any]]]]:
     """
     Prepare player units for combat with synergies and buffs.
@@ -220,13 +294,11 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
     if len(player.board) > player.max_board_size:
         return False, f"Too many units on board (max {player.max_board_size})", None
 
-    # Check if player has valid units
-    valid_units = 0
-    for ui in player.board:
-        unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-        if unit:
-            valid_units += 1
-    if valid_units == 0:
+    # Validate the complete authoritative board before computing any derived
+    # stats.  A partial team would make the simulated combat diverge from the
+    # persisted player state.
+    resolved_player_units = resolve_persisted_team_units(player.board, 'player')
+    if not resolved_player_units:
         return False, "No valid units on board", None
 
     # Helper to read stat values whether `unit.stats` is a dict or an object
@@ -261,13 +333,13 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     instance_id = unit_instance.get('instance_id') or unit_instance.get('id') or unit_instance.get('unit_id')
                     unit_id_key = unit_instance.get('unit_id') or unit_instance.get('template_id') or unit_instance.get('id')
                     star_level = unit_instance.get('star_level', 1)
-                    position = unit_instance.get('position', 'front')
+                    position = validate_position(unit_instance.get('position', 'front'))
                     persistent_buffs = unit_instance.get('persistent_buffs', {}) or {}
                 else:
                     instance_id = getattr(unit_instance, 'instance_id', None)
                     unit_id_key = getattr(unit_instance, 'unit_id', None)
                     star_level = getattr(unit_instance, 'star_level', 1)
-                    position = getattr(unit_instance, 'position', 'front')
+                    position = validate_position(getattr(unit_instance, 'position', 'front'))
                     persistent_buffs = getattr(unit_instance, 'persistent_buffs', {}) or {}
             except Exception as e:
                 # Surface malformed entries as explicit errors so they appear in logs
@@ -290,8 +362,8 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     attack_speed = 0.8 + (unit.cost * 0.1)
                     base_max_mana = 100
 
-                hp = int(base_hp * (1.6 ** (star_level - 1)))
-                attack = int(base_attack * (1.4 ** (star_level - 1)))
+                hp = scaled_hp(base_hp, star_level)
+                attack = scaled_attack(base_attack, star_level)
                 defense = int(base_defense)
                 # Keep mana constant across star levels — do not multiply by star_level
                 max_mana = int(base_max_mana)
@@ -305,7 +377,7 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     buffed_stats = base_stats_dict.copy()
 
                 # Apply persistent buffs
-                for stat, value in unit_instance.persistent_buffs.items():
+                for stat, value in persistent_buffs.items():
                     if stat in buffed_stats:
                         buffed_stats[stat] += value
 
@@ -371,6 +443,8 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
 
         return True, "Player units prepared", (player_units, player_unit_info, synergies_data)
 
+    except CombatError:
+        raise
     except Exception as e:
         # Raise to ensure caller/logs see full traceback and context
         raise RuntimeError(f"Error preparing player units: {e}") from e
@@ -435,113 +509,117 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
             opponent_wins = opponent_data['wins']
             opponent_level = opponent_data['level']
             opponent_team = opponent_data['board']
+            resolved_opponent_units = resolve_persisted_team_units(
+                opponent_team,
+                'opponent',
+                require_saved_entries=True,
+            )
 
             # Compute opponent synergies
-            opponent_units_raw = [next((u for u in game_manager.data.units if u.id == ud['unit_id']), None) for ud in opponent_team]
-            opponent_active = game_manager.synergy_engine.compute([u for u in opponent_units_raw if u])
+            opponent_units_raw = [unit for _, unit in resolved_opponent_units]
+            opponent_active = game_manager.synergy_engine.compute(opponent_units_raw)
 
             # Build opponent units from team data
-            for i, unit_data in enumerate(opponent_team):
-                unit = next((u for u in game_manager.data.units if u.id == unit_data['unit_id']), None)
-                if unit:
-                    star_level = unit_data['star_level']
-                    base_stats_b = getattr(unit, 'stats', None)
-                    if base_stats_b is not None:
-                        base_hp = stat_val(base_stats_b, 'hp', 80 + (unit.cost * 40))
-                        base_attack = stat_val(base_stats_b, 'attack', 20 + (unit.cost * 10))
-                        base_defense = stat_val(base_stats_b, 'defense', 5 + (unit.cost * 2))
-                        attack_speed = stat_val(base_stats_b, 'attack_speed', 0.8 + (unit.cost * 0.1))
-                        base_max_mana_b = stat_val(base_stats_b, 'max_mana', 100)
-                    else:
-                        base_hp = 80 + (unit.cost * 40)
-                        base_attack = 20 + (unit.cost * 10)
-                        base_defense = 5 + (unit.cost * 2)
-                        attack_speed = 0.8 + (unit.cost * 0.1)
-                        base_max_mana_b = 100
+            for i, (unit_data, unit) in enumerate(resolved_opponent_units):
+                star_level = unit_data['star_level']
+                base_stats_b = getattr(unit, 'stats', None)
+                if base_stats_b is not None:
+                    base_hp = stat_val(base_stats_b, 'hp', 80 + (unit.cost * 40))
+                    base_attack = stat_val(base_stats_b, 'attack', 20 + (unit.cost * 10))
+                    base_defense = stat_val(base_stats_b, 'defense', 5 + (unit.cost * 2))
+                    attack_speed = stat_val(base_stats_b, 'attack_speed', 0.8 + (unit.cost * 0.1))
+                    base_max_mana_b = stat_val(base_stats_b, 'max_mana', 100)
+                else:
+                    base_hp = 80 + (unit.cost * 40)
+                    base_attack = 20 + (unit.cost * 10)
+                    base_defense = 5 + (unit.cost * 2)
+                    attack_speed = 0.8 + (unit.cost * 0.1)
+                    base_max_mana_b = 100
 
-                    hp = int(base_hp * (1.6 ** (star_level - 1)))
-                    attack = int(base_attack * (1.4 ** (star_level - 1)))
-                    defense = int(base_defense)
-                    # Keep mana constant for opponents as well
-                    max_mana = int(base_max_mana_b)
+                hp = scaled_hp(base_hp, star_level)
+                attack = scaled_attack(base_attack, star_level)
+                defense = int(base_defense)
+                # Keep mana constant for opponents as well
+                max_mana = int(base_max_mana_b)
 
-                    base_stats_dict_b = {'hp': hp, 'attack': attack, 'defense': defense, 'attack_speed': attack_speed}
+                base_stats_dict_b = {'hp': hp, 'attack': attack, 'defense': defense, 'attack_speed': attack_speed}
 
-                    # Apply synergies using SynergyEngine
-                    buffed_stats_b = game_manager.synergy_engine.apply_stat_buffs(base_stats_dict_b, unit, opponent_active)
-                    # Construct a lightweight PlayerState-like object for opponent so dynamic effects
-                    # that rely on wins/losses have correct context.
-                    try:
-                        from waffen_tactics.models.player_state import PlayerState as _PS
-                        opponent_player = _PS(user_id=opponent_data.get('user_id', 0), username=opponent_name, level=opponent_level, wins=opponent_wins, losses=opponent_data.get('losses', 0))
-                    except Exception:
-                        opponent_player = None
-                    buffed_stats_b = game_manager.synergy_engine.apply_dynamic_effects(unit, buffed_stats_b, opponent_active, opponent_player)
-                    if buffed_stats_b is None:
-                        buffed_stats_b = base_stats_dict_b.copy()
+                # Apply synergies using SynergyEngine
+                buffed_stats_b = game_manager.synergy_engine.apply_stat_buffs(base_stats_dict_b, unit, opponent_active)
+                # Construct a lightweight PlayerState-like object for opponent so dynamic effects
+                # that rely on wins/losses have correct context.
+                try:
+                    from waffen_tactics.models.player_state import PlayerState as _PS
+                    opponent_player = _PS(user_id=opponent_data.get('user_id', 0), username=opponent_name, level=opponent_level, wins=opponent_wins, losses=opponent_data.get('losses', 0))
+                except Exception:
+                    opponent_player = None
+                buffed_stats_b = game_manager.synergy_engine.apply_dynamic_effects(unit, buffed_stats_b, opponent_active, opponent_player)
+                if buffed_stats_b is None:
+                    buffed_stats_b = base_stats_dict_b.copy()
 
-                    hp = buffed_stats_b['hp']
-                    attack = buffed_stats_b['attack']
-                    defense = buffed_stats_b['defense']
-                    attack_speed = buffed_stats_b['attack_speed']
+                hp = buffed_stats_b['hp']
+                attack = buffed_stats_b['attack']
+                defense = buffed_stats_b['defense']
+                attack_speed = buffed_stats_b['attack_speed']
 
-                    # Get active effects
-                    effects_b_for_unit = game_manager.synergy_engine.get_active_effects(unit, opponent_active)
+                # Get active effects
+                effects_b_for_unit = game_manager.synergy_engine.get_active_effects(unit, opponent_active)
 
-                    # Determine position: prefer explicit position from saved team data,
-                    # otherwise place first 3 units in front and remaining in back to
-                    # allow backline-targeting (target_backline) to work in matches.
-                    pos = unit_data.get('position') if isinstance(unit_data, dict) and unit_data.get('position') else ('front' if i < 3 else 'back')
+                # Determine position: prefer explicit position from saved team data,
+                # otherwise place first 3 units in front and remaining in back to
+                # allow backline-targeting (target_backline) to work in matches.
+                pos = unit_data.get('position') if isinstance(unit_data, dict) and unit_data.get('position') else ('front' if i < 3 else 'back')
+                pos = validate_position(pos)
 
-                    combat_unit = CombatUnit(
-                        id=f'opp_{i}',
-                        name=unit.name,
-                        hp=hp,
-                        attack=attack,
-                        defense=defense,
-                        attack_speed=attack_speed,
-                        star_level=star_level,
-                        position=pos,
-                        effects=effects_b_for_unit,
-                        max_mana=max_mana,
-                        mana_regen=stat_val(base_stats_b, 'mana_regen', 5),
-                        stats=base_stats_b,
-                        skill={
-                            'name': unit.skill.name,
-                            'description': unit.skill.description,
-                            'mana_cost': (unit.skill.mana_cost if getattr(unit.skill, 'mana_cost', None) is not None else max_mana),
-                            'effect': unit.skill.effect
-                    } if hasattr(unit, 'skill') and unit.skill else None
-                        ,passive=getattr(unit, 'passive', None)
-                    )
-                    # Set max_hp to buffed hp to prevent hp > max_hp issues
-                    combat_unit.max_hp = hp
-                    opponent_units.append(combat_unit)
+                combat_unit = CombatUnit(
+                    id=f'opp_{i}',
+                    name=unit.name,
+                    hp=hp,
+                    attack=attack,
+                    defense=defense,
+                    attack_speed=attack_speed,
+                    star_level=star_level,
+                    position=pos,
+                    effects=effects_b_for_unit,
+                    max_mana=max_mana,
+                    mana_regen=stat_val(base_stats_b, 'mana_regen', 5),
+                    stats=base_stats_b,
+                    skill={
+                        'name': unit.skill.name,
+                        'description': unit.skill.description,
+                        'mana_cost': (unit.skill.mana_cost if getattr(unit.skill, 'mana_cost', None) is not None else max_mana),
+                        'effect': unit.skill.effect
+                    } if hasattr(unit, 'skill') and unit.skill else None,
+                    passive=getattr(unit, 'passive', None)
+                )
+                # Set max_hp to buffed hp to prevent hp > max_hp issues
+                combat_unit.max_hp = hp
+                opponent_units.append(combat_unit)
 
-                    opponent_unit_info.append({
-                        'id': combat_unit.id,
-                        'template_id': getattr(unit, 'id', None),
-                        'name': combat_unit.name,
+                opponent_unit_info.append({
+                    'id': combat_unit.id,
+                    'template_id': getattr(unit, 'id', None),
+                    'name': combat_unit.name,
+                    'hp': combat_unit.hp,
+                    'max_hp': combat_unit.max_hp,
+                    'attack': combat_unit.attack,
+                    'star_level': star_level,
+                    'cost': unit.cost,
+                    'factions': unit.factions,
+                    'classes': unit.classes,
+                    'position': combat_unit.position,
+                    'avatar': getattr(unit, 'avatar', None),
+                    'passive': getattr(unit, 'passive', None),
+                    'buffed_stats': {
                         'hp': combat_unit.hp,
-                        'max_hp': combat_unit.max_hp,
                         'attack': combat_unit.attack,
-                        'star_level': star_level,
-                        'cost': unit.cost,
-                        'factions': unit.factions,
-                        'classes': unit.classes,
-                        'position': combat_unit.position,
-                         'avatar': getattr(unit, 'avatar', None),
-                         'passive': getattr(unit, 'passive', None),
-                         'buffed_stats': {
-                            'hp': combat_unit.hp,
-                            'attack': combat_unit.attack,
-                            'defense': combat_unit.defense,
-                            'attack_speed': round(attack_speed, 3),
-                            'max_mana': max_mana,
-                            'current_mana': 0,  # Units start with 0 mana
-                            'hp_regen_per_sec': round(combat_unit.hp_regen_per_sec, 1)
-                        }
-                    })
+                        'defense': combat_unit.defense,
+                        'attack_speed': round(attack_speed, 3),
+                        'max_mana': max_mana,
+                        'current_mana': 0,  # Units start with 0 mana
+                        'hp_regen_per_sec': round(combat_unit.hp_regen_per_sec, 1)
+                    }
+                })
         # If no opponent data found from DB (real player or system bot), do not generate local fallbacks.
         # This enforces using only DB-sourced opponents (real players or system bots).
         if not opponent_data:
@@ -573,13 +651,40 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
             pass
         return opponent_units, opponent_unit_info, opponent_info
 
+    except CombatError:
+        raise
     except Exception as e:
         # Do not generate ad-hoc fallback bots. Propagate the error so the caller
         # can decide how to handle absence of a DB-provided opponent.
         raise
 
 
-def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[CombatUnit], event_callback: Optional[Callable] = None):
+def prepare_round_buffs(player_units: List[CombatUnit], opponent_units: List[CombatUnit], round_number: int = 1) -> Tuple[List[int], List[int]]:
+    """Apply the canonical simulator's pre-combat round buffs for a caller."""
+    simulator = CombatSimulator(dt=0.1, timeout=60)
+    a_hp = [int(getattr(unit, 'hp', 0)) for unit in player_units]
+    b_hp = [int(getattr(unit, 'hp', 0)) for unit in opponent_units]
+    simulator._process_per_round_buffs(
+        player_units,
+        opponent_units,
+        a_hp,
+        b_hp,
+        0.0,
+        [],
+        None,
+        round_number,
+    )
+    return a_hp, b_hp
+
+
+def run_combat_simulation(
+    player_units: List[CombatUnit],
+    opponent_units: List[CombatUnit],
+    event_callback: Optional[Callable] = None,
+    *,
+    skip_per_round_buffs: bool = False,
+    attach_game_state: bool = False,
+):
     """
     Run the combat simulation.
 
@@ -591,6 +696,15 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
     Returns:
         Combat result dictionary
     """
+    if not isinstance(player_units, list) or not isinstance(opponent_units, list):
+        raise InvalidCombatInputError("Combat teams must be lists")
+    if not player_units or not opponent_units:
+        raise InvalidCombatInputError("Combat requires at least one unit per team")
+    for side, units in (("player", player_units), ("opponent", opponent_units)):
+        for index, unit in enumerate(units):
+            if unit is None or not all(hasattr(unit, field) for field in ("hp", "max_hp", "attack", "defense", "attack_speed")):
+                raise InvalidCombatInputError(f"Malformed {side} combat unit at index {index}")
+
     try:
         # Ensure units look like fresh templates when reused across multiple runs.
         # Some tests construct unit lists once and call this function repeatedly with
@@ -675,6 +789,18 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
             except Exception:
                 pass
 
+            if attach_game_state and isinstance(data, dict):
+                # Attach authoritative state only for the SSE presentation
+                # boundary. Keeping this opt-in preserves the canonical event
+                # contract for replay consumers that validate event ordering.
+                emission_state = data.pop('_event_game_state', None)
+                if emission_state is None:
+                    emission_state = {
+                        'player_units': [u.to_dict(current_hp=int(getattr(u, 'hp', 0))) for u in simulator.team_a],
+                        'opponent_units': [u.to_dict(current_hp=int(getattr(u, 'hp', 0))) for u in simulator.team_b],
+                    }
+                data['game_state'] = copy.deepcopy(emission_state)
+
             # Collected events must be deep-copied to avoid later in-place
             # mutations of nested structures (e.g. unit.effects) by the
             # simulator. Storing references caused snapshots to differ from
@@ -685,7 +811,16 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
             if event_callback:
                 event_callback(event_type, data)
 
-        result = simulator.simulate(player_units, opponent_units, event_collector)
+        result = simulator.simulate(
+            player_units,
+            opponent_units,
+            event_collector,
+            skip_per_round_buffs=skip_per_round_buffs,
+        )
+        if not isinstance(result, dict) or result.get('winner') not in ('team_a', 'team_b'):
+            raise CombatExecutionError(
+                f"Simulator returned invalid combat outcome: {result!r}"
+            )
         result['events'] = events
 
         # Update unit HP with final values from simulation via canonical emitters
@@ -727,15 +862,11 @@ def run_combat_simulation(player_units: List[CombatUnit], opponent_units: List[C
 
         return result
 
+    except CombatError:
+        raise
     except Exception as e:
-        print(f"Combat simulation error: {e}")
-        return {
-            'winner': 'error',
-            'duration': 0,
-            'survivors': {'team_a': [], 'team_b': []},
-            'log': [f'Combat error: {str(e)}'],
-            'events': []
-        }
+        logger.exception("Combat simulation failed before a legitimate outcome was produced")
+        raise CombatExecutionError("Shared combat simulation raised an exception", cause=e) from e
 
 
 def process_combat_results(player: PlayerState, result: Dict[str, Any], collected_stats_maps: Dict[str, Dict[str, int]]) -> Tuple[bool, Dict[str, Any]]:
@@ -750,9 +881,14 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
     Returns:
         Tuple of (game_over, result_data)
     """
-    # Update player stats
+    if not isinstance(result, dict) or result.get('winner') not in ('team_a', 'team_b'):
+        raise CombatExecutionError("Cannot process a non-domain combat outcome")
+
+    # Update player stats only after the outcome has been validated.
     player.round_number += 1
-    player.xp += 2  # Always +2 XP per combat
+    # PlayerState owns XP overflow and level-up semantics.  Award the same
+    # fixed combat reward for wins and defeats; do not mutate XP directly.
+    player.add_xp(2)
 
     # Apply persistent per-round buffs from traits to units on player's board BEFORE checking winner
     player_synergies = game_manager.get_board_synergies(player)
@@ -798,7 +934,6 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
         win_bonus = 1  # +1 gold bonus for winning
         player.gold += win_bonus
         player.streak += 1
-        player.add_xp(2)  # Add XP for winning
         result_message = "🎉 ZWYCIĘSTWO!"
     elif result['winner'] == 'team_b':
         # Defeat - lose HP based on surviving enemy star levels
@@ -816,15 +951,6 @@ def process_combat_results(player: PlayerState, result: Dict[str, Any], collecte
             result_message = f'💔 PRZEGRANA! -{hp_loss} HP (zostało {post_hp} HP)'
     else:
         raise RuntimeError(f"Unsupported combat winner: {result.get('winner')}")
-
-    # Handle XP level ups
-    while player.level < 10:
-        xp_for_next = player.xp_to_next_level
-        if xp_for_next > 0 and player.xp >= xp_for_next:
-            player.xp -= xp_for_next
-            player.level += 1
-        else:
-            break
 
     # Calculate interest: 1g per 10g (max 5g) from current gold
     interest = min(5, player.gold // 10)

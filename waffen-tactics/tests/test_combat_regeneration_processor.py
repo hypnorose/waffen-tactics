@@ -12,6 +12,28 @@ class TestCombatRegenerationProcessor:
         self.processor = CombatRegenerationProcessor()
         self.stats = Stats(attack=100, hp=1000, defense=50, max_mana=100, attack_speed=1.0, mana_on_attack=10, mana_regen=0)
 
+    def _make_hp_regen_unit(self, unit_cls=CombatUnit, unit_id='regen-unit', rate=10.5):
+        stats = Stats(
+            attack=1,
+            hp=100,
+            defense=1,
+            max_mana=100,
+            attack_speed=1.0,
+            mana_on_attack=10,
+            mana_regen=0,
+        )
+        unit = unit_cls(
+            id=unit_id,
+            name='RegenUnit',
+            hp=50,
+            attack=1,
+            defense=1,
+            attack_speed=1.0,
+            stats=stats,
+        )
+        unit.hp_regen_per_sec = rate
+        return unit
+
     def test_mana_regeneration_emits_events(self):
         """Test that mana regeneration emits mana_update events"""
         # Create unit with mana regen
@@ -256,6 +278,101 @@ class TestCombatRegenerationProcessor:
         assert data['unit_id'] == 'test_unit'
         assert data['amount'] == 10
         assert team_a_hp[0] == 910
+
+    def test_hp_regeneration_commits_unit_mirror_and_fraction_for_both_teams(self):
+        """A successful tick commits canonical HP, mirror, and remainder together."""
+        unit_a = self._make_hp_regen_unit(unit_id='regen-a')
+        unit_b = self._make_hp_regen_unit(unit_id='regen-b')
+        team_a_hp = [50]
+        team_b_hp = [50]
+        events = []
+
+        self.processor._process_regeneration(
+            [unit_a],
+            [unit_b],
+            team_a_hp,
+            team_b_hp,
+            time=1.0,
+            log=[],
+            dt=1.0,
+            event_callback=lambda event_type, payload: events.append((event_type, payload)),
+        )
+
+        heal_events = [event for event in events if event[0] == 'heal']
+        assert {(event[1]['unit_id'], event[1]['side']) for event in heal_events} == {
+            ('regen-a', 'team_a'),
+            ('regen-b', 'team_b'),
+        }
+        assert all(event[1]['amount'] == 10 for event in heal_events)
+        assert unit_a.hp == 60 and team_a_hp == [60]
+        assert unit_b.hp == 60 and team_b_hp == [60]
+        assert unit_a._hp_regen_accumulator == pytest.approx(0.5)
+        assert unit_b._hp_regen_accumulator == pytest.approx(0.5)
+
+    def test_hp_regeneration_rejection_preserves_state_and_retry_reuses_pending_amount(self):
+        """A failed tick leaves the accumulator intact so the next tick can retry it."""
+        class ControllableRejectingHpUnit(CombatUnit):
+            @property
+            def hp(self):
+                return CombatUnit.hp.fget(self)
+
+            @hp.setter
+            def hp(self, value):
+                if getattr(self, '_reject_hp', False):
+                    raise PermissionError('timed HP mutation rejected')
+                CombatUnit.hp.fset(self, value)
+
+        unit = self._make_hp_regen_unit(
+            ControllableRejectingHpUnit,
+            unit_id='retry-regen',
+        )
+        unit._reject_hp = True
+        unit._hp_regen_accumulator = 0.25
+        hp_mirror = [50]
+        log = []
+        events = []
+        callback = lambda event_type, payload: events.append((event_type, payload))
+
+        with pytest.raises(PermissionError, match='timed HP mutation rejected'):
+            self.processor._process_regeneration(
+                [unit], [], hp_mirror, [],
+                time=1.0, log=log, dt=1.0, event_callback=callback,
+            )
+
+        assert unit.hp == 50
+        assert hp_mirror == [50]
+        assert unit._hp_regen_accumulator == pytest.approx(0.25)
+        assert log == []
+        assert events == []
+
+        unit._reject_hp = False
+        self.processor._process_regeneration(
+            [unit], [], hp_mirror, [],
+            time=2.0, log=log, dt=1.0, event_callback=callback,
+        )
+
+        assert unit.hp == 60
+        assert hp_mirror == [60]
+        assert unit._hp_regen_accumulator == pytest.approx(0.75)
+        assert [event[0] for event in events] == ['heal']
+
+    def test_hp_regeneration_callback_failure_rolls_back_canonical_unit_and_mirror(self):
+        """A downstream event failure cannot leave HP ahead of its mirror."""
+        unit = self._make_hp_regen_unit(unit_id='callback-failure-regen', rate=10.0)
+        hp_mirror = [50]
+
+        def failing_callback(_event_type, _payload):
+            raise RuntimeError('collector failed during timed regen')
+
+        with pytest.raises(RuntimeError, match='collector failed during timed regen'):
+            self.processor._process_regeneration(
+                [unit], [], hp_mirror, [],
+                time=1.0, log=[], dt=1.0, event_callback=failing_callback,
+            )
+
+        assert unit.hp == 50
+        assert hp_mirror == [50]
+        assert unit._hp_regen_accumulator == pytest.approx(0.0)
 
     def test_both_teams_regeneration(self):
         """Test regeneration for both teams"""

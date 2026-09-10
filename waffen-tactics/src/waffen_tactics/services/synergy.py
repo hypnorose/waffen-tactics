@@ -5,6 +5,13 @@ from waffen_tactics.models.player_state import PlayerState
 import copy
 
 class SynergyEngine:
+    _DEATH_TRIGGERS = {'on_enemy_death', 'on_ally_death'}
+    _RUNTIME_TRIGGERS = _DEATH_TRIGGERS | {
+        'per_second',
+        'per_round',
+        'on_ally_hp_below',
+    }
+
     def __init__(self, traits: List[Dict]):
         self.thresholds: Dict[str, List[int]] = {}
         # Store full trait definitions keyed by name so we can access trait-level
@@ -37,7 +44,13 @@ class SynergyEngine:
         # Define which triggers represent persistent state
         PERSISTENT_TRIGGERS = {'passive', 'on_win', 'on_loss', 'per_trait'}
         # Define combat-only triggers that should never show in UI (unless target='self')
-        COMBAT_ONLY_TRIGGERS = {'per_second', 'on_ally_hp_below'}
+        COMBAT_ONLY_TRIGGERS = {
+            'per_second',
+            'per_round',
+            'on_ally_hp_below',
+            'on_enemy_death',
+            'on_ally_death',
+        }
 
         # Check if this is a 'self' trait (only applies to units with the trait)
         trait_target = trait_obj.get('target')
@@ -412,15 +425,47 @@ class SynergyEngine:
 
     def get_active_effects(self, unit: Unit, active_synergies: Dict[str, Tuple[int, int]]) -> List[Dict[str, Any]]:
         """
-        Get list of active effects for a unit based on synergies
+        Get active runtime effects for a unit based on synergies.
+
+        The canonical trait dataset stores tiered trigger records under
+        ``modular_effects``. Runtime-trigger records are returned here because
+        the live combat simulator owns their timing and event delivery. Static
+        passive records remain on the stat/dynamic paths.
         """
         effects = []
         for trait_name, (count, tier) in active_synergies.items():
             trait_obj = self.trait_effects.get(trait_name)
             if not trait_obj:
                 continue
-            effects_list = trait_obj.get('effects', [])
             idx = tier - 1
+
+            modular_effects = trait_obj.get('modular_effects', [])
+            if 0 <= idx < len(modular_effects) and isinstance(modular_effects[idx], list):
+                # Canonical modular tiers contain one or more trigger records.
+                # Return only trigger families that have an active simulator
+                # lifecycle hook. Static/passive records are consumed by the
+                # stat/dynamic paths above.
+                for effect in modular_effects[idx]:
+                    if not isinstance(effect, dict) or effect.get('trigger') not in self._RUNTIME_TRIGGERS:
+                        continue
+
+                    trait_level_target = trait_obj.get('target')
+                    target_scope = effect.get('target', trait_level_target or 'trait')
+                    if target_scope in ('trait', 'self'):
+                        if trait_name not in unit.factions and trait_name not in unit.classes:
+                            continue
+                    elif target_scope != 'team':
+                        if trait_name not in unit.factions and trait_name not in unit.classes:
+                            continue
+
+                    # Each combat unit owns independent condition state for
+                    # once/max/round semantics; never share the dataset dict.
+                    effects.append(copy.deepcopy(effect))
+                continue
+
+            # Preserve support for the legacy one-effect-per-tier shape while
+            # canonical data is migrated incrementally.
+            effects_list = trait_obj.get('effects', [])
             if idx < 0 or idx >= len(effects_list):
                 continue
             effect = effects_list[idx]

@@ -1,13 +1,199 @@
 """
-Combat regeneration processor - handles HP and mana regeneration over time
+Combat regeneration processor - handles HP and mana regeneration over time.
 """
 from typing import List, Dict, Any, Callable, Optional
-from .event_canonicalizer import emit_heal, emit_mana_change
 import math
+
+from .event_canonicalizer import emit_heal, emit_mana_change
 
 
 class CombatRegenerationProcessor:
-    """Handles HP and mana regeneration over time"""
+    """Handles HP and mana regeneration over time."""
+
+    def _apply_hp_regeneration_tick(
+        self,
+        unit: 'CombatUnit',
+        hp_mirror: List[int],
+        unit_index: int,
+        side: str,
+        time: float,
+        log: List[str],
+        dt: float,
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    ) -> None:
+        """Apply one integral HP-regeneration tick atomically.
+
+        The fractional accumulator is only consumed after canonical HP
+        mutation and verification succeed. This keeps retry behavior correct
+        when a recipient rejects the write or event delivery fails.
+        """
+        if getattr(unit, 'hp_regen_per_sec', 0.0) <= 0:
+            return
+
+        if not hasattr(unit, '_hp_regen_accumulator'):
+            if hasattr(unit, '_state') and hasattr(unit._state, 'hp_regen_accumulator'):
+                unit._hp_regen_accumulator = float(unit._state.hp_regen_accumulator)
+            else:
+                unit._hp_regen_accumulator = 0.0
+
+        previous_accumulator = float(unit._hp_regen_accumulator)
+        pending_regeneration = previous_accumulator + (
+            float(unit.hp_regen_per_sec) * dt
+        )
+        integral_heal = int(pending_regeneration)
+        if integral_heal <= 0:
+            unit._hp_regen_accumulator = pending_regeneration
+            return
+
+        old_hp = int(hp_mirror[unit_index])
+        from .event_canonicalizer import _set_and_verify_canonical_hp
+
+        try:
+            payload = emit_heal(
+                event_callback,
+                unit,
+                integral_heal,
+                source=None,
+                side=side,
+                timestamp=time,
+                current_hp=old_hp,
+            )
+        except Exception:
+            # `emit_heal` mutates through the canonical boundary. If delivery
+            # fails after that mutation, restore the unit; the mirror and
+            # accumulator have not been committed yet.
+            try:
+                actual_hp = int(getattr(unit, 'hp'))
+            except Exception:
+                actual_hp = old_hp
+            if actual_hp != old_hp:
+                _set_and_verify_canonical_hp(unit, old_hp)
+                if int(getattr(unit, 'hp')) != old_hp:
+                    raise RuntimeError(
+                        f"Failed to roll back HP regeneration for unit={getattr(unit, 'id', None)}"
+                    )
+            raise
+
+        if payload is not None:
+            hp_mirror[unit_index] = int(payload['post_hp'])
+            log.append(
+                f"{unit.name} regenerates +{integral_heal} HP (regen over time)"
+            )
+        else:
+            # The canonical mutation may complete while event publication is
+            # suppressed for a target that became dead during the operation.
+            hp_mirror[unit_index] = int(getattr(unit, 'hp'))
+
+        # Commit fractional consumption only after canonical HP and mirror
+        # state have completed successfully.
+        unit._hp_regen_accumulator = pending_regeneration - integral_heal
+
+    def _process_mana_regeneration_for_unit(
+        self,
+        unit: 'CombatUnit',
+        unit_index: int,
+        side: str,
+        time: float,
+        log: List[str],
+        dt: float,
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    ) -> None:
+        """Apply one unit's effect/base mana regeneration."""
+        base_mana_regen = getattr(unit.stats, 'mana_regen', 0)
+        effect_bonus = sum(
+            float(effect.get('value', 0))
+            for effect in getattr(unit, 'effects', [])
+            if effect.get('type') == 'mana_regen'
+        )
+        total_mana_regen = base_mana_regen + effect_bonus
+        if total_mana_regen <= 0:
+            return
+
+        mana_gain = total_mana_regen * dt
+        if not hasattr(unit, '_mana_regen_accumulator'):
+            unit._mana_regen_accumulator = 0.0
+        unit._mana_regen_accumulator += mana_gain
+        integral_mana = math.floor(unit._mana_regen_accumulator + 1e-10)
+        if integral_mana <= 0:
+            return
+
+        unit._mana_regen_accumulator -= integral_mana
+        log.append(f"{unit.name} regenerates +{integral_mana} Mana")
+        if event_callback:
+            combat_state = getattr(self, '_combat_state', None)
+            if combat_state is not None:
+                emit_mana_change(
+                    event_callback,
+                    unit,
+                    integral_mana,
+                    side=side,
+                    timestamp=time,
+                    mana_arrays=combat_state.mana_arrays,
+                    unit_index=unit_index,
+                    unit_side=side,
+                )
+            else:
+                emit_mana_change(
+                    event_callback,
+                    unit,
+                    integral_mana,
+                    side=side,
+                    timestamp=time,
+                )
+
+    def _process_regeneration_for_team(
+        self,
+        team: List['CombatUnit'],
+        hp_mirror: List[int],
+        side: str,
+        time: float,
+        log: List[str],
+        dt: float,
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    ) -> None:
+        """Process HP and mana regeneration for one team."""
+        for unit_index, unit in enumerate(team):
+            # A defeated unit must not accumulate or receive any regeneration.
+            # In particular, mana changes after unit_died are ignored by the
+            # frontend and would otherwise desync subsequent snapshots.
+            if hp_mirror[unit_index] <= 0 or getattr(unit, '_dead', False):
+                continue
+
+            self._apply_hp_regeneration_tick(
+                unit,
+                hp_mirror,
+                unit_index,
+                side,
+                time,
+                log,
+                dt,
+                event_callback,
+            )
+            self._process_mana_regeneration_for_unit(
+                unit,
+                unit_index,
+                side,
+                time,
+                log,
+                dt,
+                event_callback,
+            )
+
+    def _sync_hp_mirror_for_team(
+        self,
+        team: List['CombatUnit'],
+        hp_mirror: List[int],
+        side: str,
+        log: List[str],
+    ) -> None:
+        """Retain the existing end-of-pass HP consistency check."""
+        for unit_index, unit in enumerate(team):
+            if hp_mirror[unit_index] != unit.hp:
+                log.append(
+                    f"[COMBAT_STATE SYNC] {unit.name} {side}[{unit_index}]: "
+                    f"{hp_mirror[unit_index]} -> {unit.hp} (unit.hp={unit.hp})"
+                )
+                hp_mirror[unit_index] = unit.hp
 
     def _process_regeneration(
         self,
@@ -18,124 +204,25 @@ class CombatRegenerationProcessor:
         time: float,
         log: List[str],
         dt: float,
-        event_callback: Optional[Callable[[str, Dict[str, Any]], None]]
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
     ):
         """Apply HP and mana regeneration for both teams."""
-        # Team A regen
-        for idx_u, u in enumerate(team_a):
-            # A defeated unit must not accumulate or receive any regeneration.
-            # In particular, mana changes after unit_died are ignored by the
-            # frontend and would otherwise desync subsequent snapshots.
-            if a_hp[idx_u] <= 0 or getattr(u, '_dead', False):
-                continue
+        self._process_regeneration_for_team(
+            team_a, a_hp, 'team_a', time, log, dt, event_callback
+        )
+        self._process_regeneration_for_team(
+            team_b, b_hp, 'team_b', time, log, dt, event_callback
+        )
 
-            # HP regeneration
-            if a_hp[idx_u] > 0 and getattr(u, 'hp_regen_per_sec', 0.0) > 0:
-                heal = u.hp_regen_per_sec * dt
-                # accumulate fractional healing
-                # Support multiple unit shapes: prefer explicit attribute,
-                # otherwise fall back to backing _state.hp_regen_accumulator.
-                if not hasattr(u, '_hp_regen_accumulator'):
-                    if hasattr(u, '_state') and hasattr(u._state, 'hp_regen_accumulator'):
-                        u._hp_regen_accumulator = float(u._state.hp_regen_accumulator)
-                    else:
-                        u._hp_regen_accumulator = 0.0
-                u._hp_regen_accumulator += heal
-                int_heal = int(u._hp_regen_accumulator)
-                if int_heal > 0:
-                    u._hp_regen_accumulator -= int_heal
-                    old_hp = int(a_hp[idx_u])
-                    a_hp[idx_u] = min(u.max_hp, a_hp[idx_u] + int_heal)
-                    new_hp = int(a_hp[idx_u])
-                    log.append(f"{u.name} regenerates +{int_heal} HP (regen over time)")
-                    # print(f"[HP DEBUG] ts={time:.9f} side=team_a target={u.id}:{u.name} old_hp={old_hp} -> new_hp={new_hp} cause=regen int_heal={int_heal}")
-                    if event_callback:
-                        emit_heal(event_callback, u, int_heal, source=None, side='team_a', timestamp=time, current_hp=old_hp)
+        # Sync HP lists to unit.hp for all units to ensure consistency.
+        self._sync_hp_mirror_for_team(team_a, a_hp, 'team_a', log)
+        self._sync_hp_mirror_for_team(team_b, b_hp, 'team_b', log)
 
-            # Mana regeneration (include trait/effect-based bonuses)
-            base_mana_regen = getattr(u.stats, 'mana_regen', 0)
-            effect_bonus = sum(float(e.get('value', 0)) for e in getattr(u, 'effects', []) if e.get('type') == 'mana_regen')
-            total_mana_regen = base_mana_regen + effect_bonus
-            if total_mana_regen > 0:
-                mana_gain = total_mana_regen * dt
-                # accumulate fractional mana gain
-                if not hasattr(u, '_mana_regen_accumulator'):
-                    u._mana_regen_accumulator = 0.0
-                u._mana_regen_accumulator += mana_gain
-                int_mana = math.floor(u._mana_regen_accumulator + 1e-10)
-                if int_mana > 0:
-                    u._mana_regen_accumulator -= int_mana
-                    log.append(f"{u.name} regenerates +{int_mana} Mana")
-                    # Apply mana change via canonical emitter (it mutates state and emits)
-                    combat_state = getattr(self, '_combat_state', None)
-                    if combat_state is not None:
-                        emit_mana_change(event_callback, u, int_mana, side='team_a', timestamp=time, mana_arrays=combat_state.mana_arrays, unit_index=idx_u, unit_side='team_a')
-                    else:
-                        emit_mana_change(event_callback, u, int_mana, side='team_a', timestamp=time)
-
-        # Team B regen
-        for idx_u, u in enumerate(team_b):
-            # Keep liveness handling symmetric across both teams.
-            if b_hp[idx_u] <= 0 or getattr(u, '_dead', False):
-                continue
-
-            # HP regeneration
-            if b_hp[idx_u] > 0 and getattr(u, 'hp_regen_per_sec', 0.0) > 0:
-                heal_b = u.hp_regen_per_sec * dt
-                # ensure accumulator exists (see Team A logic)
-                if not hasattr(u, '_hp_regen_accumulator'):
-                    if hasattr(u, '_state') and hasattr(u._state, 'hp_regen_accumulator'):
-                        u._hp_regen_accumulator = float(u._state.hp_regen_accumulator)
-                    else:
-                        u._hp_regen_accumulator = 0.0
-                u._hp_regen_accumulator += heal_b
-                int_heal_b = int(u._hp_regen_accumulator)
-                if int_heal_b > 0:
-                    u._hp_regen_accumulator -= int_heal_b
-                    old_hp_b = int(b_hp[idx_u])
-                    b_hp[idx_u] = min(u.max_hp, b_hp[idx_u] + int_heal_b)
-                    new_hp_b = int(b_hp[idx_u])
-                    log.append(f"{u.name} regenerates +{int_heal_b} HP (regen over time)")
-                    # print(f"[HP DEBUG] ts={time:.9f} side=team_b target={u.id}:{u.name} old_hp={old_hp_b} -> new_hp={new_hp_b} cause=regen int_heal={int_heal_b}")
-                    if event_callback:
-                        emit_heal(event_callback, u, int_heal_b, source=None, side='team_b', timestamp=time, current_hp=old_hp_b)
-
-            # Mana regeneration (include trait/effect-based bonuses)
-            base_mana_regen_b = getattr(u.stats, 'mana_regen', 0)
-            effect_bonus_b = sum(float(e.get('value', 0)) for e in getattr(u, 'effects', []) if e.get('type') == 'mana_regen')
-            total_mana_regen_b = base_mana_regen_b + effect_bonus_b
-            if total_mana_regen_b > 0:
-                mana_gain_b = total_mana_regen_b * dt
-                if not hasattr(u, '_mana_regen_accumulator'):
-                    u._mana_regen_accumulator = 0.0
-                u._mana_regen_accumulator += mana_gain_b
-                int_mana_b = math.floor(u._mana_regen_accumulator + 1e-10)
-                if int_mana_b > 0:
-                    u._mana_regen_accumulator -= int_mana_b
-                    log.append(f"{u.name} regenerates +{int_mana_b} Mana")
-                    # Apply mana change via canonical emitter (it mutates state and emits)
-                    combat_state = getattr(self, '_combat_state', None)
-                    if combat_state is not None:
-                        emit_mana_change(event_callback, u, int_mana_b, side='team_b', timestamp=time, mana_arrays=combat_state.mana_arrays, unit_index=idx_u, unit_side='team_b')
-                    else:
-                        emit_mana_change(event_callback, u, int_mana_b, side='team_b', timestamp=time)
-
-        # Sync HP lists to unit.hp for all units to ensure consistency
-        for idx_u, u in enumerate(team_a):
-            if a_hp[idx_u] != u.hp:
-                log.append(f"[COMBAT_STATE SYNC] {u.name} a_hp[{idx_u}]: {a_hp[idx_u]} -> {u.hp} (unit.hp={u.hp})")
-                a_hp[idx_u] = u.hp
-
-        for idx_u, u in enumerate(team_b):
-            if b_hp[idx_u] != u.hp:
-                log.append(f"[COMBAT_STATE SYNC] {u.name} b_hp[{idx_u}]: {b_hp[idx_u]} -> {u.hp} (unit.hp={u.hp})")
-                b_hp[idx_u] = u.hp
-
-        # Optional debug invariant: ensure combat_state (if present) is consistent
+        # Optional debug invariant: ensure combat_state (if present) is consistent.
         try:
             combat_state = getattr(self, '_combat_state', None)
             if combat_state is not None:
                 combat_state.enforce_debug_assertions()
         except Exception:
-            # Propagate assertion to caller so failures are visible during testing
+            # Propagate assertion to caller so failures are visible during testing.
             raise

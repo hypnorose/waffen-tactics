@@ -49,6 +49,16 @@ describe('combat desync comparison', () => {
     expect(desyncs[0].diff.attack).toEqual({ ui: 62, server: 67 })
   })
 
+  it('reports canonical formation differences instead of defaulting missing positions to front', () => {
+    const uiUnit = makeUnit({ position: undefined })
+    const serverUnit = makeUnit({ position: 'back' })
+
+    const desyncs = compareUnits([uiUnit], [serverUnit], 'player', event)
+
+    expect(desyncs).toHaveLength(1)
+    expect(desyncs[0].diff.position).toEqual({ ui: undefined, server: 'back' })
+  })
+
   it('does not compare snapshots attached to explanatory passive events', () => {
     const passiveEvent: CombatEvent = { type: 'passive_triggered', seq: 88, timestamp: 2.85 }
     const state: CombatState = {

@@ -64,8 +64,9 @@ def test_xn_yakuza_applies_only_to_self():
     assert new_without['attack'] == base_stats['attack']
 
 
-def test_trait_target_level_default_used_for_stat_buffs():
-    # Trait-level target 'self' with a per-tier stat_buff effect that does not specify 'target'
+def test_periodic_trait_reward_is_not_applied_as_static_stat_buff():
+    # A canonical per_round reward must not be mistaken for a start-of-combat
+    # stat buff. Its runtime orchestrator is tracked separately.
     traits = [
         {
             'name': 'XN Test',
@@ -101,11 +102,10 @@ def test_trait_target_level_default_used_for_stat_buffs():
     assert 'XN Test' in active
 
     base_stats = {'hp': 100, 'attack': 10, 'defense': 5, 'attack_speed': 1.0}
-    # apply_stat_buffs is used to apply flat stat buffs
+    # apply_stat_buffs must not consume a periodic trigger.
     buffed_with = engine.apply_stat_buffs(base_stats.copy(), unit_with, active)
     buffed_without = engine.apply_stat_buffs(base_stats.copy(), unit_without, active)
 
-    # Unit with trait should get +5 attack
-    assert buffed_with['attack'] == 15
-    # Unit without trait should remain unchanged
+    # Neither unit receives a periodic reward during static construction.
+    assert buffed_with['attack'] == 10
     assert buffed_without['attack'] == 10

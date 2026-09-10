@@ -6,11 +6,13 @@ import datetime
 import os
 import sys
 import asyncio
+import logging
 from pathlib import Path
 from functools import wraps
 from dotenv import load_dotenv
 
 # Load environment variables
+load_dotenv(Path(__file__).parent / '.env')
 load_dotenv(Path(__file__).parent.parent / '.env')
 
 # Add src to path for imports
@@ -20,13 +22,54 @@ from waffen_tactics.services.database import DatabaseManager
 from waffen_tactics.services.game_manager import GameManager
 from waffen_tactics.models.player_state import PlayerState
 
-# Import shared combat system
-from waffen_tactics.services.combat_simulator import CombatSimulator
-from waffen_tactics.services.combat_unit import CombatUnit
-
-
 app = Flask(__name__)
-CORS(app)
+logger = logging.getLogger(__name__)
+
+
+def _configure_cors(app_instance):
+    """Require an explicit origin policy; wildcard CORS is local-only."""
+    local_development = os.getenv('ALLOW_LOCAL_DEVELOPMENT_CORS', '').strip().lower() in {
+        '1', 'true', 'yes', 'on'
+    }
+    configured_origins = [
+        origin.strip()
+        for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+        if origin.strip()
+    ]
+    if '*' in configured_origins and not local_development:
+        raise RuntimeError(
+            'CORS_ALLOWED_ORIGINS cannot contain * outside explicit local development'
+        )
+    if not configured_origins:
+        if not local_development:
+            raise RuntimeError(
+                'CORS_ALLOWED_ORIGINS is required unless ALLOW_LOCAL_DEVELOPMENT_CORS=true'
+            )
+        configured_origins = [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+        ]
+
+    CORS(
+        app_instance,
+        resources={r'/*': {
+            'origins': configured_origins,
+            'methods': ['GET', 'POST', 'OPTIONS'],
+            'allow_headers': ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Request-ID'],
+            'expose_headers': ['X-Request-ID'],
+        }},
+    )
+
+
+_configure_cors(app)
+
+
+@app.after_request
+def add_request_id_header(response):
+    request_id = getattr(request, 'request_id', None)
+    if request_id:
+        response.headers['X-Request-ID'] = request_id
+    return response
 def run_async(coro):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -58,7 +101,7 @@ print(f"📦 Using database: {DB_PATH}")
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
-    return jsonify({'status': 'ok', 'db': DB_PATH})
+    return jsonify({'status': 'ok', 'db': 'configured'})
 
 
 from routes.game_routes import init_sample_bots

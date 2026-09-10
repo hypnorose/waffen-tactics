@@ -4,7 +4,7 @@ Tests for Game State Utils
 import unittest
 from unittest.mock import MagicMock, patch
 from waffen_tactics.models.player_state import PlayerState, UnitInstance
-from routes.game_state_utils import enrich_player_state
+from routes.game_state_utils import PlayerStateEnrichmentError, enrich_player_state
 
 
 class TestGameStateUtils(unittest.TestCase):
@@ -208,6 +208,70 @@ class TestGameStateUtils(unittest.TestCase):
         
         self.assertEqual(base_stats.get('hp'), expected_base_hp)
         self.assertEqual(buffed_stats.get('hp'), expected_buffed_hp)
+
+    @patch('routes.game_state_utils.GameManager')
+    def test_enrich_player_state_reuses_one_game_manager_per_request(self, mock_game_manager_cls):
+        mock_game_manager = MagicMock()
+        mock_game_manager_cls.return_value = mock_game_manager
+        mock_game_manager.data.units = []
+        mock_game_manager.data.traits = []
+        mock_game_manager.get_board_synergies.return_value = {}
+
+        enrich_player_state(self.mock_player)
+
+        mock_game_manager_cls.assert_called_once_with()
+
+    @patch('routes.game_state_utils.GameManager')
+    def test_enrich_player_state_fails_closed_when_synergy_computation_fails(self, mock_game_manager_cls):
+        mock_game_manager = MagicMock()
+        mock_game_manager_cls.return_value = mock_game_manager
+        mock_game_manager.data.units = []
+        mock_game_manager.data.traits = []
+        mock_game_manager.get_board_synergies.side_effect = RuntimeError('secret synergy failure')
+
+        with self.assertRaises(PlayerStateEnrichmentError) as raised:
+            enrich_player_state(self.mock_player)
+
+        self.assertEqual(raised.exception.stage, 'synergies')
+        self.assertNotIn('secret synergy failure', str(raised.exception))
+
+    @patch('routes.game_state_utils.GameManager')
+    def test_enrich_player_state_fails_closed_when_derived_stats_fail(self, mock_game_manager_cls):
+        mock_game_manager = MagicMock()
+        mock_game_manager_cls.return_value = mock_game_manager
+        mock_game_manager.data.units = [self.mock_unit]
+        mock_game_manager.data.traits = []
+        mock_game_manager.get_board_synergies.return_value = {}
+        mock_game_manager.synergy_engine.apply_stat_buffs.side_effect = RuntimeError('secret stat failure')
+        self.mock_player.board = [self.mock_unit_instance]
+        self.mock_player.to_dict.return_value = {
+            'user_id': self.user_id,
+            'board': [{'instance_id': 'inst_001', 'unit_id': 'unit_001', 'star_level': 1, 'position': 'front'}],
+            'bench': [],
+        }
+
+        with self.assertRaises(PlayerStateEnrichmentError) as raised:
+            enrich_player_state(self.mock_player)
+
+        self.assertEqual(raised.exception.stage, 'buffed_stats')
+        self.assertNotIn('secret stat failure', str(raised.exception))
+
+    @patch('routes.game_state_utils.GameManager')
+    @patch('routes.game_state_utils.scaled_hp')
+    def test_enrich_player_state_fails_closed_when_shop_preview_fails(self, mock_scaled_hp, mock_game_manager_cls):
+        mock_game_manager = MagicMock()
+        mock_game_manager_cls.return_value = mock_game_manager
+        mock_game_manager.data.units = [self.mock_unit]
+        mock_game_manager.data.traits = []
+        mock_game_manager.get_board_synergies.return_value = {}
+        mock_scaled_hp.side_effect = RuntimeError('secret shop failure')
+        self.mock_player.last_shop = ['unit_001']
+
+        with self.assertRaises(PlayerStateEnrichmentError) as raised:
+            enrich_player_state(self.mock_player)
+
+        self.assertEqual(raised.exception.stage, 'shop_preview')
+        self.assertNotIn('secret shop failure', str(raised.exception))
 
 
 if __name__ == '__main__':

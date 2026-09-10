@@ -8,10 +8,10 @@ never emits ``skill_cast`` and cannot create another bonus attack.
 from __future__ import annotations
 
 from typing import Any, Callable, Dict, Iterable, List, Optional
-import uuid
 
 from .event_canonicalizer import (
     emit_damage,
+    emit_effect_applied,
     emit_heal,
     emit_mana_change,
     emit_regen_gain,
@@ -62,17 +62,14 @@ class PassiveProcessor:
         })
 
     @staticmethod
-    def _append_effect(unit: Any, effect: Dict[str, Any]) -> None:
-        effect = dict(effect)
-        effect.setdefault("id", f"passive_{uuid.uuid4()}")
-        effects = list(getattr(unit, "effects", []) or [])
-        effects = [e for e in effects if not (
-            isinstance(e, dict)
-            and e.get("source") == getattr(unit, "id", None)
-            and e.get("passive_effect") == effect.get("passive_effect")
-        )]
-        effects.append(effect)
-        unit.effects = effects
+    def _append_effect(
+        unit: Any,
+        effect: Dict[str, Any],
+        callback: EventCallback = None,
+        side: Optional[str] = None,
+        timestamp: float = 0.0,
+    ) -> None:
+        emit_effect_applied(callback, unit, effect, side=side, timestamp=timestamp)
 
     @staticmethod
     def _line_units(units: Iterable[Any], line: str) -> List[Any]:
@@ -103,14 +100,14 @@ class PassiveProcessor:
             if kind == "stat":
                 self._emit_stat_effect(owner, target, effect["stat"], self._scaled_value(owner, effect["value"]), callback, side, timestamp, effect.get("value_type", "flat"), permanent=True)
             elif kind == "damage_reduction":
-                self._append_effect(target, {"type": "damage_reduction", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "damage_reduction"})
+                self._append_effect(target, {"type": "damage_reduction", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "damage_reduction"}, callback, side, timestamp)
             elif kind == "damage_reduction_shield":
-                self._append_effect(target, {"type": "damage_reduction", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "damage_reduction"})
+                self._append_effect(target, {"type": "damage_reduction", "value": self._scaled_value(owner, effect["value"]), "duration": effect.get("duration"), "source": getattr(owner, "id", None), "passive_effect": "damage_reduction"}, callback, side, timestamp)
                 emit_shield_applied(callback, target, int(target.max_hp * self._scaled_value(owner, effect["shield_value"]) / 100.0), duration=effect.get("duration"), source=owner, side=side, timestamp=timestamp)
             elif kind == "lifesteal":
-                self._append_effect(target, {"type": "lifesteal", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "lifesteal"})
+                self._append_effect(target, {"type": "lifesteal", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "lifesteal"}, callback, side, timestamp)
             elif kind == "mana_regen":
-                self._append_effect(target, {"type": "mana_regen", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "mana_regen"})
+                self._append_effect(target, {"type": "mana_regen", "value": self._scaled_value(owner, effect["value"]), "source": getattr(owner, "id", None), "passive_effect": "mana_regen"}, callback, side, timestamp)
             elif kind == "shield_percent":
                 amount = int(target.max_hp * float(self._scaled_value(owner, effect["value"])) / 100.0)
                 emit_shield_applied(callback, target, amount, source=owner, side=side, timestamp=timestamp)
@@ -140,7 +137,7 @@ class PassiveProcessor:
                     alive = [u for u in enemies if getattr(u, "hp", 1) > 0]
                     if alive:
                         target = max(alive, key=lambda u: getattr(u, "attack", 0))
-                        self._append_effect(target, {"type": "damage_reduction", "value": self._scaled_value(owner, definition["value"]), "source": getattr(owner, "id", None), "passive_effect": "enemy_highest_attack"})
+                        self._append_effect(target, {"type": "damage_reduction", "value": self._scaled_value(owner, definition["value"]), "source": getattr(owner, "id", None), "passive_effect": "enemy_highest_attack"}, callback, side, timestamp)
                         self._emit(callback, owner, "on_start", "enemy_highest_attack_penalty", side, timestamp, target_id=target.id)
                 elif kind == "start_enemy_debuff":
                     for target in enemies:
@@ -162,7 +159,7 @@ class PassiveProcessor:
                     self._apply_start_effect(owner, branch, owners, enemies, callback, side, timestamp)
 
     def _set_target_preference(self, unit: Any, preference: Optional[str], callback: EventCallback, side: str, timestamp: float, bonus_only: bool = False) -> None:
-        self._append_effect(unit, {"type": "targeting_preference_bonus" if bonus_only else "targeting_preference", "preference": preference, "source": getattr(unit, "id", None), "passive_effect": "targeting_preference"})
+        self._append_effect(unit, {"type": "targeting_preference_bonus" if bonus_only else "targeting_preference", "preference": preference, "source": getattr(unit, "id", None), "passive_effect": "targeting_preference"}, callback, side, timestamp)
         self._emit(callback, unit, "on_start", "targeting_preference", side, timestamp, preference=preference)
 
     def before_attack(self, unit: Any, target: Any, team: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float) -> Dict[str, Any]:
@@ -249,7 +246,7 @@ class PassiveProcessor:
         elif effect == "mana_burn" and target:
             plan["mana_burn"] = int(getattr(target, "mana", 0))
         elif effect == "mana_lock" and target:
-            self._append_effect(target, {"type": "mana_lock", "expires_at": timestamp + float(definition.get("duration", 2)), "source": unit.id, "passive_effect": "mana_lock"})
+            self._append_effect(target, {"type": "mana_lock", "duration": definition.get("duration", 2), "expires_at": timestamp + float(definition.get("duration", 2)), "source": unit.id, "passive_effect": "mana_lock"}, callback, side, timestamp)
         elif effect == "weakest_secondary":
             plan["secondary_scope"] = "weakest_nonprimary"
             plan["secondary_multiplier"] = float(value) / 100.0
@@ -257,7 +254,9 @@ class PassiveProcessor:
             plan["secondary_scope"] = "all"
             plan["secondary_multiplier"] = float(value) / 100.0
         elif effect == "dot" and target:
-            self._append_effect(target, {"type": "damage_over_time", "damage": value, "damage_type": "physical", "ticks_remaining": definition.get("ticks", 3), "total_ticks": definition.get("ticks", 3), "interval": definition.get("interval", 1), "next_tick_time": timestamp + definition.get("interval", 1), "source": unit.id, "passive_effect": "dot"})
+            ticks = definition.get("ticks", 3)
+            interval = definition.get("interval", 1)
+            self._append_effect(target, {"type": "damage_over_time", "damage": value, "damage_type": "physical", "ticks_remaining": ticks, "total_ticks": ticks, "interval": interval, "next_tick_time": timestamp + interval, "expires_at": timestamp + ticks * interval, "source": unit.id, "passive_effect": "dot"}, callback, side, timestamp)
         self._emit(callback, unit, "on_bonus_attack", effect or "bonus_attack", side, timestamp, target_id=getattr(target, "id", None))
         return plan
 

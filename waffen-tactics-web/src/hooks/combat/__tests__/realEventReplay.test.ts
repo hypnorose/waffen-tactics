@@ -289,7 +289,8 @@ describe('Real Combat Event Replay - Diverse Team Compositions', () => {
     { file: 'test_dot_heavy.json', desc: 'DoT-heavy teams' },
     { file: 'test_mixed_synergies.json', desc: 'Mixed synergies' },
     { file: 'test_high_stars.json', desc: 'High star levels' },
-    { file: 'test_tank_vs_damage.json', desc: 'Tank vs Damage matchup' }
+    { file: 'test_tank_vs_damage.json', desc: 'Tank vs Damage matchup' },
+    { file: 'test_events_with_snapshots_NEW.json', desc: 'Canonical snapshot fixture' }
   ]
 
   testFiles.forEach(({ file, desc }) => {
@@ -347,5 +348,33 @@ describe('Effect ID Validation', () => {
         expect(uuidRegex.test(event.effect_id)).toBe(true)
       }
     }
+  })
+})
+
+describe('Shared approved replay golden fixture', () => {
+  it('replays the same canonical events used by the core and backend tests without desync', () => {
+    const events = loadEventDump('test_fixtures/approved_replay_golden.json')
+    const initialState = initializeStateFromDump(events)
+    expect(initialState).not.toBeNull()
+
+    let state = initialState!
+    for (const event of events) {
+      if (event.type === 'units_init') continue
+
+      state = applyCombatEvent(state, event as CombatEvent, {
+        simTime: event.timestamp || 0
+      })
+
+      if (event.type === 'state_snapshot') {
+        expect(compareCombatStates(state, {
+          player_units: event.player_units,
+          opponent_units: event.opponent_units
+        }, event as CombatEvent)).toEqual([])
+      }
+    }
+
+    expect(state.opponentUnits.find(unit => unit.id === 'opp_front')?.hp).toBe(0)
+    expect(state.opponentUnits.find(unit => unit.id === 'opp_back')?.hp).toBe(80)
+    expect(state.playerUnits.find(unit => unit.id === 'p_front')?.current_mana).toBe(10)
   })
 })

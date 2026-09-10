@@ -60,7 +60,7 @@ def create_test_team(units_data, team_size, prefix, seed_offset=0):
     return team
 
 
-def test_stun_events():
+def run_stun_events():
     """Test Fix #3: Verify stun effects have corresponding events"""
     print_banner("TEST 1: Stun Events Emission")
 
@@ -177,7 +177,7 @@ def test_stun_events():
         return False
 
 
-def test_hp_consistency():
+def run_hp_consistency():
     """Test Fix #1: HP values remain consistent (no double shield subtraction)"""
     print_banner("TEST 2: HP Consistency")
 
@@ -264,7 +264,7 @@ def test_hp_consistency():
         return False
 
 
-def test_defense_buffed_stats():
+def run_defense_buffed_stats():
     """Test Fix #2: buffed_stats.defense remains constant when debuffs applied"""
     print_banner("TEST 3: Defense buffed_stats Consistency")
 
@@ -373,9 +373,9 @@ def main():
     print("  3. Stun Event Missing (canonical emitter)")
 
     results = {
-        'stun_events': test_stun_events(),
-        'hp_consistency': test_hp_consistency(),
-        'defense_buffed_stats': test_defense_buffed_stats()
+        'stun_events': run_stun_events(),
+        'hp_consistency': run_hp_consistency(),
+        'defense_buffed_stats': run_defense_buffed_stats()
     }
 
     print("\n")

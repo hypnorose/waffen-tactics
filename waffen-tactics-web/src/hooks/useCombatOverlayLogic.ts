@@ -3,7 +3,7 @@ import { PlayerState } from '../store/gameStore'
 import { useAuthStore } from '../store/authStore'
 import { useCombatSSEBuffer } from './combat/useCombatSSEBuffer'
 import { computeDelayMs } from './combat/replayTiming'
-import { applyCombatEvent } from './combat/applyEvent'
+import { applyCombatEvent, CombatReplayValidationError } from './combat/applyEvent'
 import { compareCombatStates } from './combat/desync'
 import { useProjectileSystem } from './useProjectileSystem'
 import { CombatState, CombatEvent, CombatUnitRoundStats, DesyncEntry } from './combat/types'
@@ -173,7 +173,28 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
       }
     }
 
-    const newState = applyCombatEvent(currentState, event, { simTime: currentState.simTime })
+    let newState: CombatState
+    try {
+      newState = applyCombatEvent(currentState, event, { simTime: currentState.simTime })
+    } catch (err) {
+      if (!(err instanceof CombatReplayValidationError)) {
+        throw err
+      }
+
+      const unitId = err.unitId || event.unit_id || event.target_id || event.attacker_id || ''
+      pushDesync({
+        unit_id: unitId,
+        unit_name: event.unit_name || '',
+        seq: event.seq,
+        timestamp: event.timestamp,
+        diff: { replay: { ui: 'not_applied', server: err.message } },
+        pending_events: bufferedEvents.slice(playhead + 1, playhead + 26),
+        note: `replay validation failed: ${err.message}`
+      })
+      clearReplayTimer()
+      console.error(`🛑 Combat replay stopped at seq=${event.seq} due to validation failure`, err)
+      return
+    }
     lastAppliedPlayheadRef.current = playhead
 
     // DEBUG: Log state AFTER applying event (only if effects present)

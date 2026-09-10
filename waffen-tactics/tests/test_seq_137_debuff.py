@@ -1,6 +1,6 @@
-import asyncio
 import json
 from pathlib import Path
+import pytest
 
 from waffen_tactics.models.skill import Effect, SkillExecutionContext
 from waffen_tactics.services.combat_unit import CombatUnit
@@ -74,7 +74,8 @@ def _make_unit(id, name, attack=0, hp=600, max_hp=600, shield=0):
     return u
 
 
-def test_seq_137_pepe_debuff_applies_to_un4given():
+@pytest.mark.asyncio
+async def test_seq_137_pepe_debuff_applies_to_un4given():
     """Reproduce seq:137 scenario: Pepe applies -15 attack debuff to Un4given.
 
     Ensure server-side state is mutated immediately (attack reduced and effect attached)
@@ -100,7 +101,7 @@ def test_seq_137_pepe_debuff_applies_to_un4given():
     handler = DebuffHandler()
 
     # execute (handler is async)
-    res = asyncio.get_event_loop().run_until_complete(handler.execute(eff, ctx, un4given))
+    res = await handler.execute(eff, ctx, un4given)
 
     # handler should return an event tuple ('stat_buff', payload)
     assert res and isinstance(res, list)

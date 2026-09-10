@@ -48,7 +48,7 @@ class EventStreamLogger {
     this.events.push(entry)
 
     // Log effect-related events immediately for visibility
-    if (['unit_stunned', 'stat_buff', 'shield_applied', 'damage_over_time_applied', 'effect_expired'].includes(event.type)) {
+    if (['unit_stunned', 'stat_buff', 'shield_applied', 'damage_over_time_applied', 'effect_applied', 'effect_expired'].includes(event.type)) {
       console.log(`[EventLogger] Effect event #${entry.index}: seq=${entry.seq} type=${event.type} unit=${(event as any).unit_id}`, event)
     }
   }
@@ -106,7 +106,7 @@ class EventStreamLogger {
       })
 
     // Effect events
-    const effectTypes = ['unit_stunned', 'stat_buff', 'shield_applied', 'damage_over_time_applied', 'effect_expired']
+    const effectTypes = ['unit_stunned', 'stat_buff', 'shield_applied', 'damage_over_time_applied', 'effect_applied', 'effect_expired']
     console.log('\nEffect events:')
     effectTypes.forEach(type => {
       const count = typeCounts.get(type) || 0
@@ -159,7 +159,7 @@ class EventStreamLogger {
 
     // Check for effect application events
     const effectEvents = unitEvents.filter(e =>
-      ['unit_stunned', 'stat_buff', 'shield_applied', 'damage_over_time_applied'].includes(e.type)
+      ['unit_stunned', 'stat_buff', 'shield_applied', 'damage_over_time_applied', 'effect_applied'].includes(e.type)
     )
     console.log(`\nEffect application events: ${effectEvents.length}`)
     effectEvents.forEach(e => {

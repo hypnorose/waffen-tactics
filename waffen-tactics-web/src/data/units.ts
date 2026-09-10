@@ -40,6 +40,9 @@ export async function loadUnits(): Promise<void> {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
     const response = await axios.get(`${API_URL}/game/units`)
     const unitsArray: Unit[] = response.data
+    if (!Array.isArray(unitsArray)) {
+      throw new Error('Canonical units API returned a non-array payload')
+    }
     // console.log(unitsArray);
     UNITS_CACHE = {}
     unitsArray.forEach(unit => {
@@ -50,29 +53,16 @@ export async function loadUnits(): Promise<void> {
     // console.log(`✅ Loaded ${unitsArray.length} units from API`)
   } catch (err) {
     console.error('Failed to load units:', err)
-  }
-}
-
-// Fallback units for development
-const FALLBACK_UNITS: Record<string, Unit> = {
-  rafcikd: {
-    id: 'rafcikd',
-    name: 'RafcikD',
-    cost: 1,
-    factions: ['Denciak'],
-    classes: ['Normik'],
-    stats: { hp: 100, attack: 15, defense: 5, attack_speed: 1.0 }
+    throw err
   }
 }
 
 export function getUnit(unitId: string): Unit | undefined {
-  return UNITS_CACHE[unitId] || FALLBACK_UNITS[unitId]
+  return UNITS_CACHE[unitId]
 }
 
 export function getAllUnits(): Unit[] {
-  const cached = Object.values(UNITS_CACHE || {})
-  const fallback = Object.values(FALLBACK_UNITS).filter(f => !cached.find(c => c.id === f.id))
-  return [...cached, ...fallback]
+  return Object.values(UNITS_CACHE)
 }
 
 export function getCostColor(cost: number): string {

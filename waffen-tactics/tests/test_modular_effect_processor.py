@@ -16,6 +16,18 @@ from waffen_tactics.services.modular_effect_processor import (
 )
 
 
+class RejectingAttackUnit(CombatUnit):
+    """Reject canonical attack mutation for failure-path coverage."""
+
+    @property
+    def attack(self):
+        return CombatUnit.attack.fget(self)
+
+    @attack.setter
+    def attack(self, _value):
+        raise PermissionError("attack mutation rejected")
+
+
 class TestModularEffectProcessor(unittest.TestCase):
     """Test cases for the modular effect processor"""
 
@@ -85,6 +97,110 @@ class TestModularEffectProcessor(unittest.TestCase):
 
         # 40 defense * 25% = 10 defense buff
         self.assertEqual(context['current_unit']['persistent_buffs']['defense'], 10)
+
+    def test_unit_level_object_stat_buff_applies_once_and_tracks_delta(self):
+        """Live object-unit rewards use the canonical stat mutation exactly once."""
+        unit = CombatUnit(
+            id='unit1',
+            name='Unit 1',
+            hp=100,
+            attack=5,
+            defense=1,
+            attack_speed=1.0,
+            effects=[{
+                'trigger': 'on_enemy_death',
+                'conditions': {'chance_percent': 100},
+                'rewards': [{
+                    'type': 'stat_buff',
+                    'stats': ['attack', 'defense'],
+                    'value': 5,
+                    'value_type': 'flat',
+                    'duration': 'permanent',
+                }],
+            }],
+        )
+        events = []
+
+        self.processor.process_trigger(
+            TriggerType.ON_ENEMY_DEATH,
+            {'all_units': [unit], 'current_time': 1.0, 'side': 'team_a'},
+            lambda event_type, payload: events.append((event_type, payload)),
+        )
+
+        self.assertEqual(unit.attack, 10)
+        self.assertEqual(unit.defense, 6)
+        self.assertEqual(unit.permanent_buffs_applied, {'attack': 5, 'defense': 5})
+        stat_events = [payload for event_type, payload in events if event_type == 'stat_buff']
+        self.assertEqual([payload['stat'] for payload in stat_events], ['attack', 'defense'])
+        self.assertEqual([payload['applied_delta'] for payload in stat_events], [5, 5])
+
+    def test_unit_level_percentage_stat_buff_is_resolved_by_emitter_once(self):
+        """Percentage rewards pass the percentage contract to the emitter once."""
+        unit = CombatUnit(
+            id='unit1',
+            name='Unit 1',
+            hp=100,
+            attack=20,
+            defense=1,
+            attack_speed=1.0,
+            effects=[{
+                'trigger': 'on_enemy_death',
+                'conditions': {'chance_percent': 100},
+                'rewards': [{
+                    'type': 'stat_buff',
+                    'stat': 'attack',
+                    'value': 10,
+                    'value_type': 'percentage',
+                    'duration': 'permanent',
+                }],
+            }],
+        )
+        events = []
+
+        self.processor.process_trigger(
+            TriggerType.ON_ENEMY_DEATH,
+            {'all_units': [unit], 'current_time': 1.0, 'side': 'team_a'},
+            lambda event_type, payload: events.append((event_type, payload)),
+        )
+
+        self.assertEqual(unit.attack, 22)
+        self.assertEqual(unit.permanent_buffs_applied['attack'], 2)
+        self.assertEqual(events[0][1]['value'], 10)
+        self.assertEqual(events[0][1]['applied_delta'], 2)
+
+    def test_unit_level_stat_buff_failure_does_not_pre_mutate_or_record_delta(self):
+        """A rejected canonical write leaves the live reward fully unapplied."""
+        unit = RejectingAttackUnit(
+            id='unit1',
+            name='Unit 1',
+            hp=100,
+            attack=5,
+            defense=1,
+            attack_speed=1.0,
+            effects=[{
+                'trigger': 'on_enemy_death',
+                'conditions': {'chance_percent': 100},
+                'rewards': [{
+                    'type': 'stat_buff',
+                    'stat': 'attack',
+                    'value': 5,
+                    'value_type': 'flat',
+                    'duration': 'permanent',
+                }],
+            }],
+        )
+        events = []
+
+        with self.assertRaisesRegex(RuntimeError, 'emit_stat_buff mutation failed'):
+            self.processor.process_trigger(
+                TriggerType.ON_ENEMY_DEATH,
+                {'all_units': [unit], 'current_time': 1.0, 'side': 'team_a'},
+                lambda event_type, payload: events.append((event_type, payload)),
+            )
+
+        self.assertEqual(unit.attack, 5)
+        self.assertFalse(hasattr(unit, 'permanent_buffs_applied'))
+        self.assertEqual(events, [])
 
     def test_resource_reward_gold(self):
         """Test gold resource reward"""

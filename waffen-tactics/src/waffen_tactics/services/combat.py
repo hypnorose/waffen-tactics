@@ -7,7 +7,11 @@ from waffen_tactics.services.combat_shared import CombatSimulator as SharedComba
 
 
 class CombatSimulator:
-    """Wrapper that adapts Unit objects to shared combat system"""
+    """Legacy CLI/Unit adapter delegating to the shared combat simulator.
+
+    Production web combat enters through ``backend.services.combat_service``;
+    this adapter remains only for the CLI and legacy Unit-shaped callers.
+    """
     
     def __init__(self):
         self.shared_sim = SharedCombatSimulator(dt=0.1, timeout=120)

@@ -6,6 +6,10 @@ import sys
 import pytest
 from pathlib import Path
 
+# Tests explicitly opt into the localhost-only CORS policy. Production must
+# provide CORS_ALLOWED_ORIGINS instead of inheriting this test configuration.
+os.environ.setdefault('ALLOW_LOCAL_DEVELOPMENT_CORS', 'true')
+
 # Add paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'waffen-tactics' / 'src'))
 sys.path.insert(0, str(Path(__file__).parent.parent))

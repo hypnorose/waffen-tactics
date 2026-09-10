@@ -1140,6 +1140,7 @@ def check_event_completeness():
         'attack': ['target_hp', 'damage', 'target_id'],  # emit_damage emits 'attack'
         'unit_stunned': ['effect_id', 'unit_id', 'duration'],
         'stat_buff': ['applied_delta', 'stat', 'unit_id'],  # stat_buff uses 'stat' not 'stat_type', 'unit_id' not 'recipient_id'
+        'shield_applied': ['effect_id', 'unit_id', 'post_shield'],
         'heal': ['unit_hp', 'amount', 'unit_id'],
         'mana_update': ['unit_id', 'current_mana'],  # mana_update events
         'effect_expired': ['effect_id', 'unit_id'],

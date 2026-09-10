@@ -4,14 +4,25 @@ Game combat - handlers for combat system and SSE streaming
 from flask import request, jsonify, Response, stream_with_context
 import time
 import json
+import hashlib
+import math
 from pathlib import Path
 import logging
-from waffen_tactics.services.database import DatabaseManager
+from waffen_tactics.services.database import (
+    DatabaseManager,
+    PlayerActionConflictError,
+    InvalidStoredPlayerStateError,
+)
 from waffen_tactics.services.game_manager import GameManager
-from waffen_tactics.services.combat_shared import CombatSimulator, CombatUnit
 from services.combat_service import (
     prepare_player_units_for_combat, prepare_opponent_units_for_combat,
-    run_combat_simulation, process_combat_results, resolve_defeat_hp_mutation
+    prepare_round_buffs, run_combat_simulation, process_combat_results, resolve_defeat_hp_mutation,
+    resolve_persisted_team_units,
+)
+from waffen_tactics.services.combat_errors import (
+    CombatError,
+    CombatExecutionError,
+    InvalidCombatInputError,
 )
 from .game_state_utils import run_async, enrich_player_state
 from routes.auth import verify_token
@@ -20,6 +31,19 @@ DB_PATH = str(Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'w
 db_manager = DatabaseManager(DB_PATH)
 logger = logging.getLogger('waffen_tactics.game_combat')
 game_manager = GameManager()
+
+# SSE framing is retained for compatibility with the current fetch parser;
+# the delivery model is a committed batch/replay, not a live event stream.
+COMBAT_DELIVERY_MODE = 'batch_replay'
+
+
+def _combat_response_headers():
+    return {
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',
+        'X-Combat-Delivery-Mode': COMBAT_DELIVERY_MODE,
+        'X-Combat-Live-Stream': 'false',
+    }
 def map_event_to_sse_payload(event_type: str, data: dict):
     """Map internal combat events to SSE payload dicts.
 
@@ -30,6 +54,15 @@ def map_event_to_sse_payload(event_type: str, data: dict):
     # Support both legacy 'attack' and new 'unit_attack' event types
     res = None
     if event_type in ('attack', 'unit_attack'):
+        post_shield = data.get('post_shield')
+        if post_shield is None:
+            # Compatibility alias is accepted only at the transport boundary.
+            post_shield = data.get('unit_shield')
+        if data.get('shield_absorbed', 0) and post_shield is None:
+            raise RuntimeError(
+                f"unit_attack with shield absorption missing canonical post_shield at seq={data.get('seq')} "
+                f"payload_keys={sorted(list(data.keys()))}"
+            )
         res = {
             'type': 'unit_attack',
             'attacker_id': data.get('attacker_id'),
@@ -47,6 +80,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'damage': data.get('damage'),
             'applied_damage': data.get('applied_damage', data.get('damage')),
             'shield_absorbed': data.get('shield_absorbed', 0),
+            'post_shield': post_shield,
+            'unit_shield': data.get('unit_shield', post_shield),
             'bonus_attack': data.get('bonus_attack', False),
             # Do NOT silently fallback to `unit_hp` here — preserve the
             # canonical `target_hp` value as provided by the backend.
@@ -185,7 +220,49 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
+    if event_type == 'effect_applied':
+        if not data.get('unit_id'):
+            raise RuntimeError(
+                f"effect_applied missing required unit_id at seq={data.get('seq')}"
+            )
+        effect = data.get('effect')
+        if not isinstance(effect, dict):
+            raise RuntimeError(
+                f"effect_applied missing canonical effect object at seq={data.get('seq')}"
+            )
+        if not data.get('effect_id') or effect.get('id') != data.get('effect_id'):
+            raise RuntimeError(
+                f"effect_applied effect identity mismatch at seq={data.get('seq')}"
+            )
+        if not isinstance(effect.get('type'), str) or not effect.get('type').strip():
+            raise RuntimeError(
+                f"effect_applied missing canonical effect.type at seq={data.get('seq')}"
+            )
+        res = {
+            'type': 'effect_applied',
+            'unit_id': data.get('unit_id'),
+            'unit_name': data.get('unit_name'),
+            'effect_id': data.get('effect_id'),
+            'effect_type': data.get('effect_type') or effect.get('type'),
+            'effect': effect,
+            'source_id': data.get('source_id') or effect.get('source'),
+            'caster_id': data.get('caster_id') or effect.get('source'),
+            'caster_name': data.get('caster_name'),
+            'side': data.get('side'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
+        }
     if event_type == 'shield_applied':
+        post_shield = data.get('post_shield')
+        if post_shield is None:
+            # Accept the pre-contract emitter alias only at this boundary;
+            # downstream replay receives the canonical name below.
+            post_shield = data.get('unit_shield')
+        if post_shield is None:
+            raise RuntimeError(
+                f"shield_applied missing required post_shield at seq={data.get('seq')} "
+                f"payload_keys={sorted(list(data.keys()))}"
+            )
         eff = {
             'type': 'shield',
             'amount': data.get('amount'),
@@ -199,6 +276,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_name': data.get('unit_name'),
             'amount': data.get('amount'),
             'duration': data.get('duration'),
+            'post_shield': post_shield,
+            'unit_shield': post_shield,
             'effect': eff,
             'effect_id': data.get('effect_id'),
             'timestamp': data.get('timestamp', time.time()),
@@ -237,14 +316,34 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'damage_over_time_applied':
+        damage = data.get('damage')
+        if not data.get('unit_id'):
+            raise RuntimeError(
+                f"damage_over_time_applied missing required unit_id at seq={data.get('seq')}"
+            )
+        if not data.get('effect_id'):
+            raise RuntimeError(
+                f"damage_over_time_applied missing required effect_id at seq={data.get('seq')}"
+            )
+        if not isinstance(damage, (int, float)) or isinstance(damage, bool) or not math.isfinite(damage) or damage <= 0:
+            raise RuntimeError(
+                f"damage_over_time_applied missing canonical damage at seq={data.get('seq')}"
+            )
+        if data.get('expires_at') is None:
+            raise RuntimeError(
+                f"damage_over_time_applied missing canonical expires_at at seq={data.get('seq')}"
+            )
         eff = {
             'type': 'damage_over_time',
-            'damage': data.get('damage') or data.get('amount'),
+            'damage': damage,
             'damage_type': data.get('damage_type'),
             'duration': data.get('duration'),
             'interval': data.get('interval'),
             'ticks': data.get('ticks'),
-            'id': data.get('effect_id')
+            'id': data.get('effect_id'),
+            'next_tick_time': data.get('next_tick_time'),
+            'expires_at': data.get('expires_at'),
+            'source': data.get('source'),
         }
         res = {
             'type': 'damage_over_time_applied',
@@ -252,17 +351,30 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_name': data.get('unit_name'),
             'caster_id': data.get('caster_id'),
             'caster_name': data.get('caster_name'),
-            'damage': data.get('damage') or data.get('amount'),
+            'damage': damage,
             'damage_type': data.get('damage_type'),
             'duration': data.get('duration'),
             'interval': data.get('interval'),
             'ticks': data.get('ticks'),
             'effect': eff,
             'effect_id': data.get('effect_id'),
+            'next_tick_time': data.get('next_tick_time'),
+            'expires_at': data.get('expires_at'),
+            'source': data.get('source'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
     if event_type == 'damage_over_time_tick':
+        post_shield = data.get('post_shield')
+        if post_shield is None:
+            # Compatibility alias is accepted only at the transport boundary.
+            post_shield = data.get('unit_shield')
+        shield_absorbed = data.get('shield_absorbed', 0)
+        if shield_absorbed and post_shield is None:
+            raise RuntimeError(
+                f"damage_over_time_tick with shield absorption missing canonical post_shield at seq={data.get('seq')} "
+                f"payload_keys={sorted(list(data.keys()))}"
+            )
         eff = {'type': 'damage_over_time', 'damage': data.get('damage'), 'damage_type': data.get('damage_type')}
         res = {
             'type': 'damage_over_time_tick',
@@ -270,8 +382,14 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_name': data.get('unit_name'),
             'damage': data.get('damage'),
             'damage_type': data.get('damage_type'),
+            'pre_hp': data.get('pre_hp'),
+            'post_hp': data.get('post_hp'),
             'unit_hp': data.get('unit_hp'),
             'unit_max_hp': data.get('unit_max_hp'),
+            'shield_absorbed': shield_absorbed,
+            'post_shield': post_shield,
+            'unit_shield': data.get('unit_shield', post_shield),
+            'side': data.get('side'),
             'effect': eff,
             'effect_id': data.get('effect_id') or (data.get('effect') or {}).get('id'),
             'timestamp': data.get('timestamp', time.time()),
@@ -286,7 +404,10 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
             'effect_id': data.get('effect_id'),
+            'pre_hp': data.get('pre_hp'),
+            'post_hp': data.get('post_hp'),
             'unit_hp': data.get('unit_hp'),
+            'side': data.get('side'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -296,7 +417,19 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_id': data.get('unit_id'),
             'unit_name': data.get('unit_name'),
             'effect_id': data.get('effect_id'),
+            'pre_hp': data.get('pre_hp'),
+            'post_hp': data.get('post_hp'),
             'unit_hp': data.get('unit_hp'),
+            'effect_type': data.get('effect_type'),
+            'stat': data.get('stat'),
+            'post_max_hp': data.get('post_max_hp'),
+            'post_attack': data.get('post_attack'),
+            'post_defense': data.get('post_defense'),
+            'post_attack_speed': data.get('post_attack_speed'),
+            'post_shield': data.get('post_shield'),
+            'applied_delta': data.get('applied_delta'),
+            'applied_amount': data.get('applied_amount'),
+            'side': data.get('side'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -352,11 +485,30 @@ def map_event_to_sse_payload(event_type: str, data: dict):
         return res
 
     return None
+
+
+def combat_error_sse_payload(error: CombatError) -> dict:
+    """Return the stable client contract for a failed combat request."""
+    return {
+        'type': 'error',
+        'code': error.code,
+        'retriable': error.retriable,
+        'message': error.safe_message,
+    }
+
+
 def start_combat():
-    """Start combat and stream events with Server-Sent Events"""
+    """Run committed combat and return an SSE-framed batch for replay."""
+
+    # The combat contract requires a JSON object because token and
+    # idempotency_key are named fields.  Reject other JSON shapes at the
+    # request boundary instead of allowing `.get()` to raise AttributeError.
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        logger.warning('start_combat: missing or invalid JSON object from %s', request.remote_addr)
+        return jsonify({'error': 'Missing token'}), 401
 
     # Get token from request body (POST)
-    data = request.get_json() or {}
     token = data.get('token', '')
     if not token:
         logger.warning('start_combat: missing token in request from %s', request.remote_addr)
@@ -373,6 +525,41 @@ def start_combat():
     if not player:
         return jsonify({'error': 'Player not found'}), 404
 
+    # Combat is retryable. Prefer the client key; otherwise derive one from
+    # the authoritative starting round so duplicate submissions of the same
+    # round share one durable action boundary.
+    idempotency_key = request.headers.get('Idempotency-Key') or data.get('idempotency_key')
+    idempotency_key = str(idempotency_key).strip() if idempotency_key else ''
+    if not idempotency_key:
+        idempotency_key = f"combat:{user_id}:{player.round_number}"
+    combat_result_id = hashlib.sha256(
+        f"combat:{user_id}:{idempotency_key}".encode('utf-8')
+    ).hexdigest()[:32]
+    expected_state_json = db_manager._serialize_player(player)
+
+    cached_action = run_async(
+        db_manager.get_player_action_result(user_id, 'combat', idempotency_key)
+    )
+    if cached_action:
+        if not cached_action.get('player'):
+            return jsonify({'error': cached_action.get('message', 'Combat action failed')}), 409
+
+        def generate_cached_combat_events():
+            cached_result = cached_action.get('result') or {}
+            try:
+                cached_state = enrich_player_state(cached_action['player'])
+            except Exception:
+                logger.exception('cached combat state enrichment failed user=%s', user_id)
+                yield f"data: {json.dumps({'type': 'error', 'code': 'combat_request_failed', 'retriable': True, 'message': CombatExecutionError.safe_message})}\n\n"
+                return
+            yield f"data: {json.dumps({'type': 'end', 'delivery_mode': COMBAT_DELIVERY_MODE, 'state': cached_state, 'combat_result': cached_result, 'result_id': cached_action.get('result_id') or combat_result_id, 'seq': 1000000})}\n\n"
+
+        return Response(
+            stream_with_context(generate_cached_combat_events()),
+            mimetype='text/event-stream',
+            headers=_combat_response_headers()
+        )
+
     # Validate combat can start
     if player.hp <= 0:
         logger.info('start_combat: player %s hp <=0 (%s)', user_id, player.hp)
@@ -387,19 +574,27 @@ def start_combat():
         logger.info('start_combat: player %s board size %s exceeds max %s', user_id, len(player.board), player.max_board_size)
         return jsonify({'error': f'Too many units on board (max {player.max_board_size})'}), 400
 
-    # Check if player has valid units (not just empty board)
-    valid_units = 0
-    for ui in player.board:
-        unit = next((u for u in game_manager.data.units if u.id == ui.unit_id), None)
-        if unit:
-            valid_units += 1
-    if valid_units == 0:
-        logger.info('start_combat: player %s has no valid units on board (valid_units=%s)', user_id, valid_units)
+    # Resolve the complete authoritative board at the request boundary.  Do
+    # not let the preparation service silently drop an unknown entry and run a
+    # partial team.
+    try:
+        resolved_player_units = resolve_persisted_team_units(player.board, 'player')
+    except InvalidCombatInputError as exc:
+        logger.warning(
+            'start_combat: invalid player team user=%s code=%s detail=%s',
+            user_id,
+            exc.code,
+            exc.detail,
+        )
+        return jsonify({'error': exc.safe_message, 'code': exc.code}), 400
+    if not resolved_player_units:
+        logger.info('start_combat: player %s has no valid units on board', user_id)
         return jsonify({'error': 'No valid units on board'}), 400
 
     def generate_combat_events():
         """Generator for SSE combat events using combat service"""
         try:
+            stream_chunks = []
             # Prepare player units
             success, message, player_data = prepare_player_units_for_combat(str(user_id))
             if not success:
@@ -416,6 +611,8 @@ def start_combat():
             # Prepare opponent units
             try:
                 opponent_units, opponent_unit_info, opponent_info = prepare_opponent_units_for_combat(player)
+            except InvalidCombatInputError:
+                raise
             except RuntimeError as e:
                 # No DB opponent available — send a friendly SSE error and stop the stream
                 logger.warning('start_combat: no DB opponent for player %s: %s', user_id, str(e))
@@ -427,17 +624,15 @@ def start_combat():
                 yield f"data: {json.dumps({'type': 'error', 'message': 'Internal server error preparing opponent'})}\n\n"
                 return
 
+            if not player_units or not opponent_units:
+                raise InvalidCombatInputError('Prepared combat teams must not be empty')
+
             # Clear any lingering effects from previous combats (effects should not persist between battles)
             for u in opponent_units:
                 u.effects = []
 
             # Apply per-round buffs before sending units_init
-            simulator = CombatSimulator(dt=0.1, timeout=60)
-            a_hp = [u.hp for u in player_units]
-            b_hp = [u.hp for u in opponent_units]
-            log = []
-            # print(f"DEBUG: Before buffs, player_units effects: {[u.effects for u in player_units]}")
-            simulator._process_per_round_buffs(player_units, opponent_units, a_hp, b_hp, 0, log, None, 1)
+            a_hp, b_hp = prepare_round_buffs(player_units, opponent_units, round_number=1)
             # print(f"DEBUG: After buffs, player_units effects: {[u.effects for u in player_units]}")
             # Update unit_info with applied buffs. Preserve `template_id` and
             # server-side avatar metadata that `prepare_*_for_combat` provided.
@@ -475,11 +670,11 @@ def start_combat():
             # Send initial units state with synergies and trait definitions
             trait_definitions = [{'name': t['name'], 'type': t['type'], 'description': t.get('description', ''), 'thresholds': t['thresholds'], 'threshold_descriptions': t.get('threshold_descriptions', []), 'effects': t.get('modular_effects', [])} for t in game_manager.data.traits]
             logger.info(f"start_combat: sending units_init for player {user_id}")
-            yield f"data: {json.dumps({'type': 'units_init', 'player_units': player_unit_info, 'opponent_units': opponent_unit_info, 'synergies': synergies_data, 'traits': trait_definitions, 'opponent': opponent_info, 'game_state': {'player_units': player_unit_info, 'opponent_units': opponent_unit_info}, 'seq': 0})}\n\n"
+            stream_chunks.append(f"data: {json.dumps({'type': 'units_init', 'delivery_mode': COMBAT_DELIVERY_MODE, 'player_units': player_unit_info, 'opponent_units': opponent_unit_info, 'synergies': synergies_data, 'traits': trait_definitions, 'opponent': opponent_info, 'game_state': {'player_units': player_unit_info, 'opponent_units': opponent_unit_info}, 'result_id': combat_result_id, 'seq': 0})}\n\n")
 
             # Start combat
             logger.info(f"start_combat: sending start event for player {user_id}")
-            yield f"data: {json.dumps({'type': 'start', 'message': '⚔️ Walka rozpoczyna się!', 'seq': 0})}\n\n"
+            stream_chunks.append(f"data: {json.dumps({'type': 'start', 'delivery_mode': COMBAT_DELIVERY_MODE, 'message': '⚔️ Walka rozpoczyna się!', 'result_id': combat_result_id, 'seq': 0})}\n\n")
 
             # Combat callback for SSE streaming with timestamp
             def combat_event_handler(event_type: str, data: dict, event_time: float):
@@ -492,43 +687,17 @@ def start_combat():
                         f"Unmapped combat event type '{event_type}' at seq={data.get('seq')} keys={sorted(list(data.keys()))}"
                     )
                 payload['timestamp'] = float(event_time)
+                payload['result_id'] = combat_result_id
+                # Normalize simulator UUIDs to an action-scoped identity so a
+                # retry with the same idempotency key has the same event IDs.
+                payload['event_id'] = f"{combat_result_id}:{len(stream_chunks)}"
                 return [json.dumps(payload)]
 
             # Collect events with timestamps
             events = []  # (event_type, data, event_time)
             all_events_for_debug = []  # For debugging desyncs
             def event_collector(event_type: str, data: dict):
-                # No manual syncing needed! Simulator already updated its units.
-                # Read authoritative state directly from simulator when available,
-                # otherwise fall back to the prepared player/opponent unit lists.
                 event_time = data.get('timestamp', 0.0)
-                emission_state = data.pop('_event_game_state', None)
-                try:
-                    # Use canonical unit runtime state as authoritative source.
-                    # HP is mutated through canonical emitters (`emit_damage`, `emit_heal`),
-                    # so deriving snapshots from unit objects avoids array/index drift.
-                    import copy
-                    if emission_state is not None:
-                        player_state = copy.deepcopy(emission_state['player_units'])
-                        opponent_state = copy.deepcopy(emission_state['opponent_units'])
-                    else:
-                        player_state = copy.deepcopy([u.to_dict(current_hp=int(getattr(u, 'hp'))) for u in simulator.team_a])
-                        opponent_state = copy.deepcopy([u.to_dict(current_hp=int(getattr(u, 'hp'))) for u in simulator.team_b])
-
-                    # DEBUG: Log effects in snapshots
-                    for u_dict in player_state + opponent_state:
-                        if u_dict.get('effects'):
-                            print(f"[SNAPSHOT DEBUG] Unit {u_dict['id']} has {len(u_dict['effects'])} effects in snapshot")
-                        else:
-                            print(f"[SNAPSHOT DEBUG] Unit {u_dict['id']} has EMPTY effects in snapshot")
-                except Exception as e:
-                    raise RuntimeError(f"Failed to build authoritative event game_state: {e}") from e
-
-                # Add game state to every event
-                data['game_state'] = {
-                    'player_units': player_state,
-                    'opponent_units': opponent_state,
-                }
                 events.append((event_type, data, event_time))
 
                 # Save for debugging (will be written to file after combat)
@@ -538,8 +707,19 @@ def start_combat():
                 }
                 all_events_for_debug.append(debug_event)
 
-            # Run combat simulation using shared logic
-            result = simulator.simulate(player_units, opponent_units, event_collector, skip_per_round_buffs=True)
+            # Run combat through the single backend combat-service owner.
+            try:
+                result = run_combat_simulation(
+                    player_units,
+                    opponent_units,
+                    event_callback=event_collector,
+                    skip_per_round_buffs=True,
+                    attach_game_state=True,
+                )
+            except CombatError:
+                raise
+            except Exception as exc:
+                raise CombatExecutionError('Combat service raised during request execution', cause=exc) from exc
 
             # Stream collected events. Apply any immediate gold rewards to player before income calc.
             for event_type, data, event_time in events:
@@ -552,13 +732,18 @@ def start_combat():
                     pass
                 for chunk in combat_event_handler(event_type, data, event_time):
                     logger.debug(f"start_combat: yielding event {event_type} for player {user_id}")
-                    yield f"data: {chunk}\n\n"
+                    stream_chunks.append(f"data: {chunk}\n\n")
 
             # Combat result
+            hp_loss = 0
+            post_hp = player.hp
+            game_over = False
 
             # Update player stats
             player.round_number += 1
-            player.xp += 2  # Always +2 XP per combat
+            # PlayerState owns XP overflow and level-up semantics.  The
+            # reward is fixed per completed combat, independent of outcome.
+            player.add_xp(2)
 
             # Apply persistent per-round buffs from traits to units on player's board BEFORE checking winner
             try:
@@ -605,7 +790,7 @@ def start_combat():
                 player.gold += win_bonus
                 player.streak += 1
 
-                yield f"data: {json.dumps({'type': 'victory', 'message': '🎉 ZWYCIĘSTWO!', 'seq': 999998})}\n\n"
+                stream_chunks.append(f"data: {json.dumps({'type': 'victory', 'message': '🎉 ZWYCIĘSTWO!', 'result_id': combat_result_id, 'seq': 999998})}\n\n")
 
             elif result['winner'] == 'team_b':
                 # Defeat - lose HP based on surviving enemy star levels
@@ -621,35 +806,15 @@ def start_combat():
                 player.streak = 0
 
                 if post_hp <= 0:
-                    # Game Over - save to leaderboard
-                    username = payload.get('username', f'Player_{user_id}')
-                    team_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
-                    run_async(db_manager.save_to_leaderboard(
-                        user_id=user_id,
-                        nickname=username,
-                        wins=player.wins,
-                        losses=player.losses,
-                        level=player.level,
-                        round_number=player.round_number,
-                        team_units=team_units
-                    ))
-                    yield f"data: {json.dumps({'type': 'defeat', 'message': f'💀 PRZEGRANA! -{hp_loss} HP. Koniec gry!', 'game_over': True, 'seq': 999998})}\n\n"
+                    game_over = True
+                    stream_chunks.append(f"data: {json.dumps({'type': 'defeat', 'message': f'💀 PRZEGRANA! -{hp_loss} HP. Koniec gry!', 'game_over': True, 'result_id': combat_result_id, 'seq': 999998})}\n\n")
                 else:
-                    yield f"data: {json.dumps({'type': 'defeat', 'message': f'💔 PRZEGRANA! -{hp_loss} HP (zostało {post_hp} HP)', 'seq': 999998})}\n\n"
+                    stream_chunks.append(f"data: {json.dumps({'type': 'defeat', 'message': f'💔 PRZEGRANA! -{hp_loss} HP (zostało {post_hp} HP)', 'result_id': combat_result_id, 'seq': 999998})}\n\n")
 
             # Previously an intermediate 'end' event was sent here to finalize
             # buffering. That prematurely signals the client the stream is
             # complete; remove the intermediate 'end' so the final 'end'
             # (which includes full `state`) is the canonical completion event.
-
-            # Handle XP level ups (use PlayerState's xp_to_next_level property)
-            while player.level < 10:
-                xp_for_next = player.xp_to_next_level
-                if xp_for_next > 0 and player.xp >= xp_for_next:
-                    player.xp -= xp_for_next
-                    player.level += 1
-                else:
-                    break
 
             # Calculate interest: 1g per 10g (max 5g) from current gold
             interest = min(5, player.gold // 10)
@@ -673,7 +838,8 @@ def start_combat():
                 'total': total_income + win_bonus,
                 'seq': 999997
             }
-            yield f"data: {json.dumps(gold_breakdown)}\n\n"
+            gold_breakdown['result_id'] = combat_result_id
+            stream_chunks.append(f"data: {json.dumps(gold_breakdown)}\n\n")
 
             # Generate new shop (unless locked)
             if not player.locked_shop:
@@ -682,7 +848,41 @@ def start_combat():
                 # Unlock shop after combat
                 player.locked_shop = False
 
-            # Save player's team to the opponent pool for future matches.
+            # Clear effects after combat to prevent persistence
+            for u in player_units + opponent_units:
+                u.effects = []
+
+            result_metadata = {
+                'winner': result['winner'],
+                'win_bonus': win_bonus,
+                'hp_loss': hp_loss,
+                'post_hp': post_hp,
+                'game_over': game_over,
+            }
+            commit = run_async(db_manager.commit_player_state_action(
+                user_id=user_id,
+                action_name='combat',
+                player=player,
+                expected_state_json=expected_state_json,
+                idempotency_key=idempotency_key,
+                result_id=combat_result_id,
+                result=result_metadata,
+                message='Combat result committed',
+            ))
+
+            # A concurrent retry with the same key resolves to the first
+            # committed state/result. Do not emit the locally computed stream.
+            if not commit.get('committed'):
+                cached_player = commit.get('player')
+                if not cached_player:
+                    raise PlayerActionConflictError('Cached combat result has no player state')
+                cached_state = enrich_player_state(cached_player)
+                cached_result = commit.get('result') or result_metadata
+                yield f"data: {json.dumps({'type': 'end', 'delivery_mode': COMBAT_DELIVERY_MODE, 'state': cached_state, 'combat_result': cached_result, 'result_id': commit.get('result_id') or combat_result_id, 'seq': 1000000})}\n\n"
+                return
+
+            # Post-commit projections must only be created by the request that
+            # won the idempotency/CAS boundary.
             board_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
             bench_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.bench]
             username = payload.get('username', f'Player_{user_id}')
@@ -695,37 +895,49 @@ def start_combat():
                 losses=player.losses,
                 level=player.level
             ))
+            if game_over:
+                team_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
+                run_async(db_manager.save_to_leaderboard(
+                    user_id=user_id,
+                    nickname=username,
+                    wins=player.wins,
+                    losses=player.losses,
+                    level=player.level,
+                    round_number=player.round_number,
+                    team_units=team_units
+                ))
 
-            # Clear effects after combat to prevent persistence
-            for u in player_units + opponent_units:
-                u.effects = []
-
-            # Save state
-            run_async(db_manager.save_player(player))
-
-            # Send final state - this will show "Kontynuuj" button
+            # Send the committed stream and final state. Nothing is emitted
+            # before the commit, so a losing concurrent request cannot replay
+            # a second reward/result stream.
+            for chunk in stream_chunks:
+                yield chunk
             state_dict = enrich_player_state(player)
-            yield f"data: {json.dumps({'type': 'end', 'state': state_dict, 'seq': 1000000})}\n\n"
+            yield f"data: {json.dumps({'type': 'end', 'delivery_mode': COMBAT_DELIVERY_MODE, 'state': state_dict, 'combat_result': result_metadata, 'result_id': combat_result_id, 'seq': 1000000})}\n\n"
 
             print(f"Combat finished for user {user_id}, waiting for user to close...")
 
-        except Exception as e:
-            import traceback
-            print(f"Combat error: {e}")
-            tb = traceback.format_exc()
-            traceback.print_exc()
-            try:
-                with open('/home/ubuntu/waffen-tactics-game/waffen-tactics-web/backend/api.log', 'a') as lf:
-                    lf.write('\n' + tb + '\n')
-            except Exception:
-                pass
-            yield f"data: {json.dumps({'type': 'error', 'message': f'Błąd walki: {str(e)}'})}\n\n"
+        except PlayerActionConflictError as exc:
+            logger.warning('combat action conflict user=%s: %s', user_id, str(exc))
+            yield f"data: {json.dumps({'type': 'error', 'code': 'player_action_conflict', 'retriable': True, 'message': str(exc)})}\n\n"
+        except InvalidStoredPlayerStateError as exc:
+            logger.exception('invalid stored combat state user=%s', user_id)
+            yield f"data: {json.dumps({'type': 'error', 'code': 'invalid_stored_player_state', 'retriable': False, 'message': str(exc)})}\n\n"
+        except InvalidCombatInputError as exc:
+            logger.warning('combat rejected code=%s detail=%s user=%s', exc.code, exc.detail, user_id)
+            yield f"data: {json.dumps(combat_error_sse_payload(exc))}\n\n"
+        except CombatExecutionError as exc:
+            logger.exception('combat execution failed code=%s user=%s', exc.code, user_id)
+            yield f"data: {json.dumps(combat_error_sse_payload(exc))}\n\n"
+        except CombatError as exc:
+            logger.exception('combat domain failure code=%s user=%s', exc.code, user_id)
+            yield f"data: {json.dumps(combat_error_sse_payload(exc))}\n\n"
+        except Exception:
+            logger.exception('unhandled combat request failure user=%s', user_id)
+            yield f"data: {json.dumps({'type': 'error', 'code': 'combat_request_failed', 'retriable': True, 'message': CombatExecutionError.safe_message})}\n\n"
 
     return Response(
         stream_with_context(generate_combat_events()),
         mimetype='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'X-Accel-Buffering': 'no'
-        }
+        headers=_combat_response_headers()
     )

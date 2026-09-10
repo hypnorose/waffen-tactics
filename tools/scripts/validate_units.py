@@ -7,11 +7,13 @@ import sys
 from pathlib import Path
 from typing import Dict, Any, List
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
 def validate_units_json():
     """Validate units.json file"""
-    project_root = Path(__file__).resolve().parent
-    units_file = project_root / "waffen-tactics" / "units.json"
-    roles_file = project_root / "waffen-tactics" / "unit_roles.json"
+    units_file = REPO_ROOT / "waffen-tactics" / "units.json"
+    roles_file = REPO_ROOT / "waffen-tactics" / "unit_roles.json"
 
     print("🔍 Validating units.json...")
 
@@ -51,8 +53,12 @@ def validate_units_json():
     warnings = []
 
     for i, unit in enumerate(units):
-        unit_id = unit.get("id", f"unit_{i}")
+        unit_id = unit.get("id", f"unit_{i}") if isinstance(unit, dict) else f"unit_{i}"
         print(f"  Checking unit: {unit_id}")
+
+        if not isinstance(unit, dict):
+            errors.append(f"Unit {unit_id}: record at index {i} must be an object")
+            continue
 
         # Required fields
         required_fields = ["id", "name", "cost", "factions", "classes", "role", "max_mana"]
@@ -99,7 +105,7 @@ def validate_units_json():
                 warnings.append(f"Unit {unit_id}: 'cost' {unit['cost']} seems very high")
 
     # Check for duplicate IDs
-    ids = [u.get("id") for u in units if "id" in u]
+    ids = [u.get("id") for u in units if isinstance(u, dict) and "id" in u]
     duplicates = set([x for x in ids if ids.count(x) > 1])
     for dup in duplicates:
         errors.append(f"Duplicate unit ID: {dup}")
@@ -122,8 +128,7 @@ def validate_units_json():
 
 def validate_traits_json():
     """Validate traits.json file"""
-    project_root = Path(__file__).resolve().parent
-    traits_file = project_root / "waffen-tactics" / "traits.json"
+    traits_file = REPO_ROOT / "waffen-tactics" / "traits.json"
 
     print("🔍 Validating traits.json...")
 
@@ -151,11 +156,16 @@ def validate_traits_json():
     valid_trait_types = {"faction", "class"}
 
     for i, trait in enumerate(traits):
-        trait_name = trait.get("name", f"trait_{i}")
+        trait_name = trait.get("name", f"trait_{i}") if isinstance(trait, dict) else f"trait_{i}"
         print(f"  Checking trait: {trait_name}")
 
-        # Required fields
-        required_fields = ["name", "type", "description", "thresholds", "threshold_descriptions", "effects"]
+        if not isinstance(trait, dict):
+            errors.append(f"Trait {trait_name}: record at index {i} must be an object")
+            continue
+
+        # Required fields in the canonical trait schema. Threshold descriptions
+        # are optional because the backend derives them from modular effects.
+        required_fields = ["name", "type", "description", "thresholds", "modular_effects"]
         for field in required_fields:
             if field not in trait:
                 errors.append(f"Trait {trait_name}: missing required field '{field}'")
@@ -172,16 +182,15 @@ def validate_traits_json():
             errors.append(f"Trait {trait_name}: 'thresholds' must be a list")
         if "threshold_descriptions" in trait and not isinstance(trait["threshold_descriptions"], list):
             errors.append(f"Trait {trait_name}: 'threshold_descriptions' must be a list")
-        if "effects" in trait and not isinstance(trait["effects"], list):
-            errors.append(f"Trait {trait_name}: 'effects' must be a list")
+        if "modular_effects" in trait and not isinstance(trait["modular_effects"], list):
+            errors.append(f"Trait {trait_name}: 'modular_effects' must be a list")
 
         # Check lengths match
-        if "thresholds" in trait and "threshold_descriptions" in trait and "effects" in trait:
+        if "thresholds" in trait and "modular_effects" in trait:
             thresholds_len = len(trait["thresholds"])
-            desc_len = len(trait["threshold_descriptions"])
-            effects_len = len(trait["effects"])
-            if thresholds_len != desc_len or thresholds_len != effects_len:
-                errors.append(f"Trait {trait_name}: thresholds ({thresholds_len}), descriptions ({desc_len}), and effects ({effects_len}) must have the same length")
+            effects_len = len(trait["modular_effects"])
+            if thresholds_len != effects_len:
+                errors.append(f"Trait {trait_name}: thresholds ({thresholds_len}) and modular_effects ({effects_len}) must have the same length")
 
         # Check thresholds are positive integers
         if "thresholds" in trait and isinstance(trait["thresholds"], list):
@@ -195,16 +204,28 @@ def validate_traits_json():
                 if not isinstance(desc, str):
                     errors.append(f"Trait {trait_name}: description {j} must be a string")
 
-        # Basic effects validation
-        if "effects" in trait and isinstance(trait["effects"], list):
-            for j, effect in enumerate(trait["effects"]):
-                if not isinstance(effect, dict):
-                    errors.append(f"Trait {trait_name}: effect {j} must be a dict")
-                elif "type" not in effect:
-                    errors.append(f"Trait {trait_name}: effect {j} missing 'type' field")
+        # Validate the canonical tiered effect structure.
+        if "modular_effects" in trait and isinstance(trait["modular_effects"], list):
+            for tier_index, tier_effects in enumerate(trait["modular_effects"]):
+                if not isinstance(tier_effects, list) or not tier_effects:
+                    errors.append(f"Trait {trait_name}: modular_effects tier {tier_index} must be a non-empty list")
+                    continue
+                for effect_index, effect in enumerate(tier_effects):
+                    if not isinstance(effect, dict):
+                        errors.append(f"Trait {trait_name}: modular effect {tier_index}/{effect_index} must be a dict")
+                        continue
+                    if not isinstance(effect.get("trigger"), str) or not effect["trigger"].strip():
+                        errors.append(f"Trait {trait_name}: modular effect {tier_index}/{effect_index} missing 'trigger'")
+                    if not isinstance(effect.get("conditions", {}), dict):
+                        errors.append(f"Trait {trait_name}: modular effect {tier_index}/{effect_index} 'conditions' must be a dict")
+                    rewards = effect.get("rewards")
+                    if not isinstance(rewards, list) or not rewards:
+                        errors.append(f"Trait {trait_name}: modular effect {tier_index}/{effect_index} must have non-empty 'rewards'")
+                    elif not all(isinstance(reward, dict) for reward in rewards):
+                        errors.append(f"Trait {trait_name}: modular effect {tier_index}/{effect_index} rewards must be dicts")
 
     # Check for duplicate names
-    names = [t.get("name") for t in traits if "name" in t]
+    names = [t.get("name") for t in traits if isinstance(t, dict) and "name" in t]
     duplicates = set([x for x in names if names.count(x) > 1])
     for dup in duplicates:
         errors.append(f"Duplicate trait name: {dup}")

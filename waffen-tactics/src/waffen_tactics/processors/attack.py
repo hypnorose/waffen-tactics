@@ -1,5 +1,10 @@
-"""
-Combat attack processor - separated compute vs apply phases
+"""Quarantined animation/test adapter; not the production combat owner.
+
+Production combat enters through ``waffen_tactics.services.combat_shared``
+and ``waffen_tactics.services.combat_simulator``.  Keep this adapter only for
+compatibility coverage until an approved core extraction contract exists.
+Never import it from production runtime code or use its damage helper as a
+replacement for the active services path.
 """
 import random
 import os
@@ -45,7 +50,7 @@ class CombatAttackProcessor:
             attack_interval = 1.0 / unit.attack_speed if getattr(unit, 'attack_speed', 0) > 0 else float('inf')
 
             if (time - getattr(unit, 'last_attack_time', 0)) >= attack_interval:
-                    target_idx = self._select_target(attacking_team, defending_team, attacking_hp, defending_hp, i)
+                target_idx = self._select_target(attacking_team, defending_team, attacking_hp, defending_hp, i)
                 if target_idx is None:
                     # Attacking team wins - this would be handled by caller
                     continue

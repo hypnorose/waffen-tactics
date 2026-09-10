@@ -383,7 +383,7 @@ def validate_ui_against_snapshot(ui_sim, snapshot_data, seq):
     return mismatches
 
 
-def test_full_10v10_integration():
+def run_full_10v10_integration():
     """Test full 10v10 combat with complete validation"""
     print_banner("FULL INTEGRATION TEST: 10v10 Combat Validation")
 
@@ -538,7 +538,7 @@ def main():
     print("  - Mana values")
     print("\nRunning full 10v10 combat simulation...")
 
-    success = test_full_10v10_integration()
+    success = run_full_10v10_integration()
 
     print("\n")
     print("█"*80)

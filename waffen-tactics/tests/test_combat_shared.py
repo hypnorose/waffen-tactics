@@ -1,4 +1,5 @@
 import random
+import pytest
 from waffen_tactics.services.combat_shared import CombatSimulator, CombatUnit
 from waffen_tactics.models.unit import Stats
 
@@ -6,6 +7,37 @@ from waffen_tactics.models.unit import Stats
 def make_unit(id, name, hp=100, attack=20, defense=10, attack_speed=1.0, effects=None, max_mana=100):
     stats = Stats(attack=attack, hp=hp, defense=defense, max_mana=max_mana, attack_speed=attack_speed, mana_on_attack=10)
     return CombatUnit(id=id, name=name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects or [], max_mana=max_mana, stats=stats)
+
+
+class DeathOnlyFailingUnit(CombatUnit):
+    """Allow damage HP mutation but reject the subsequent death mutation."""
+
+    def __init__(self, *args, **kwargs):
+        self._hp_set_calls = 0
+        super().__init__(*args, **kwargs)
+
+    @property
+    def hp(self):
+        return CombatUnit.hp.fget(self)
+
+    @hp.setter
+    def hp(self, value):
+        self._hp_set_calls += 1
+        if self._hp_set_calls >= 2:
+            raise PermissionError("death HP mutation rejected")
+        CombatUnit.hp.fset(self, value)
+
+
+class PerRoundHpRejectingUnit(CombatUnit):
+    """Reject the canonical HP write used by a start-of-combat heal."""
+
+    @property
+    def hp(self):
+        return CombatUnit.hp.fget(self)
+
+    @hp.setter
+    def hp(self, value):
+        raise PermissionError("per-round HP mutation rejected")
 
 
 def test_simulate_basic_deterministic():
@@ -18,6 +50,204 @@ def test_simulate_basic_deterministic():
     assert res.get("winner") in ("team_a", "team_b")
     assert "duration" in res
     assert isinstance(res.get("log"), list)
+
+
+def make_per_round_hp_unit(unit_cls=CombatUnit, unit_id="round-unit"):
+    stats = Stats(
+        attack=1,
+        hp=100,
+        defense=1,
+        max_mana=100,
+        attack_speed=1.0,
+        mana_on_attack=10,
+    )
+    return unit_cls(
+        id=unit_id,
+        name="RoundUnit",
+        hp=50,
+        attack=1,
+        defense=1,
+        attack_speed=1.0,
+        effects=[{
+            "type": "per_round_buff",
+            "stat": "hp",
+            "value": 10,
+            "is_percentage": False,
+        }],
+        stats=stats,
+    )
+
+
+def test_per_round_hp_buff_commits_canonical_unit_and_mirror_for_both_teams():
+    """Start-of-combat per-round HP buffs use one canonical state transition."""
+    for side in ("team_a", "team_b"):
+        unit = make_per_round_hp_unit(unit_id=f"round-{side}")
+        events = []
+        sim = CombatSimulator(dt=0.1, timeout=1)
+        team_a = [unit] if side == "team_a" else []
+        team_b = [unit] if side == "team_b" else []
+
+        sim.simulate(
+            team_a,
+            team_b,
+            round_number=3,
+            event_callback=lambda event_type, payload: events.append((event_type, payload)),
+        )
+
+        heal_events = [event for event in events if event[0] == "heal"]
+        assert len(heal_events) == 1
+        assert heal_events[0][1]["amount"] == 30
+        assert heal_events[0][1]["pre_hp"] == 50
+        assert heal_events[0][1]["post_hp"] == 80
+        assert heal_events[0][1]["side"] == side
+        assert unit.hp == 80
+        assert (sim.a_hp if side == "team_a" else sim.b_hp) == [80]
+
+
+def test_per_round_hp_buff_rejection_leaves_unit_mirror_log_and_events_unchanged():
+    """A rejected start-of-combat heal fails before mirror/log/event commit."""
+    for side in ("team_a", "team_b"):
+        unit = make_per_round_hp_unit(
+            PerRoundHpRejectingUnit,
+            unit_id=f"rejecting-round-{side}",
+        )
+        events = []
+        sim = CombatSimulator(dt=0.1, timeout=1)
+        team_a = [unit] if side == "team_a" else []
+        team_b = [unit] if side == "team_b" else []
+
+        with pytest.raises(PermissionError, match="per-round HP mutation rejected"):
+            sim.simulate(
+                team_a,
+                team_b,
+                round_number=3,
+                event_callback=lambda event_type, payload: events.append((event_type, payload)),
+            )
+
+        assert unit.hp == 50
+        assert (sim.a_hp if side == "team_a" else sim.b_hp) == [50]
+        assert events == []
+
+
+def test_per_round_hp_buff_callback_failure_rolls_back_canonical_unit_and_mirror():
+    """A callback failure after mutation cannot leave canonical HP ahead of its mirror."""
+    unit = make_per_round_hp_unit(unit_id="callback-failure-round")
+    sim = CombatSimulator(dt=0.1, timeout=1)
+
+    def failing_callback(_event_type, _payload):
+        raise RuntimeError("collector failed during per-round heal")
+
+    with pytest.raises(RuntimeError, match="collector failed during per-round heal"):
+        sim.simulate([unit], [], round_number=3, event_callback=failing_callback)
+
+    assert unit.hp == 50
+    assert sim.a_hp == [50]
+
+
+def test_event_delivery_failure_aborts_shared_simulation():
+    """A failed canonical event callback must not produce a combat outcome."""
+    sim = CombatSimulator(dt=0.1, timeout=1)
+    attacker = make_unit("a1", "Attacker", hp=200, attack=30, defense=5, attack_speed=1.0)
+    defender = make_unit("b1", "Defender", hp=120, attack=10, defense=2, attack_speed=0.8)
+    delivered = []
+
+    def failing_callback(event_type, payload):
+        delivered.append((event_type, payload))
+        raise RuntimeError("collector failed")
+
+    with pytest.raises(RuntimeError, match="collector failed"):
+        sim.simulate([attacker], [defender], event_callback=failing_callback)
+
+    assert delivered
+    assert sim._event_seq == 0
+
+
+def test_canonical_emitter_delivery_failure_aborts_shared_simulation():
+    """A producer callback failure must abort when an attack event is emitted."""
+    sim = CombatSimulator(dt=0.1, timeout=0.25)
+    attacker = make_unit("a1", "Attacker", hp=200, attack=30, defense=5, attack_speed=100.0)
+    defender = make_unit("b1", "Defender", hp=120, attack=10, defense=2, attack_speed=100.0)
+    delivered = []
+
+    def failing_callback(event_type, payload):
+        delivered.append((event_type, payload))
+        if event_type == "unit_attack":
+            raise RuntimeError("attack event consumer failed")
+
+    with pytest.raises(RuntimeError, match="attack event consumer failed"):
+        sim.simulate([attacker], [defender], event_callback=failing_callback)
+
+    assert any(event_type == "unit_attack" for event_type, _ in delivered)
+
+
+def test_death_processor_propagates_canonical_mutation_failure():
+    target = DeathOnlyFailingUnit(
+        id="b1", name="Broken Defender", hp=10, attack=1, defense=1, attack_speed=0.5
+    )
+    # Model the prior damage mutation so the death-only fault is triggered.
+    target._hp_set_calls = 1
+    sim = CombatSimulator(dt=0.1, timeout=1)
+    sim.team_b = [target]
+    sim.b_hp = [0]
+    events = []
+
+    with pytest.raises(PermissionError, match="death HP mutation rejected"):
+        sim._process_unit_death(
+            killer=None,
+            defending_team=[target],
+            defending_hp=[0],
+            attacking_team=[],
+            attacking_hp=[],
+            target_idx=0,
+            time=1.0,
+            log=[],
+            event_callback=lambda event_type, payload: events.append((event_type, payload)),
+            side="team_b",
+        )
+
+    assert target.hp == 10
+    assert target._dead is False
+    assert target._death_processed is False
+    assert events == []
+
+
+def test_scheduled_death_mutation_failure_aborts_shared_simulation():
+    attacker = make_unit("a1", "Attacker", hp=100, attack=100, defense=5, attack_speed=2.0)
+    defender = DeathOnlyFailingUnit("b1", "Defender", 10, 1, 1, 0.5)
+    delivered = []
+    sim = CombatSimulator(dt=0.1, timeout=2)
+
+    with pytest.raises(PermissionError, match="death HP mutation rejected"):
+        sim.simulate(
+            [attacker],
+            [defender],
+            event_callback=lambda event_type, payload: delivered.append((event_type, payload)),
+        )
+
+    assert not any(event_type == "unit_died" for event_type, _ in delivered)
+    assert defender.hp == 0
+    assert defender._dead is False
+
+
+def test_shared_scheduled_attack_resolves_shield_before_hp_and_hp_array():
+    sim = CombatSimulator(dt=0.1, timeout=1.3)
+    attacker = make_unit("a1", "Attacker", hp=200, attack=25, defense=5, attack_speed=1.0)
+    defender = make_unit("b1", "Shielded", hp=100, attack=1, defense=5, attack_speed=0.0)
+    defender.shield = 10
+    events = []
+
+    result = sim.simulate([attacker], [defender], event_callback=lambda event_type, payload: events.append((event_type, payload)))
+
+    attacks = [payload for event_type, payload in events if event_type == 'unit_attack']
+    assert attacks
+    attack = attacks[0]
+    assert attack['shield_absorbed'] == 10
+    assert attack['post_shield'] == 0
+    assert attack['target_hp'] == 87
+    assert defender.hp == 87
+    assert defender.shield == 0
+    assert sim.b_hp == [87]
+    assert result['team_b_survivors'] == 1
 
 
 def test_lifesteal_and_on_enemy_death_effects():
@@ -87,6 +317,8 @@ def test_on_enemy_death_event_callback():
     # Check values
     assert attack_buffs[0][1]['amount'] == 2
     assert defense_buffs[0][1]['amount'] == 2
+    assert a[0].attack == 52
+    assert a[0].defense == 12
     
     # Check unit name
     assert attack_buffs[0][1]['unit_name'] == 'StreamerUnit'

@@ -1,7 +1,7 @@
 import copy
 from pathlib import Path
 import json
-import asyncio
+import pytest
 
 from waffen_tactics.services.combat_shared import CombatUnit
 from waffen_tactics.models.skill import Effect, SkillExecutionContext
@@ -77,7 +77,8 @@ class ReplayUnit:
             pass
 
 
-def test_seq_137_replay_matches_snapshot():
+@pytest.mark.asyncio
+async def test_seq_137_replay_matches_snapshot():
     # Build units from templates
     pepe = _make_from_template('pepe', instance_id='cd45bffd') or CombatUnit(id='cd45bffd', name='Pepe', hp=600, attack=50, defense=0, attack_speed=1.0)
     un4 = _make_from_template('un4given', instance_id='opp_0') or CombatUnit(id='opp_0', name='Un4given', hp=600, attack=40, defense=0, attack_speed=1.0)
@@ -94,7 +95,7 @@ def test_seq_137_replay_matches_snapshot():
     ctx = SkillExecutionContext(caster=pepe, team_a=[pepe], team_b=[un4], combat_time=1.0)
     eff = Effect(type='debuff', params={'stat': 'attack', 'value': -15, 'duration': 4, 'value_type': 'flat'})
     handler = DebuffHandler()
-    res = asyncio.get_event_loop().run_until_complete(handler.execute(eff, ctx, un4))
+    res = await handler.execute(eff, ctx, un4)
     assert res and isinstance(res, list)
     event = res[0]
     assert event[0] == 'stat_buff'

@@ -128,6 +128,35 @@ class TestEventCanonicalizer(unittest.TestCase):
         self.assertEqual(events[0][0], 'unit_stunned')
         self.assertEqual(events[0][1]['duration'], 3.0)
 
+    def test_canonical_emitter_callback_failures_propagate(self):
+        """Canonical producers must not hide downstream delivery failures."""
+        def failing_callback(_event_type, _payload):
+            raise RuntimeError('delivery failed')
+
+        cases = [
+            ('effect_applied', lambda u: ec.emit_effect_applied(failing_callback, u, {'type': 'buff'})),
+            ('stat_buff', lambda u: ec.emit_stat_buff(failing_callback, u, 'attack', 1)),
+            ('heal', lambda u: ec.emit_heal(failing_callback, u, 1)),
+            ('mana_update', lambda u: ec.emit_mana_update(failing_callback, u, current_mana=6)),
+            ('mana_change', lambda u: ec.emit_mana_change(failing_callback, u, 1)),
+            ('regen_gain', lambda u: ec.emit_regen_gain(failing_callback, u, 1)),
+            ('unit_died', lambda u: ec.emit_unit_died(failing_callback, u)),
+            ('unit_heal', lambda u: ec.emit_unit_heal(failing_callback, u, u, 1)),
+            ('hp_regen', lambda u: ec.emit_hp_regen(failing_callback, u, 1)),
+            ('damage_over_time_tick', lambda u: ec.emit_damage_over_time_tick(failing_callback, u, 1)),
+            ('gold_reward', lambda u: ec.emit_gold_reward(failing_callback, u, 1)),
+            ('unit_stunned', lambda u: ec.emit_unit_stunned(failing_callback, u)),
+            ('shield_applied', lambda u: ec.emit_shield_applied(failing_callback, u, 1)),
+            ('unit_attack', lambda u: ec.emit_damage(failing_callback, u, u, 1)),
+            ('effect_expired', lambda u: ec.emit_effect_expired(failing_callback, u, 'effect-1')),
+            ('damage_over_time_expired', lambda u: ec.emit_damage_over_time_expired(failing_callback, u, 'effect-1')),
+        ]
+
+        for event_type, invoke in cases:
+            with self.subTest(event_type=event_type):
+                with self.assertRaisesRegex(RuntimeError, 'delivery failed'):
+                    invoke(DummyUnit())
+
 
 if __name__ == '__main__':
     unittest.main()

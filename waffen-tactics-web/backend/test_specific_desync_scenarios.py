@@ -48,7 +48,7 @@ def create_specific_unit(unit_data, unit_id):
     )
 
 
-def test_stun_skill_scenario():
+def run_stun_skill_scenario():
     """Test with Miki who has a stun skill"""
     print_banner("TEST: Miki's Stun Skill (Fix #3)")
 
@@ -139,7 +139,7 @@ def test_stun_skill_scenario():
         return True
 
 
-def test_defense_debuff_scenario():
+def run_defense_debuff_scenario():
     """Test with units that apply defense debuffs"""
     print_banner("TEST: Defense Debuff Scenario (Fix #2)")
 
@@ -273,8 +273,8 @@ def main():
     print("\nTests specific units and skills that trigger the desync fixes")
 
     results = {
-        'stun_skill': test_stun_skill_scenario(),
-        'defense_debuff': test_defense_debuff_scenario(),
+        'stun_skill': run_stun_skill_scenario(),
+        'defense_debuff': run_defense_debuff_scenario(),
     }
 
     print("\n")

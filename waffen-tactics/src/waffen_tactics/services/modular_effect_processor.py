@@ -568,6 +568,12 @@ class ModularEffectProcessor:
 
     def __init__(self):
         self.active_effects: Dict[str, ModularEffect] = {}
+        # Raw unit effects are data records rather than ModularEffect
+        # instances, so keep their lifecycle state beside the processor.
+        # These sets are reset at the simulator's combat/round boundaries.
+        self._raw_trigger_once: set = set()
+        self._raw_round_triggered: set = set()
+        self._raw_trigger_counts: Dict[str, int] = {}
 
     def register_effect(self, effect_id: str, effect: ModularEffect):
         """Register an effect"""
@@ -577,9 +583,68 @@ class ModularEffectProcessor:
         """Unregister an effect"""
         self.active_effects.pop(effect_id, None)
 
+    @staticmethod
+    def _unit_id(unit: Any) -> Any:
+        if isinstance(unit, dict):
+            return unit.get('id')
+        return getattr(unit, 'id', None)
+
+    def _raw_effect_key(self, unit: Any, effect: Dict[str, Any], trigger: TriggerType) -> str:
+        return f"{self._unit_id(unit)}:{trigger.value}:{id(effect)}"
+
+    def _raw_conditions_allow(
+        self,
+        unit: Any,
+        effect: Dict[str, Any],
+        trigger: TriggerType,
+        context: Dict[str, Any],
+    ) -> bool:
+        conditions = effect.get('conditions', {}) or {}
+        chance_percent = conditions.get('chance_percent', 100)
+        if random.randint(1, 100) > chance_percent:
+            return False
+
+        effect_key = self._raw_effect_key(unit, effect, trigger)
+        if conditions.get('once_per_round') and effect_key in self._raw_round_triggered:
+            return False
+        if conditions.get('max_triggers') is not None and self._raw_trigger_counts.get(effect_key, 0) >= conditions['max_triggers']:
+            return False
+
+        threshold = conditions.get('threshold_percent')
+        if threshold is not None:
+            current_hp_percent = context.get('current_hp_percent', 100)
+            if current_hp_percent > threshold:
+                return False
+            previous_hp_percent = context.get('previous_hp_percent')
+            if previous_hp_percent is not None and previous_hp_percent <= threshold:
+                return False
+
+        return True
+
+    def _mark_raw_triggered(
+        self,
+        unit: Any,
+        effect: Dict[str, Any],
+        trigger: TriggerType,
+        context: Dict[str, Any],
+    ) -> None:
+        effect_key = self._raw_effect_key(unit, effect, trigger)
+        conditions = effect.get('conditions', {}) or {}
+        self._raw_trigger_counts[effect_key] = self._raw_trigger_counts.get(effect_key, 0) + 1
+        if conditions.get('once_per_round'):
+            self._raw_round_triggered.add(effect_key)
+        if conditions.get('trigger_once'):
+            # Death trigger_once is intentionally scoped to the current death
+            # event through context['triggered_rewards'] for compatibility.
+            # Other trigger families need state that survives separate ticks.
+            if trigger not in (TriggerType.ON_ENEMY_DEATH, TriggerType.ON_ALLY_DEATH):
+                self._raw_trigger_once.add(effect_key)
+
     def process_trigger(self, trigger: TriggerType, context: Dict[str, Any], event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None) -> Dict[str, Any]:
         """Process a trigger and return results"""
         results = {"events": []}
+        previous_trigger = context.get('_trigger')
+        context['_trigger'] = trigger.value
         
         # First, process registered active effects
         for effect_id, effect in self.active_effects.items():
@@ -625,7 +690,36 @@ class ModularEffectProcessor:
         for unit in all_units:
             if hasattr(unit, 'effects') and unit.effects:
                 for effect in unit.effects:
+                    if not isinstance(effect, dict):
+                        continue
                     if effect.get('trigger') == trigger.value:
+                        # Death events are dispatched once with both teams in
+                        # `all_units`. Only the units on the reacting side may
+                        # evaluate the trigger: an enemy death is observed by
+                        # the attacker's team, while an ally death is observed
+                        # by the victim's surviving team. Without this guard,
+                        # a trait on the opposite team can react to the same
+                        # death under the wrong trigger semantics.
+                        if trigger in (TriggerType.ON_ENEMY_DEATH, TriggerType.ON_ALLY_DEATH):
+                            reacting_team = context.get('ally_units')
+                            if reacting_team is not None:
+                                reacting_ids = {
+                                    getattr(candidate, 'id', candidate.get('id') if isinstance(candidate, dict) else None)
+                                    for candidate in reacting_team
+                                }
+                                unit_id = getattr(unit, 'id', None)
+                                if unit_id not in reacting_ids and not any(unit is candidate for candidate in reacting_team):
+                                    continue
+
+                        # Periodic and threshold dispatches are intentionally
+                        # allowed to receive a team-scoped context, but never
+                        # let a defeated owner execute a new reward.
+                        try:
+                            if getattr(unit, '_dead', False) or int(getattr(unit, 'hp', 1)) <= 0:
+                                continue
+                        except (AttributeError, TypeError, ValueError):
+                            pass
+
                         # Skip processing effects on the unit that just died for
                         # on_ally_death / on_enemy_death triggers — only surviving
                         # units should react to a death event.
@@ -638,13 +732,10 @@ class ModularEffectProcessor:
                                 continue
                         except Exception:
                             pass
-                        # Check conditions
-                        conditions = effect.get('conditions', {})
-                        chance_percent = conditions.get('chance_percent', 100)
+                        conditions = effect.get('conditions', {}) or {}
                         trigger_once = conditions.get('trigger_once', False)
-                        
-                        # Check chance
-                        if random.randint(1, 100) > chance_percent:
+
+                        if not self._raw_conditions_allow(unit, effect, trigger, context):
                             continue
                         
                         # Check trigger_once
@@ -655,17 +746,27 @@ class ModularEffectProcessor:
                         # a reward for the same death.
                         if trigger_once:
                             effect_key = f"{trigger.value}"
+                            if trigger not in (TriggerType.ON_ENEMY_DEATH, TriggerType.ON_ALLY_DEATH):
+                                effect_key = self._raw_effect_key(unit, effect, trigger)
                         else:
                             # Non-trigger_once effects are allowed per-unit.
                             effect_key = f"{unit.id}_{effect.get('trigger')}_{id(effect)}"
 
-                        if trigger_once and context.get('triggered_rewards', set()) and effect_key in context['triggered_rewards']:
-                            continue
+                        if trigger_once:
+                            if trigger in (TriggerType.ON_ENEMY_DEATH, TriggerType.ON_ALLY_DEATH):
+                                if context.get('triggered_rewards', set()) and effect_key in context['triggered_rewards']:
+                                    continue
+                            elif effect_key in self._raw_trigger_once:
+                                continue
                         
                         # Process rewards
                         rewards = effect.get('rewards', [])
                         original_current_unit = context.get('current_unit')
+                        original_current_unit_index = context.get('current_unit_index')
                         context['current_unit'] = unit
+                        unit_indices = context.get('unit_indices', {}) or {}
+                        if self._unit_id(unit) in unit_indices:
+                            context['current_unit_index'] = unit_indices[self._unit_id(unit)]
                         try:
                             for reward in rewards:
                                     try:
@@ -679,14 +780,76 @@ class ModularEffectProcessor:
                                 context['current_unit'] = original_current_unit
                             else:
                                 context.pop('current_unit', None)
+                            if original_current_unit_index is not None:
+                                context['current_unit_index'] = original_current_unit_index
+                            else:
+                                context.pop('current_unit_index', None)
                         
-                        # Mark as triggered for trigger_once
-                        if trigger_once:
+                        self._mark_raw_triggered(unit, effect, trigger, context)
+                        # Mark death trigger_once for this death event only.
+                        if trigger_once and trigger in (TriggerType.ON_ENEMY_DEATH, TriggerType.ON_ALLY_DEATH):
                             if 'triggered_rewards' not in context:
                                 context['triggered_rewards'] = set()
                             context['triggered_rewards'].add(effect_key)
-        
+
+        if previous_trigger is None:
+            context.pop('_trigger', None)
+        else:
+            context['_trigger'] = previous_trigger
         return results
+
+    def _emit_heal_with_mirror(
+        self,
+        recipient: Any,
+        amount: float,
+        context: Dict[str, Any],
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+        cause: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Apply a heal and commit a simulator HP mirror atomically."""
+        hp_mirror = context.get('hp_mirror')
+        unit_indices = context.get('unit_indices', {}) or {}
+        unit_index = unit_indices.get(self._unit_id(recipient))
+        if hp_mirror is None or unit_index is None:
+            return emit_heal(
+                event_callback,
+                recipient,
+                amount,
+                source=context.get('effect_source'),
+                side=context.get('side'),
+                timestamp=context.get('current_time'),
+                cause=cause,
+            )
+
+        old_hp = int(hp_mirror[unit_index])
+        try:
+            payload = emit_heal(
+                event_callback,
+                recipient,
+                amount,
+                source=context.get('effect_source'),
+                side=context.get('side'),
+                timestamp=context.get('current_time'),
+                cause=cause,
+                current_hp=old_hp,
+            )
+        except Exception:
+            # A callback can fail after canonical HP mutation. Restore the
+            # unit before propagating so the simulator mirror cannot diverge.
+            try:
+                actual_hp = int(getattr(recipient, 'hp'))
+            except Exception:
+                actual_hp = old_hp
+            if actual_hp != old_hp:
+                from .event_canonicalizer import _set_and_verify_canonical_hp
+                _set_and_verify_canonical_hp(recipient, old_hp)
+            raise
+
+        if payload is not None:
+            hp_mirror[unit_index] = int(payload['post_hp'])
+        else:
+            hp_mirror[unit_index] = int(getattr(recipient, 'hp'))
+        return payload
 
     def _process_reward(self, reward: Dict[str, Any], context: Dict[str, Any], event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None) -> Dict[str, Any]:
         """Process a single reward"""
@@ -695,32 +858,108 @@ class ModularEffectProcessor:
         
         if reward_type == 'stat_buff':
             # Apply stat buff
-            stats = reward.get('stats', [])
+            stats = list(reward.get('stats') or [])
+            if not stats and reward.get('stat'):
+                stats = [reward['stat']]
             value = reward.get('value', 0)
             value_type = reward.get('value_type', 'flat')
+            trigger = context.get('_trigger')
             duration = reward.get('duration', 'permanent')
             
             recipient = context.get('current_unit')
             if recipient:
                 for stat in stats:
-                    if stat in ('attack', 'defense'):
-                        if value_type == 'flat':
-                            delta = value
+                    # A canonical per-round HP reward is a round-scaled heal,
+                    # matching the existing simulator contract, not a static
+                    # max-HP mutation.
+                    if trigger == TriggerType.PER_ROUND.value and stat == 'hp':
+                        value_type = reward.get('value_type', 'flat')
+                        value = float(reward.get('value', 0))
+                        if value_type == ValueType.PERCENTAGE_OF_MAX.value:
+                            amount = float(getattr(recipient, 'max_hp', 0)) * value / 100.0
                         else:
-                            delta = int(getattr(recipient, stat, 0) * (value / 100.0))
-                        
-                        if duration == 'permanent':
-                            setattr(recipient, stat, getattr(recipient, stat, 0) + delta)
-                        
-                        # Emit event
-                        if event_callback:
-                            emit_stat_buff(
-                                event_callback, recipient, stat, delta, 
-                                value_type=value_type, duration=None if duration == 'permanent' else duration,
-                                permanent=(duration == 'permanent'), side=context.get('side'), 
-                                timestamp=context.get('current_time')
-                            )
+                            amount = value
+                        amount *= float(context.get('round_number', 1))
+                        payload = self._emit_heal_with_mirror(
+                            recipient,
+                            amount,
+                            context,
+                            event_callback,
+                            cause='per_round_trait',
+                        )
+                        if payload is not None:
+                            results['events'].append(payload)
+                        continue
+
+                    if stat in ('attack', 'defense', 'hp', 'attack_speed', 'lifesteal', 'damage_reduction', 'hp_regen_per_sec', 'max_hp', 'max_mana', 'current_mana'):
+                        # `emit_stat_buff` is the only live object-unit mutation
+                        # boundary. The previous direct write here was followed
+                        # by the emitter and applied permanent buffs twice.
+                        emitter_value = float(value)
+                        emitter_value_type = value_type
+                        if value_type == ValueType.PERCENTAGE_OF_COLLECTED.value:
+                            collected = context.get('collected_stats', {}).get(reward.get('collect_stat'), 0)
+                            emitter_value = int(float(collected) * float(value) / 100.0)
+                            emitter_value_type = 'flat'
+                        elif value_type == ValueType.PERCENTAGE_OF_MAX.value:
+                            if trigger == TriggerType.PER_SECOND.value and stat == 'hp':
+                                emitter_value = float(getattr(recipient, 'max_hp', 0)) * float(value) / 100.0
+                            else:
+                                # Preserve the existing modular meaning for
+                                # combat stats: percentage of the current
+                                # stat is resolved once, then emitted flat.
+                                emitter_value = int(float(getattr(recipient, stat, 0)) * float(value) / 100.0)
+                            emitter_value_type = 'flat'
+
+                        is_periodic = trigger == TriggerType.PER_SECOND.value
+                        if is_periodic and 'duration' not in reward:
+                            duration = None
+                            permanent = False
+                        else:
+                            permanent = duration == 'permanent'
+
+                        payload = emit_stat_buff(
+                            event_callback, recipient, stat, emitter_value,
+                            value_type=emitter_value_type,
+                            duration=None if permanent else duration,
+                            permanent=permanent,
+                            side=context.get('side'),
+                            timestamp=context.get('current_time'),
+                            cause=f'{trigger}_trait' if trigger in (TriggerType.PER_SECOND.value, TriggerType.PER_ROUND.value) else None,
+                        )
+
+                        # Keep the post-combat persistence compatibility field in
+                        # sync, but only after canonical mutation succeeded.
+                        if permanent and payload is not None:
+                            applied_delta = payload.get('applied_delta')
+                            if applied_delta is not None:
+                                if not hasattr(recipient, 'permanent_buffs_applied'):
+                                    recipient.permanent_buffs_applied = {}
+                                recipient.permanent_buffs_applied[stat] = (
+                                    recipient.permanent_buffs_applied.get(stat, 0)
+                                    + applied_delta
+                                )
         
+        elif reward_type == 'healing':
+            recipient = context.get('trigger_target') or context.get('current_unit')
+            if recipient:
+                value = float(reward.get('value', 0))
+                value_type = reward.get('value_type', 'flat')
+                if value_type == ValueType.PERCENTAGE_OF_MAX.value:
+                    value = float(getattr(recipient, 'max_hp', 0)) * value / 100.0
+                elif value_type == ValueType.PERCENTAGE_OF_COLLECTED.value:
+                    collected = context.get('collected_stats', {}).get(reward.get('collect_stat'), 0)
+                    value = float(collected) * value / 100.0
+                payload = self._emit_heal_with_mirror(
+                    recipient,
+                    value,
+                    context,
+                    event_callback,
+                    cause='on_ally_hp_below_trait',
+                )
+                if payload is not None:
+                    results['events'].append(payload)
+
         elif reward_type == 'resource':
             # Apply resource reward
             resource = reward.get('resource')
@@ -738,8 +977,12 @@ class ModularEffectProcessor:
         """Reset round-specific state for all effects"""
         for effect in self.active_effects.values():
             effect.conditions.reset_round_state()
+        self._raw_round_triggered.clear()
 
     def reset_combat_state(self):
         """Reset combat-specific state for all effects"""
         for effect in self.active_effects.values():
             effect.conditions.reset_combat_state()
+        self._raw_trigger_once.clear()
+        self._raw_round_triggered.clear()
+        self._raw_trigger_counts.clear()

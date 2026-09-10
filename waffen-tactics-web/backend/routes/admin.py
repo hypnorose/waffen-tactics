@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify
 import sys
 import json
+import asyncio
+import logging
 import aiosqlite
 from pathlib import Path
 from functools import wraps
-from routes.auth import require_auth
+from routes.auth import _request_id
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'waffen-tactics' / 'src'))
@@ -13,12 +15,60 @@ from waffen_tactics.services.database import DatabaseManager
 
 DB_PATH = str(Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')
 db_manager = DatabaseManager(DB_PATH)
+logger = logging.getLogger(__name__)
 
 admin_bp = Blueprint('admin', __name__)
+
+
+def _run_async(coro):
+    """Run one admin coroutine with an owned, automatically closed lifecycle."""
+    return asyncio.run(coro)
+
+
+def _load_units_by_id():
+    """Load unit metadata once for the current request."""
+    units_path = Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'units.json'
+    with units_path.open('r', encoding='utf-8') as f:
+        units_data = json.load(f)
+    return {u.get('id'): u for u in units_data.get('units', [])}
+
+
+def _parse_pagination_args():
+    """Return validated one-based pagination values or ``None``."""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 50))
+    except (TypeError, ValueError):
+        return None
+
+    if page < 1 or limit < 1:
+        return None
+
+    return page, limit
+
+
+def _internal_error_response(operation, exc):
+    """Return a safe admin error while retaining server-side correlation."""
+    request_id = getattr(request, 'request_id', 'unknown')
+    logger.error(
+        'admin request failed operation=%s request_id=%s error_type=%s',
+        operation,
+        request_id,
+        type(exc).__name__,
+    )
+    response = jsonify({
+        'error': 'Internal server error',
+        'code': 'internal_error',
+        'request_id': request_id,
+    })
+    response.headers['X-Request-ID'] = request_id
+    return response, 500
+
 
 def require_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        _request_id()
         auth_header = request.headers.get('Authorization', '')
         token = auth_header.replace('Bearer ', '')
         if not token:
@@ -41,14 +91,12 @@ def require_admin(f):
 def get_active_games(user_id):
     """Get list of active games (players with state)"""
     try:
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 50))
+        pagination = _parse_pagination_args()
+        if pagination is None:
+            return jsonify({'error': 'Invalid pagination parameters'}), 400
+        page, limit = pagination
         offset = (page - 1) * limit
 
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         async def fetch_games():
             async with aiosqlite.connect(DB_PATH) as db:
                 # Get total count
@@ -87,7 +135,7 @@ def get_active_games(user_id):
                         })
             return games, total
         
-        games, total = loop.run_until_complete(fetch_games())
+        games, total = _run_async(fetch_games())
         return jsonify({
             'games': games,
             'total': total,
@@ -95,8 +143,8 @@ def get_active_games(user_id):
             'limit': limit,
             'total_pages': (total + limit - 1) // limit
         })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return _internal_error_response('get_active_games', exc)
 
 @admin_bp.route('/teams', methods=['GET'])
 @require_admin
@@ -104,14 +152,12 @@ def get_teams(user_id):
     """Get teams with filtering options"""
     try:
         is_active = request.args.get('active', 'true').lower() == 'true'
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 50))
+        pagination = _parse_pagination_args()
+        if pagination is None:
+            return jsonify({'error': 'Invalid pagination parameters'}), 400
+        page, limit = pagination
         offset = (page - 1) * limit
 
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         async def fetch_teams():
             async with aiosqlite.connect(DB_PATH) as db:
                 # Get total count
@@ -148,7 +194,7 @@ def get_teams(user_id):
                         })
             return teams, total
         
-        teams, total = loop.run_until_complete(fetch_teams())
+        teams, total = _run_async(fetch_teams())
         return jsonify({
             'teams': teams,
             'total': total,
@@ -156,18 +202,14 @@ def get_teams(user_id):
             'limit': limit,
             'total_pages': (total + limit - 1) // limit
         })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return _internal_error_response('get_teams', exc)
 
 @admin_bp.route('/metrics', methods=['GET'])
 @require_admin
 def get_metrics(user_id):
     """Get general metrics"""
     try:
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         async def fetch_metrics():
             async with aiosqlite.connect(DB_PATH) as db:
                 # Total players
@@ -204,10 +246,10 @@ def get_metrics(user_id):
                 'recent_games': recent_games
             }
         
-        metrics = loop.run_until_complete(fetch_metrics())
+        metrics = _run_async(fetch_metrics())
         return jsonify(metrics)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return _internal_error_response('get_metrics', exc)
 
 
 @admin_bp.route('/traits-popularity', methods=['GET'])
@@ -223,11 +265,6 @@ def get_traits_popularity(user_id):
     try:
         include_bench = request.args.get('include_bench', 'false').lower() == 'true'
         time_filter = request.args.get('time_filter', 'all')
-        time_filter = request.args.get('time_filter', 'all')
-
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
 
         async def fetch_popularity():
             # Load unit metadata to map unit_id -> name
@@ -254,7 +291,6 @@ def get_traits_popularity(user_id):
                         try:
                             team = json.loads(team_json)
                             if not isinstance(team, dict):
-                                continue
                                 continue
                         except Exception:
                             continue
@@ -286,7 +322,6 @@ def get_traits_popularity(user_id):
                                 continue
                         except Exception:
                             continue
-                            continue
                         round_number = int(state.get('round_number', 1))
                         if round_number not in popularity:
                             popularity[round_number] = {}
@@ -305,10 +340,10 @@ def get_traits_popularity(user_id):
 
             return popularity
 
-        popularity = loop.run_until_complete(fetch_popularity())
+        popularity = _run_async(fetch_popularity())
         return jsonify({'popularity': popularity})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return _internal_error_response('get_traits_popularity', exc)
 
 @admin_bp.route('/units-popularity', methods=['GET'])
 @require_admin
@@ -323,10 +358,6 @@ def get_units_popularity(user_id):
     try:
         include_bench = request.args.get('include_bench', 'false').lower() == 'true'
         time_filter = request.args.get('time_filter', 'all')
-
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
 
         async def fetch_popularity():
             # Load unit metadata to map unit_id -> name
@@ -386,7 +417,7 @@ def get_units_popularity(user_id):
                                 continue
                         except Exception:
                             continue
-                        round_number = int(state.get(round_number, 1))
+                        round_number = int(state.get('round_number', 1))
                         if round_number not in popularity:
                             popularity[round_number] = {}
 
@@ -404,20 +435,16 @@ def get_units_popularity(user_id):
 
             return popularity
 
-        popularity = loop.run_until_complete(fetch_popularity())
+        popularity = _run_async(fetch_popularity())
         return jsonify({'popularity': popularity})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return _internal_error_response('get_units_popularity', exc)
 
 @admin_bp.route('/team/<int:team_id>', methods=['GET'])
 @require_admin
 def get_team_details(user_id, team_id):
     """Get detailed team information"""
     try:
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         async def fetch_team():
             async with aiosqlite.connect(DB_PATH) as db:
                 async with db.execute("""
@@ -437,19 +464,17 @@ def get_team_details(user_id, team_id):
                     except Exception:
                         return None
                     
+                    # Load metadata once for this request, then reuse it for
+                    # both board and bench entries.
+                    units_by_id = _load_units_by_id()
+
                     # Get unit details for board and bench
                     def get_units_details(units_list):
                         details = []
                         for unit in units_list:
                             unit_id = unit.get('unit_id')
                             if unit_id:
-                                # Get unit data from units.json
-                                import json as json_lib
-                                units_path = Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'units.json'
-                                with open(units_path, 'r', encoding='utf-8') as f:
-                                    units_data = json_lib.load(f)
-                                
-                                unit_info = next((u for u in units_data.get('units', []) if u['id'] == unit_id), None)
+                                unit_info = units_by_id.get(unit_id)
                                 if unit_info:
                                     details.append({
                                         'id': unit_id,
@@ -476,12 +501,12 @@ def get_team_details(user_id, team_id):
                         'created_at': created_at
                     }
         
-        team = loop.run_until_complete(fetch_team())
+        team = _run_async(fetch_team())
         if not team:
             return jsonify({'error': 'Team not found'}), 404
         return jsonify(team)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return _internal_error_response('get_team_details', exc)
 
 @admin_bp.route('/init-sample-data', methods=['POST'])
 @require_admin
@@ -489,10 +514,7 @@ def init_sample_data(user_id):
     """Initialize sample data for testing"""
     try:
         from routes.game_routes import init_sample_bots
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(init_sample_bots())
+        _run_async(init_sample_bots())
         return jsonify({'message': 'Sample data initialized'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as exc:
+        return _internal_error_response('init_sample_data', exc)

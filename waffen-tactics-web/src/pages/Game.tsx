@@ -15,7 +15,7 @@ import ItemsPanel from '../components/ItemsPanel'
 
 export default function Game() {
   const { user, logout } = useAuthStore()
-  const { playerState, setPlayerState, setLoading, setError } = useGameStore()
+  const { playerState, setPlayerState, setLoading, setError, error } = useGameStore()
   const [showCombat, setShowCombat] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
@@ -76,10 +76,18 @@ export default function Game() {
   }, [playerState])
   
   const initGame = async () => {
-    // Load units first
-    await loadUnits()
-    // Then load game state
-    await loadGameState()
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Load canonical units before loading state that references unit IDs.
+      await loadUnits()
+      await loadGameState()
+    } catch (err) {
+      console.error('Failed to initialize game:', err)
+      setError('Nie można załadować danych jednostek')
+      setLoading(false)
+    }
   }
 
   const loadGameState = async () => {
@@ -116,7 +124,7 @@ export default function Game() {
       showNotificationModal('Dodaj jednostki na planszę!')
       return
     }
-    console.log('[GAME] Starting combat - this will trigger SSE connection to /game/combat')
+    console.log('[GAME] Starting combat - requesting committed batch replay from /game/combat')
     setShowCombat(true)
   }
 
@@ -223,7 +231,11 @@ export default function Game() {
   if (!playerState) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-2xl animate-pulse">Ładowanie gry...</div>
+        <div className="text-center">
+          <div className={`text-2xl ${error ? 'text-red-400' : 'animate-pulse'}`} role={error ? 'alert' : undefined}>
+            {error || 'Ładowanie gry...'}
+          </div>
+        </div>
       </div>
     )
   }

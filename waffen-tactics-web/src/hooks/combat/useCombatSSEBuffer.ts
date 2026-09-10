@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { CombatEvent } from './types'
 
-// Shared SSE state per token so hot-reload / remounts reuse the same EventSource
+// Shared committed batch/replay state per token. The transport uses SSE
+// framing, but the backend does not promise live event delivery.
 type SharedSSEState = {
-  eventSource: any // Not actually EventSource anymore, but keeping for compatibility
+  eventSource: any // Not actually EventSource; retained for compatibility
   ingest: CombatEvent[]
   bufferedEvents: CombatEvent[]
   isBufferedComplete: boolean
@@ -95,8 +96,8 @@ function ensureSharedSSE(token: string) {
               // console.log(`[SSE DEBUG] Token ${token} ConnId ${connectionId}: Received ${data.type} seq:${data.seq}`)
               if (!state.isBufferedComplete) {
                 state.ingest.push(data)
-                // Progressive buffering: expose events immediately so replay
-                // can start at fight load instead of waiting for stream end.
+                // Expose received batch frames immediately; the backend sends
+                // the batch only after simulation and the idempotent commit.
                 state.bufferedEvents = [...state.ingest]
                 state.listeners.forEach(l => l({ bufferedEvents: state.bufferedEvents, isBufferedComplete: false }))
 

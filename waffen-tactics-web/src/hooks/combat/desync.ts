@@ -33,7 +33,7 @@ export function compareUnits(localUnits: Unit[], serverUnits: any[], side: strin
     defense: u.defense ?? 0,
     attack_speed: u.buffed_stats?.attack_speed ?? 1,
     star_level: u.star_level,
-    position: u.position ?? 'front',
+    position: u.position,
     effects: canonicalizeEffects(u.effects ?? []),
     current_mana: u.current_mana ?? 0,
     max_mana: u.max_mana ?? 100,
@@ -44,7 +44,7 @@ export function compareUnits(localUnits: Unit[], serverUnits: any[], side: strin
     const lu = localMap.get(su.id)
     if (!lu) continue
     const diff: Record<string, { ui: any, server: any }> = {}
-    const fields = ['hp', 'max_hp', 'attack', 'defense', 'attack_speed', 'current_mana', 'max_mana', 'shield']
+    const fields = ['hp', 'max_hp', 'attack', 'defense', 'attack_speed', 'current_mana', 'max_mana', 'shield', 'position']
     for (const f of fields) {
       if ((lu as any)[f] !== su[f]) diff[f] = { ui: (lu as any)[f], server: su[f] }
     }

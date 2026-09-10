@@ -72,6 +72,54 @@ describe('combatPresentation', () => {
     })).toContain('+20 health')
   })
 
+  it('does not present fully shield-absorbed DoT as HP loss', () => {
+    const event: CombatEvent = {
+      type: 'damage_over_time_tick',
+      unit_id: 'unit_b',
+      unit_name: 'Unit B',
+      damage: 8,
+      pre_hp: 100,
+      post_hp: 100,
+      shield_absorbed: 8,
+    }
+
+    expect(formatCombatLogEntry(event)).toBe('[DOT] Unit B -8 shield')
+    const result = updateCombatSummary(createCombatSummary(), event)
+    expect(result.unitStatsByUnit.unit_b.damage_received).toBe(0)
+  })
+
+  it('separates HP and shield loss for partially absorbed DoT', () => {
+    const event: CombatEvent = {
+      type: 'damage_over_time_tick',
+      unit_id: 'unit_b',
+      unit_name: 'Unit B',
+      damage: 8,
+      pre_hp: 100,
+      post_hp: 95,
+      shield_absorbed: 3,
+    }
+
+    expect(formatCombatLogEntry(event)).toBe('[DOT] Unit B -5 HP, -3 shield')
+    const result = updateCombatSummary(createCombatSummary(), event)
+    expect(result.unitStatsByUnit.unit_b.damage_received).toBe(5)
+  })
+
+  it('keeps no-shield DoT presentation and metrics as HP damage', () => {
+    const event: CombatEvent = {
+      type: 'damage_over_time_tick',
+      unit_id: 'unit_b',
+      unit_name: 'Unit B',
+      damage: 8,
+      pre_hp: 100,
+      post_hp: 92,
+      shield_absorbed: 0,
+    }
+
+    expect(formatCombatLogEntry(event)).toBe('[DOT] Unit B -8 HP')
+    const result = updateCombatSummary(createCombatSummary(), event)
+    expect(result.unitStatsByUnit.unit_b.damage_received).toBe(8)
+  })
+
   it('calculates average dealt and received damage for participating units', () => {
     const summary = createCombatSummary()
     const events: CombatEvent[] = [

@@ -3,6 +3,7 @@ from typing import Optional, Tuple, Dict
 from ..models.player_state import PlayerState, UnitInstance
 from ..models.unit import Unit
 from ..services.data_loader import GameData
+from .stat_scaling import validate_position
 import logging
 import math
 
@@ -153,6 +154,12 @@ class UnitManager:
         bot_logger.info(f"[GM_MOVE_TO_BOARD] Current state - Board: {len(player.board)}/{player.max_board_size}, Bench: {len(player.bench)}/{player.max_bench_size}")
         bot_logger.info(f"[GM_MOVE_TO_BOARD] Bench instance_ids: {[u.instance_id for u in player.bench]}")
 
+        try:
+            validate_position(position)
+        except ValueError as exc:
+            bot_logger.warning("[GM_MOVE_TO_BOARD] Rejected invalid position: %s", position)
+            return False, f"Nieprawidłowa pozycja: {exc}"
+
         # Check board space
         if len(player.board) >= player.max_board_size:
             bot_logger.warning(f"[GM_MOVE_TO_BOARD] Board full! {len(player.board)}/{player.max_board_size}")
@@ -233,6 +240,12 @@ class UnitManager:
         """Switch unit position on board between front/back"""
         bot_logger.info(f"[GM_SWITCH_LINE] Request to switch {instance_id} to {position}")
         bot_logger.info(f"[GM_SWITCH_LINE] Board instance_ids: {[u.instance_id for u in player.board]}")
+
+        try:
+            validate_position(position)
+        except ValueError as exc:
+            bot_logger.warning("[GM_SWITCH_LINE] Rejected invalid position: %s", position)
+            return False, f"Nieprawidłowa pozycja: {exc}"
 
         # Check per line limit
         max_per_line = math.ceil(player.max_board_size * 0.75)

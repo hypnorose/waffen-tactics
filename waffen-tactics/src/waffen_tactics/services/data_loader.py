@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, Any, List
 from waffen_tactics.models.unit import Unit, Stats, Skill
 from waffen_tactics.models.skill import Skill as NewSkill, Effect, TargetType, EffectType
-from waffen_tactics.services.skill_parser import skill_parser
+from waffen_tactics.services.skill_parser import skill_parser, SkillParseError
 from waffen_tactics.services.passive_definitions import get_passive_definition
 
 DATA_FILE = Path(__file__).resolve().parents[3] / "units.json"
@@ -94,25 +94,25 @@ def load_game_data() -> GameData:
         role = u.get("role", "fighter")
         role_color = roles.get(role, {}).get("color", "#6b7280")
         stats = build_stats_for_unit(u, roles)
-        cost = int(u.get("cost", 1))
 
-        # Try to parse skill from unit data, fallback to generated skill
+        # Parse the authoritative skill; malformed canonical data must fail closed.
+        unit_id = u.get("id", "unknown")
         try:
             new_skill = skill_parser.parse_skill_from_unit_data(u)
+        except SkillParseError:
+            raise
         except Exception as e:
-            logging.error(f"Failed to parse skill for unit {u.get('id', 'unknown')}: {e}")
-            new_skill = None
+            raise SkillParseError(f"Failed to parse skill for unit {unit_id}: {e}") from e
 
-        if new_skill:
-            skill = Skill(
-                name=new_skill.name,
-                description=new_skill.description,
-                effect={'skill': new_skill}  # Store new skill in effect dict
-            )
-            logging.debug(f"Successfully parsed custom skill for unit {u.get('id')}: {new_skill.name}")
-        else:
-            skill = build_skill_for_cost(cost)
-            logging.warning(f"Using default skill for unit {u.get('id')} (cost {cost})")
+        if new_skill is None:
+            raise SkillParseError(f"Missing skill for unit {unit_id}")
+
+        skill = Skill(
+            name=new_skill.name,
+            description=new_skill.description,
+            effect={'skill': new_skill}  # Store new skill in effect dict
+        )
+        logging.debug(f"Successfully parsed custom skill for unit {unit_id}: {new_skill.name}")
         # No mana_cost on skill definitions anymore — mana is always unit max_mana
 
         unit = Unit.from_json(u, stats, skill, role_color)

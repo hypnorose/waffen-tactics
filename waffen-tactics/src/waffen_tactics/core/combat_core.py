@@ -1,3 +1,12 @@
+"""Quarantined pure-combat prototype; not the production combat owner.
+
+Production combat enters through ``waffen_tactics.services.combat_shared``
+and ``waffen_tactics.services.combat_simulator``.  This module remains only
+for compatibility coverage until a separately approved core extraction
+contract replaces the current services path.  Do not import it from
+production runtime code or change its formula as a gameplay tuning shortcut.
+"""
+
 from __future__ import annotations
 
 from typing import Tuple, List, Callable, Optional

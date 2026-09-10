@@ -60,15 +60,24 @@ def validate_skill(skill, unit_id, errors):
     for i, effect in enumerate(effects):
         validate_effect(effect, i, errors, f"Unit {unit_id} > skill.effects")
 
+
+def validate_units(units):
+    """Validate every unit's canonical skill, including presence checks."""
+    errors = []
+    for unit in units:
+        unit_id = unit.get("id", "unknown")
+        if "skill" not in unit:
+            errors.append(f"Unit {unit_id}: skill is missing")
+            continue
+        validate_skill(unit.get("skill"), unit_id, errors)
+    return errors
+
+
 def main():
     with units_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
     units = data["units"] if isinstance(data, dict) and "units" in data else data
-    errors = []
-    for unit in units:
-        skill = unit.get("skill")
-        if skill:
-            validate_skill(skill, unit.get("id", "unknown"), errors)
+    errors = validate_units(units)
     if errors:
         print(f"❌ Found {len(errors)} skill validation errors:")
         for err in errors:

@@ -13,7 +13,7 @@ from services.combat_service import run_combat_simulation
 game_data = load_game_data()
 print(f"Loaded {len(game_data.units)} units from units.json")
 
-def create_team_by_trait(trait_name: str, count: int, star_level: int = 1):
+def create_team_by_trait(trait_name: str, count: int, star_level: int = 1, id_prefix: str = 'unit'):
     """Create a team of units with a specific trait."""
     matching_units = [u for u in game_data.units if trait_name.lower() in [t.lower() for t in (u.factions + u.classes)]]
 
@@ -27,7 +27,7 @@ def create_team_by_trait(trait_name: str, count: int, star_level: int = 1):
     team = []
     for i, unit_data in enumerate(selected):
         team.append(CombatUnit(
-            id=f'unit_{i}',
+            id=f'{id_prefix}_{i}',
             name=unit_data.name,
             hp=unit_data.stats.hp * star_level,
             attack=unit_data.stats.attack * star_level,
@@ -42,14 +42,14 @@ def create_team_by_trait(trait_name: str, count: int, star_level: int = 1):
 
     return team, [u.name for u in selected]
 
-def create_random_team(count: int, star_level: int = 1):
+def create_random_team(count: int, star_level: int = 1, id_prefix: str = 'unit'):
     """Create a random team."""
     selected = random.sample(game_data.units, count)
 
     team = []
     for i, unit_data in enumerate(selected):
         team.append(CombatUnit(
-            id=f'unit_{i}',
+            id=f'{id_prefix}_{i}',
             name=unit_data.name,
             hp=unit_data.stats.hp * star_level,
             attack=unit_data.stats.attack * star_level,
@@ -117,38 +117,38 @@ print("\n" + "="*60)
 print("GENERATING TEST SCENARIOS")
 print("="*60)
 
-team_a, names_a = create_team_by_trait('Streamer', 4, star_level=2)
-team_b, names_b = create_random_team(4)
+team_a, names_a = create_team_by_trait('Streamer', 4, star_level=2, id_prefix='player')
+team_b, names_b = create_random_team(4, id_prefix='opponent')
 run_and_save_combat(team_a, names_a, team_b, names_b, 'test_shield_heavy.json', 'Test 1: Shield-heavy team (Streamer trait)')
 
 # Test 2: Buff-heavy team (test stat_buff effect_id)
-team_a, names_a = create_team_by_trait('Waffen', 4, star_level=2)
-team_b, names_b = create_random_team(4)
+team_a, names_a = create_team_by_trait('Waffen', 4, star_level=2, id_prefix='player')
+team_b, names_b = create_random_team(4, id_prefix='opponent')
 run_and_save_combat(team_a, names_a, team_b, names_b, 'test_buff_heavy.json', 'Test 2: Buff-heavy team (Waffen trait)')
 
 # Test 3: Stun-heavy team (test unit_stunned effect_id)
-team_a, names_a = create_team_by_trait('Haker', 4, star_level=2)
-team_b, names_b = create_random_team(4)
+team_a, names_a = create_team_by_trait('Haker', 4, star_level=2, id_prefix='player')
+team_b, names_b = create_random_team(4, id_prefix='opponent')
 run_and_save_combat(team_a, names_a, team_b, names_b, 'test_stun_heavy.json', 'Test 3: Stun-heavy team (Haker trait)')
 
 # Test 4: DoT-heavy team (test damage_over_time_applied effect_id)
-team_a, names_a = create_team_by_trait('Woronicz', 4, star_level=2)
-team_b, names_b = create_random_team(4)
+team_a, names_a = create_team_by_trait('Woronicz', 4, star_level=2, id_prefix='player')
+team_b, names_b = create_random_team(4, id_prefix='opponent')
 run_and_save_combat(team_a, names_a, team_b, names_b, 'test_dot_heavy.json', 'Test 4: DoT-heavy team')
 
 # Test 5: Mixed synergies
-team_a, names_a = create_random_team(4, star_level=2)
-team_b, names_b = create_random_team(4, star_level=2)
+team_a, names_a = create_random_team(4, star_level=2, id_prefix='player')
+team_b, names_b = create_random_team(4, star_level=2, id_prefix='opponent')
 run_and_save_combat(team_a, names_a, team_b, names_b, 'test_mixed_synergies.json', 'Test 5: Mixed synergies (random teams)')
 
 # Test 6: High star levels (3-star units)
-team_a, names_a = create_random_team(3, star_level=3)
-team_b, names_b = create_random_team(3, star_level=1)
+team_a, names_a = create_random_team(3, star_level=3, id_prefix='player')
+team_b, names_b = create_random_team(3, star_level=1, id_prefix='opponent')
 run_and_save_combat(team_a, names_a, team_b, names_b, 'test_high_stars.json', 'Test 6: High star levels (3-star vs 1-star)')
 
 # Test 7: Tank vs Damage
-team_a, names_a = create_team_by_trait('Dzidek', 4, star_level=2)
-team_b, names_b = create_team_by_trait('Waffen', 4, star_level=2)
+team_a, names_a = create_team_by_trait('Dzidek', 4, star_level=2, id_prefix='player')
+team_b, names_b = create_team_by_trait('Waffen', 4, star_level=2, id_prefix='opponent')
 run_and_save_combat(team_a, names_a, team_b, names_b, 'test_tank_vs_damage.json', 'Test 7: Tank vs Damage dealers')
 
 print("\n" + "="*60)

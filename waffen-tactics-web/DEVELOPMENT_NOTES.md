@@ -6,17 +6,17 @@ Po zalogowaniu przez Discord użytkownik był przekierowywany z powrotem do `/lo
 ## Przyczyna
 **Niezgodność credentials Discord OAuth:**
 - Frontend używał **production DISCORD_CLIENT_ID**: `1449028504615256217`
-- Backend był uruchamiany z **development DISCORD_CLIENT_SECRET**: `rh0Pj73TuLDjb-VKpYm5kRwJdW6f-hJv`
+- Backend musi używać sekretu Discord OAuth przechowywanego poza repozytorium.
 - Discord API zwracał błąd `invalid_client` (401) podczas wymiany authorization code
 
 ## Rozwiązanie
-Backend musi używać **production DISCORD_CLIENT_SECRET** (`OXR2anRAkEOz2ibA-8-BqW6MTz3c7Ch4`) który pasuje do production CLIENT_ID.
+Backend musi używać pasującego sekretu Discord OAuth przechowywanego poza repozytorium.
 
 ## Prawidłowe uruchomienie backend (development mode):
 ```bash
 cd /home/ubuntu/mentorbot/waffen-tactics-web/backend
 source venv/bin/activate
-DISCORD_CLIENT_SECRET="OXR2anRAkEOz2ibA-8-BqW6MTz3c7Ch4" \
+DISCORD_CLIENT_SECRET="<Discord OAuth secret from environment>" \
 JWT_SECRET="waffen-tactics-jwt-secret-prod" \
 nohup python api.py > backend.log 2>&1 &
 ```
@@ -24,12 +24,12 @@ nohup python api.py > backend.log 2>&1 &
 ## Prawidłowe uruchomienie frontend (development mode):
 ```bash
 cd /home/ubuntu/mentorbot/waffen-tactics-web
-npm run dev -- --host 0.0.0.0
+npm run dev -- --host 127.0.0.1
 ```
 
 ## Konfiguracja Discord OAuth
 - **Production Client ID**: `1449028504615256217`
-- **Production Client Secret**: `OXR2anRAkEOz2ibA-8-BqW6MTz3c7Ch4`
+- **Production Client Secret**: stored outside the repository; rotate the old secret.
 - **Redirect URI**: `https://waffentactics.pl/auth/callback`
 
 ## Debugging tips

@@ -12,8 +12,8 @@
  *    causing effects to expire prematurely or late on the frontend.
  *
  * 2. **Stat Reversion Conflicts**: Auto-expiring effects and reverting stat changes
- *    (hp, attack, defense) conflicts with authoritative backend values in game_state.
- *    The backend already accounts for all stat changes when sending HP/attack/defense.
+ *    (hp, attack, defense) conflicts with canonical backend event values.
+ *    The backend emits the resulting values on lifecycle events.
  *
  * 3. **Backend Authority**: The combat simulator is the source of truth. It explicitly
  *    emits effect_expired events when effects truly expire based on authoritative
@@ -67,7 +67,7 @@
  * The root cause was auto-expiration code in useCombatOverlayLogic.ts that:
  * 1. Filtered out expired effects based on Date.now()
  * 2. Reverted stat changes (hp += revertedHp, attack -= revertedAttack, etc.)
- * 3. Conflicted with authoritative game_state from backend
+ * 3. Conflicted with canonical lifecycle events from the backend
  *
  * See: BUG_FIX_EFFECT_EXPIRATION.md for detailed analysis.
  */

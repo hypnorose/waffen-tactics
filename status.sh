@@ -14,6 +14,8 @@ NC='\033[0m'
 PROJECT_ROOT="/home/ubuntu/waffen-tactics-game"
 WEB_DIR="$PROJECT_ROOT/waffen-tactics-web"
 BACKEND_DIR="$WEB_DIR/backend"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/runtime_process_scope.sh"
 
 echo "════════════════════════════════════════════════════════"
 echo "   📊 Waffen Tactics - Status projektu"
@@ -22,9 +24,9 @@ echo ""
 
 # Sprawdź procesy
 echo -e "${CYAN}🔍 Procesy:${NC}"
-BACKEND_RUNNING=$(pgrep -f "python.*api.py" 2>/dev/null)
-FRONTEND_RUNNING=$(pgrep -f "vite" 2>/dev/null)
-CADDY_RUNNING=$(pgrep caddy 2>/dev/null)
+BACKEND_RUNNING=$(project_pids_for_cwd "python.*api.py" "$BACKEND_DIR")
+FRONTEND_RUNNING=$(project_pids_for_cwd "vite" "$WEB_DIR")
+CADDY_RUNNING=$(project_caddy_pids "$WEB_DIR" "Caddyfile")
 
 if [ ! -z "$BACKEND_RUNNING" ]; then
     echo -e "   ${GREEN}✅ Backend API:${NC} uruchomiony (PID: $BACKEND_RUNNING)"
@@ -82,7 +84,7 @@ if command -v curl &> /dev/null; then
     else
         echo -e "   ${RED}❌ Backend API:${NC} http://localhost:8000 (HTTP $HTTP_CODE)"
     fi
-    
+
     # Test local frontend
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null || echo "000")
     if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "304" ]; then

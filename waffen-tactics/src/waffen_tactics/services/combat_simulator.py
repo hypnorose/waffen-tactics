@@ -159,23 +159,35 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                     effects_to_remove.append(j)
 
             for j in reversed(effects_to_remove):
-                expired = None
                 try:
+                    effect_count = len(unit.effects)
+                    expected_effect = unit.effects[j]
                     expired = unit.effects.pop(j)
-                except Exception:
-                    pass
+                    if len(unit.effects) != effect_count - 1 or any(
+                        candidate is expected_effect for candidate in unit.effects
+                    ):
+                        raise RuntimeError(
+                            "expired DoT effect remains after removal"
+                        )
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Failed to remove expired DoT for unit={getattr(unit, 'id', None)} index={j}"
+                    ) from exc
 
                 # Emit expiration AFTER removal so game_state attached to this
                 # event reflects post-expiry effect list.
-                if expired is not None:
-                    emit_damage_over_time_expired(
-                        event_callback,
-                        unit,
-                        expired.get('id'),
-                        unit_hp=hp_list[i],
-                        side=side,
-                        timestamp=time,
+                if not isinstance(expired, dict):
+                    raise RuntimeError(
+                        f"Expired DoT is not a mapping for unit={getattr(unit, 'id', None)} index={j}"
                     )
+                emit_damage_over_time_expired(
+                    event_callback,
+                    unit,
+                    expired.get('id'),
+                    unit_hp=hp_list[i],
+                    side=side,
+                    timestamp=time,
+                )
 
         return
 
@@ -213,6 +225,26 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                 if expires_at is None or time < expires_at:
                     continue
 
+                # Validate and prepare the collection mutation before
+                # reverting any stats or shields. A malformed sibling effect
+                # must abort the lifecycle transition before state changes or
+                # a canonical expiration event can be published.
+                effect_id = effect.get('id')
+                try:
+                    current_effects = list(unit.effects or [])
+                    if any(not isinstance(candidate, dict) for candidate in current_effects):
+                        raise TypeError("runtime effect collection contains a non-object entry")
+                    updated_effects = [
+                        candidate for candidate in current_effects
+                        if candidate.get('id') != effect_id
+                    ]
+                    if len(updated_effects) == len(current_effects):
+                        raise RuntimeError(f"expired effect id={effect_id!r} is not present in the collection")
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Cannot prepare expiration removal for unit={getattr(unit, 'id', None)} effect={effect_id!r}"
+                    ) from exc
+
                 # Effect has expired - revert stat changes
                 effect_type = effect.get('type')
                 if effect_type in ('buff', 'debuff'):
@@ -223,7 +255,8 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                         if stat == 'hp':
                             old_hp = getattr(unit, stat, 0)
                             new_hp = max(0, old_hp - applied_delta)
-                            setattr(unit, stat, new_hp)
+                            from .event_canonicalizer import apply_effect_expiration_mutation
+                            apply_effect_expiration_mutation(unit, stat, new_hp)
                             hp_list[i] = new_hp  # Update HP list
                             log.append(f"{unit.name} stat {stat} reverted by {-applied_delta} (effect expired)")
                         elif stat == 'max_hp':
@@ -234,8 +267,8 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                                 new_hp = min(new_max_hp, int(round(old_hp * new_max_hp / old_max_hp)))
                             else:
                                 new_hp = min(new_max_hp, old_hp)
-                            setattr(unit, stat, new_max_hp)
-                            unit.hp = new_hp
+                            from .event_canonicalizer import apply_effect_expiration_mutation
+                            apply_effect_expiration_mutation(unit, stat, new_max_hp, new_hp)
                             hp_list[i] = new_hp
                             log.append(f"{unit.name} stat {stat} reverted by {-applied_delta} (effect expired)")
                         else:
@@ -251,12 +284,19 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                         setattr(unit, 'shield', new_shield)
                         log.append(f"{unit.name} shield reverted by {-applied_amount} (effect expired)")
 
-                # Remove THIS expired effect immediately.
-                effect_id = effect.get('id')
+                # Remove THIS expired effect only after all state reversion
+                # calculations have succeeded, but before the event is emitted.
                 try:
-                    unit.effects = [e for e in (unit.effects or []) if e.get('id') != effect_id]
-                except Exception:
-                    pass
+                    unit.effects = updated_effects
+                    if any(
+                        isinstance(candidate, dict) and candidate.get('id') == effect_id
+                        for candidate in (unit.effects or [])
+                    ):
+                        raise RuntimeError("expired effect remains after removal")
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Failed to remove expired effect for unit={getattr(unit, 'id', None)} effect={effect_id!r}"
+                    ) from exc
 
                 # Emit this expiration AFTER this effect mutation so event
                 # game_state is post-expiry for this exact effect only.
@@ -275,6 +315,128 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                 )
 
         return
+
+    def _apply_per_round_hp_buff(
+        self,
+        unit: CombatUnit,
+        hp_mirror: List[int],
+        unit_index: int,
+        amount: int,
+        side: str,
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+        log: List[str],
+    ) -> None:
+        """Apply one start-of-combat HP buff before committing its mirror.
+
+        Canonical HP mutation must succeed before the simulator mirror or
+        success log advances. This keeps a rejected heal from creating a
+        replay-visible state that differs from the live unit.
+        """
+        old_hp = int(hp_mirror[unit_index])
+        if event_callback is None:
+            # Preserve direct callers that intentionally use the processor
+            # without an event sink.
+            hp_mirror[unit_index] = min(int(unit.max_hp), old_hp + int(amount))
+            log.append(f"{unit.name} {amount:+d} HP (per round buff)")
+            return
+
+        from .event_canonicalizer import emit_heal, _set_and_verify_canonical_hp
+
+        try:
+            payload = emit_heal(
+                event_callback,
+                unit,
+                amount,
+                source=None,
+                side=side,
+                timestamp=0.0,
+                current_hp=old_hp,
+            )
+        except Exception:
+            # The canonical setter can fail after a partial write, and the
+            # event sink can fail after the setter succeeds. Restore the unit
+            # when needed; leave the mirror and log at their pre-operation
+            # values until the canonical operation has completed.
+            try:
+                actual_hp = int(getattr(unit, 'hp'))
+            except Exception:
+                actual_hp = old_hp
+            if actual_hp != old_hp:
+                _set_and_verify_canonical_hp(unit, old_hp)
+                if int(getattr(unit, 'hp')) != old_hp:
+                    raise RuntimeError(
+                        f"Failed to roll back per-round HP buff for unit={getattr(unit, 'id', None)}"
+                    )
+            raise
+
+        if payload is None:
+            # Keep the mirror aligned if the canonical emitter suppresses an
+            # event after a successful mutation (for example, a late death).
+            hp_mirror[unit_index] = int(getattr(unit, 'hp'))
+            return
+
+        hp_mirror[unit_index] = int(payload['post_hp'])
+        log.append(f"{unit.name} {amount:+d} HP (per round buff)")
+
+    def _process_per_round_hp_buffs_for_team(
+        self,
+        team: List[CombatUnit],
+        hp_mirror: List[int],
+        side: str,
+        round_number: int,
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+        log: List[str],
+    ) -> None:
+        """Process start-of-combat per-round HP buffs for one team."""
+        for unit_index, unit in enumerate(team):
+            for effect in getattr(unit, 'effects', []):
+                if effect.get('type') != 'per_round_buff' or effect.get('stat') != 'hp':
+                    continue
+                value = effect.get('value', 0)
+                if effect.get('is_percentage', False):
+                    amount = int(unit.max_hp * (value / 100.0) * round_number)
+                else:
+                    amount = int(value * round_number)
+                self._apply_per_round_hp_buff(
+                    unit,
+                    hp_mirror,
+                    unit_index,
+                    amount,
+                    side,
+                    event_callback,
+                    log,
+                )
+
+    def _process_modular_trigger_for_team(
+        self,
+        trigger,
+        team: List[CombatUnit],
+        enemy_team: List[CombatUnit],
+        hp_mirror: List[int],
+        side: str,
+        time: float,
+        event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+        **extra_context,
+    ) -> None:
+        """Dispatch one canonical modular trigger for one combat side."""
+        if not team:
+            return
+
+        unit_indices = {
+            getattr(unit, 'id', None): index
+            for index, unit in enumerate(team)
+        }
+        context = {
+            'all_units': team,
+            'ally_units': team,
+            'enemy_units': enemy_team,
+            'current_time': time,
+            'side': side,
+            'hp_mirror': hp_mirror,
+            'unit_indices': unit_indices,
+            **extra_context,
+        }
+        self.modular_effect_processor.process_trigger(trigger, context, event_callback)
 
     def _deliver_scheduled_events(self, sink):
         current = getattr(self, '_current_time', 0.0)
@@ -299,6 +461,7 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
         self.team_b = list(team_b)
         self.a_hp = [int(getattr(u, 'hp', 0)) for u in self.team_a]
         self.b_hp = [int(getattr(u, 'hp', 0)) for u in self.team_b]
+        self.modular_effect_processor.reset_combat_state()
         # (mana mirrors are managed by CombatState)
 
         # ensure unit runtime fields exist
@@ -321,42 +484,50 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
         # runs before the first attack and never invokes the skill executor.
         self.passive_processor.initialize(self.team_a, self.team_b, proc_cb, timestamp=0.0)
 
-        # Apply per-round buffs
-        for idx_u, u in enumerate(self.team_a):
-            for eff in getattr(u, 'effects', []):
-                if eff.get('type') == 'per_round_buff':
-                    stat = eff.get('stat')
-                    val = eff.get('value', 0)
-                    is_pct = eff.get('is_percentage', False)
-                    if stat == 'hp':
-                        if is_pct:
-                            add = int(u.max_hp * (val / 100.0) * round_number)
-                        else:
-                            add = int(val * round_number)
-                        old_hp = int(self.a_hp[idx_u])
-                        self.a_hp[idx_u] = min(u.max_hp, self.a_hp[idx_u] + add)
-                        log.append(f"{u.name} {add:+d} HP (per round buff)")
-                        if event_callback:
-                            from .event_canonicalizer import emit_heal
-                            emit_heal(event_callback, u, add, source=None, side='team_a', timestamp=0.0, current_hp=old_hp)
+        # Canonical modular per-round records are dispatched at the same
+        # start-of-combat lifecycle point as legacy per-round records, before
+        # the first animation/state snapshot.
+        from .modular_effect_processor import TriggerType
+        self._process_modular_trigger_for_team(
+            TriggerType.PER_ROUND,
+            self.team_a,
+            self.team_b,
+            self.a_hp,
+            'team_a',
+            0.0,
+            proc_cb,
+            round_number=round_number,
+        )
+        self._process_modular_trigger_for_team(
+            TriggerType.PER_ROUND,
+            self.team_b,
+            self.team_a,
+            self.b_hp,
+            'team_b',
+            0.0,
+            proc_cb,
+            round_number=round_number,
+        )
 
-        for idx_u, u in enumerate(self.team_b):
-            for eff in getattr(u, 'effects', []):
-                if eff.get('type') == 'per_round_buff':
-                    stat = eff.get('stat')
-                    val = eff.get('value', 0)
-                    is_pct = eff.get('is_percentage', False)
-                    if stat == 'hp':
-                        if is_pct:
-                            add = int(u.max_hp * (val / 100.0) * round_number)
-                        else:
-                            add = int(val * round_number)
-                        old_hp = int(self.b_hp[idx_u])
-                        self.b_hp[idx_u] = min(u.max_hp, self.b_hp[idx_u] + add)
-                        log.append(f"{u.name} {add:+d} HP (per round buff)")
-                        if event_callback:
-                            from .event_canonicalizer import emit_heal
-                            emit_heal(event_callback, u, add, source=None, side='team_b', timestamp=0.0, current_hp=old_hp)
+        # Apply per-round HP buffs through the same canonical path for both
+        # teams. The separate skip_per_round_buffs contract remains tracked by
+        # DEF-235 and is intentionally unchanged here.
+        self._process_per_round_hp_buffs_for_team(
+            self.team_a,
+            self.a_hp,
+            'team_a',
+            round_number,
+            proc_cb,
+            log,
+        )
+        self._process_per_round_hp_buffs_for_team(
+            self.team_b,
+            self.b_hp,
+            'team_b',
+            round_number,
+            proc_cb,
+            log,
+        )
 
         # emit animation start
         proc_cb('animation_start', {'timestamp': 0.0})
@@ -368,6 +539,24 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
 
             # Per-second buffs and regen
             if not skip_per_round_buffs:
+                self._process_modular_trigger_for_team(
+                    TriggerType.PER_SECOND,
+                    self.team_a,
+                    self.team_b,
+                    self.a_hp,
+                    'team_a',
+                    time,
+                    proc_cb,
+                )
+                self._process_modular_trigger_for_team(
+                    TriggerType.PER_SECOND,
+                    self.team_b,
+                    self.team_a,
+                    self.b_hp,
+                    'team_b',
+                    time,
+                    proc_cb,
+                )
                 self._process_per_second_buffs(self.team_a, self.team_b, self.a_hp, self.b_hp, time, log, proc_cb)
             self._process_regeneration(self.team_a, self.team_b, self.a_hp, self.b_hp, time, log, self.dt, proc_cb)
 

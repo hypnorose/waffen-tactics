@@ -1,0 +1,101 @@
+{
+  "generated_date": "2026-09-09",
+  "source_of_truth": [
+    "waffen-tactics/src/waffen_tactics",
+    "waffen-tactics/units.json",
+    "waffen-tactics/traits.json"
+  ],
+  "read_only": true,
+  "scenarios": [
+    {
+      "id": "frontline_then_backline",
+      "seed": 158001,
+      "team_a": ["synthetic_attacker"],
+      "team_b": ["synthetic_front", "synthetic_back"],
+      "formation": {"team_a": ["front"], "team_b": ["front", "back"]},
+      "expected": {"target_order": ["synthetic_front", "synthetic_back"], "event_types": ["unit_attack", "unit_died"]},
+      "acceptance": "Default targeting selects the live frontline and reaches the backline only after frontline death.",
+      "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_default_targeting_uses_frontline_then_reaches_backline"
+    },
+    {
+      "id": "no_legal_target_noop",
+      "seed": 158002,
+      "team_a": ["synthetic_attacker"],
+      "team_b": ["synthetic_dead_target"],
+      "formation": {"team_a": ["front"], "team_b": ["front"]},
+      "expected": {"target_order": [], "event_types": [], "stale_focus": "cleared"},
+      "acceptance": "A dead-only opposing team produces no attack event and clears stale focus.",
+      "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_no_legal_target_is_a_noop_and_clears_stale_focus"
+    },
+    {
+      "id": "team_a_before_team_b_same_tick",
+      "seed": 158003,
+      "team_a": ["synthetic_fast_a"],
+      "team_b": ["synthetic_fast_b"],
+      "formation": {"team_a": ["front"], "team_b": ["front"]},
+      "expected": {"same_tick_attack_order": ["synthetic_fast_a", "synthetic_fast_b"], "event_types": ["unit_attack"]},
+      "acceptance": "At the same simulation tick, Team A attack events are emitted before Team B attack events.",
+      "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_attack_phase_is_team_a_before_team_b_at_same_tick"
+    },
+    {
+      "id": "full_tempo_bonus_attack",
+      "seed": 158004,
+      "team_a": ["synthetic_full_mana_attacker"],
+      "team_b": ["synthetic_target"],
+      "formation": {"team_a": ["front"], "team_b": ["front"]},
+      "expected": {"bonus_attack_count": 1, "skill_cast_count": 0, "event_types": ["unit_attack", "mana_update"]},
+      "acceptance": "Full mana creates one bonus basic attack and does not emit a skill cast.",
+      "test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_full_mana_produces_one_bonus_basic_attack_without_skill_event"
+    },
+    {
+      "id": "enemy_death_trigger",
+      "seed": 158005,
+      "team_a": ["streamer_unit"],
+      "team_b": ["weak_defender"],
+      "formation": {"team_a": ["front"], "team_b": ["front"]},
+      "expected": {"trigger": "on_enemy_death", "event_types": ["unit_died", "stat_buff"]},
+      "acceptance": "An enemy death emits the authored attack and defense reward events once per configured recipient.",
+      "test_reference": "waffen-tactics/tests/test_combat_shared.py::test_on_enemy_death_event_callback"
+    },
+    {
+      "id": "ally_death_trigger_once",
+      "seed": 158006,
+      "team_a": ["synthetic_killer"],
+      "team_b": ["weak_ally", "denciak_one", "denciak_two"],
+      "formation": {"team_a": ["front"], "team_b": ["front", "front", "back"]},
+      "expected": {"trigger": "on_ally_death", "gold_reward_count": 1, "event_types": ["unit_died", "gold_reward"]},
+      "acceptance": "trigger_once limits the reward to one event for the same ally death.",
+      "test_reference": "waffen-tactics/tests/test_combat_shared.py::test_on_ally_death_trigger_once"
+    },
+    {
+      "id": "low_hp_threshold",
+      "seed": 158007,
+      "team_a": ["threshold_holder", "ally"],
+      "team_b": ["damage_dealer"],
+      "formation": {"team_a": ["front", "back"], "team_b": ["front"]},
+      "expected": {"trigger": "ally_hp_below", "event_types": ["stat_buff", "unit_heal"]},
+      "acceptance": "The low-HP trigger is evaluated against the authoritative HP threshold and marks the effect as triggered.",
+      "test_reference": "waffen-tactics/tests/test_combat_effect_processor.py::TestCombatEffectProcessor::test_process_ally_hp_below_triggers"
+    },
+    {
+      "id": "trait_threshold_control",
+      "seed": 158008,
+      "team_a": ["authored_trait_team"],
+      "team_b": ["control_team"],
+      "formation": {"team_a": ["front"], "team_b": ["front"]},
+      "expected": {"threshold_states": ["below", "exact", "next"], "event_types": ["trait_activated"]},
+      "acceptance": "Trait threshold activation is deterministic and distinguishes below-threshold, exact-threshold, and next-tier states.",
+      "test_reference": "tools/balance_audit.py::trait_control_audit"
+    },
+    {
+      "id": "canonical_replay_snapshot_parity",
+      "seed": 158009,
+      "team_a": ["p_front", "p_back"],
+      "team_b": ["opp_front", "opp_back"],
+      "formation": {"team_a": ["front", "back"], "team_b": ["front", "back"]},
+      "expected": {"snapshot_desyncs": 0, "dead_units": ["opp_front"], "event_types": ["passive_triggered", "unit_attack", "unit_died", "mana_update", "state_snapshot"]},
+      "acceptance": "The same golden event stream reconstructs the authoritative snapshot in core, backend, and frontend without desync.",
+      "test_reference": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json"
+    }
+  ]
+}

@@ -47,8 +47,11 @@ export interface TraitDefinition {
   effects: any[]
 }
 
+export type CombatDeliveryMode = 'batch_replay'
+
 export interface CombatEvent {
   type: string
+  delivery_mode?: CombatDeliveryMode
   message?: string
   player_units?: Unit[]
   opponent_units?: Unit[]
@@ -69,6 +72,11 @@ export interface CombatEvent {
   post_hp?: number  // Authoritative HP after event (for heals, damage)
   pre_hp?: number   // HP before event
   new_hp?: number   // Alternative authoritative HP field (legacy)
+  post_max_hp?: number
+  post_attack?: number
+  post_defense?: number
+  post_attack_speed?: number
+  post_shield?: number
   round?: number
   state?: any // PlayerState
   amount_per_sec?: number
@@ -102,8 +110,12 @@ export interface CombatEvent {
   unit_defense?: number
   permanent?: boolean
   source_id?: string
+  source?: string
   effect_id?: string
+  effect_type?: string
   effect?: any
+  expires_at?: number
+  next_tick_time?: number
   passive_id?: string
   description?: string
   value?: any
@@ -126,6 +138,13 @@ export interface EffectSummary {
   caster_name?: string
   applied_delta?: number
   applied_amount?: number
+  expires_at?: number
+  passive_effect?: string
+  preference?: string
+  damage_type?: string
+  ticks_remaining?: number
+  total_ticks?: number
+  next_tick_time?: number
   value?: number
   value_type?: string
   permanent?: boolean

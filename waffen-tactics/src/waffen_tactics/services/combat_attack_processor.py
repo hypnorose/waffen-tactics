@@ -45,18 +45,26 @@ class CombatAttackProcessor:
             'pre_hp': old_hp_val,
             'post_hp': new_hp_val,
             'applied_damage': int(dmg) if dmg is not None else 0,
+            'shield_absorbed': 0,
+            'is_skill': False,
             'bonus_attack': bonus_attack,
             'side': side_val,
             'timestamp': deliver_ts,
         }
         if isinstance(dmg_payload, dict):
+            ua['is_skill'] = bool(dmg_payload.get('is_skill', False))
             ua['pre_hp'] = dmg_payload.get('pre_hp', ua['pre_hp'])
             ua['post_hp'] = dmg_payload.get('post_hp', ua['post_hp'])
             ua['applied_damage'] = dmg_payload.get('applied_damage', ua['applied_damage'])
+            ua['shield_absorbed'] = dmg_payload.get('shield_absorbed', ua['shield_absorbed'])
             ua['target_hp'] = dmg_payload.get('target_hp', ua.get('post_hp'))
+            ua['unit_shield'] = dmg_payload.get('unit_shield', getattr(target_obj, 'shield', 0))
+            ua['post_shield'] = dmg_payload.get('post_shield', ua['unit_shield'])
             ua['target_max_hp'] = dmg_payload.get('target_max_hp', getattr(target_obj, 'max_hp', None))
         else:
             ua['target_hp'] = ua['post_hp']
+            ua['unit_shield'] = getattr(target_obj, 'shield', 0)
+            ua['post_shield'] = ua['unit_shield']
             ua['target_max_hp'] = getattr(target_obj, 'max_hp', None)
         return ua
 
@@ -370,6 +378,8 @@ class CombatAttackProcessor:
                         if getattr(self, 'passive_processor', None) and isinstance(dmg_payload, dict):
                             target_team = self.team_b if side_val == 'team_a' else self.team_a
                             attacker_team = self.team_a if side_val == 'team_a' else self.team_b
+                            target_side = 'team_b' if side_val == 'team_a' else 'team_a'
+                            target_hp_mirror = self.b_hp if target_side == 'team_b' else self.a_hp
                             self.passive_processor.after_damage(
                                 target_obj,
                                 int(dmg_payload.get('pre_hp') or 0),
@@ -377,61 +387,89 @@ class CombatAttackProcessor:
                                 target_team,
                                 attacker_team,
                                 local_collector,
-                                'team_b' if side_val == 'team_a' else 'team_a',
+                                target_side,
                                 deliver_ts,
                             )
+
+                            # Canonical modular threshold effects observe the
+                            # same authoritative pre/post HP transition as
+                            # passive definitions. The trigger target is the
+                            # damaged ally, while the effect owner remains the
+                            # surviving trait unit selected by the processor.
+                            from .modular_effect_processor import TriggerType
+                            previous_hp = int(dmg_payload.get('pre_hp') or 0)
+                            current_hp = int(dmg_payload.get('post_hp') or 0)
+                            max_hp = max(1, int(getattr(target_obj, 'max_hp', previous_hp)))
+                            threshold_context = {
+                                'all_units': target_team,
+                                'ally_units': target_team,
+                                'enemy_units': attacker_team,
+                                'trigger_target': target_obj,
+                                'previous_hp_percent': previous_hp / max_hp * 100.0,
+                                'current_hp_percent': current_hp / max_hp * 100.0,
+                                'current_time': deliver_ts,
+                                'side': target_side,
+                                'hp_mirror': target_hp_mirror,
+                                'unit_indices': {
+                                    getattr(ally, 'id', None): index
+                                    for index, ally in enumerate(target_team)
+                                },
+                            }
+                            if getattr(self, 'modular_effect_processor', None):
+                                self.modular_effect_processor.process_trigger(
+                                    TriggerType.ON_ALLY_HP_BELOW,
+                                    threshold_context,
+                                    local_collector,
+                                )
 
                         # If the canonical damage resulted in death, prepare unit_died
                         # payload and process on-death effects via the modular effect
                         # processor into the local results list so they are emitted
                         # in-order by the simulator sink.
                         if isinstance(dmg_payload, dict) and dmg_payload.get('post_hp') == 0:
-                            try:
-                                # Mark unit as dead and get canonical died payload
-                                died = emit_unit_died(None, target_obj, side=side_val, timestamp=deliver_ts, unit_hp=dmg_payload.get('pre_hp'), hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side)
-                                if died:
-                                    results.append(('unit_died', died))
+                            # Mark unit as dead and get canonical died payload.
+                            # Any mutation or death-trigger failure must abort
+                            # the scheduled action; returning a partial event
+                            # list would produce a winner without unit_died.
+                            died = emit_unit_died(None, target_obj, side=side_val, timestamp=deliver_ts, unit_hp=dmg_payload.get('pre_hp'), hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side)
+                            if died:
+                                results.append(('unit_died', died))
 
-                                passive_collector = lambda ev_type, ev_payload: results.append((ev_type, ev_payload))
-                                if getattr(self, 'passive_processor', None):
-                                    self.passive_processor.on_kill(attacker, attacking_team, defending_team, passive_collector, side_val, deliver_ts)
+                            passive_collector = lambda ev_type, ev_payload: results.append((ev_type, ev_payload))
+                            if getattr(self, 'passive_processor', None):
+                                self.passive_processor.on_kill(attacker, attacking_team, defending_team, passive_collector, side_val, deliver_ts)
 
-                                # Preserve the existing legacy death-trigger path
-                                # after the passive kill hook has been recorded.
-                                try:
-                                    from .modular_effect_processor import TriggerType
-                                    if hasattr(self, 'modular_effect_processor') and self.modular_effect_processor:
-                                        def _local_collector(ev_type, ev_payload):
-                                            results.append((ev_type, ev_payload))
+                            # Preserve the existing legacy death-trigger path
+                            # after the passive kill hook has been recorded.
+                            from .modular_effect_processor import TriggerType
+                            if hasattr(self, 'modular_effect_processor') and self.modular_effect_processor:
+                                def _local_collector(ev_type, ev_payload):
+                                    results.append((ev_type, ev_payload))
 
-                                        context = {
-                                            'current_unit': attacker,
-                                            'all_units': attacking_team + defending_team,
-                                            'enemy_units': defending_team,
-                                            'ally_units': attacking_team,
-                                            'collected_stats': getattr(attacker, 'collected_stats', {}),
-                                            'current_time': compute_ts if compute_ts is not None else deliver_ts,
-                                            'side': side_val,
-                                            'player': attacker,
-                                            'target_unit': target_obj,
-                                            'killer_unit': attacker,
-                                            'triggered_rewards': set(),
-                                        }
-                                        self.modular_effect_processor.process_trigger(TriggerType.ON_ENEMY_DEATH, context, _local_collector)
-                                        ally_ctx = {
-                                            'all_units': attacking_team + defending_team,
-                                            'enemy_units': attacking_team,
-                                            'ally_units': defending_team,
-                                            'current_time': compute_ts if compute_ts is not None else deliver_ts,
-                                            'side': 'team_b' if side_val == 'team_a' else 'team_a',
-                                            'dead_ally': target_obj,
-                                            'triggered_rewards': set(),
-                                        }
-                                        self.modular_effect_processor.process_trigger(TriggerType.ON_ALLY_DEATH, ally_ctx, _local_collector)
-                                except Exception:
-                                    pass
-                            except Exception as e:
-                                pass
+                                context = {
+                                    'current_unit': attacker,
+                                    'all_units': attacking_team + defending_team,
+                                    'enemy_units': defending_team,
+                                    'ally_units': attacking_team,
+                                    'collected_stats': getattr(attacker, 'collected_stats', {}),
+                                    'current_time': compute_ts if compute_ts is not None else deliver_ts,
+                                    'side': side_val,
+                                    'player': attacker,
+                                    'target_unit': target_obj,
+                                    'killer_unit': attacker,
+                                    'triggered_rewards': set(),
+                                }
+                                self.modular_effect_processor.process_trigger(TriggerType.ON_ENEMY_DEATH, context, _local_collector)
+                                ally_ctx = {
+                                    'all_units': attacking_team + defending_team,
+                                    'enemy_units': attacking_team,
+                                    'ally_units': defending_team,
+                                    'current_time': compute_ts if compute_ts is not None else deliver_ts,
+                                    'side': 'team_b' if side_val == 'team_a' else 'team_a',
+                                    'dead_ally': target_obj,
+                                    'triggered_rewards': set(),
+                                }
+                                self.modular_effect_processor.process_trigger(TriggerType.ON_ALLY_DEATH, ally_ctx, _local_collector)
 
                         return results
                     return action

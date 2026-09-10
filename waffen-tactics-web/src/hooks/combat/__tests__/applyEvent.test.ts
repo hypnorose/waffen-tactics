@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
-import { applyCombatEvent } from '../applyEvent'
+import { applyCombatEvent, CombatReplayValidationError } from '../applyEvent'
 import { CombatState, CombatEvent } from '../types'
 
 // Helper to create initial combat state
@@ -65,6 +65,381 @@ describe('applyCombatEvent - Effect Handling', () => {
     state.opponentUnits = [
       createTestUnit('opp_0', 'TestOpponent', 600, 60, 30)
     ]
+  })
+
+  describe('units_init canonical formation', () => {
+    it('rejects a player unit without a canonical position without mutating the roster', () => {
+      const event: CombatEvent = {
+        type: 'units_init',
+        player_units: [{ ...state.playerUnits[0], position: undefined }],
+        opponent_units: state.opponentUnits,
+        seq: 1,
+      }
+
+      const next = applyCombatEvent(state, event, { simTime: 0 })
+
+      expect(next.playerUnits).toEqual(state.playerUnits)
+      expect(next.opponentUnits).toEqual(state.opponentUnits)
+    })
+
+    it('rejects an opponent unit with an invalid canonical position without mutating the roster', () => {
+      const event: CombatEvent = {
+        type: 'units_init',
+        player_units: state.playerUnits,
+        opponent_units: [{ ...state.opponentUnits[0], position: 'middle' }],
+        seq: 2,
+      }
+
+      const next = applyCombatEvent(state, event, { simTime: 0 })
+
+      expect(next.playerUnits).toEqual(state.playerUnits)
+      expect(next.opponentUnits).toEqual(state.opponentUnits)
+    })
+  })
+
+  it('rejects HP alias fallbacks and leaves reducer state unchanged', () => {
+    const cases: CombatEvent[] = [
+      { type: 'attack', target_id: 'opp_0', post_hp: 1, seq: 1 },
+      { type: 'unit_heal', unit_id: 'player_0', unit_hp: 999, seq: 2 },
+      { type: 'damage_over_time_tick', unit_id: 'player_0', unit_hp: 1, seq: 3 },
+      { type: 'hp_regen', unit_id: 'player_0', unit_hp: 999, seq: 4 },
+      { type: 'damage_over_time_expired', unit_id: 'player_0', effect_id: 'dot-1', unit_hp: 999, seq: 5 }
+    ]
+
+    for (const event of cases) {
+      const next = applyCombatEvent(state, event, { simTime: 1.0 })
+      expect(next.playerUnits[0].hp).toBe(500)
+      expect(next.opponentUnits[0].hp).toBe(600)
+    }
+  })
+
+  describe('unit identity validation', () => {
+    const unitTargetedTypes = ['unit_died', 'heal', 'unit_heal', 'hp_regen', 'damage_over_time_applied'] as const
+
+    it.each(unitTargetedTypes)('rejects %s when unit_id is missing', (type) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+      const event: CombatEvent = {
+        type,
+        side: 'team_a',
+        post_hp: 499,
+        effect_id: 'dot-1',
+        damage: 10,
+        expires_at: 4,
+        seq: 20,
+      }
+
+      expect(() => applyCombatEvent(state, event, { simTime: 1.0 }))
+        .toThrow(`[REPLAY_VALIDATION] ${type} event seq=20 missing required unit_id`)
+      expect(state).toEqual(original)
+    })
+
+    it.each(unitTargetedTypes)('rejects %s when unit_id is unknown', (type) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+      const event: CombatEvent = {
+        type,
+        unit_id: 'ghost-unit',
+        side: 'team_a',
+        post_hp: 499,
+        effect_id: 'dot-1',
+        damage: 10,
+        expires_at: 4,
+        seq: 21,
+      }
+
+      expect(() => applyCombatEvent(state, event, { simTime: 1.0 }))
+        .toThrow(`[REPLAY_VALIDATION] ${type} event seq=21 references unknown unit_id=ghost-unit`)
+      expect(state).toEqual(original)
+    })
+
+    const remainingRequiredUnitTypes: Array<{ type: string, payload?: Partial<CombatEvent> }> = [
+      { type: 'stat_buff', payload: { applied_delta: 1 } },
+      { type: 'mana_update', payload: { current_mana: 1 } },
+      { type: 'regen_gain', payload: { amount_per_sec: 1, total_amount: 1 } },
+      { type: 'shield_applied', payload: { effect_id: 'shield-1', amount: 10, post_shield: 10 } },
+      { type: 'effect_applied', payload: { effect_id: 'effect-1', effect: { id: 'effect-1', type: 'stun' } } },
+      { type: 'shield_broken' },
+      { type: 'unit_stunned' },
+      { type: 'damage_over_time_tick', payload: { post_hp: 499 } },
+      { type: 'damage_over_time_expired', payload: { effect_id: 'dot-1', post_hp: 499 } },
+      { type: 'effect_expired', payload: { effect_id: 'effect-1' } },
+    ]
+
+    it.each(remainingRequiredUnitTypes)('rejects $type when unit_id is missing', ({ type, payload }) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+      const event: CombatEvent = { type, ...payload, seq: 22 }
+
+      expect(() => applyCombatEvent(state, event, { simTime: 1.0 }))
+        .toThrow(`[REPLAY_VALIDATION] ${type} event seq=22 missing required unit_id`)
+      expect(state).toEqual(original)
+    })
+
+    it.each(remainingRequiredUnitTypes)('rejects $type when unit_id is unknown', ({ type, payload }) => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+      const event: CombatEvent = { type, unit_id: 'ghost-unit', ...payload, seq: 23 }
+
+      expect(() => applyCombatEvent(state, event, { simTime: 1.0 }))
+        .toThrow(`[REPLAY_VALIDATION] ${type} event seq=23 references unknown unit_id=ghost-unit`)
+      expect(state).toEqual(original)
+    })
+
+    it('rejects an unknown attack target before applying a unit_attack attacker update', () => {
+      const original = JSON.parse(JSON.stringify(state)) as CombatState
+      const event: CombatEvent = {
+        type: 'unit_attack',
+        attacker_id: 'player_0',
+        attacker_current_mana: 77,
+        target_id: 'ghost-target',
+        target_hp: 1,
+        seq: 24,
+      }
+
+      expect(() => applyCombatEvent(state, event, { simTime: 1.0 }))
+        .toThrow('[REPLAY_VALIDATION] unit_attack event seq=24 references unknown unit_id=ghost-target')
+      expect(state).toEqual(original)
+    })
+
+    it('rejects an unknown supplied unit_attack attacker', () => {
+      const event: CombatEvent = {
+        type: 'unit_attack',
+        attacker_id: 'ghost-attacker',
+        target_id: 'opp_0',
+        target_hp: 599,
+        seq: 25,
+      }
+
+      expect(() => applyCombatEvent(state, event, { simTime: 1.0 }))
+        .toThrow('[REPLAY_VALIDATION] unit_attack event seq=25 references unknown unit_id=ghost-attacker')
+    })
+
+    it('rejects an unknown attack target while preserving valid no-target compatibility', () => {
+      expect(() => applyCombatEvent(state, {
+        type: 'attack',
+        target_id: 'ghost-target',
+        target_hp: 1,
+        seq: 26,
+      }, { simTime: 1.0 })).toThrow(
+        '[REPLAY_VALIDATION] attack event seq=26 references unknown unit_id=ghost-target'
+      )
+
+      expect(() => applyCombatEvent(state, {
+        type: 'attack',
+        attacker_id: 'player_0',
+        seq: 27,
+      }, { simTime: 1.0 })).not.toThrow()
+    })
+  })
+
+  describe('event type validation', () => {
+    it('rejects unsupported replay event types with typed sequence context', () => {
+      const event: CombatEvent = { type: 'future_event', seq: 28 }
+
+      expect(() => applyCombatEvent(state, event, { simTime: 1.0 }))
+        .toThrowError(CombatReplayValidationError)
+      expect(() => applyCombatEvent(state, event, { simTime: 1.0 }))
+        .toThrow('[REPLAY_VALIDATION] future_event event seq=28 unsupported event type=future_event')
+      expect(state.playerUnits[0].hp).toBe(500)
+      expect(state.opponentUnits[0].hp).toBe(600)
+    })
+
+    it.each(['gold_income', 'skill_cast', 'passive_triggered'] as const)
+      ('keeps %s as an explicit metadata compatibility no-op', (type) => {
+        const next = applyCombatEvent(state, { type, seq: 29 }, { simTime: 1.0 })
+
+        expect(next.playerUnits).toEqual(state.playerUnits)
+        expect(next.opponentUnits).toEqual(state.opponentUnits)
+      })
+  })
+
+  it('uses canonical post_shield for damage instead of subtracting shield_absorbed', () => {
+    const shieldedState = {
+      ...state,
+      opponentUnits: state.opponentUnits.map(unit => ({ ...unit, shield: 25 }))
+    }
+    const next = applyCombatEvent(shieldedState, {
+      type: 'unit_attack',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+      target_hp: 580,
+      shield_absorbed: 20,
+      post_shield: 3,
+      seq: 6,
+    }, { simTime: 1.0 })
+
+    expect(next.opponentUnits[0].hp).toBe(580)
+    expect(next.opponentUnits[0].shield).toBe(3)
+  })
+
+  it('rejects shield-absorbing damage without canonical post_shield', () => {
+    const shieldedState = {
+      ...state,
+      opponentUnits: state.opponentUnits.map(unit => ({ ...unit, shield: 25 }))
+    }
+    const next = applyCombatEvent(shieldedState, {
+      type: 'unit_attack',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+      target_hp: 580,
+      shield_absorbed: 20,
+      seq: 7,
+    }, { simTime: 1.0 })
+
+    expect(next.opponentUnits[0].hp).toBe(600)
+    expect(next.opponentUnits[0].shield).toBe(25)
+  })
+
+  it('applies canonical post_shield for shield-absorbed DoT ticks', () => {
+    const shieldedState = {
+      ...state,
+      playerUnits: state.playerUnits.map(unit => ({ ...unit, shield: 10 }))
+    }
+    const next = applyCombatEvent(shieldedState, {
+      type: 'damage_over_time_tick',
+      unit_id: 'player_0',
+      pre_hp: 500,
+      post_hp: 500,
+      shield_absorbed: 8,
+      post_shield: 2,
+      unit_shield: 99,
+      seq: 8,
+    }, { simTime: 1.0 })
+
+    expect(next.playerUnits[0].hp).toBe(500)
+    expect(next.playerUnits[0].shield).toBe(2)
+  })
+
+  it('rejects shield-absorbed DoT ticks without canonical post_shield', () => {
+    const shieldedState = {
+      ...state,
+      playerUnits: state.playerUnits.map(unit => ({ ...unit, shield: 10 }))
+    }
+    const next = applyCombatEvent(shieldedState, {
+      type: 'damage_over_time_tick',
+      unit_id: 'player_0',
+      post_hp: 492,
+      shield_absorbed: 8,
+      seq: 9,
+    }, { simTime: 1.0 })
+
+    expect(next.playerUnits[0].hp).toBe(500)
+    expect(next.playerUnits[0].shield).toBe(10)
+  })
+
+  describe('effect_applied events', () => {
+    it('should install the canonical passive effect object by ID', () => {
+      const event: CombatEvent = {
+        type: 'effect_applied',
+        unit_id: 'player_0',
+        unit_name: 'TestPlayer',
+        effect_id: 'passive-effect-1',
+        effect_type: 'mana_lock',
+        effect: {
+          id: 'passive-effect-1',
+          type: 'mana_lock',
+          duration: 2,
+          expires_at: 3,
+          source: 'caster',
+          passive_effect: 'mana_lock'
+        },
+        seq: 1,
+        timestamp: 1
+      }
+
+      const next = applyCombatEvent(state, event, { simTime: 1 })
+      expect(next.playerUnits[0].effects).toEqual([
+        expect.objectContaining({
+          id: 'passive-effect-1',
+          type: 'mana_lock',
+          expiresAt: 3,
+          passive_effect: 'mana_lock'
+        })
+      ])
+      expect(state.playerUnits[0].effects).toEqual([])
+    })
+
+    it('rejects an effect without canonical type even when effect_type is present', () => {
+      const next = applyCombatEvent(state, {
+        type: 'effect_applied',
+        unit_id: 'player_0',
+        effect_id: 'missing-type',
+        effect_type: 'mana_lock',
+        effect: { id: 'missing-type' },
+        seq: 2,
+        timestamp: 2,
+      }, { simTime: 2 })
+
+      expect(next.playerUnits[0].effects).toEqual([])
+    })
+
+    it('rejects an effect whose canonical id does not match effect_id', () => {
+      const next = applyCombatEvent(state, {
+        type: 'effect_applied',
+        unit_id: 'player_0',
+        effect_id: 'payload-id',
+        effect: { id: 'object-id', type: 'mana_lock' },
+        seq: 3,
+        timestamp: 3,
+      }, { simTime: 3 })
+
+      expect(next.playerUnits[0].effects).toEqual([])
+    })
+  })
+
+  describe('damage_over_time_applied events', () => {
+    it('installs the canonical DoT payload and preserves server expiry', () => {
+      const next = applyCombatEvent(state, {
+        type: 'damage_over_time_applied',
+        unit_id: 'player_0',
+        effect_id: 'dot-1',
+        damage: 10,
+        amount: 999,
+        duration: 2,
+        interval: 1,
+        ticks: 2,
+        next_tick_time: 3,
+        expires_at: 4,
+        seq: 4,
+        timestamp: 2,
+      }, { simTime: 2 })
+
+      expect(next.playerUnits[0].effects).toEqual([
+        expect.objectContaining({
+          id: 'dot-1',
+          type: 'damage_over_time',
+          damage: 10,
+          expiresAt: 4,
+          expires_at: 4,
+          next_tick_time: 3,
+        })
+      ])
+    })
+
+    it('rejects the legacy amount alias when canonical damage is missing', () => {
+      const next = applyCombatEvent(state, {
+        type: 'damage_over_time_applied',
+        unit_id: 'player_0',
+        effect_id: 'dot-missing-damage',
+        amount: 10,
+        expires_at: 4,
+        seq: 5,
+        timestamp: 2,
+      }, { simTime: 2 })
+
+      expect(next.playerUnits[0].effects).toEqual([])
+    })
+
+    it('rejects a DoT application without canonical expiry', () => {
+      const next = applyCombatEvent(state, {
+        type: 'damage_over_time_applied',
+        unit_id: 'player_0',
+        effect_id: 'dot-missing-expiry',
+        damage: 10,
+        duration: 2,
+        seq: 6,
+        timestamp: 2,
+      }, { simTime: 2 })
+
+      expect(next.playerUnits[0].effects).toEqual([])
+    })
   })
 
   describe('stat_buff events', () => {
@@ -161,6 +536,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         permanent: true,
         effect_id: 'max-hp-buff',
         applied_delta: 72,
+        post_hp: 458,
         seq: 1,
         timestamp: 1.0
       }
@@ -232,7 +608,7 @@ describe('applyCombatEvent - Effect Handling', () => {
       expect(player!.effects![0].applied_delta).toBe(25)
     })
 
-    it('should apply attack speed buffs and revert them on expiration', () => {
+    it('should apply attack speed buffs and revert them from canonical post state', () => {
       const buffEvent: CombatEvent = {
         type: 'stat_buff',
         unit_id: 'player_0',
@@ -256,6 +632,8 @@ describe('applyCombatEvent - Effect Handling', () => {
         type: 'effect_expired',
         unit_id: 'player_0',
         effect_id: 'attack-speed-buff',
+        stat: 'attack_speed',
+        post_attack_speed: 1.0,
         seq: 2,
         timestamp: 4.0
       }, { simTime: 4.0 })
@@ -265,7 +643,7 @@ describe('applyCombatEvent - Effect Handling', () => {
       expect(player!.buffed_stats?.attack_speed).toBeCloseTo(1.0)
     })
 
-    it('should use the authoritative HP and mana snapshot for same-timestamp buffs', () => {
+    it('should not use an embedded snapshot to overwrite reducer state', () => {
       const newState = applyCombatEvent(state, {
         type: 'stat_buff',
         unit_id: 'opp_0',
@@ -283,11 +661,11 @@ describe('applyCombatEvent - Effect Handling', () => {
       }, { simTime: 7.95 })
 
       const opponent = newState.opponentUnits.find(u => u.id === 'opp_0')
-      expect(opponent!.hp).toBe(560)
+      expect(opponent!.hp).toBe(600)
       expect(opponent!.current_mana).toBe(0)
     })
 
-    it('should recover a dropped attack speed buff from a later event snapshot', () => {
+    it('should not recover a dropped effect from a later event snapshot', () => {
       const newState = applyCombatEvent(state, {
         type: 'unit_attack',
         attacker_id: 'player_0',
@@ -308,9 +686,8 @@ describe('applyCombatEvent - Effect Handling', () => {
       }, { simTime: 4.1 })
 
       const opponent = newState.opponentUnits.find(u => u.id === 'opp_0')
-      expect(opponent!.attack_speed).toBeCloseTo(1.2)
-      expect(opponent!.effects).toHaveLength(1)
-      expect(opponent!.effects![0].id).toBe('recovered-speed-buff')
+      expect(opponent!.attack_speed).toBeCloseTo(1.0)
+      expect(opponent!.effects).toHaveLength(0)
     })
   })
 
@@ -345,6 +722,8 @@ describe('applyCombatEvent - Effect Handling', () => {
         unit_id: 'player_0',
         unit_name: 'TestPlayer',
         effect_id: 'expiring-buff',
+        stat: 'attack',
+        post_attack: 50,
         seq: 2,
         timestamp: 6.0
       }
@@ -385,6 +764,8 @@ describe('applyCombatEvent - Effect Handling', () => {
         unit_id: 'player_0',
         unit_name: 'TestPlayer',
         effect_id: 'defense-debuff',
+        stat: 'defense',
+        post_defense: 25,
         seq: 2,
         timestamp: 4.0
       }
@@ -393,6 +774,97 @@ describe('applyCombatEvent - Effect Handling', () => {
 
       player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.defense).toBe(25) // Back to original
+    })
+
+    it('should reject expiration without the canonical post-stat value', () => {
+      const buffEvent: CombatEvent = {
+        type: 'stat_buff',
+        unit_id: 'player_0',
+        unit_name: 'TestPlayer',
+        stat: 'attack',
+        value: 30,
+        amount: 30,
+        value_type: 'flat',
+        duration: 5,
+        permanent: false,
+        effect_id: 'missing-post-attack',
+        applied_delta: 30,
+        seq: 1,
+        timestamp: 1.0
+      }
+
+      const buffedState = applyCombatEvent(state, buffEvent, { simTime: 1.0 })
+
+      expect(() => applyCombatEvent(buffedState, {
+        type: 'effect_expired',
+        unit_id: 'player_0',
+        effect_id: 'missing-post-attack',
+        stat: 'attack',
+        seq: 2,
+        timestamp: 6.0
+      }, { simTime: 6.0 })).toThrow('Missing post_attack')
+      expect(buffedState.playerUnits[0].attack).toBe(80)
+      expect(buffedState.playerUnits[0].effects).toHaveLength(1)
+    })
+
+    it.each([
+      { stat: 'defense', value: -10, appliedDelta: -10, postField: 'post_defense' },
+      { stat: 'attack_speed', value: 20, appliedDelta: 0.2, postField: 'post_attack_speed' }
+    ])('should reject $stat expiration without $postField', ({ stat, value, appliedDelta, postField }) => {
+      const effectId = `missing-${stat}`
+      const buffedState = applyCombatEvent(state, {
+        type: 'stat_buff',
+        unit_id: 'player_0',
+        stat,
+        value,
+        amount: value,
+        value_type: 'flat',
+        duration: 5,
+        permanent: false,
+        effect_id: effectId,
+        applied_delta: appliedDelta,
+        seq: 1,
+        timestamp: 1.0
+      }, { simTime: 1.0 })
+      const expiration = {
+        type: 'effect_expired',
+        unit_id: 'player_0',
+        effect_id: effectId,
+        stat,
+        seq: 2,
+        timestamp: 6.0
+      } as CombatEvent
+      delete (expiration as Record<string, unknown>)[postField]
+
+      expect(() => applyCombatEvent(buffedState, expiration, { simTime: 6.0 })).toThrow(`Missing ${postField}`)
+    })
+
+    it('should reject HP expiration without canonical post_hp', () => {
+      const buffedState = applyCombatEvent(state, {
+        type: 'stat_buff',
+        unit_id: 'player_0',
+        stat: 'hp',
+        value: 30,
+        amount: 30,
+        value_type: 'flat',
+        duration: 5,
+        permanent: false,
+        effect_id: 'missing-post-hp',
+        applied_delta: 30,
+        seq: 1,
+        timestamp: 1.0
+      }, { simTime: 1.0 })
+
+      expect(() => applyCombatEvent(buffedState, {
+        type: 'effect_expired',
+        unit_id: 'player_0',
+        effect_id: 'missing-post-hp',
+        stat: 'hp',
+        seq: 2,
+        timestamp: 6.0
+      }, { simTime: 6.0 })).toThrow('Missing post_hp')
+      expect(buffedState.playerUnits[0].hp).toBe(500)
+      expect(buffedState.playerUnits[0].effects).toHaveLength(1)
     })
 
     it('should preserve the current health ratio when temporary max HP buffs expire', () => {
@@ -408,6 +880,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         permanent: false,
         effect_id: 'expiring-max-hp-buff',
         applied_delta: 72,
+        post_hp: 458,
         seq: 1,
         timestamp: 1.0
       }
@@ -429,6 +902,9 @@ describe('applyCombatEvent - Effect Handling', () => {
         unit_name: 'TestPlayer',
         effect_id: 'expiring-max-hp-buff',
         seq: 2,
+        stat: 'max_hp',
+        post_max_hp: 500,
+        post_hp: 400,
         timestamp: 4.0
       }, { simTime: 4.0 })
 
@@ -447,6 +923,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         unit_id: 'player_0',
         unit_name: 'TestPlayer',
         amount: 100,
+        post_shield: 100,
         duration: 3,
         caster_name: 'Healer',
         effect_id: 'shield-uuid',
@@ -474,6 +951,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         unit_id: 'player_0',
         unit_name: 'TestPlayer',
         amount: 100,
+        post_shield: 100,
         duration: 3,
         effect_id: 'expiring-shield',
         seq: 1,
@@ -485,6 +963,8 @@ describe('applyCombatEvent - Effect Handling', () => {
         unit_id: 'player_0',
         unit_name: 'TestPlayer',
         effect_id: 'expiring-shield',
+        effect_type: 'shield',
+        post_shield: 0,
         seq: 2,
         timestamp: 4.0
       }, { simTime: 4.0 })
@@ -492,6 +972,30 @@ describe('applyCombatEvent - Effect Handling', () => {
       const player = newState.playerUnits.find(u => u.id === 'player_0')
       expect(player!.shield).toBe(0)
       expect(player!.effects).toEqual([])
+    })
+
+    it('should reject shield expiration without canonical post_shield', () => {
+      const shieldedState = applyCombatEvent(state, {
+        type: 'shield_applied',
+        unit_id: 'player_0',
+        amount: 100,
+        post_shield: 100,
+        duration: 3,
+        effect_id: 'missing-expiry-shield',
+        seq: 1,
+        timestamp: 1.0
+      }, { simTime: 1.0 })
+
+      expect(() => applyCombatEvent(shieldedState, {
+        type: 'effect_expired',
+        unit_id: 'player_0',
+        effect_id: 'missing-expiry-shield',
+        effect_type: 'shield',
+        seq: 2,
+        timestamp: 4.0
+      }, { simTime: 4.0 })).toThrow('Missing post_shield')
+      expect(shieldedState.playerUnits[0].shield).toBe(100)
+      expect(shieldedState.playerUnits[0].effects).toHaveLength(1)
     })
   })
 
@@ -654,6 +1158,7 @@ describe('applyCombatEvent - Effect Handling', () => {
         unit_id: 'player_0',
         unit_name: 'TestPlayer',
         amount: 50,
+        post_shield: 50,
         duration: 4,
         caster_name: 'Healer',
         effect_id: 'shield-1',
@@ -671,6 +1176,41 @@ describe('applyCombatEvent - Effect Handling', () => {
       // Verify effect types
       const effectTypes = player!.effects!.map(e => e.type).sort()
       expect(effectTypes).toEqual(['buff', 'debuff', 'shield'])
+    })
+
+    it('rejects amount-only shield events without mutating shield state', () => {
+      const newState = applyCombatEvent(state, {
+        type: 'shield_applied',
+        unit_id: 'player_0',
+        unit_name: 'TestPlayer',
+        amount: 100,
+        duration: 3,
+        effect_id: 'amount-only-shield',
+        seq: 10,
+        timestamp: 1.0
+      }, { simTime: 1.0 })
+
+      const player = newState.playerUnits.find(u => u.id === 'player_0')
+      expect(player!.shield).toBe(state.playerUnits.find(u => u.id === 'player_0')!.shield)
+      expect(player!.effects).toEqual(state.playerUnits.find(u => u.id === 'player_0')!.effects)
+    })
+
+    it('rejects null canonical shield state without mutating shield state', () => {
+      const newState = applyCombatEvent(state, {
+        type: 'shield_applied',
+        unit_id: 'player_0',
+        unit_name: 'TestPlayer',
+        amount: 100,
+        post_shield: null,
+        duration: 3,
+        effect_id: 'null-post-shield',
+        seq: 11,
+        timestamp: 1.0
+      }, { simTime: 1.0 })
+
+      const player = newState.playerUnits.find(u => u.id === 'player_0')
+      expect(player!.shield).toBe(state.playerUnits.find(u => u.id === 'player_0')!.shield)
+      expect(player!.effects).toEqual(state.playerUnits.find(u => u.id === 'player_0')!.effects)
     })
   })
 

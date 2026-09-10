@@ -5,8 +5,6 @@ from ..models.unit import Unit
 from ..services.data_loader import load_game_data, GameData
 from ..services.shop import ShopService
 from ..services.synergy import SynergyEngine
-from ..services.combat import CombatSimulator
-from ..services.combat_shared import CombatSimulator as SharedCombatSimulator, CombatUnit
 from ..services.unit_manager import UnitManager
 from ..services.combat_manager import CombatManager
 import random

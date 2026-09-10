@@ -67,6 +67,39 @@ function formatAmount(value?: number): string {
   return Number.isInteger(value) ? `${value}` : value.toFixed(2)
 }
 
+function getDotHpDamage(event: CombatEvent): number {
+  const preHp = event.pre_hp
+  const postHp = event.post_hp
+  if (typeof preHp === 'number' && Number.isFinite(preHp) && typeof postHp === 'number' && Number.isFinite(postHp)) {
+    return Math.max(0, preHp - postHp)
+  }
+
+  const incomingDamage = Math.max(0, Number(event.damage ?? event.applied_damage ?? event.amount ?? 0))
+  const shieldAbsorbed = event.shield_absorbed
+  if (typeof shieldAbsorbed === 'number' && Number.isFinite(shieldAbsorbed)) {
+    return Math.max(0, incomingDamage - shieldAbsorbed)
+  }
+  return incomingDamage
+}
+
+function formatDotTickLog(event: CombatEvent): string {
+  const unit = event.unit_name || event.unit_id || 'Unit'
+  const incomingDamage = Math.max(0, Number(event.damage ?? event.applied_damage ?? event.amount ?? 0))
+  const shieldAbsorbed = event.shield_absorbed
+  if (typeof shieldAbsorbed === 'number' && Number.isFinite(shieldAbsorbed) && shieldAbsorbed > 0) {
+    const hpDamage = getDotHpDamage(event)
+    if (hpDamage > 0) {
+      return tagDot(`${unit} -${formatAmount(hpDamage)} HP, -${formatAmount(shieldAbsorbed)} shield`)
+    }
+    return tagDot(`${unit} -${formatAmount(shieldAbsorbed)} shield`)
+  }
+  return tagDot(`${unit} -${formatAmount(incomingDamage)} HP`)
+}
+
+function tagDot(body: string): string {
+  return `[DOT] ${body}`
+}
+
 function isPercentageEvent(event: CombatEvent): boolean {
   return event.is_percentage === true || event.value_type === 'percentage' || event.value_type === 'percentage_of_max'
 }
@@ -137,6 +170,8 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
       return tag('REGEN', `${event.unit_name || event.unit_id || 'Unit'} dostaje +${formatAmount(event.total_amount)} HP przez ${formatAmount(event.duration || 0)}s`)
     case 'shield_applied':
       return tag('SHIELD', `${event.unit_name || event.unit_id || 'Unit'} +${formatAmount(event.amount)} shield`)
+    case 'effect_applied':
+      return tag('EFFECT', `${event.unit_name || event.unit_id || 'Unit'} gains ${event.effect_type || event.effect?.type || 'effect'}`)
     case 'shield_broken':
       return tag('SHIELD BREAK', `${event.unit_name || event.unit_id || 'Unit'} traci tarczę (${formatAmount(event.amount)})`)
     case 'unit_stunned':
@@ -144,7 +179,7 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
     case 'damage_over_time_applied':
       return tag('DOT', `${event.unit_name || event.unit_id || 'Unit'} otrzymuje DoT (${event.ticks || '?'} ticki)`)
     case 'damage_over_time_tick':
-      return tag('DOT', `${event.unit_name || event.unit_id || 'Unit'} -${formatAmount(event.damage)} HP`)
+      return formatDotTickLog(event)
     case 'damage_over_time_expired':
       return tag('DOT', `${event.unit_name || event.unit_id || 'Unit'} DoT wygasl`)
     case 'effect_expired':
@@ -229,7 +264,7 @@ export function updateCombatSummary(summary: CombatSummary, event: CombatEvent):
   }
 
   if (event.type === 'damage_over_time_tick' && event.unit_id) {
-    const damage = Math.max(0, Number(event.damage ?? event.amount ?? 0))
+    const damage = getDotHpDamage(event)
     markActivity(next, event.unit_id, event.unit_name, eventTimestamp)
     ensureUnitStats(next, event.unit_id, event.unit_name).damage_received += damage
   }

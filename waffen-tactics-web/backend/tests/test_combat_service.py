@@ -16,6 +16,8 @@ from services.combat_service import (
     run_combat_simulation, process_combat_results
 )
 from services.combat_event_reconstructor import CombatEventReconstructor
+from waffen_tactics.services.combat_errors import CombatExecutionError, InvalidCombatInputError
+from routes.game_combat import combat_error_sse_payload
 
 # Silence noisy `print` calls in these tests; keep a handle to the original
 # print and provide `error_print` for printing errors only.
@@ -147,6 +149,34 @@ class TestCombatService(unittest.TestCase):
 
     @patch('services.combat_service.db_manager')
     @patch('services.combat_service.game_manager')
+    def test_prepare_player_units_rejects_partial_team_before_synergies(self, mock_game_manager, mock_db_manager):
+        """An unknown persisted board entry must not be silently dropped."""
+        mock_db_manager.load_player = AsyncMock(return_value=self.mock_player)
+        invalid_entry = MagicMock()
+        invalid_entry.unit_id = 'unit_missing'
+        self.mock_player.board = [self.mock_unit_instance, invalid_entry]
+        mock_game_manager.data.units = [self.mock_unit]
+
+        with self.assertRaisesRegex(InvalidCombatInputError, r"Unknown player unit at index 1"):
+            prepare_player_units_for_combat(self.user_id)
+
+        mock_game_manager.get_board_synergies.assert_not_called()
+
+    @patch('services.combat_service.db_manager')
+    @patch('services.combat_service.game_manager')
+    def test_prepare_player_units_rejects_malformed_entry_before_synergies(self, mock_game_manager, mock_db_manager):
+        """A board entry without a canonical unit id must fail closed."""
+        mock_db_manager.load_player = AsyncMock(return_value=self.mock_player)
+        self.mock_player.board = [self.mock_unit_instance, {'star_level': 1}]
+        mock_game_manager.data.units = [self.mock_unit]
+
+        with self.assertRaisesRegex(InvalidCombatInputError, r"Malformed player team entry at index 1"):
+            prepare_player_units_for_combat(self.user_id)
+
+        mock_game_manager.get_board_synergies.assert_not_called()
+
+    @patch('services.combat_service.db_manager')
+    @patch('services.combat_service.game_manager')
     def test_prepare_opponent_units_for_combat_success(self, mock_game_manager, mock_db_manager):
         """Test successful opponent unit preparation"""
         # Setup mocks
@@ -176,6 +206,45 @@ class TestCombatService(unittest.TestCase):
         self.assertEqual(opponent_info['name'], 'TestOpponent')
         self.assertEqual(opponent_info['wins'], 10)
         self.assertEqual(opponent_info['level'], 5)
+
+    @patch('services.combat_service.db_manager')
+    @patch('services.combat_service.game_manager')
+    def test_prepare_opponent_units_rejects_partial_team(self, mock_game_manager, mock_db_manager):
+        """An unknown database team entry must not produce a partial opponent."""
+        opponent_data = {
+            'nickname': 'TestOpponent',
+            'wins': 10,
+            'level': 5,
+            'board': [
+                {'unit_id': 'unit_001', 'star_level': 1},
+                {'unit_id': 'unit_missing', 'star_level': 1},
+            ],
+        }
+        mock_db_manager.get_random_opponent = AsyncMock(return_value=opponent_data)
+        mock_game_manager.data.units = [self.mock_unit]
+
+        with self.assertRaisesRegex(InvalidCombatInputError, r"Unknown opponent unit at index 1"):
+            prepare_opponent_units_for_combat(self.mock_player)
+
+        mock_game_manager.synergy_engine.compute.assert_not_called()
+
+    @patch('services.combat_service.db_manager')
+    @patch('services.combat_service.game_manager')
+    def test_prepare_opponent_units_rejects_malformed_entry(self, mock_game_manager, mock_db_manager):
+        """A database team entry missing required fields must fail closed."""
+        opponent_data = {
+            'nickname': 'TestOpponent',
+            'wins': 10,
+            'level': 5,
+            'board': [{'unit_id': 'unit_001'}],
+        }
+        mock_db_manager.get_random_opponent = AsyncMock(return_value=opponent_data)
+        mock_game_manager.data.units = [self.mock_unit]
+
+        with self.assertRaisesRegex(InvalidCombatInputError, r"Malformed opponent team entry at index 0: missing star_level"):
+            prepare_opponent_units_for_combat(self.mock_player)
+
+        mock_game_manager.synergy_engine.compute.assert_not_called()
 
     @patch('services.combat_service.db_manager')
     def test_prepare_opponent_units_for_combat_fallback(self, mock_db_manager):
@@ -214,20 +283,139 @@ class TestCombatService(unittest.TestCase):
 
     @patch('services.combat_service.CombatSimulator')
     def test_run_combat_simulation_error(self, mock_simulator_class):
-        """Test combat simulation error handling"""
+        """Simulation failures are typed and never converted into a defeat."""
         # Setup mocks
         mock_simulator_class.side_effect = Exception("Simulation failed")
 
         player_units = [MagicMock(spec=CombatUnit)]
         opponent_units = [MagicMock(spec=CombatUnit)]
 
-        # Execute
-        result = run_combat_simulation(player_units, opponent_units)
+        with self.assertRaises(CombatExecutionError) as raised:
+            run_combat_simulation(player_units, opponent_units)
 
-        # Assert
-        self.assertEqual(result['winner'], 'error')
-        self.assertEqual(result['duration'], 0)
-        self.assertIn('Combat error', result['log'][0])
+        self.assertEqual(raised.exception.code, 'combat_execution_failed')
+        self.assertTrue(raised.exception.retriable)
+
+    def test_run_combat_simulation_wraps_event_delivery_failure(self):
+        """A failing event consumer cannot be converted into a combat result."""
+        player_unit = CombatUnit(
+            id='player-1', name='Player', hp=100, attack=20, defense=5, attack_speed=1.0
+        )
+        opponent_unit = CombatUnit(
+            id='opponent-1', name='Opponent', hp=100, attack=20, defense=5, attack_speed=1.0
+        )
+        delivered = []
+
+        def failing_callback(event_type, payload):
+            delivered.append((event_type, payload))
+            if event_type == 'unit_attack':
+                raise RuntimeError('event consumer failed')
+
+        with self.assertRaises(CombatExecutionError) as raised:
+            run_combat_simulation(
+                [player_unit], [opponent_unit], event_callback=failing_callback
+            )
+
+        self.assertEqual(raised.exception.code, 'combat_execution_failed')
+        self.assertIsInstance(raised.exception.cause, RuntimeError)
+        self.assertTrue(delivered)
+
+    def test_run_combat_simulation_wraps_scheduled_death_mutation_failure(self):
+        """A death mutation failure cannot become a successful combat result."""
+        class DeathOnlyFailingUnit(CombatUnit):
+            def __init__(self, *args, **kwargs):
+                self._hp_set_calls = 0
+                super().__init__(*args, **kwargs)
+
+            @property
+            def hp(self):
+                return CombatUnit.hp.fget(self)
+
+            @hp.setter
+            def hp(self, value):
+                self._hp_set_calls += 1
+                if self._hp_set_calls >= 2:
+                    raise PermissionError('death HP mutation rejected')
+                CombatUnit.hp.fset(self, value)
+
+        player_unit = CombatUnit(
+            id='player-1', name='Player', hp=100, attack=100, defense=5, attack_speed=2.0
+        )
+        opponent_unit = DeathOnlyFailingUnit(
+            id='opponent-1', name='Opponent', hp=10, attack=1, defense=1, attack_speed=0.5
+        )
+        delivered = []
+
+        with self.assertRaises(CombatExecutionError) as raised:
+            run_combat_simulation(
+                [player_unit],
+                [opponent_unit],
+                event_callback=lambda event_type, payload: delivered.append((event_type, payload)),
+            )
+
+        self.assertEqual(raised.exception.code, 'combat_execution_failed')
+        self.assertIsInstance(raised.exception.cause, PermissionError)
+        self.assertFalse(any(event_type == 'unit_died' for event_type, _ in delivered))
+        self.assertEqual(opponent_unit.hp, 0)
+        self.assertFalse(getattr(opponent_unit, '_dead', False))
+
+    def test_run_combat_simulation_wraps_effect_expiration_validation_failure(self):
+        """Malformed runtime effects must fail the service before an outcome."""
+        player_unit = CombatUnit(
+            id='player-1', name='Player', hp=100, attack=20, defense=5, attack_speed=100.0
+        )
+        player_unit._state.effects = [
+            {
+                'id': 'expired-shield',
+                'type': 'shield',
+                'applied_amount': 3,
+                'expires_at': 0.0,
+            },
+            'malformed-effect',
+        ]
+        player_unit.shield = 3
+        opponent_unit = CombatUnit(
+            id='opponent-1', name='Opponent', hp=100, attack=20, defense=5, attack_speed=100.0
+        )
+
+        with self.assertRaises(CombatExecutionError) as raised:
+            run_combat_simulation([player_unit], [opponent_unit])
+
+        self.assertEqual(raised.exception.code, 'combat_execution_failed')
+        self.assertEqual(player_unit.shield, 3)
+
+    def test_run_combat_simulation_rejects_empty_team(self):
+        with self.assertRaises(InvalidCombatInputError) as raised:
+            run_combat_simulation([], [MagicMock(spec=CombatUnit)])
+        self.assertEqual(raised.exception.code, 'invalid_combat_input')
+
+    def test_failed_result_does_not_mutate_player_progression(self):
+        initial_state = (
+            self.mock_player.hp,
+            self.mock_player.round_number,
+            self.mock_player.xp,
+            self.mock_player.wins,
+            self.mock_player.losses,
+            self.mock_player.gold,
+        )
+        with self.assertRaises(CombatExecutionError):
+            process_combat_results(self.mock_player, {'winner': 'error'}, {})
+        assert (
+            self.mock_player.hp,
+            self.mock_player.round_number,
+            self.mock_player.xp,
+            self.mock_player.wins,
+            self.mock_player.losses,
+            self.mock_player.gold,
+        ) == initial_state
+
+    def test_failed_combat_sse_payload_has_safe_typed_contract(self):
+        payload = combat_error_sse_payload(CombatExecutionError('secret stack trace: token=abc'))
+        self.assertEqual(payload['type'], 'error')
+        self.assertEqual(payload['code'], 'combat_execution_failed')
+        self.assertTrue(payload['retriable'])
+        self.assertNotIn('secret', payload['message'])
+        self.assertNotIn('token', payload['message'])
 
     @patch('services.combat_service.game_manager')
     def test_process_combat_results_victory(self, mock_game_manager):
@@ -482,6 +670,8 @@ class TestCombatService(unittest.TestCase):
         # Process events in order using the reconstructor
         processed_events = 0
         for event_type, event_data in events:
+            if event_type == 'state_snapshot':
+                continue
             processed_events += 1
             reconstructor.process_event(event_type, event_data)
 

@@ -143,14 +143,85 @@ class TestCombatEffectProcessor:
             'team_a', attacking_team, attacking_hp
         )
 
-        # Verify HP regen was applied
-        assert mock_combat_unit.hp_regen_per_sec == 5.0  # 50 / 10
-
         # Verify log message
         assert "Team gains +50.00 HP over 10.0s" in log[0]
 
         # Verify event emission
         mock_emit_regen.assert_called_once()
+        assert mock_emit_regen.call_args.args[1] is mock_combat_unit
+        assert mock_emit_regen.call_args.args[2] == 5.0
+
+    def test_apply_reward_hp_regen_self_applies_once_with_callback(self, effect_processor):
+        unit = CombatUnit(
+            id='regen-self', name='Regen Self', hp=100, attack=10, defense=5,
+            attack_speed=1.0, max_mana=100
+        )
+        events = []
+        effect = {
+            'chance': 100,
+            'reward': 'hp_regen',
+            'value': 20,
+            'is_percentage': False,
+            'duration': 10.0,
+            'target': 'self',
+        }
+
+        effect_processor._apply_reward(
+            unit, effect, [100], 0, 1.0, [],
+            lambda event_type, payload: events.append((event_type, payload)),
+            'team_a', [unit], [100]
+        )
+
+        assert unit.hp_regen_per_sec == 2.0
+        assert [event_type for event_type, _ in events] == ['regen_gain']
+        assert events[0][1]['unit_id'] == 'regen-self'
+        assert events[0][1]['amount_per_sec'] == 2.0
+
+    def test_apply_reward_hp_regen_team_applies_once_to_each_survivor(self, effect_processor):
+        survivors = [
+            CombatUnit(id='regen-a', name='Regen A', hp=100, attack=10, defense=5, attack_speed=1.0, max_mana=100),
+            CombatUnit(id='regen-b', name='Regen B', hp=100, attack=10, defense=5, attack_speed=1.0, max_mana=100),
+            CombatUnit(id='regen-dead', name='Regen Dead', hp=0, attack=10, defense=5, attack_speed=1.0, max_mana=100),
+        ]
+        events = []
+        effect = {
+            'chance': 100,
+            'reward': 'hp_regen',
+            'value': 50,
+            'is_percentage': False,
+            'duration': 10.0,
+            'target': 'team',
+        }
+
+        effect_processor._apply_reward(
+            survivors[0], effect, [100, 100, 0], 0, 1.0, [],
+            lambda event_type, payload: events.append((event_type, payload)),
+            'team_a', survivors, [100, 100, 0]
+        )
+
+        assert survivors[0].hp_regen_per_sec == 2.5
+        assert survivors[1].hp_regen_per_sec == 2.5
+        assert survivors[2].hp_regen_per_sec == 0.0
+        assert [payload['unit_id'] for event_type, payload in events if event_type == 'regen_gain'] == ['regen-a', 'regen-b']
+        assert all(payload['amount_per_sec'] == 2.5 for _, payload in events)
+
+    def test_apply_reward_hp_regen_self_applies_once_without_callback(self, effect_processor):
+        unit = CombatUnit(
+            id='regen-no-callback', name='Regen No Callback', hp=100, attack=10, defense=5,
+            attack_speed=1.0, max_mana=100
+        )
+        effect = {
+            'chance': 100,
+            'reward': 'hp_regen',
+            'value': 20,
+            'is_percentage': False,
+            'duration': 10.0,
+            'target': 'self',
+        }
+
+        effect_processor._apply_reward(unit, effect, [100], 0, 1.0, [], None, 'team_a', [unit], [100])
+
+        assert unit.hp_regen_per_sec == 2.0
 
     @patch('waffen_tactics.services.stat_buff_handlers.emit_stat_buff')
     def test_apply_actions_stat_buff_attack(self, mock_emit_stat_buff, effect_processor, mock_combat_unit, mock_event_callback):
