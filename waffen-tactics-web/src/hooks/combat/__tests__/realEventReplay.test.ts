@@ -66,6 +66,136 @@ function initializeStateFromDump(events: any[]): CombatState | null {
   return null
 }
 
+function createSyntheticEffectLifecycleEvents(): CombatEvent[] {
+  const createUnit = (id: string) => ({
+    id,
+    name: id,
+    hp: 100,
+    max_hp: 100,
+    attack: 50,
+    defense: 10,
+    attack_speed: 1,
+    star_level: 1,
+    position: 'front',
+    effects: [],
+    current_mana: 0,
+    max_mana: 100,
+    shield: 0,
+    base_stats: { hp: 100, attack: 50, defense: 10, attack_speed: 1, max_mana: 100 },
+    buffed_stats: { hp: 100, attack: 50, defense: 10, attack_speed: 1, max_mana: 100, hp_regen_per_sec: 0 }
+  })
+
+  return [
+    {
+      type: 'units_init',
+      player_units: [createUnit('player_0')],
+      opponent_units: [createUnit('opp_0')],
+      seq: 1,
+      timestamp: 0
+    },
+    {
+      type: 'stat_buff',
+      unit_id: 'player_0',
+      stat: 'attack',
+      amount: 5,
+      value: 5,
+      effect_id: 'stat-buff-1',
+      applied_delta: 5,
+      seq: 2,
+      timestamp: 1
+    },
+    {
+      type: 'shield_applied',
+      unit_id: 'player_0',
+      amount: 10,
+      post_shield: 10,
+      effect_id: 'shield-1',
+      seq: 3,
+      timestamp: 1
+    },
+    {
+      type: 'effect_applied',
+      unit_id: 'player_0',
+      effect_id: 'generic-1',
+      effect: { id: 'generic-1', type: 'mana_lock', duration: 4, expires_at: 5 },
+      seq: 4,
+      timestamp: 1
+    },
+    {
+      type: 'unit_stunned',
+      unit_id: 'player_0',
+      effect_id: 'stun-1',
+      duration: 1,
+      seq: 5,
+      timestamp: 1
+    },
+    {
+      type: 'damage_over_time_applied',
+      unit_id: 'player_0',
+      effect_id: 'dot-1',
+      damage: 3,
+      duration: 3,
+      interval: 1,
+      ticks: 1,
+      next_tick_time: 2,
+      expires_at: 5,
+      seq: 6,
+      timestamp: 1
+    },
+    {
+      type: 'damage_over_time_tick',
+      unit_id: 'player_0',
+      effect_id: 'dot-1',
+      pre_hp: 100,
+      post_hp: 97,
+      shield_absorbed: 0,
+      post_shield: 10,
+      seq: 7,
+      timestamp: 2
+    },
+    {
+      type: 'effect_expired',
+      unit_id: 'player_0',
+      effect_id: 'stat-buff-1',
+      stat: 'attack',
+      post_attack: 50,
+      seq: 8,
+      timestamp: 3
+    },
+    {
+      type: 'effect_expired',
+      unit_id: 'player_0',
+      effect_id: 'shield-1',
+      effect_type: 'shield',
+      post_shield: 0,
+      seq: 9,
+      timestamp: 3
+    },
+    {
+      type: 'effect_expired',
+      unit_id: 'player_0',
+      effect_id: 'generic-1',
+      seq: 10,
+      timestamp: 5
+    },
+    {
+      type: 'effect_expired',
+      unit_id: 'player_0',
+      effect_id: 'stun-1',
+      seq: 11,
+      timestamp: 2
+    },
+    {
+      type: 'damage_over_time_expired',
+      unit_id: 'player_0',
+      effect_id: 'dot-1',
+      post_hp: 97,
+      seq: 12,
+      timestamp: 5
+    }
+  ]
+}
+
 describe('Real Combat Event Replay - events_desync_team.json', () => {
   it('should replay all events without crashing', () => {
     const events = loadEventDump('events_desync_team.json')
@@ -73,8 +203,7 @@ describe('Real Combat Event Replay - events_desync_team.json', () => {
     // Initialize state from dump (handles both old and new formats)
     const initialState = initializeStateFromDump(events)
     if (!initialState) {
-      console.warn('Could not initialize state from events_desync_team.json, skipping test')
-      return
+      throw new Error('Could not initialize state from events_desync_team.json')
     }
 
     let state = initialState
@@ -122,8 +251,7 @@ describe('Real Combat Event Replay - events_desync_team.json', () => {
 
     const initialState = initializeStateFromDump(events)
     if (!initialState) {
-      console.warn('Could not initialize state, skipping test')
-      return
+      throw new Error('Could not initialize state from events_desync_team.json')
     }
 
     let state = initialState
@@ -174,8 +302,7 @@ describe('Real Combat Event Replay - events_desync_team.json', () => {
 
     const initialState = initializeStateFromDump(events)
     if (!initialState) {
-      console.warn('Could not initialize state, skipping test')
-      return
+      throw new Error('Could not initialize state from events_desync_team.json')
     }
 
     let state = initialState
@@ -238,8 +365,7 @@ describe('Real Combat Event Replay - events_desync_team.json', () => {
 
     const initialState = initializeStateFromDump(events)
     if (!initialState) {
-      console.warn('Could not initialize state, skipping test')
-      return
+      throw new Error('Could not initialize state from events_desync_team.json')
     }
 
     let state = initialState
@@ -325,29 +451,48 @@ describe('Real Combat Event Replay - Diverse Team Compositions', () => {
   })
 })
 
-describe('Effect ID Validation', () => {
-  it('should verify all effect events have proper UUIDs', () => {
-    // Use fresh dump that has shield effect_id fix applied
-    const events = loadEventDump('events_test_fresh.json')
+describe('Canonical synthetic effect replay', () => {
+  it('replays effect application, tick, and expiration events with stable identities', () => {
+    const events = createSyntheticEffectLifecycleEvents()
+    const initialState = initializeStateFromDump(events)
+    expect(initialState).not.toBeNull()
 
-    const effectEventTypes = ['stat_buff', 'shield_applied', 'unit_stunned', 'damage_over_time_applied']
-    const effectEvents = events.filter((e: any) => effectEventTypes.includes(e.type))
+    let state = initialState!
+    const appliedEffectIds = new Set<string>()
+    const applicationTypes = new Set([
+      'stat_buff',
+      'shield_applied',
+      'effect_applied',
+      'unit_stunned',
+      'damage_over_time_applied'
+    ])
 
-    console.log(`\nValidating effect_id format for ${effectEvents.length} effect events...`)
+    for (const event of events) {
+      if (event.type === 'units_init') continue
 
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      state = applyCombatEvent(state, event, {
+        simTime: event.timestamp || 0
+      })
 
-    for (const event of effectEvents) {
-      if (!event.effect_id) {
-        console.error(`Missing effect_id in ${event.type} event at seq ${event.seq}`)
-        expect(event.effect_id).toBeDefined()
-      }
-
-      if (!uuidRegex.test(event.effect_id)) {
-        console.error(`Invalid UUID format for effect_id in ${event.type}:`, event.effect_id)
-        expect(uuidRegex.test(event.effect_id)).toBe(true)
+      if (applicationTypes.has(event.type)) {
+        expect(typeof event.effect_id).toBe('string')
+        const unit = [...state.playerUnits, ...state.opponentUnits].find(u => u.id === event.unit_id)
+        expect(unit?.effects?.some(effect => effect.id === event.effect_id)).toBe(true)
+        appliedEffectIds.add(event.effect_id!)
       }
     }
+
+    expect(appliedEffectIds).toEqual(new Set([
+      'stat-buff-1',
+      'shield-1',
+      'generic-1',
+      'stun-1',
+      'dot-1'
+    ]))
+    expect(state.playerUnits[0].attack).toBe(50)
+    expect(state.playerUnits[0].shield).toBe(0)
+    expect(state.playerUnits[0].hp).toBe(97)
+    expect(state.playerUnits[0].effects).toEqual([])
   })
 })
 
