@@ -1,39 +1,63 @@
 {
   "matrix_id": "WFT-139",
   "content_version": "wft139-approved-2026-09-10",
-  "status": "approved-content-contract-pending",
+  "status": "approved-runtime-contract",
   "source_comment_id": "58175dd5-e14e-49f5-8ffe-359fa02bca56",
   "deterministic_seed": "wft139-approved-2026-09-10",
   "base_items": [
     {
       "id": "spices",
       "name": "20kg przypraw",
-      "stats": {"attack": 8}
+      "kind": "base",
+      "components": [],
+      "stats": {"attack": 8},
+      "effect": null,
+      "content_version": "wft139-approved-2026-09-10"
     },
     {
       "id": "orangeade",
       "name": "Oranżada helena",
-      "stats": {"mana_regen": 3}
+      "kind": "base",
+      "components": [],
+      "stats": {"mana_regen": 3},
+      "effect": null,
+      "content_version": "wft139-approved-2026-09-10"
     },
     {
       "id": "coat",
       "name": "Płaszcz 100% wełna",
-      "stats": {"hp": 100}
+      "kind": "base",
+      "components": [],
+      "stats": {"hp": 100},
+      "effect": null,
+      "content_version": "wft139-approved-2026-09-10"
     },
     {
       "id": "safe",
       "name": "Mobilny sejf",
-      "stats": {"defense": 12}
+      "kind": "base",
+      "components": [],
+      "stats": {"defense": 12},
+      "effect": null,
+      "content_version": "wft139-approved-2026-09-10"
     },
     {
       "id": "socks",
       "name": "Zakolanówki Edyty",
-      "stats": {"attack_speed": 0.12}
+      "kind": "base",
+      "components": [],
+      "stats": {"attack_speed": 0.12},
+      "effect": null,
+      "content_version": "wft139-approved-2026-09-10"
     },
     {
       "id": "notebook",
       "name": "Notatnik miłości",
-      "stats": {"hp_regen_per_sec": 2}
+      "kind": "base",
+      "components": [],
+      "stats": {"hp_regen_per_sec": 2},
+      "effect": null,
+      "content_version": "wft139-approved-2026-09-10"
     }
   ],
   "recipes": [
@@ -41,148 +65,503 @@
       "id": "etf_przyprawowy",
       "components": ["spices", "spices"],
       "name": "ETF przyprawowy",
+      "kind": "combined",
       "stats": {"attack": 30},
-      "effect_description": "+30 ataku."
+      "effect_description": "+30 ataku.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "stat_only",
+        "description": "+30 ataku.",
+        "trigger": "on_equip",
+        "target": "owner",
+        "scope": "combat",
+        "order": "stat/shield application",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["stat_buff"]}
+      }
     },
     {
       "id": "helena_o_smaku_kurkumy",
       "components": ["spices", "orangeade"],
       "name": "Helena o smaku kurkumy",
+      "kind": "combined",
       "stats": {"attack": 10, "mana_regen": 3},
-      "effect_description": "+10 ataku, +3 regeneracji many, +5 many przy ataku."
+      "effect_description": "+10 ataku, +3 regeneracji many, +5 many przy ataku.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "bonus_attack_mana",
+        "description": "+10 ataku, +3 regeneracji many, +5 many przy ataku.",
+        "trigger": "on_attack",
+        "target": "owner",
+        "scope": "combat",
+        "order": "heal/mana/resource changes",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["mana_update"]},
+        "parameters": {"mana": 5}
+      }
     },
     {
       "id": "plaszcz_ze_100_bawelny",
       "components": ["spices", "coat"],
       "name": "Płaszcz ze 100% bawełny",
+      "kind": "combined",
       "stats": {"hp": 200, "attack": 10},
-      "effect_description": "+200 HP, +10 ataku, tarcza równa 30% maksymalnego HP na starcie walki."
+      "effect_description": "+200 HP, +10 ataku, tarcza równa 30% maksymalnego HP na starcie walki.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "startowy_shield",
+        "description": "+200 HP, +10 ataku, tarcza równa 30% maksymalnego HP na starcie walki.",
+        "trigger": "start_of_combat",
+        "target": "owner",
+        "scope": "self",
+        "order": "stat/shield application",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["shield_applied"]},
+        "parameters": {"shield_max_hp_ratio": 0.3}
+      }
     },
     {
       "id": "skrytka_na_oregano",
       "components": ["spices", "safe"],
       "name": "Skrytka na oregano",
+      "kind": "combined",
       "stats": {"attack": 12, "defense": 15},
-      "effect_description": "+12 ataku, +15 obrony, trafiony przeciwnik ma -30% obrony przez 2 s."
+      "effect_description": "+12 ataku, +15 obrony, trafiony przeciwnik ma -30% obrony przez 2 s.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "debuff",
+        "description": "+12 ataku, +15 obrony, trafiony przeciwnik ma -30% obrony przez 2 s.",
+        "trigger": "on_hit",
+        "target": "last_hit_enemy",
+        "scope": "single_target",
+        "order": "on-hit debuff and extra damage",
+        "duration": 2,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["stat_buff", "effect_expired"]},
+        "parameters": {"defense_multiplier": 0.7}
+      }
     },
     {
       "id": "ponetne_stopki",
       "components": ["spices", "socks"],
       "name": "Ponętne stópki",
+      "kind": "combined",
       "stats": {"attack": 15, "attack_speed": 0.2},
-      "effect_description": "+15 ataku, +0,20 szybkości ataku, bonusowy atak zadaje dodatkowe obrażenia równe 2× atakowi właściciela."
+      "effect_description": "+15 ataku, +0,20 szybkości ataku, bonusowy atak zadaje dodatkowe obrażenia równe 2× atakowi właściciela.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "bonus_attack",
+        "description": "+15 ataku, +0,20 szybkości ataku, bonusowy atak zadaje dodatkowe obrażenia równe 2× atakowi właściciela.",
+        "trigger": "on_bonus_attack",
+        "target": "bonus_attack_target",
+        "scope": "single_target",
+        "order": "bonus attack components",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["unit_attack"]},
+        "parameters": {"additional_damage_attack_multiplier": 2}
+      }
     },
     {
       "id": "pikante_slowka",
       "components": ["spices", "notebook"],
       "name": "Pikante słówka",
+      "kind": "combined",
       "stats": {"attack": 15, "hp_regen_per_sec": 4, "lifesteal_percent": 10},
-      "effect_description": "+15 ataku, +4 HP regeneracji/s, +10% life steal."
+      "effect_description": "+15 ataku, +4 HP regeneracji/s, +10% life steal.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "lifesteal",
+        "description": "+15 ataku, +4 HP regeneracji/s, +10% life steal.",
+        "trigger": "on_damage_dealt",
+        "target": "owner",
+        "scope": "self",
+        "order": "heal/mana/resource changes",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["heal"]},
+        "parameters": {"lifesteal_percent": 10}
+      }
     },
     {
       "id": "mandarynkowy_sodastream",
       "components": ["orangeade", "orangeade"],
       "name": "Mandarynkowy Sodastream",
+      "kind": "combined",
       "stats": {"mana_regen": 12},
-      "effect_description": "+12 regeneracji many, bonusowy atak zwraca 30 many."
+      "effect_description": "+12 regeneracji many, bonusowy atak zwraca 30 many.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "bonus_attack_mana",
+        "description": "+12 regeneracji many, bonusowy atak zwraca 30 many.",
+        "trigger": "on_bonus_attack",
+        "target": "owner",
+        "scope": "self",
+        "order": "heal/mana/resource changes",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["mana_update"]},
+        "parameters": {"mana": 30}
+      }
     },
     {
       "id": "bluza_z_bytom",
       "components": ["orangeade", "coat"],
       "name": "Bluza z Bytom",
+      "kind": "combined",
       "stats": {"hp": 150, "mana_regen": 4},
-      "effect_description": "+150 HP, +4 regeneracji many, co 3 s leczy sojusznika z najmniejszym aktualnym HP za 15% jego maksymalnego HP."
+      "effect_description": "+150 HP, +4 regeneracji many, co 3 s leczy sojusznika z najmniejszym aktualnym HP za 15% jego maksymalnego HP.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "periodic_heal",
+        "description": "+150 HP, +4 regeneracji many, co 3 s leczy sojusznika z najmniejszym aktualnym HP za 15% jego maksymalnego HP.",
+        "trigger": "periodic_timer",
+        "target": "ally_lowest_current_hp",
+        "scope": "single_ally",
+        "order": "heal/mana/resource changes",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["heal"]},
+        "parameters": {"interval_seconds": 3, "heal_max_hp_ratio": 0.15}
+      }
     },
     {
       "id": "kolekcja_syropow",
       "components": ["orangeade", "safe"],
       "name": "Kolekcja syropów",
+      "kind": "combined",
       "stats": {"defense": 15, "mana_regen": 3},
-      "effect_description": "+15 obrony, +3 regeneracji many. Pierwsze zejście właściciela do 50% maksymalnego HP lub niżej daje na 3 s +20 many/s oraz tarczę równą 20% maksymalnego HP."
+      "effect_description": "+15 obrony, +3 regeneracji many. Pierwsze zejście właściciela do 50% maksymalnego HP lub niżej daje na 3 s +20 many/s oraz tarczę równą 20% maksymalnego HP.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "threshold",
+        "description": "+15 obrony, +3 regeneracji many. Pierwsze zejście właściciela do 50% maksymalnego HP lub niżej daje na 3 s +20 many/s oraz tarczę równą 20% maksymalnego HP.",
+        "trigger": "on_self_hp_at_or_below_threshold",
+        "target": "owner",
+        "scope": "self",
+        "order": "heal/mana/resource changes",
+        "duration": 3,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["mana_update", "shield_applied", "effect_applied", "effect_expired"]},
+        "parameters": {"threshold_max_hp_ratio": 0.5, "mana_per_second": 20, "shield_max_hp_ratio": 0.2, "once_per_fight": true}
+      }
     },
     {
       "id": "kremik_owocowy",
       "components": ["orangeade", "socks"],
       "name": "Kremik owocowy",
+      "kind": "combined",
       "stats": {"mana_regen": 4, "attack_speed": 0.18},
-      "effect_description": "+4 regeneracji many, +0,18 szybkości ataku, co 4. zwykły atak zadaje 100 obrażeń trzem losowym żyjącym wrogom."
+      "effect_description": "+4 regeneracji many, +0,18 szybkości ataku, co 4. zwykły atak zadaje 100 obrażeń trzem losowym żyjącym wrogom.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "per_n_attack",
+        "description": "+4 regeneracji many, +0,18 szybkości ataku, co 4. zwykły atak zadaje 100 obrażeń trzem losowym żyjącym wrogom.",
+        "trigger": "on_ordinary_attack_count",
+        "target": "random_living_enemies",
+        "scope": "up_to_3_targets",
+        "order": "on-hit debuff and extra damage",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "combat_seed", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["unit_attack"]},
+        "parameters": {"every_n_ordinary_attacks": 4, "damage": 100, "target_count": 3}
+      }
     },
     {
       "id": "telewizor_4k_50_cali",
       "components": ["orangeade", "notebook"],
       "name": "Telewizor 4K 50 cali",
+      "kind": "combined",
       "stats": {"mana_regen": 4, "hp_regen_per_sec": 4},
-      "effect_description": "+4 regeneracji many, +4 HP regeneracji/s, przy każdym uzyskaniu many właściciel odzyskuje tyle samo HP."
+      "effect_description": "+4 regeneracji many, +4 HP regeneracji/s, przy każdym uzyskaniu many właściciel odzyskuje tyle samo HP.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "mana_to_heal",
+        "description": "+4 regeneracji many, +4 HP regeneracji/s, przy każdym uzyskaniu many właściciel odzyskuje tyle samo HP.",
+        "trigger": "on_mana_gain",
+        "target": "owner",
+        "scope": "self",
+        "order": "heal/mana/resource changes",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["mana_update", "heal"]},
+        "parameters": {"heal_equals_mana_gain": true}
+      }
     },
     {
       "id": "plaszcz_200_welny",
       "components": ["coat", "coat"],
       "name": "Płaszcz 200% WEŁNY",
+      "kind": "combined",
       "stats": {"hp": 600},
-      "effect_description": "+600 HP."
+      "effect_description": "+600 HP.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "stat_only",
+        "description": "+600 HP.",
+        "trigger": "on_equip",
+        "target": "owner",
+        "scope": "combat",
+        "order": "stat/shield application",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["stat_buff"]}
+      }
     },
     {
       "id": "forteca_z_ksiazek",
       "components": ["coat", "safe"],
       "name": "Forteca z książek",
+      "kind": "combined",
       "stats": {"hp": 200, "defense": 20},
-      "effect_description": "+200 HP, +20 obrony, wszyscy wrogowie w przednim rzędzie tracą 1% maksymalnego HP/s."
+      "effect_description": "+200 HP, +20 obrony, wszyscy wrogowie w przednim rzędzie tracą 1% maksymalnego HP/s.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "max_hp_damage",
+        "description": "+200 HP, +20 obrony, wszyscy wrogowie w przednim rzędzie tracą 1% maksymalnego HP/s.",
+        "trigger": "periodic_timer",
+        "target": "enemy_front_row_living",
+        "scope": "enemy_front_row",
+        "order": "reflect/redirect/secondary damage",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["damage_over_time_tick"]},
+        "parameters": {"interval_seconds": 1, "max_hp_ratio_per_second": 0.01}
+      }
     },
     {
       "id": "fartuszek_femboya",
       "components": ["coat", "socks"],
       "name": "Fartuszek Femboya",
+      "kind": "combined",
       "stats": {"hp": 150, "attack_speed": 0.15},
-      "effect_description": "+150 HP, +0,15 szybkości ataku, bonusowy atak zadaje dodatkowe obrażenia równe 15% maksymalnego HP właściciela."
+      "effect_description": "+150 HP, +0,15 szybkości ataku, bonusowy atak zadaje dodatkowe obrażenia równe 15% maksymalnego HP właściciela.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "bonus_attack",
+        "description": "+150 HP, +0,15 szybkości ataku, bonusowy atak zadaje dodatkowe obrażenia równe 15% maksymalnego HP właściciela.",
+        "trigger": "on_bonus_attack",
+        "target": "bonus_attack_target",
+        "scope": "single_target",
+        "order": "bonus attack components",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["unit_attack"]},
+        "parameters": {"additional_damage_owner_max_hp_ratio": 0.15}
+      }
     },
     {
       "id": "full_plate_cum_armor",
       "components": ["coat", "notebook"],
       "name": "Full-plate cum-armor",
+      "kind": "combined",
       "stats": {"hp": 200, "hp_regen_per_sec": 6},
-      "effect_description": "+200 HP, +6 HP regeneracji/s, dodatkowo odzyskuje 2% maksymalnego HP/s."
+      "effect_description": "+200 HP, +6 HP regeneracji/s, dodatkowo odzyskuje 2% maksymalnego HP/s.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "periodic_heal",
+        "description": "+200 HP, +6 HP regeneracji/s, dodatkowo odzyskuje 2% maksymalnego HP/s.",
+        "trigger": "periodic_timer",
+        "target": "owner",
+        "scope": "self",
+        "order": "heal/mana/resource changes",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["heal"]},
+        "parameters": {"interval_seconds": 1, "heal_owner_max_hp_ratio_per_second": 0.02}
+      }
     },
     {
       "id": "skruszony_zab",
       "components": ["safe", "safe"],
       "name": "Skruszony ząb",
+      "kind": "combined",
       "stats": {"defense": 30},
-      "effect_description": "+30 obrony, bezpośrednio atakujący otrzymuje obrażenia równe 50% aktualnej obrony właściciela."
+      "effect_description": "+30 obrony, bezpośrednio atakujący otrzymuje obrażenia równe 50% aktualnej obrony właściciela.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "reflect",
+        "description": "+30 obrony, bezpośrednio atakujący otrzymuje obrażenia równe 50% aktualnej obrony właściciela.",
+        "trigger": "on_direct_hit_received",
+        "target": "direct_attacker",
+        "scope": "single_target",
+        "order": "reflect/redirect/secondary damage",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["unit_attack"]},
+        "parameters": {"damage_owner_defense_ratio": 0.5}
+      }
     },
     {
       "id": "zestaw_do_makijazu_po_edycie",
       "components": ["safe", "socks"],
       "name": "Zestaw do makijażu po Edycie",
+      "kind": "combined",
       "stats": {"defense": 15, "attack_speed": 0.15},
-      "effect_description": "+15 obrony, +0,15 szybkości ataku. Przy ataku właściciel zyskuje +1 ataku, +0,10 szybkości ataku i +1 obrony; maksymalnie 10 stacków."
+      "effect_description": "+15 obrony, +0,15 szybkości ataku. Przy ataku właściciel zyskuje +1 ataku, +0,10 szybkości ataku i +1 obrony; maksymalnie 10 stacków.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "per_attack_stack",
+        "description": "+15 obrony, +0,15 szybkości ataku. Przy ataku właściciel zyskuje +1 ataku, +0,10 szybkości ataku i +1 obrony; maksymalnie 10 stacków.",
+        "trigger": "on_attack",
+        "target": "owner",
+        "scope": "self",
+        "order": "stat/shield application",
+        "duration": null,
+        "stacking": {"mode": "additive", "max_stacks": 10},
+        "cap": 10,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["stat_buff"]},
+        "parameters": {"per_attack": {"attack": 1, "attack_speed": 0.1, "defense": 1}}
+      }
     },
     {
       "id": "fap_folder",
       "components": ["safe", "notebook"],
       "name": "Fap-folder",
+      "kind": "combined",
       "stats": {"defense": 18, "hp_regen_per_sec": 4},
-      "effect_description": "+18 obrony, +4 HP regeneracji/s. Po otrzymaniu bezpośredniego trafienia właściciel zyskuje +0,2 HP regeneracji/s i +0,5 obrony; maksymalnie 30 stacków."
+      "effect_description": "+18 obrony, +4 HP regeneracji/s. Po otrzymaniu bezpośredniego trafienia właściciel zyskuje +0,2 HP regeneracji/s i +0,5 obrony; maksymalnie 30 stacków.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "per_hit_received_stack",
+        "description": "+18 obrony, +4 HP regeneracji/s. Po otrzymaniu bezpośredniego trafienia właściciel zyskuje +0,2 HP regeneracji/s i +0,5 obrony; maksymalnie 30 stacków.",
+        "trigger": "on_direct_hit_received",
+        "target": "owner",
+        "scope": "self",
+        "order": "stat/shield application",
+        "duration": null,
+        "stacking": {"mode": "additive", "max_stacks": 30},
+        "cap": 30,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["stat_buff"]},
+        "parameters": {"per_hit_received": {"hp_regen_per_sec": 0.2, "defense": 0.5}}
+      }
     },
     {
       "id": "stopki_rozmiar_44",
       "components": ["socks", "socks"],
       "name": "Stópki rozmiar 44",
+      "kind": "combined",
       "stats": {"attack_speed": 0.35},
-      "effect_description": "+0,35 szybkości ataku, bonusowy atak trafia do 5 dodatkowych żyjących wrogów."
+      "effect_description": "+0,35 szybkości ataku, bonusowy atak trafia do 5 dodatkowych żyjących wrogów.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "multi_target_bonus_attack",
+        "description": "+0,35 szybkości ataku, bonusowy atak trafia do 5 dodatkowych żyjących wrogów.",
+        "trigger": "on_bonus_attack",
+        "target": "random_living_enemies",
+        "scope": "up_to_5_additional_targets",
+        "order": "bonus attack components",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "combat_seed", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["unit_attack"]},
+        "parameters": {"additional_target_count": 5}
+      }
     },
     {
       "id": "idealny_traf",
       "components": ["socks", "notebook"],
       "name": "Idealny traf",
+      "kind": "combined",
       "stats": {"attack_speed": 0.18, "hp_regen_per_sec": 3},
-      "effect_description": "+0,18 szybkości ataku, +3 HP regeneracji/s, każdy zwykły atak zadaje dodatkowe obrażenia równe aktualnej regeneracji HP właściciela."
+      "effect_description": "+0,18 szybkości ataku, +3 HP regeneracji/s, każdy zwykły atak zadaje dodatkowe obrażenia równe aktualnej regeneracji HP właściciela.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "per_attack_damage",
+        "description": "+0,18 szybkości ataku, +3 HP regeneracji/s, każdy zwykły atak zadaje dodatkowe obrażenia równe aktualnej regeneracji HP właściciela.",
+        "trigger": "on_ordinary_attack",
+        "target": "attack_target",
+        "scope": "single_target",
+        "order": "on-hit debuff and extra damage",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "none", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["unit_attack"]},
+        "parameters": {"additional_damage_owner_hp_regen_per_sec_multiplier": 1}
+      }
     },
     {
       "id": "encyklopedia_seksu",
       "components": ["notebook", "notebook"],
       "name": "Encyklopedia seksu",
+      "kind": "combined",
       "stats": {"hp_regen_per_sec": 12},
-      "effect_description": "+12 HP regeneracji/s. Regeneracja HP właściciela jest również przyznawana dwóm losowym sojusznikom; po śmierci wybranego sojusznika wybierany jest zastępca."
+      "effect_description": "+12 HP regeneracji/s. Regeneracja HP właściciela jest również przyznawana dwóm losowym sojusznikom; po śmierci wybranego sojusznika wybierany jest zastępca.",
+      "content_version": "wft139-approved-2026-09-10",
+      "effect": {
+        "family": "shared_regen",
+        "description": "+12 HP regeneracji/s. Regeneracja HP właściciela jest również przyznawana dwóm losowym sojusznikom; po śmierci wybranego sojusznika wybierany jest zastępca.",
+        "trigger": "start_of_combat_and_on_ally_death",
+        "target": "random_living_allies",
+        "scope": "two_allies_with_replacement",
+        "order": "stat/shield application",
+        "duration": null,
+        "stacking": {"mode": "refresh/replace", "max_stacks": 1},
+        "cap": null,
+        "reset_between_fights": true,
+        "rng": {"mode": "combat_seed", "seed": "wft139-approved-2026-09-10"},
+        "replay": {"mode": "canonical_event", "event_types": ["stat_buff", "unit_died", "effect_applied"]},
+        "parameters": {"ally_count": 2, "replace_dead_assignment": true}
+      }
     }
   ],
   "interpretation_rules": [

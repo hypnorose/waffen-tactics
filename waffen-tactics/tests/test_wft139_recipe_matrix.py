@@ -1,7 +1,7 @@
 """Seeded tests for the author-approved WFT-139 content matrix.
 
-This file validates the approved recipe content without promoting it to the
-active runtime. Runtime effect fields remain owned by WFT-140.
+This file validates the approved recipe content and its accepted runtime
+contract without promoting it to the active runtime.
 """
 
 from __future__ import annotations
@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 from itertools import combinations_with_replacement
 from pathlib import Path
+
+from waffen_tactics.services.item_contract import validate_item_matrix
 
 
 MATRIX_PATH = Path(__file__).resolve().parents[1] / "item_recipe_matrix_wft139.json"
@@ -32,7 +34,7 @@ def test_wft139_matrix_has_six_bases_and_all_21_unordered_pairs():
     recipe_map = _recipe_map(matrix)
 
     assert matrix["matrix_id"] == "WFT-139"
-    assert matrix["status"] == "approved-content-contract-pending"
+    assert matrix["status"] == "approved-runtime-contract"
     assert len(base_ids) == 6
     assert len(set(base_ids)) == 6
     assert len(matrix["recipes"]) == 21
@@ -177,3 +179,27 @@ def test_wft139_recipe_lookup_is_symmetric_and_seed_is_explicit():
     for pair, recipe in recipe_map.items():
         assert recipe_map[tuple(sorted(reversed(pair)))]["id"] == recipe["id"]
         assert recipe["components"]
+
+
+def test_wft139_matrix_satisfies_the_accepted_runtime_contract():
+    matrix = _load_matrix()
+
+    validate_item_matrix(matrix["base_items"] + matrix["recipes"])
+
+
+def test_wft139_runtime_contract_preserves_explicit_caps_and_reset_rules():
+    matrix = _load_matrix()
+    recipes = {recipe["id"]: recipe for recipe in matrix["recipes"]}
+
+    assert recipes["zestaw_do_makijazu_po_edycie"]["effect"]["stacking"] == {
+        "mode": "additive",
+        "max_stacks": 10,
+    }
+    assert recipes["fap_folder"]["effect"]["stacking"] == {
+        "mode": "additive",
+        "max_stacks": 30,
+    }
+    assert all(
+        recipe["effect"]["reset_between_fights"] is True
+        for recipe in matrix["recipes"]
+    )

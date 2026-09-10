@@ -1,14 +1,15 @@
 # WFT-139 — macierz 21 receptur itemów
 
-Status: **zaakceptowana macierz contentu; implementacja runtime i balans pozostają osobnymi zadaniami**<br>
+Status: **zaakceptowany content i jawny kontrakt runtime; aktywacja runtime i balans pozostają osobnymi zadaniami**<br>
 Źródło: Plane, WFT-139, komentarz `58175dd5-e14e-49f5-8ffe-359fa02bca56`, 2026-09-10<br>
 Zakres: 6 bazowych itemów, 15 par różnych itemów oraz 6 kombinacji `A + A`.
 
 Machine-readable copy: [`waffen-tactics/item_recipe_matrix_wft139.json`](../waffen-tactics/item_recipe_matrix_wft139.json).
 
 To jest trwała kopia zaakceptowanej tabeli zapisanej w Plane. Jest źródłem prawdy dla
-receptur, ale nie jest jeszcze aktywnym datasetem runtime. Wcześniejsze AI-generated
-propozycje zostały zastąpione przez ten input autora.
+receptur, a machine-readable copy zawiera również zaakceptowane pola kontraktu
+runtime z WFT-140, ale nie jest jeszcze aktywnym datasetem runtime. Wcześniejsze
+AI-generated propozycje zostały zastąpione przez ten input autora.
 
 ## Bazowe itemy
 
@@ -60,7 +61,7 @@ propozycje zostały zastąpione przez ten input autora.
 
 ## Następny krok
 
-WFT-139 może być oznaczone jako zakończone po stronie decyzji/contentu. Następne kroki to
-kontrakt runtime WFT-140, implementacja jednego źródła danych oraz auto-combine/persistence
+WFT-139 i kontrakt runtime WFT-140 są zamknięte po stronie decyzji/contentu i prototypowej
+semantyki. Następne kroki to implementacja jednego źródła danych oraz auto-combine/persistence
 zgodnie z zależnościami zapisanymi w Plane. Osobny pass balansu nadal jest wymagany przed
 traktowaniem liczb jako finalnych. Legacy item data pozostaje bez zmian.

@@ -13,13 +13,13 @@ source of truth for issue state and author decisions.
 | Recipe content | WFT-139, Plane comment `58175dd5-e14e-49f5-8ffe-359fa02bca56` | **Approved**: 6 bases, 21 recipes, including 6 A+A pairs |
 | Human-readable matrix | [`ITEM_RECIPE_MATRIX_WFT139.md`](ITEM_RECIPE_MATRIX_WFT139.md) | Approved content copy |
 | Structured content copy | [`waffen-tactics/item_recipe_matrix_wft139.json`](../waffen-tactics/item_recipe_matrix_wft139.json) | Approved content; not loaded by runtime |
-| Runtime effect contract | WFT-140 | `Todo + Needs User`; explicit fields still require closure |
-| Seeded content checks | WFT-149 | `In Progress`; 4 tests cover the approved 6+21 content matrix |
+| Runtime effect contract | WFT-140, Plane comment `c7b4c2eb-9cc2-49a7-9c13-19b7a7ffda3e` | **Done**: deterministic order, refresh/replace default, explicit caps, reset, RNG and replay rules |
+| Seeded content/contract checks | WFT-149 | `In Progress`; 6 tests cover the approved 6+21 matrix and accepted runtime contract |
 | Canonical runtime source | WFT-141 | Backlog; owns later backend/frontend source unification |
 
 WFT-139 approval replaces the earlier AI-generated recipe proposal as the content
-source. It does not by itself activate the records, finalize balance, or define
-unstated runtime semantics.
+source. WFT-140 now supplies the accepted prototype runtime semantics. Neither
+approval activates the records in the deployed runtime or finalizes balance.
 
 ## Planned canonical pipeline
 
@@ -34,8 +34,8 @@ unstated runtime semantics.
 | 7. Presentation | WFT-146 | Catalog, tooltips, equipped items and player-facing effect details |
 | 8. Persistence | WFT-148 | Validate legal item IDs and separate persistent loadout from per-fight state |
 
-The order above is the intended handoff sequence. Runtime work must not bypass the
-contract and canonical-source gates.
+The order above is the intended handoff sequence. The WFT-140 contract gate is
+closed; runtime work still must pass through WFT-141's canonical-source gate.
 
 ## Legacy runtime boundary
 
@@ -65,9 +65,9 @@ effect prose; the final runtime contract must make every behavior explicit.
 
 ## Verification boundary
 
-- `waffen-tactics/tests/test_wft139_recipe_matrix.py` verifies the approved content
-  matrix: 6 bases, all 21 unordered pairs, A+A, symmetric lookup, and exact names,
-  stats and effect descriptions.
+- `waffen-tactics/tests/test_wft139_recipe_matrix.py` verifies the approved matrix
+  and accepted contract: 6 bases, all 21 unordered pairs, A+A, symmetric lookup,
+  exact names/stats/effect descriptions, explicit caps and per-fight reset.
 - The shared-core gate after this documentation/data slice is **568 passed, 25
   skipped, 22 subtests passed**.
 - These automated checks do not prove live runtime, frontend presentation, SSE or
@@ -78,5 +78,5 @@ effect prose; the final runtime contract must make every behavior explicit.
 
 - Do not edit legacy `items.py` or frontend item data as part of documentation work.
 - Do not invent missing trigger/target/scope/order/stacking/RNG/replay contracts.
-- Do not treat the structured JSON copy as active production data before WFT-140 and
-  WFT-141 are complete.
+- Do not treat the structured JSON copy as active production data before WFT-141 is
+  complete.

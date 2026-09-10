@@ -493,7 +493,7 @@ Traity (synergies) aktywują się gdy masz określoną liczbę jednostek danej f
 - **3★ carry** z dobrymi synergami
 - **Tier 3-4 traits** (5-7 jednostek)
 - **Pozycjonowanie** (obecnie auto)
-- **Itemizacja**: legacy runtime istnieje; zaakceptowana macierz Setu 2 (WFT-139) jest udokumentowana, a migracja do kanonicznego runtime pozostaje w WFT-140/WFT-141+
+- **Itemizacja**: legacy runtime istnieje; zaakceptowana macierz Setu 2 (WFT-139) i kontrakt runtime (WFT-140) są udokumentowane, a migracja do kanonicznego runtime pozostaje w WFT-141+
 
 ---
 
