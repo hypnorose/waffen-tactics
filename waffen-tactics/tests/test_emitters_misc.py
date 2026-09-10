@@ -582,6 +582,54 @@ def test_emit_effect_applied_rolls_back_replacement_when_final_write_is_ignored(
     assert events == []
 
 
+@pytest.mark.parametrize('invalid_id', [None, '', '   ', 123, False, []])
+def test_emit_effect_applied_rejects_invalid_supplied_identity_before_mutation(invalid_id):
+    u = DummyUnit()
+    events = []
+
+    with pytest.raises(ValueError, match='effect_applied requires a non-empty string effect_id'):
+        emit_effect_applied(
+            lambda event_type, payload: events.append((event_type, payload)),
+            u,
+            {'id': invalid_id, 'type': 'buff'},
+        )
+
+    assert u.effects == []
+    assert events == []
+
+
+def test_emit_effect_applied_generates_and_reuses_identity_when_id_is_omitted():
+    u = DummyUnit()
+    events = []
+
+    payload = emit_effect_applied(
+        lambda event_type, event_payload: events.append((event_type, event_payload)),
+        u,
+        {'type': 'buff'},
+    )
+
+    assert isinstance(payload['effect_id'], str)
+    assert payload['effect_id'].strip()
+    assert u.effects == [payload['effect']]
+    assert payload['effect']['id'] == payload['effect_id']
+    assert events == [('effect_applied', payload)]
+
+
+def test_emit_effect_applied_preserves_valid_supplied_identity_in_state_and_payload():
+    u = DummyUnit()
+    events = []
+
+    payload = emit_effect_applied(
+        lambda event_type, event_payload: events.append((event_type, event_payload)),
+        u,
+        {'id': 'valid-effect', 'type': 'buff'},
+    )
+
+    assert payload['effect_id'] == 'valid-effect'
+    assert u.effects == [payload['effect']]
+    assert events == [('effect_applied', payload)]
+
+
 def test_emit_shield_applied_mutation_and_event():
     u = DummyUnit(hp=50, shield=2)
     calls = []

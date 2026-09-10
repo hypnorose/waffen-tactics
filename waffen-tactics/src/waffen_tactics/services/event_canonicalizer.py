@@ -38,7 +38,10 @@ def emit_effect_applied(
 
     ts = timestamp if timestamp is not None else _now_ts()
     canonical_effect = dict(effect)
-    effect_id = canonical_effect.get('id') or str(uuid.uuid4())
+    if 'id' in canonical_effect:
+        effect_id = _require_non_empty_effect_id(canonical_effect['id'], 'effect_applied')
+    else:
+        effect_id = str(uuid.uuid4())
     canonical_effect['id'] = effect_id
     if source is not None:
         canonical_effect.setdefault('source', getattr(source, 'id', None))

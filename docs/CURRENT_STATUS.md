@@ -8,7 +8,7 @@ Linear is the source of truth for issue status, ownership, dependencies, milesto
 
 ## Verified automated evidence
 
-- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q 'waffen-tactics\\tests'` — **410 passed, 25 skipped, 22 subtests passed**, with no warnings.
+- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q 'waffen-tactics\\tests'` — **418 passed, 25 skipped, 22 subtests passed**, with no warnings.
 - Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **387 passed, 8 skipped, 5 subtests passed**, with no warnings.
 - Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **162 passed across 8 files**.
 - Frontend production build: `npm run build` — pass. Vite reports only stale Browserslist data; the build succeeds.
@@ -52,6 +52,8 @@ DEF-266 now routes canonical tiered `on_enemy_death` and `on_ally_death` records
 DEF-267 now routes canonical `per_second`, `per_round`, and `on_ally_hp_below` records through the shared simulator lifecycle. Periodic stat rewards use non-persistent canonical emissions, round HP rewards preserve round scaling and HP mirrors, and threshold healing requires a real threshold crossing with trigger state. Deterministic tests cover canonical Srebrna Gwardia, Starokurwy, and Wygnaniec scenarios; no canonical values or legacy content changed.
 
 DEF-199 now applies the approved post-combat economy contract through one shared helper: fixed 5g on every fifth completed round, exactly 3 item parts at round 3, and one base item part at other fifth-round milestones with +1/+2/+3/... extra parts at rounds 10/20/30/.... Parts are canonical `BASE_ITEMS` IDs persisted in `PlayerState.item_inventory`; active and retained backend paths expose them in `gold_income`. The 2026-09-10 seeded balance audit was rerun with the prior 500/5/10/5/10 parameters and found 0 team or pairwise errors with determinism passing. No unit, trait, legacy archive, or approved replay fixture content changed.
+
+DEF-278 now rejects explicitly supplied missing, blank, or non-string effect identities at the canonical application boundary before recipient mutation or event delivery, while omitted IDs still receive generated UUIDs. Focused and full shared-core/backend verification is green; no content, fixture, legacy-archive, or deployment state changed.
 
 ## Audits and artifacts
 
@@ -117,7 +119,7 @@ DEF-199 now applies the approved post-combat economy contract through one shared
 - `DEF-276` is `Done`: frontend replay now uses one typed non-empty-string `effect_id` contract across stateful effect application, ticking, stun, and expiration branches; invalid outer/embedded identities fail before mutation and stop the replay boundary instead of advancing the playhead. Frontend typecheck, lint, 162 Vitest tests, and production build pass. No content, approved local replay fixture, legacy archive, or deployment state was changed.
 - `DEF-277` is `Done`: the frontend real replay suite no longer relies on a vacuous fresh-dump effect-ID assertion; it now replays deterministic application, tick, and expiration events for stat buffs, shields, generic effects, stuns, and DoT identities, while real-dump initialization failures are hard errors. Focused replay tests, frontend typecheck, lint, 162 Vitest tests, and production build pass. The approved DEF-192 fixture remains unchanged.
 - `DEF-235` is `Backlog + Needs User`: `skip_per_round_buffs` currently gates per-second processing while the start-of-combat per-round block remains unconditional. No runtime change was made; the intended round/trait timing contract must be chosen before splitting or renaming the controls.
-- `DEF-278` is `Backlog`: canonical effect application still accepts a truthy non-string supplied identity before downstream strict consumers reject it; implementation is independently testable and is not a DEF-199 blocker.
+- `DEF-278` is `Done`: canonical `emit_effect_applied` now distinguishes an omitted ID (generated UUID) from an explicitly supplied ID (validated non-empty string), failing closed before state mutation or event delivery for malformed identities. Focused/full core and backend verification passed; no content, fixture, legacy-archive, or deployment state changed.
 - `DEF-269` is `Backlog + Needs User`: the shared stat-buff runtime has duplicated recipient/application paths and silently maps unsupported targets to `self`; canonicalization awaits the explicit unknown-target contract decision recorded in the issue.
 - New-set authoring and contract work remains author-led (`Needs User`/`Manual-only`); do not promote draft content into active datasets without approval.
 
