@@ -29,6 +29,85 @@ def _reconstructor(*units):
     return reconstructor
 
 
+INVALID_EFFECT_IDS = [None, "", "   ", 123]
+
+
+@pytest.mark.parametrize("effect_id", INVALID_EFFECT_IDS)
+def test_snapshot_rejects_non_string_effect_ids(effect_id):
+    with pytest.raises(ValueError, match="non-empty string effect_id"):
+        _reconstructor(_unit(effects=[{"id": effect_id, "type": "stun"}]))
+
+
+@pytest.mark.parametrize("effect_id", INVALID_EFFECT_IDS)
+@pytest.mark.parametrize(
+    ("event_type", "payload", "initial_effects"),
+    [
+        (
+            "shield_applied",
+            {"amount": 5, "post_shield": 5},
+            [],
+        ),
+        (
+            "damage_over_time_applied",
+            {"damage": 5, "expires_at": 2.0},
+            [],
+        ),
+        (
+            "effect_applied",
+            {"effect": {"id": "embedded-valid", "type": "mana_lock"}},
+            [],
+        ),
+        (
+            "stat_buff",
+            {"stat": "attack", "value": 2, "applied_delta": 2},
+            [],
+        ),
+        (
+            "unit_stunned",
+            {"duration": 1.0, "timestamp": 0.0},
+            [],
+        ),
+        (
+            "damage_over_time_expired",
+            {"post_hp": 100},
+            [{"id": "existing-dot", "type": "damage_over_time"}],
+        ),
+        (
+            "effect_expired",
+            {"effect_type": "buff", "stat": "attack", "post_hp": 100, "post_attack": 10},
+            [{"id": "existing-effect", "type": "buff", "stat": "attack"}],
+        ),
+    ],
+)
+def test_replay_rejects_invalid_effect_ids_before_mutation(event_type, payload, initial_effects, effect_id):
+    reconstructor = _reconstructor(_unit(effects=initial_effects, attack=10))
+    before = dict(reconstructor.reconstructed_player_units["u1"])
+    before["effects"] = list(before["effects"])
+
+    with pytest.raises(ValueError, match="non-empty string effect_id"):
+        reconstructor.process_event(
+            event_type,
+            {"seq": 40, "unit_id": "u1", "effect_id": effect_id, **payload},
+        )
+
+    assert reconstructor.reconstructed_player_units["u1"] == before
+
+
+@pytest.mark.parametrize("effect_id", INVALID_EFFECT_IDS)
+def test_effect_applied_rejects_invalid_embedded_effect_id(effect_id):
+    reconstructor = _reconstructor()
+
+    with pytest.raises(ValueError, match="non-empty string effect_id"):
+        reconstructor.process_event("effect_applied", {
+            "seq": 41,
+            "unit_id": "u1",
+            "effect_id": "outer-effect",
+            "effect": {"id": effect_id, "type": "mana_lock"},
+        })
+
+    assert reconstructor.reconstructed_player_units["u1"]["effects"] == []
+
+
 def test_snapshot_mismatch_fails_instead_of_reconciling_from_snapshot():
     reconstructor = _reconstructor()
 

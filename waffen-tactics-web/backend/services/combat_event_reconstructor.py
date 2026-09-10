@@ -28,6 +28,13 @@ class CombatEventReconstructor:
         self.reconstructed_opponent_units: Dict[str, Dict[str, Any]] = {}
         self.seed = None
 
+    @staticmethod
+    def _require_effect_id(effect_id: Any, context: str) -> str:
+        """Require the canonical non-empty string effect identity."""
+        if not isinstance(effect_id, str) or not effect_id.strip():
+            raise ValueError(f"{context} requires a non-empty string effect_id")
+        return effect_id
+
     def initialize_from_snapshot(self, snapshot_data: Dict[str, Any]):
         """Initialize reconstruction from a state_snapshot event."""
         def normalize_unit(u):
@@ -36,14 +43,10 @@ class CombatEventReconstructor:
             uu.setdefault('base_stats', {})
             # Ensure canonical fields exist
             for eff in uu['effects']:
-                if not eff.get('id'):
-                    raise ValueError(
-                        f"Snapshot unit {u.get('id')} contains an effect without effect_id"
-                    )
-                # ensure numeric applied fields exist (may be None)
-                if eff.get('type') in ('buff', 'debuff'):
-                    if 'applied_delta' not in eff:
-                        eff['applied_delta'] = eff.get('applied_delta', None)
+                CombatEventReconstructor._require_effect_id(
+                    eff.get('id'),
+                    f"Snapshot unit {u.get('id')} effect",
+                )
                 if eff.get('type') == 'shield':
                     if 'applied_amount' not in eff:
                         eff['applied_amount'] = eff.get('amount', None)
@@ -254,8 +257,10 @@ class CombatEventReconstructor:
             raise ValueError(f"shield_applied event missing unit_id: {event_data}")
         if amount is None:
             raise ValueError(f"shield_applied event missing amount: {event_data}")
-        if not event_data.get('effect_id'):
-            raise ValueError(f"shield_applied event missing effect_id: {event_data}")
+        effect_id = self._require_effect_id(
+            event_data.get('effect_id'),
+            f"shield_applied event seq={event_data.get('seq')}",
+        )
         unit_dict = self._get_unit_dict(unit_id)
         if unit_dict is None:
             raise ValueError(f"shield_applied references unknown unit_id={unit_id}")
@@ -266,7 +271,7 @@ class CombatEventReconstructor:
             )
         unit_dict['shield'] = event_data['post_shield']
         # Add shield effect
-        eid = event_data['effect_id']
+        eid = effect_id
         effect = {
             'id': eid,
             'type': 'shield',
@@ -322,8 +327,10 @@ class CombatEventReconstructor:
         unit_id = event_data.get('unit_id')
         if not unit_id:
             raise ValueError(f"DoT application missing unit_id: {event_data}")
-        if not event_data.get('effect_id'):
-            raise ValueError(f"DoT application missing effect_id: {event_data}")
+        effect_id = self._require_effect_id(
+            event_data.get('effect_id'),
+            f"damage_over_time_applied event seq={event_data.get('seq')}",
+        )
         damage = event_data.get('damage')
         if not isinstance(damage, (int, float)) or isinstance(damage, bool) or not math.isfinite(damage) or damage <= 0:
             raise ValueError(f"DoT application missing canonical damage: {event_data}")
@@ -337,7 +344,7 @@ class CombatEventReconstructor:
             )
         # Build canonical effect object matching snapshot shape
         eff = {
-            'id': event_data.get('effect_id'),
+            'id': effect_id,
             'type': 'damage_over_time',
             'damage': damage,
             'damage_type': event_data.get('damage_type'),
@@ -358,23 +365,28 @@ class CombatEventReconstructor:
     def _process_effect_applied_event(self, event_data: Dict[str, Any]):
         """Install a complete non-specialized effect from its canonical event."""
         unit_id = event_data.get('unit_id')
-        effect_id = event_data.get('effect_id')
+        effect_id = self._require_effect_id(
+            event_data.get('effect_id'),
+            f"effect_applied event seq={event_data.get('seq')}",
+        )
         effect_data = event_data.get('effect')
         if not unit_id:
             raise ValueError(f"effect_applied event missing unit_id: {event_data}")
-        if not effect_id:
-            raise ValueError(f"effect_applied event missing effect_id: {event_data}")
         if not isinstance(effect_data, dict):
             raise ValueError(f"effect_applied event missing effect object: {event_data}")
         if not isinstance(effect_data.get('type'), str) or not effect_data.get('type').strip():
             raise ValueError(f"effect_applied event missing effect object type: {event_data}")
+        effect_object_id = self._require_effect_id(
+            effect_data.get('id'),
+            f"effect_applied event seq={event_data.get('seq')} effect object",
+        )
 
         unit_dict = self._get_unit_dict(unit_id)
         if unit_dict is None:
             raise ValueError(f"effect_applied references unknown unit_id={unit_id}")
 
         effect = dict(effect_data)
-        if effect.get('id') != effect_id:
+        if effect_object_id != effect_id:
             raise ValueError(
                 f"effect_applied effect id mismatch at seq={event_data.get('seq')}: "
                 f"payload={effect_id}, effect={effect.get('id')}"
@@ -396,9 +408,6 @@ class CombatEventReconstructor:
         Requires authoritative 'applied_delta' from backend to properly apply stat changes.
         If applied_delta is missing, the event cannot be processed reliably.
 
-        TODO: Once backend provides applied_delta for all stat_buff events,
-        DELETE any fallback calculation logic that tries to compute deltas.
-
         The reconstructor should NOT compute percentage buffs or guess random stats.
         This is GAME LOGIC that belongs in the backend emitter.
         """
@@ -408,7 +417,10 @@ class CombatEventReconstructor:
         amount = event_data.get('amount', value)
         value_type = event_data.get('value_type', 'flat')
         duration = event_data.get('duration')
-        effect_id = event_data.get('effect_id')
+        effect_id = self._require_effect_id(
+            event_data.get('effect_id'),
+            f"stat_buff event seq={event_data.get('seq')}",
+        )
 
         if not unit_id:
             raise ValueError(f"stat_buff event missing unit_id: {event_data}")
@@ -427,8 +439,6 @@ class CombatEventReconstructor:
                 f"stat_buff event lacks a concrete stat at seq={event_data.get('seq')}: {event_data}"
             )
 
-        if not effect_id:
-            raise ValueError(f"stat_buff event missing effect_id: {event_data}")
         # Effect identity is part of the canonical event contract.
         eid = effect_id
 
@@ -488,14 +498,16 @@ class CombatEventReconstructor:
         timestamp = event_data.get('timestamp', 0)
         if not unit_id:
             raise ValueError(f"unit_stunned event missing unit_id: {event_data}")
-        if not event_data.get('effect_id'):
-            raise ValueError(f"unit_stunned event missing effect_id: {event_data}")
+        effect_id = self._require_effect_id(
+            event_data.get('effect_id'),
+            f"unit_stunned event seq={event_data.get('seq')}",
+        )
         unit_dict = self._get_unit_dict(unit_id)
         if not unit_dict:
             raise ValueError(f"unit_stunned references unknown unit_id={unit_id}")
         # Create a canonical stun effect entry similar to emitter shape
         eff = {
-            'id': event_data['effect_id'],
+            'id': effect_id,
             'type': 'stun',
             'duration': duration,
             'source': source,
@@ -507,7 +519,10 @@ class CombatEventReconstructor:
     def _process_dot_expired_event(self, event_data: Dict[str, Any]):
         """Process damage_over_time_expired event: remove canonical DoT effect."""
         unit_id = event_data.get('unit_id')
-        effect_id = event_data.get('effect_id')
+        effect_id = self._require_effect_id(
+            event_data.get('effect_id'),
+            f"damage_over_time_expired event seq={event_data.get('seq')}",
+        )
         if not unit_id:
             raise ValueError(f"damage_over_time_expired event missing unit_id: {event_data}")
         unit_dict = self._get_unit_dict(unit_id)
@@ -515,8 +530,6 @@ class CombatEventReconstructor:
             raise ValueError(
                 f"damage_over_time_expired references unknown unit_id={unit_id}: {event_data}"
             )
-        if not effect_id:
-            raise ValueError(f"damage_over_time_expired event missing effect_id: {event_data}")
         if 'post_hp' not in event_data or event_data.get('post_hp') is None:
             raise ValueError(
                 f"damage_over_time_expired missing canonical post_hp for "
@@ -540,14 +553,15 @@ class CombatEventReconstructor:
 
     def _process_effect_expired_event(self, event_data: Dict[str, Any]):
         unit_id = event_data.get('unit_id')
-        effect_id = event_data.get('effect_id')
+        effect_id = self._require_effect_id(
+            event_data.get('effect_id'),
+            f"effect_expired event seq={event_data.get('seq')}",
+        )
         if not unit_id:
             raise ValueError(f"effect_expired event missing unit_id: {event_data}")
         unit_dict = self._get_unit_dict(unit_id)
         if unit_dict is None:
             raise ValueError(f"effect_expired references unknown unit_id={unit_id}: {event_data}")
-        if not effect_id:
-            raise ValueError(f"effect_expired event missing effect_id: {event_data}")
         effs = unit_dict.get('effects') or []
         if not any(e.get('id') == effect_id for e in effs):
             raise ValueError(
