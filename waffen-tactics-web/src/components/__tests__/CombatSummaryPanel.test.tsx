@@ -33,6 +33,49 @@ describe('CombatSummaryPanel', () => {
     expect(container.textContent).not.toContain('Tempo')
     expect(container.textContent).not.toContain('bonus attacks')
     expect(container.textContent).not.toContain('x bonus')
+    expect(container.textContent).toContain('Brak zarejestrowanych obrażeń')
+    expect(container.textContent).toContain('Brak danych do porównania')
+  })
+
+  it('explains the attack-damage scope and formats a unique leader', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const summary = createCombatSummary()
+    summary.totalDamageByUnit = {
+      unit_a: { unit_name: 'Unit A', damage: 100 },
+      unit_b: { unit_name: 'Unit B', damage: 50 },
+    }
+
+    act(() => {
+      root = createRoot(container)
+      root.render(<CombatSummaryPanel summary={summary} synergies={{}} />)
+    })
+
+    expect(container.textContent).toContain('Najwięcej obrażeń')
+    expect(container.textContent).toContain('Unit A — 100 obrażeń')
+    expect(container.textContent).toContain('67% obrażeń z ataków w tej walce (łącznie 150 obrażeń)')
+    expect(container.textContent).not.toContain('z calosci')
+    expect(container.textContent).not.toContain('dmg')
+  })
+
+  it('shows a tie instead of choosing one damage leader arbitrarily', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const summary = createCombatSummary()
+    summary.totalDamageByUnit = {
+      unit_a: { unit_name: 'Unit A', damage: 100 },
+      unit_b: { unit_name: 'Unit B', damage: 100 },
+    }
+
+    act(() => {
+      root = createRoot(container)
+      root.render(<CombatSummaryPanel summary={summary} synergies={{}} />)
+    })
+
+    expect(container.textContent).toContain('Remis obrażeń')
+    expect(container.textContent).toContain('Unit A i Unit B — 100 obrażeń')
+    expect(container.textContent).toContain('50% obrażeń z ataków w tej walce (łącznie 200 obrażeń)')
+    expect(container.textContent).not.toContain('Najwięcej obrażeń')
   })
 
   it('shows a readable first-death time without exposing the event sequence', () => {

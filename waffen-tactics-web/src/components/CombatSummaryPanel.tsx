@@ -26,6 +26,11 @@ function resultTone(result?: string | null) {
   return { color: '#e2e8f0', border: 'rgba(148, 163, 184, 0.2)', background: 'rgba(30, 41, 59, 0.4)' }
 }
 
+function formatDamageLeaderNames(names: string[]): string {
+  if (names.length <= 2) return names.join(' i ')
+  return `${names.slice(0, -1).join(', ')} i ${names[names.length - 1]}`
+}
+
 function StatCard({
   icon,
   label,
@@ -77,10 +82,16 @@ function StatCard({
 }
 
 export default function CombatSummaryPanel({ summary, synergies }: Props) {
-  const topDamage = summary ? getTopDamageDealer(summary) : null
   const totalDamage = summary
     ? Object.values(summary.totalDamageByUnit).reduce((acc, entry) => acc + (entry.damage || 0), 0)
     : 0
+  const topDamage = summary && totalDamage > 0 ? getTopDamageDealer(summary) : null
+  const tiedTopDamageNames = summary && topDamage
+    ? Object.values(summary.totalDamageByUnit)
+      .filter((entry) => entry.damage === topDamage.damage)
+      .map((entry) => entry.unit_name)
+    : []
+  const hasDamageTie = tiedTopDamageNames.length > 1
   const topDamageShare = summary && topDamage && totalDamage > 0
     ? Math.round((topDamage.damage || 0) / totalDamage * 100)
     : 0
@@ -142,9 +153,13 @@ export default function CombatSummaryPanel({ summary, synergies }: Props) {
         />
         <StatCard
           icon={<Swords size={14} />}
-          label="Top damage"
-          value={topDamage ? `${topDamage.unit_name} - ${Math.round(topDamage.damage || 0)} dmg` : 'brak danych'}
-          subtitle={topDamage && totalDamage > 0 ? `${topDamageShare}% z calosci (${Math.round(totalDamage)} dmg)` : undefined}
+          label={hasDamageTie ? 'Remis obrażeń' : 'Najwięcej obrażeń'}
+          value={topDamage
+            ? `${hasDamageTie ? formatDamageLeaderNames(tiedTopDamageNames) : topDamage.unit_name} — ${Math.round(topDamage.damage || 0)} obrażeń`
+            : 'Brak zarejestrowanych obrażeń'}
+          subtitle={topDamage && totalDamage > 0
+            ? `${topDamageShare}% obrażeń z ataków w tej walce (łącznie ${Math.round(totalDamage)} obrażeń)`
+            : 'Brak danych do porównania'}
           accent="#fca5a5"
         />
         <StatCard
