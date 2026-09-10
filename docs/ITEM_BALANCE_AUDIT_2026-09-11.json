@@ -1,0 +1,575 @@
+{
+  "report": "WFT-150 item balance audit",
+  "generated_date": "2026-09-11",
+  "content_source": "WFT-139",
+  "content_version": "wft139-approved-2026-09-10",
+  "content_seed": "wft139-approved-2026-09-10",
+  "contract": {
+    "status": "PASS",
+    "errors": [],
+    "base_count": 6,
+    "recipe_count": 21,
+    "expected_pairs": 21,
+    "a_plus_a_count": 6
+  },
+  "simulation": {
+    "status": "insufficient-data",
+    "reason": "Dynamic item effects are not yet executed by the canonical combat runtime; stat-only simulations would misrepresent effect power.",
+    "pairwise": {
+      "status": "not-run",
+      "runs": 0,
+      "combat_seeds": [],
+      "configuration": [
+        "without_item",
+        "base_item",
+        "combined_item"
+      ]
+    },
+    "team": {
+      "status": "not-run",
+      "runs": 0,
+      "combat_seeds": [],
+      "team_sizes": [
+        5,
+        10
+      ]
+    },
+    "confidence": null
+  },
+  "outlier_review": {
+    "status": "contract-review-only",
+    "decision_policy": "No automatic nerf/buff; every flagged item requires author decision after runtime measurements.",
+    "flag_counts": {
+      "+30_attack": 1,
+      "+600_hp": 1,
+      "20_mana_per_second": 1,
+      "2pct_max_hp_per_second": 1,
+      "lifesteal": 1,
+      "multi_target": 2,
+      "reflect": 1,
+      "stack_cap_10": 1,
+      "stack_cap_30": 1
+    }
+  },
+  "recipes": [
+    {
+      "item_id": "etf_przyprawowy",
+      "name": "ETF przyprawowy",
+      "components": [
+        "spices",
+        "spices"
+      ],
+      "stats": {
+        "attack": 30
+      },
+      "effect_family": "stat_only",
+      "static_outlier_flags": [
+        "+30_attack"
+      ],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "helena_o_smaku_kurkumy",
+      "name": "Helena o smaku kurkumy",
+      "components": [
+        "spices",
+        "orangeade"
+      ],
+      "stats": {
+        "attack": 10,
+        "mana_regen": 3
+      },
+      "effect_family": "bonus_attack_mana",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "plaszcz_ze_100_bawelny",
+      "name": "Płaszcz ze 100% bawełny",
+      "components": [
+        "spices",
+        "coat"
+      ],
+      "stats": {
+        "hp": 200,
+        "attack": 10
+      },
+      "effect_family": "startowy_shield",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "skrytka_na_oregano",
+      "name": "Skrytka na oregano",
+      "components": [
+        "spices",
+        "safe"
+      ],
+      "stats": {
+        "attack": 12,
+        "defense": 15
+      },
+      "effect_family": "debuff",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "ponetne_stopki",
+      "name": "Ponętne stópki",
+      "components": [
+        "spices",
+        "socks"
+      ],
+      "stats": {
+        "attack": 15,
+        "attack_speed": 0.2
+      },
+      "effect_family": "bonus_attack",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "pikante_slowka",
+      "name": "Pikante słówka",
+      "components": [
+        "spices",
+        "notebook"
+      ],
+      "stats": {
+        "attack": 15,
+        "hp_regen_per_sec": 4,
+        "lifesteal_percent": 10
+      },
+      "effect_family": "lifesteal",
+      "static_outlier_flags": [
+        "lifesteal"
+      ],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "mandarynkowy_sodastream",
+      "name": "Mandarynkowy Sodastream",
+      "components": [
+        "orangeade",
+        "orangeade"
+      ],
+      "stats": {
+        "mana_regen": 12
+      },
+      "effect_family": "bonus_attack_mana",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "bluza_z_bytom",
+      "name": "Bluza z Bytom",
+      "components": [
+        "orangeade",
+        "coat"
+      ],
+      "stats": {
+        "hp": 150,
+        "mana_regen": 4
+      },
+      "effect_family": "periodic_heal",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "kolekcja_syropow",
+      "name": "Kolekcja syropów",
+      "components": [
+        "orangeade",
+        "safe"
+      ],
+      "stats": {
+        "defense": 15,
+        "mana_regen": 3
+      },
+      "effect_family": "threshold",
+      "static_outlier_flags": [
+        "20_mana_per_second"
+      ],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "kremik_owocowy",
+      "name": "Kremik owocowy",
+      "components": [
+        "orangeade",
+        "socks"
+      ],
+      "stats": {
+        "mana_regen": 4,
+        "attack_speed": 0.18
+      },
+      "effect_family": "per_n_attack",
+      "static_outlier_flags": [
+        "multi_target"
+      ],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "telewizor_4k_50_cali",
+      "name": "Telewizor 4K 50 cali",
+      "components": [
+        "orangeade",
+        "notebook"
+      ],
+      "stats": {
+        "mana_regen": 4,
+        "hp_regen_per_sec": 4
+      },
+      "effect_family": "mana_to_heal",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "plaszcz_200_welny",
+      "name": "Płaszcz 200% WEŁNY",
+      "components": [
+        "coat",
+        "coat"
+      ],
+      "stats": {
+        "hp": 600
+      },
+      "effect_family": "stat_only",
+      "static_outlier_flags": [
+        "+600_hp"
+      ],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "forteca_z_ksiazek",
+      "name": "Forteca z książek",
+      "components": [
+        "coat",
+        "safe"
+      ],
+      "stats": {
+        "hp": 200,
+        "defense": 20
+      },
+      "effect_family": "max_hp_damage",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "fartuszek_femboya",
+      "name": "Fartuszek Femboya",
+      "components": [
+        "coat",
+        "socks"
+      ],
+      "stats": {
+        "hp": 150,
+        "attack_speed": 0.15
+      },
+      "effect_family": "bonus_attack",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "full_plate_cum_armor",
+      "name": "Full-plate cum-armor",
+      "components": [
+        "coat",
+        "notebook"
+      ],
+      "stats": {
+        "hp": 200,
+        "hp_regen_per_sec": 6
+      },
+      "effect_family": "periodic_heal",
+      "static_outlier_flags": [
+        "2pct_max_hp_per_second"
+      ],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "skruszony_zab",
+      "name": "Skruszony ząb",
+      "components": [
+        "safe",
+        "safe"
+      ],
+      "stats": {
+        "defense": 30
+      },
+      "effect_family": "reflect",
+      "static_outlier_flags": [
+        "reflect"
+      ],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "zestaw_do_makijazu_po_edycie",
+      "name": "Zestaw do makijażu po Edycie",
+      "components": [
+        "safe",
+        "socks"
+      ],
+      "stats": {
+        "defense": 15,
+        "attack_speed": 0.15
+      },
+      "effect_family": "per_attack_stack",
+      "static_outlier_flags": [
+        "stack_cap_10"
+      ],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "fap_folder",
+      "name": "Fap-folder",
+      "components": [
+        "safe",
+        "notebook"
+      ],
+      "stats": {
+        "defense": 18,
+        "hp_regen_per_sec": 4
+      },
+      "effect_family": "per_hit_received_stack",
+      "static_outlier_flags": [
+        "stack_cap_30"
+      ],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "stopki_rozmiar_44",
+      "name": "Stópki rozmiar 44",
+      "components": [
+        "socks",
+        "socks"
+      ],
+      "stats": {
+        "attack_speed": 0.35
+      },
+      "effect_family": "multi_target_bonus_attack",
+      "static_outlier_flags": [
+        "multi_target"
+      ],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "idealny_traf",
+      "name": "Idealny traf",
+      "components": [
+        "socks",
+        "notebook"
+      ],
+      "stats": {
+        "attack_speed": 0.18,
+        "hp_regen_per_sec": 3
+      },
+      "effect_family": "per_attack_damage",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    },
+    {
+      "item_id": "encyklopedia_seksu",
+      "name": "Encyklopedia seksu",
+      "components": [
+        "notebook",
+        "notebook"
+      ],
+      "stats": {
+        "hp_regen_per_sec": 12
+      },
+      "effect_family": "shared_regen",
+      "static_outlier_flags": [],
+      "stat_power": {
+        "status": "contract-review",
+        "evidence": "explicit WFT-139 stats",
+        "author_decision": "pending"
+      },
+      "effect_power": {
+        "status": "insufficient-data",
+        "evidence": "item combat runtime gates WFT-142..145 are not complete",
+        "author_decision": "pending"
+      }
+    }
+  ]
+}
