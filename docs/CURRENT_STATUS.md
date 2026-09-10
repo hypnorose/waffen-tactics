@@ -6,18 +6,21 @@ Linear project: `Waffen Tactics — Content, Runtime & Production`
 
 Linear is the source of truth for issue status, ownership, dependencies, milestones, and user decisions. This file is a repository handoff snapshot; it does not replace the Linear workflow.
 
-## 2026-09-10 runtime desync follow-up
+## 2026-09-10 release-gate refresh
 
-- Plane `WFT-130` tracks the user-supplied runtime export `desync_logs_1789057936444.json`: at `seq=147`, `opp_0` had UI `buffed_stats.hp_regen_per_sec=0` versus server `6` after `regen_gain`.
-- The fix keeps HP regeneration authoritative in the shared core, transports `post_hp_regen_per_sec`, reconstructs it in the frontend reducer, and prevents action-based callback paths from double-applying the stat. The regression test reproduces the `seq=147` shape and confirms zero desyncs against the matching snapshot.
-- Verified on the local working tree: core `421 passed, 25 skipped, 22 subtests`; backend `390 passed, 8 skipped, 5 subtests`; frontend typecheck, lint, Vitest `165 passed`, and production build pass; `git diff --check` is clean.
-- No deployment was performed. WFT-16 remains open for authenticated Game View/manual runtime evidence, final approved-revision alignment, and rollback evidence.
+- The current release owner is `DEF-164`, which remains `In Review` with `Needs Manual Test`; its 43 structural blockers are `Done`.
+- The current local source-of-truth revision is `8b58ed156dbc9ae4313c4117552db8270c56a343`, aligned with `origin/main`, and the tracked working tree is clean.
+- The canonical local automated gate passed on this revision: core `548 passed, 25 skipped, 22 subtests`; backend `393 passed, 8 skipped, 5 subtests`; frontend lint, typecheck, Vitest `187 passed across 12 files`, and production build pass; `git diff --check` is clean.
+- Read-only public smoke checks passed (`/` and `/api/game/traits` returned HTTP 200), and the VPS reports backend, frontend, and Caddy running. The current VPS HEAD is `39d97f2a8e07607d87b26c856a20659251f387b9`, so the current local revision has not been deployed or revision-aligned.
+- The public browser reaches the Discord login screen, but no authenticated Game View session was available for this validation. No login or credential entry was performed; victory/defeat, live/replay, and 1280x720/1920x1080 evidence remain open.
+
+The older `WFT-130`/`WFT-16` runtime snapshot below is retained as historical evidence from an earlier handoff; current release tracking uses the `DEF-*` issues above.
 
 ## Verified automated evidence
 
-- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q 'waffen-tactics\\tests'` — **421 passed, 25 skipped, 22 subtests passed**, with no warnings.
-- Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **390 passed, 8 skipped, 5 subtests passed**, with no warnings.
-- Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **165 passed across 9 files**.
+- Shared combat/data core: from `waffen-tactics/`, `python -W error -m pytest -q 'waffen-tactics\\tests'` — **548 passed, 25 skipped, 22 subtests passed**, with no warnings.
+- Backend: from `waffen-tactics-web/backend/`, `python -W error -m pytest -q` — **393 passed, 8 skipped, 5 subtests passed**, with no warnings.
+- Frontend: `npm run typecheck` — pass; `npm run lint` — pass; `npm exec -- vitest run` — **187 passed across 12 files**.
 - Frontend production build: `npm run build` — pass. Vite reports only stale Browserslist data; the build succeeds.
 - Operational/release docs tests after the root-owned Caddy discovery fix: `3 passed, 1 skipped`; scoped `git diff --check` is clean. Linux shell syntax was checked on the deployed VPS with `bash -n`.
 - `python -m compileall -q waffen-tactics\\src waffen-tactics\\tests` — pass.
@@ -75,10 +78,10 @@ DEF-279 now makes the legacy CLI demo consume the shared simulator's canonical `
 ## Open gates
 
 - `DEF-164` is `In Review` with `Needs Manual Test`; all 43 current `blockedBy` relations are `Done`, including `DEF-268`. The remaining gate is authenticated Game View/runtime evidence and final release-owner rollback evidence, not an unresolved structural dependency.
-- `DEF-268` is deployed at VPS revision `5c19d549976906cf399be0ca8fac625b70c53aaa`: the shared discovery now also reads root-owned Caddy `/proc` metadata through `sudo -n`, still fail-closed and scoped by exact cwd/config. The first authorized deploy exposed a missing production CORS allowlist in the VPS-only `.env`; it was corrected to the documented public origin with local-development CORS disabled, then the deployment completed successfully. Two consecutive `./start-all.sh` runs each stopped the prior project Caddy, and the final check found exactly one project Caddy owner, one Caddy process, loopback-only backend/frontend listeners, and HTTP 200 from both loopback and public `/api/game/traits`. The tracked VPS tree is clean; unrelated untracked VPS drift remains untouched.
+- Historical `DEF-268` deployment evidence remains recorded: the shared discovery reads root-owned Caddy `/proc` metadata through `sudo -n`, fail-closed and scoped by exact cwd/config; the authorized deployment corrected the documented production CORS allowlist, verified restart idempotency, loopback-only application listeners, and public HTTP 200 responses. The latest read-only VPS check found the tracked tree clean but preserved unrelated untracked drift.
 - `DEF-192` is `Done`: the current local working-tree `waffen-tactics-web/backend/events_test_fresh.json` is the explicitly approved source of truth. Its frozen SHA-256, byte size, event count, sequence range, scenario, and event-type coverage are recorded in `events_test_fresh.provenance.json`; no historical VPS or `HEAD` fixture was restored.
 - Release acceptance still needs authenticated Game View checks at 1280x720 and 1920x1080, live/replay readability evidence, and final approved-revision rollback evidence; deployment, revision alignment, VPS status/logs, and the failed-start failure owner are now recorded in Linear.
-- Deployment evidence on 2026-09-10: local source-of-truth revision `5c19d549976906cf399be0ca8fac625b70c53aaa` matches VPS `HEAD`; backend and Vite listen on `127.0.0.1:8000` and `127.0.0.1:3000`, exactly one project Caddy owns the public TLS listener, public `/` and `/api/game/traits` return 200, and the two-restart idempotency check passed. The first failed attempt, its backend log, recovery, and failure owner are recorded in Linear; the documented approved-revision rollback path remains part of the final release gate. The tracked VPS branch is clean, but unrelated untracked VPS drift remains and is not treated as release approval.
+- Current read-only deployment evidence on 2026-09-10: local/origin revision `8b58ed156dbc9ae4313c4117552db8270c56a343` does not yet match VPS `HEAD` `39d97f2a8e07607d87b26c856a20659251f387b9`. VPS services and public `/` plus `/api/game/traits` are healthy, but this does not establish approval for the newer local revision; the documented approved-revision rollback path remains part of the final release gate.
 - `DEF-226` is `Done`: production backend binding is committed and deployed in `7fd85e8291673451771f03918d42aae8aa561134`; local focused/full backend verification and VPS listener/proxy checks passed.
 - `DEF-227` is `Done`: production Vite binding is committed and deployed in `7fd85e8291673451771f03918d42aae8aa561134`; local focused/full frontend verification and VPS listener/proxy checks passed.
 - `DEF-228` is `Done`: the public `/health` response retains its stable `status`/`db` shape but returns `db: configured` instead of the absolute database path; a backend regression test proves the path and filename do not cross the HTTP boundary.
@@ -136,8 +139,8 @@ DEF-279 now makes the legacy CLI demo consume the shared simulator's canonical `
 
 ## Next continuation
 
-1. Finish `DEF-268`, then deploy and verify the operational restart behavior when deployment is explicitly authorized.
-2. Complete the manual/runtime portion of `DEF-164` (Game View at 1280x720 and 1920x1080 plus release-owner sign-off), without treating green automated tests or HTTP checks as visual runtime proof.
+1. Deploy the exact approved local revision `8b58ed156dbc9ae4313c4117552db8270c56a343` only when explicitly authorized, then verify revision alignment, status/logs, listeners, rollback path, and failure owner.
+2. Complete the manual/runtime portion of `DEF-164` (fresh authenticated Game View at 1280x720 and 1920x1080 plus release-owner sign-off), without treating green automated tests or HTTP checks as visual runtime proof.
 3. Continue with the next unblocked runtime/data-contract issue after confirming its current Linear state; keep new-set authoring gated behind approval.
 
 ## Legacy boundary
