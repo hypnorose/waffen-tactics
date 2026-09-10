@@ -17,6 +17,28 @@ describe('combatPresentation', () => {
     })).toBe('[PASSIVE] Fiko — Jajcarz: Ogłusza po bonus attacku.')
   })
 
+  it('keeps passive trigger and target metadata visible in the shared log', () => {
+    const log = formatCombatLogEntry({
+      type: 'passive_triggered',
+      unit_name: 'Fiko',
+      description: 'Pasywka aktywna',
+      trigger: 'on_attack_count',
+      target: 'enemy',
+      target_id: 'opp_0',
+      target_name: 'Goblin',
+      scope: 'team',
+      limit: 1,
+      duration: 3,
+    })
+
+    expect(log).toContain('trigger: on_attack_count')
+    expect(log).toContain('cel: Goblin')
+    expect(log).toContain('typ celu: enemy')
+    expect(log).toContain('zakres: team')
+    expect(log).toContain('limit: 1')
+    expect(log).toContain('czas: 3s')
+  })
+
   it('formats bonus attacks and updates summary metrics', () => {
     const summary = createCombatSummary()
     const attack: CombatEvent = {

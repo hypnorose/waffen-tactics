@@ -117,7 +117,10 @@ function formatEventContext(
   const unitName = event.unit_name || event.unit_id
 
   if (source && source !== unitName) parts.push(`źródło: ${source}`)
-  if (event.target_name && event.target_name !== unitName) parts.push(`cel: ${event.target_name}`)
+  if (event.trigger) parts.push(`trigger: ${event.trigger}`)
+  const target = event.target_name || event.target_id
+  if (target && target !== unitName) parts.push(`cel: ${target}`)
+  if (event.target) parts.push(`typ celu: ${event.target}`)
   if (event.cause) parts.push(`powód: ${event.cause}`)
   if (event.scope) parts.push(`zakres: ${event.scope}`)
   if (event.limit !== undefined && event.limit !== null && event.limit !== '') parts.push(`limit: ${event.limit}`)
