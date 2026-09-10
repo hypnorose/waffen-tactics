@@ -16,6 +16,7 @@ import { CombatOverlayProps } from './CombatOverlayTypes'
 import { UnitAnchorsProvider } from '../hooks/useUnitAnchors'
 import { ProjectileProvider } from '../hooks/useProjectileSystem'
 import ProjectileLayer from './ProjectileLayer'
+import { combatOverlayBoardStyle, combatOverlayPanelStyle, combatOverlaySidebarStyle } from './combatOverlayLayout'
 
 function CombatOverlayContent({ onClose }: CombatOverlayProps) {
   const logEndRef = useRef<HTMLDivElement>(null)
@@ -109,8 +110,8 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
       {!showMatchmakingOverlay && (
         <>
-          <div style={{ backgroundColor: '#1e293b', borderRadius: '0.75rem', width: '1400px', height: '850px', display: 'flex', flexDirection: 'row', border: '3px solid #475569', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
-            <div style={{ width: 320, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '1.5rem 1rem', borderRight: '2px solid #334155', background: 'rgba(30,41,59,0.98)' }}>
+          <div style={combatOverlayPanelStyle}>
+            <div style={combatOverlaySidebarStyle}>
               <div>
                 <CombatHeader opponentInfo={opponentInfo} />
                 <CombatSummaryPanel summary={combatSummary} synergies={synergies} />
@@ -142,7 +143,7 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
               <CombatSpeedSlider combatSpeed={combatSpeed} setCombatSpeed={setCombatSpeed} />
             </div>
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1.5rem', position: 'relative' }}>
+            <div style={combatOverlayBoardStyle}>
               <div style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
                 <OpponentUnits units={opponentUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} roundStatsByUnit={combatSummary?.unitStatsByUnit} />
               </div>
