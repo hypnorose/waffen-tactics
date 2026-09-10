@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Trophy, Swords, Flame, Skull, Target, Sparkles, Medal } from 'lucide-react'
+import { Trophy, Swords, Skull, Target, Sparkles, Medal } from 'lucide-react'
 import { CombatSummary, CombatSummaryFocus } from '../hooks/combat/types'
 import { getTopDamageDealer } from '../hooks/combat/combatPresentation'
 
@@ -106,18 +106,6 @@ export default function CombatSummaryPanel({ summary, synergies }: Props) {
             Podsumowanie walki
           </h4>
         </div>
-        <span style={{
-          background: summary?.bonusAttacks ? 'rgba(249, 115, 22, 0.18)' : 'rgba(71, 85, 105, 0.18)',
-          color: summary?.bonusAttacks ? '#fdba74' : '#cbd5e1',
-          border: '1px solid rgba(249, 115, 22, 0.25)',
-          borderRadius: 999,
-          padding: '2px 8px',
-          fontSize: 11,
-          fontWeight: 800,
-          whiteSpace: 'nowrap',
-        }}>
-          {summary?.bonusAttacks ? `${summary.bonusAttacks} bonus attacks` : '0 bonus attacks'}
-        </span>
       </div>
 
       <div style={{
@@ -165,13 +153,6 @@ export default function CombatSummaryPanel({ summary, synergies }: Props) {
           value={summary?.firstDeath?.unit_name || summary?.firstDeath?.unit_id || 'brak'}
           subtitle={summary?.firstDeath?.timestamp ? `seq ${summary.firstDeath.seq ?? '-'} | ${summary.firstDeath.timestamp.toFixed(2)}s` : undefined}
           accent="#cbd5e1"
-        />
-        <StatCard
-          icon={<Flame size={14} />}
-          label="Tempo"
-          value={summary?.bonusAttacks ? `${summary.bonusAttacks}x bonus` : 'brak bonusow'}
-          subtitle="bonus attack zastępuje stare skille"
-          accent="#fdba74"
         />
       </div>
 
