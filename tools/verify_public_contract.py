@@ -78,6 +78,47 @@ def _ids(records: Iterable[dict[str, Any]], source: str) -> list[str]:
     return result
 
 
+def _valid_public_ids(records: Iterable[dict[str, Any]], source: str) -> list[str]:
+    """Collect valid public IDs while leaving malformed records reportable."""
+
+    result: list[str] = []
+    for record in records:
+        value = record.get("id")
+        if isinstance(value, str) and value.strip():
+            result.append(value)
+
+    duplicates = sorted({value for value in result if result.count(value) > 1})
+    if duplicates:
+        raise ContractProbeError(f"{source} contains duplicate ids: {duplicates}")
+    return result
+
+
+def _schema_errors(
+    expected_records: list[dict[str, Any]],
+    actual_records: list[dict[str, Any]],
+    source: str,
+) -> list[str]:
+    """Report missing canonical fields without accepting malformed payloads."""
+
+    if not expected_records:
+        return []
+
+    required_keys = set(expected_records[0])
+    for record in expected_records[1:]:
+        required_keys.intersection_update(record)
+
+    errors: list[str] = []
+    for index, record in enumerate(actual_records):
+        missing = sorted(required_keys - set(record))
+        if missing:
+            errors.append(f"{source}[{index}] is missing required keys: {missing}")
+
+        value = record.get("id")
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"{source}[{index}] has no non-empty string id")
+    return errors
+
+
 def _tls_context() -> ssl.SSLContext:
     """Build a certificate-verifying context from the maintained CA bundle.
 
@@ -148,8 +189,19 @@ def verify(base_url: str, repo_root: Path, timeout: float = 10.0) -> dict[str, A
             local_records = _records(local_payload, name, f"local {filename}")
         local = _ids(local_records, name)
         public_payload = _fetch_json(f"{base}{endpoint}", timeout)
-        public = _ids(_records(public_payload, name, f"public {endpoint}"), endpoint)
-        results.append(_compare(name, local, public))
+        public_records = _records(public_payload, name, f"public {endpoint}")
+        if name == "traits":
+            public = _valid_public_ids(public_records, endpoint)
+            schema_errors = _schema_errors(local_records, public_records, endpoint)
+        else:
+            public = _ids(public_records, endpoint)
+            schema_errors = []
+
+        comparison = _compare(name, local, public)
+        comparison["actual_count"] = len(public_records)
+        comparison["schema_errors"] = schema_errors
+        comparison["ok"] = comparison["ok"] and not schema_errors
+        results.append(comparison)
 
     return {
         "ok": all(result["ok"] for result in results),
