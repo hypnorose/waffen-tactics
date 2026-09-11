@@ -330,19 +330,29 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'formation_changed':
+        seq = data.get('seq')
+        event_id = data.get('event_id')
+        if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1:
+            raise RuntimeError(
+                f"formation_changed requires canonical integer seq at seq={seq}"
+            )
+        if not isinstance(event_id, str) or not event_id.strip():
+            raise RuntimeError(
+                f"formation_changed requires canonical event_id at seq={seq}"
+            )
         previous_position = data.get('previous_position')
         new_position = data.get('new_position')
         if previous_position not in ('front', 'back') or new_position not in ('front', 'back'):
             raise RuntimeError(
-                f"formation_changed requires canonical positions at seq={data.get('seq')}"
+                f"formation_changed requires canonical positions at seq={seq}"
             )
         if previous_position == new_position:
             raise RuntimeError(
-                f"formation_changed requires a real transition at seq={data.get('seq')}"
+                f"formation_changed requires a real transition at seq={seq}"
             )
         if not data.get('unit_id'):
             raise RuntimeError(
-                f"formation_changed missing required unit_id at seq={data.get('seq')}"
+                f"formation_changed missing required unit_id at seq={seq}"
             )
         res = {
             'type': 'formation_changed',
@@ -360,7 +370,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'side': data.get('side'),
             'target_side': data.get('target_side'),
             'timestamp': data.get('timestamp', time.time()),
-            'seq': data.get('seq')
+            'seq': seq,
+            'event_id': event_id,
         }
     if event_type == 'effect_applied':
         if not data.get('unit_id'):

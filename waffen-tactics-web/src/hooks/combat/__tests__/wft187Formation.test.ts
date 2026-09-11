@@ -78,4 +78,25 @@ describe('WFT-187 formation_changed replay contract', () => {
     )
     expect(snapshot.opponentUnits[0].position).toBeUndefined()
   })
+
+  it('rejects a different out-of-order transition even when its destination is current', () => {
+    const outOfOrder: CombatEvent = {
+      ...formationEvent,
+      event_id: 'combat:out-of-order',
+      previous_position: 'back',
+      new_position: 'front',
+    }
+
+    expect(() => applyCombatEvent(state(), outOfOrder, { simTime: 3.75 })).toThrow(
+      '[REPLAY_VALIDATION] formation_changed event seq=233 position mismatch: expected current=back, actual=front'
+    )
+  })
+
+  it('rejects a formation event without transport identity', () => {
+    const missingIdentity = { ...formationEvent, event_id: undefined }
+
+    expect(() => applyCombatEvent(state(), missingIdentity, { simTime: 3.75 })).toThrow(
+      '[REPLAY_VALIDATION] formation_changed event seq=233 missing required event_id'
+    )
+  })
 })

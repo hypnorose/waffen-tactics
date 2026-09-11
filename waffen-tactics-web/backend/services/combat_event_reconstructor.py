@@ -26,6 +26,7 @@ class CombatEventReconstructor:
     def __init__(self):
         self.reconstructed_player_units: Dict[str, Dict[str, Any]] = {}
         self.reconstructed_opponent_units: Dict[str, Dict[str, Any]] = {}
+        self._applied_formation_events: Dict[str, Tuple[str, str, str]] = {}
         self.seed = None
 
     @staticmethod
@@ -87,6 +88,7 @@ class CombatEventReconstructor:
 
         self.reconstructed_player_units = {u['id']: normalize_unit(u) for u in snapshot_data['player_units']}
         self.reconstructed_opponent_units = {u['id']: normalize_unit(u) for u in snapshot_data['opponent_units']}
+        self._applied_formation_events = {}
 
     def process_event(self, event_type: str, event_data: Dict[str, Any]):
         """Process a single event and update the reconstructed state."""
@@ -442,6 +444,12 @@ class CombatEventReconstructor:
                 f"formation_changed event missing unit_id at seq={event_data.get('seq')}"
             )
 
+        event_id = event_data.get('event_id')
+        if not isinstance(event_id, str) or not event_id.strip():
+            raise ValueError(
+                f"formation_changed event missing event_id at seq={event_data.get('seq')}"
+            )
+
         previous_position = event_data.get('previous_position')
         new_position = event_data.get('new_position')
         if previous_position not in ('front', 'back') or new_position not in ('front', 'back'):
@@ -454,6 +462,16 @@ class CombatEventReconstructor:
                 f"formation_changed event has no transition at seq={event_data.get('seq')}"
             )
 
+        transition = (unit_id, previous_position, new_position)
+        applied_transition = self._applied_formation_events.get(event_id)
+        if applied_transition is not None:
+            if applied_transition != transition:
+                raise ValueError(
+                    f"formation_changed conflicting duplicate event_id={event_id} "
+                    f"at seq={event_data.get('seq')}"
+                )
+            return
+
         unit_dict = self._get_unit_dict(unit_id)
         if unit_dict is None:
             raise ValueError(
@@ -462,11 +480,6 @@ class CombatEventReconstructor:
             )
 
         current_position = unit_dict.get('position')
-        # Replayed SSE duplicates are safe: the event already reached its
-        # canonical destination, so applying it again is a no-op. Any other
-        # mismatch means the history is missing or out of order.
-        if current_position == new_position:
-            return
         if current_position != previous_position:
             raise ValueError(
                 f"formation_changed position mismatch for unit_id={unit_id} "
@@ -474,6 +487,7 @@ class CombatEventReconstructor:
                 f"actual={current_position!r}"
             )
         unit_dict['position'] = new_position
+        self._applied_formation_events[event_id] = transition
 
     def _process_stat_buff_event(self, event_data: Dict[str, Any]):
         """Process stat_buff event.

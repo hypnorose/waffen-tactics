@@ -278,4 +278,13 @@ export interface CombatState {
     duration: number
     start: number
   }[]
+  // Formation transitions are idempotent only for the same canonical event.
+  // Keep the applied transition identity in state so a different, out-of-order
+  // transition cannot be mistaken for a reconnect duplicate merely because it
+  // points at the unit's current position.
+  appliedFormationEvents?: Record<string, {
+    unitId: string
+    previousPosition: 'front' | 'back'
+    newPosition: 'front' | 'back'
+  }>
 }

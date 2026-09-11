@@ -128,7 +128,20 @@ def test_reconstructor_rejects_unknown_current_position_without_mutating_state()
             "unit_id": "opp_1",
             "previous_position": "front",
             "new_position": "back",
+            "event_id": "combat:unknown-current",
             "seq": 10,
         })
 
     assert reconstructor.reconstructed_opponent_units["opp_1"]["position"] is None
+
+
+def test_formation_sse_mapping_requires_canonical_transport_identity():
+    payload = {
+        "unit_id": "opp_1",
+        "previous_position": "front",
+        "new_position": "back",
+        "seq": 233,
+    }
+
+    with pytest.raises(RuntimeError, match="canonical event_id"):
+        game_combat.map_event_to_sse_payload("formation_changed", payload)

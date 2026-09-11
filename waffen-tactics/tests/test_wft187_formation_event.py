@@ -127,5 +127,8 @@ def test_scheduled_bonus_attack_delivers_formation_before_bonus_hit_and_replays(
     formation = events[formation_index][1]
     assert formation["previous_position"] == "front"
     assert formation["new_position"] == "back"
+    assert isinstance(formation["seq"], int)
+    assert formation["event_id"]
+    assert formation["seq"] < events[bonus_attack_index][1]["seq"]
 
     assert target.position == "back"

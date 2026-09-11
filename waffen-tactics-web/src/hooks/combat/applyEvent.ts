@@ -107,6 +107,29 @@ function hasCanonicalPositions(units: Unit[] | undefined, side: string, seq?: nu
 
 export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: ApplyEventContext): CombatState {
   validateItemEventContext(event)
+
+  if (event.type === 'formation_changed') {
+    if (typeof event.event_id !== 'string' || !event.event_id.trim()) {
+      throw new CombatReplayValidationError(event, 'missing required event_id', event.unit_id)
+    }
+
+    const applied = state.appliedFormationEvents?.[event.event_id]
+    if (applied) {
+      if (applied.unitId !== event.unit_id ||
+          applied.previousPosition !== event.previous_position ||
+          applied.newPosition !== event.new_position) {
+        throw new CombatReplayValidationError(
+          event,
+          `conflicting duplicate event_id=${event.event_id}`,
+          event.unit_id,
+        )
+      }
+      // A reconnect may deliver the exact committed event more than once. Do
+      // not advance time or append a second presentation log entry.
+      return state
+    }
+  }
+
   let newState = { ...state }
   const logLine = formatCombatLogEntry(event)
   let shouldUpdateSummary = true
@@ -278,9 +301,6 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       if (previousPosition === newPosition) {
         throw new CombatReplayValidationError(event, 'requires a real position transition', event.unit_id)
       }
-      // A reconnect can deliver the same committed event twice. Setting the
-      // authored destination (rather than toggling) keeps replay deterministic.
-      if (unit.position === newPosition) break
       if (unit.position !== previousPosition) {
         throw new CombatReplayValidationError(
           event,
@@ -289,6 +309,14 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         )
       }
       updateKnownUnitById(newState, event, event.unit_id, u => ({ ...u, position: newPosition }))
+      newState.appliedFormationEvents = {
+        ...(newState.appliedFormationEvents || {}),
+        [event.event_id!]: {
+          unitId: event.unit_id!,
+          previousPosition,
+          newPosition,
+        },
+      }
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
     }
