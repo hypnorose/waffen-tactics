@@ -108,6 +108,8 @@ class CombatEventReconstructor:
             self._process_heal_event(event_data)
         elif event_type == 'shield_applied':
             self._process_shield_applied_event(event_data)
+        elif event_type == 'shield_broken':
+            self._process_shield_broken_event(event_data)
         elif event_type == 'damage_over_time_tick':
             self._process_dot_event(event_data)
         elif event_type == 'damage_over_time_applied':
@@ -356,6 +358,28 @@ class CombatEventReconstructor:
         }, event_data)
         unit_dict['effects'].append(effect)
         print(f"  Applied shield to unit {unit_id}: post_shield={unit_dict['shield']}")
+
+    def _process_shield_broken_event(self, event_data: Dict[str, Any]):
+        """Apply the authoritative shield removal and clear its effect."""
+        unit_id = event_data.get('unit_id') or event_data.get('target_id')
+        amount = event_data.get('amount')
+        if not unit_id:
+            raise ValueError(f"shield_broken event missing unit_id: {event_data}")
+        if isinstance(amount, bool) or not isinstance(amount, (int, float)) or not math.isfinite(float(amount)) or amount <= 0:
+            raise ValueError(f"shield_broken event requires positive amount: {event_data}")
+        unit_dict = self._get_unit_dict(unit_id)
+        if unit_dict is None:
+            raise ValueError(f"shield_broken references unknown unit_id={unit_id}")
+        for field in ('post_shield', 'unit_shield'):
+            if field in event_data and event_data.get(field) != 0:
+                raise ValueError(
+                    f"shield_broken must leave target shield at zero in field={field}: {event_data}"
+                )
+        unit_dict['shield'] = 0
+        unit_dict['effects'] = [
+            effect for effect in unit_dict.get('effects', [])
+            if not (isinstance(effect, dict) and effect.get('type') == 'shield')
+        ]
 
     def _process_dot_event(self, event_data: Dict[str, Any]):
         """Process damage_over_time_tick event.

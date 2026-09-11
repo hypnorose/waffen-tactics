@@ -497,6 +497,41 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
+    if event_type == 'shield_broken':
+        unit_id = data.get('unit_id') or data.get('target_id')
+        unit_name = data.get('unit_name') or data.get('target_name')
+        seq = data.get('seq')
+        event_id = data.get('event_id')
+        amount = data.get('amount')
+        if not unit_id:
+            raise RuntimeError(
+                f"shield_broken missing required unit_id at seq={seq} "
+                f"payload_keys={sorted(list(data.keys()))}"
+            )
+        if isinstance(amount, bool) or not isinstance(amount, (int, float)) or not math.isfinite(float(amount)) or amount <= 0:
+            raise RuntimeError(
+                f"shield_broken requires positive numeric amount at seq={seq} "
+                f"payload_keys={sorted(list(data.keys()))}"
+            )
+        if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1:
+            raise RuntimeError(f"shield_broken requires canonical integer seq at seq={seq}")
+        if not isinstance(event_id, str) or not event_id.strip():
+            raise RuntimeError(f"shield_broken requires canonical event_id at seq={seq}")
+        res = {
+            'type': 'shield_broken',
+            'unit_id': unit_id,
+            'unit_name': unit_name,
+            'target_id': unit_id,
+            'target_name': unit_name,
+            'amount': amount,
+            'post_shield': 0,
+            'unit_shield': 0,
+            'side': data.get('side'),
+            'cause': data.get('cause'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': seq,
+            'event_id': event_id,
+        }
     # DEBUG: Print mapped unit_attack payloads so we can see exactly what
     # is streamed over SSE (helps debug UI not applying events).
     try:

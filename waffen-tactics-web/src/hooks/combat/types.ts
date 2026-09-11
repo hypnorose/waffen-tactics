@@ -291,4 +291,10 @@ export interface CombatState {
   }>
   // Reconnect/replay duplicates of a no-op dodge must not duplicate its log.
   appliedDamageDodgedEvents?: Record<string, true>
+  // Reconnect/replay duplicates of shield removal must not duplicate its log
+  // or reapply the same state transition.
+  appliedShieldBrokenEvents?: Record<string, {
+    unitId: string
+    amount: number
+  }>
 }

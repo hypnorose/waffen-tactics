@@ -100,6 +100,16 @@ describe('combatPresentation', () => {
     expect(summary.lastAction?.type).toBe('damage_dodged')
   })
 
+  it('presents shield removal as a distinct SHIELD BREAK outcome', () => {
+    expect(formatCombatLogEntry({
+      type: 'shield_broken',
+      unit_id: 'unit_b',
+      unit_name: 'Unit B',
+      amount: 25,
+      cause: 'passive',
+    })).toBe('[SHIELD BREAK] Unit B traci tarczę (25)')
+  })
+
   it('formats skill casts with the canonical caster, target, and damage', () => {
     expect(formatCombatLogEntry({
       type: 'skill_cast',

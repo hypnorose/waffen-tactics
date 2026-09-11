@@ -144,6 +144,48 @@ describe('applyCombatEvent - Effect Handling', () => {
     expect(duplicate).toBe(next)
   })
 
+  it('replays shield_broken as a zero-shield transition and deduplicates reconnect delivery', () => {
+    state.opponentUnits[0].shield = 25
+    state.opponentUnits[0].effects = [{ id: 'shield-1', type: 'shield', amount: 25 }]
+    const event: CombatEvent = {
+      type: 'shield_broken',
+      unit_id: 'opp_0',
+      unit_name: 'TestOpponent',
+      target_id: 'opp_0',
+      target_name: 'TestOpponent',
+      amount: 25,
+      post_shield: 0,
+      unit_shield: 0,
+      cause: 'passive',
+      seq: 84,
+      event_id: 'combat:84',
+      timestamp: 8.4,
+    }
+
+    const next = applyCombatEvent(state, event, { simTime: 0 })
+    const duplicate = applyCombatEvent(next, event, { simTime: 8.4 })
+
+    expect(next.opponentUnits[0].shield).toBe(0)
+    expect(next.opponentUnits[0].effects).toEqual([])
+    expect(next.combatLog).toEqual(['[SHIELD BREAK] TestOpponent traci tarczę (25)'])
+    expect(duplicate).toBe(next)
+  })
+
+  it('rejects a conflicting duplicate shield_broken event_id', () => {
+    state.opponentUnits[0].shield = 25
+    const event: CombatEvent = {
+      type: 'shield_broken',
+      unit_id: 'opp_0',
+      amount: 25,
+      seq: 84,
+      event_id: 'combat:84',
+    }
+    const next = applyCombatEvent(state, event, { simTime: 0 })
+
+    expect(() => applyCombatEvent(next, { ...event, amount: 24 }, { simTime: 8.4 }))
+      .toThrow('[REPLAY_VALIDATION] shield_broken event seq=84 conflicting duplicate event_id=combat:84')
+  })
+
   it('rejects damage_dodged with an unknown attacker or non-zero damage', () => {
     expect(() => applyCombatEvent(state, {
       type: 'damage_dodged',

@@ -137,6 +137,27 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     }
   }
 
+  if (event.type === 'shield_broken') {
+    requireKnownUnit(state, event, event.unit_id)
+    if (typeof event.event_id !== 'string' || !event.event_id.trim()) {
+      throw new CombatReplayValidationError(event, 'missing required event_id', event.unit_id)
+    }
+    if (typeof event.amount !== 'number' || !Number.isFinite(event.amount) || event.amount <= 0) {
+      throw new CombatReplayValidationError(event, 'requires a positive numeric amount', event.unit_id)
+    }
+    const applied = state.appliedShieldBrokenEvents?.[event.event_id]
+    if (applied) {
+      if (applied.unitId !== event.unit_id || applied.amount !== event.amount) {
+        throw new CombatReplayValidationError(
+          event,
+          `conflicting duplicate event_id=${event.event_id}`,
+          event.unit_id,
+        )
+      }
+      return state
+    }
+  }
+
   let newState = { ...state }
   const logLine = formatCombatLogEntry(event)
   let shouldUpdateSummary = true
@@ -705,6 +726,12 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
     case 'shield_broken':
       requireKnownUnit(newState, event, event.unit_id)
+      if (event.post_shield !== undefined && event.post_shield !== null && event.post_shield !== 0) {
+        throw new CombatReplayValidationError(event, 'must leave target shield at zero in post_shield', event.unit_id)
+      }
+      if (event.unit_shield !== undefined && event.unit_shield !== null && event.unit_shield !== 0) {
+        throw new CombatReplayValidationError(event, 'must leave target shield at zero in unit_shield', event.unit_id)
+      }
       if (event.unit_id) {
         const clearShield = (u: Unit) => ({
           ...u,
@@ -714,6 +741,10 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         updateKnownUnitById(newState, event, event.unit_id, clearShield)
       }
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
+      newState.appliedShieldBrokenEvents = {
+        ...(newState.appliedShieldBrokenEvents || {}),
+        [event.event_id!]: { unitId: event.unit_id!, amount: event.amount! },
+      }
       break
 
     case 'unit_stunned':
