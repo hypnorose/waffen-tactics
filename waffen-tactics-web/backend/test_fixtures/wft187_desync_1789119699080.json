@@ -1,0 +1,37 @@
+{
+  "source_export": "desync_logs_1789119699080.json",
+  "desync": {
+    "seq": 260,
+    "unit_id": "opp_1",
+    "ui_position": "front",
+    "server_position": "back"
+  },
+  "initial_state": {
+    "opponent_units": [
+      { "id": "opp_1", "name": "Anamol04", "position": "front" }
+    ]
+  },
+  "legacy_window": [
+    {
+      "type": "passive_triggered",
+      "seq": 258,
+      "unit_id": "e7e66be4",
+      "target_id": "opp_1",
+      "effect": "swap_enemy_line"
+    },
+    {
+      "type": "passive_triggered",
+      "seq": 259,
+      "unit_id": "e7e66be4",
+      "target_id": "opp_0",
+      "effect": "swap_enemy_line"
+    },
+    {
+      "type": "unit_attack",
+      "seq": 260,
+      "attacker_id": "e7e66be4",
+      "target_id": "opp_0",
+      "bonus_attack": true
+    }
+  ]
+}

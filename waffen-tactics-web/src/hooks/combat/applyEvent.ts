@@ -121,7 +121,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     'attack', 'unit_attack', 'mana_update', 'stat_buff', 'shield_applied',
     'shield_broken', 'unit_stunned', 'damage_over_time_applied',
     'damage_over_time_tick', 'damage_over_time_expired', 'effect_applied', 'effect_expired',
-    'unit_heal', 'heal', 'hp_regen', 'regen_gain'
+    'unit_heal', 'heal', 'hp_regen', 'regen_gain', 'formation_changed'
   ])
   const involvedIds = [event.unit_id, event.attacker_id, event.target_id].filter(
     (id): id is string => Boolean(id)
@@ -266,6 +266,32 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       updateKnownUnitById(newState, event, event.unit_id, u => ({ ...u, hp: 0 }))
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
+
+    case 'formation_changed': {
+      const unit = requireKnownUnit(newState, event, event.unit_id)
+      const previousPosition = event.previous_position
+      const newPosition = event.new_position
+      if ((previousPosition !== 'front' && previousPosition !== 'back') ||
+          (newPosition !== 'front' && newPosition !== 'back')) {
+        throw new CombatReplayValidationError(event, 'requires canonical previous_position and new_position', event.unit_id)
+      }
+      if (previousPosition === newPosition) {
+        throw new CombatReplayValidationError(event, 'requires a real position transition', event.unit_id)
+      }
+      // A reconnect can deliver the same committed event twice. Setting the
+      // authored destination (rather than toggling) keeps replay deterministic.
+      if (unit.position === newPosition) break
+      if (unit.position !== previousPosition) {
+        throw new CombatReplayValidationError(
+          event,
+          `position mismatch: expected current=${previousPosition}, actual=${unit.position}`,
+          event.unit_id,
+        )
+      }
+      updateKnownUnitById(newState, event, event.unit_id, u => ({ ...u, position: newPosition }))
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
+      break
+    }
 
     case 'gold_reward':
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]

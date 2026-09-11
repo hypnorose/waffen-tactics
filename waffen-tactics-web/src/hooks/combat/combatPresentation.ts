@@ -185,6 +185,8 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
     }
     case 'unit_died':
       return tag('DEATH', `${event.unit_name || event.unit_id || 'Unit'} pada`)
+    case 'formation_changed':
+      return tag('FORMATION', `${event.unit_name || event.unit_id || 'Unit'}: ${event.previous_position} → ${event.new_position}`)
     case 'gold_reward':
       return tag('GOLD', `${event.unit_name || event.unit_id || 'Unit'} dostaje +${formatAmount(event.amount)} gold`)
     case 'stat_buff': {

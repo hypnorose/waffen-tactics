@@ -14,6 +14,7 @@ import random
 from .event_canonicalizer import (
     emit_damage,
     emit_effect_applied,
+    emit_formation_changed,
     emit_heal,
     emit_mana_change,
     emit_regen_gain,
@@ -522,7 +523,32 @@ class Set2Runtime:
         elif runtime_type == "swap_enemy_line":
             target_to_swap = self._stable_choice(self._alive(enemies), f"{unit.id}:swap:{timestamp}")
             if target_to_swap:
-                target_to_swap.position = "back" if getattr(target_to_swap, "position", "front") == "front" else "front"
+                previous_position = getattr(target_to_swap, "position", "front")
+                new_position = "back" if previous_position == "front" else "front"
+                target_to_swap.position = new_position
+                if getattr(target_to_swap, "position", None) != new_position:
+                    raise RuntimeError(
+                        f"swap_enemy_line position mutation failed for unit={getattr(target_to_swap, 'id', None)}"
+                    )
+                # Emit the state transition before the descriptive passive
+                # event. Both events carry an emission-time game state; the
+                # formation event must be replayed first so the following
+                # passive checkpoint cannot report a false desync.
+                passive = getattr(unit, "passive", {}) or {}
+                emit_formation_changed(
+                    callback,
+                    target_to_swap,
+                    previous_position,
+                    new_position,
+                    source=unit,
+                    side=side,
+                    target_side="team_b" if side == "team_a" else "team_a",
+                    passive_id=passive.get("id") or getattr(unit, "id", None),
+                    trigger="on_bonus_attack",
+                    effect=runtime_type,
+                    cause=runtime_type,
+                    timestamp=timestamp,
+                )
                 self._emit_runtime_event(callback, unit, "on_bonus_attack", "swap_enemy_line", side, timestamp, target_id=target_to_swap.id)
         elif runtime_type == "stun_backline":
             backline = [enemy for enemy in self._alive(enemies) if getattr(enemy, "position", "front") == "back"]

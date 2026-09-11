@@ -329,6 +329,39 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
+    if event_type == 'formation_changed':
+        previous_position = data.get('previous_position')
+        new_position = data.get('new_position')
+        if previous_position not in ('front', 'back') or new_position not in ('front', 'back'):
+            raise RuntimeError(
+                f"formation_changed requires canonical positions at seq={data.get('seq')}"
+            )
+        if previous_position == new_position:
+            raise RuntimeError(
+                f"formation_changed requires a real transition at seq={data.get('seq')}"
+            )
+        if not data.get('unit_id'):
+            raise RuntimeError(
+                f"formation_changed missing required unit_id at seq={data.get('seq')}"
+            )
+        res = {
+            'type': 'formation_changed',
+            'unit_id': data.get('unit_id'),
+            'unit_name': data.get('unit_name'),
+            'previous_position': previous_position,
+            'new_position': new_position,
+            'position': new_position,
+            'source_id': data.get('source_id'),
+            'source_name': data.get('source_name'),
+            'passive_id': data.get('passive_id'),
+            'trigger': data.get('trigger'),
+            'effect': data.get('effect'),
+            'cause': data.get('cause'),
+            'side': data.get('side'),
+            'target_side': data.get('target_side'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq')
+        }
     if event_type == 'effect_applied':
         if not data.get('unit_id'):
             raise RuntimeError(

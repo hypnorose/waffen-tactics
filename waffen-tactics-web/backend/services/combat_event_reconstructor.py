@@ -128,6 +128,8 @@ class CombatEventReconstructor:
             # Passive events explain the action; authoritative mutations arrive
             # through stat, mana, and effect events in the same stream.
             pass
+        elif event_type == 'formation_changed':
+            self._process_formation_changed_event(event_data)
         elif event_type in ('animation_start', 'gold_reward'):
             # These events are intentionally non-state replay metadata. Keep
             # them explicit so a newly introduced event cannot be swallowed by
@@ -431,6 +433,47 @@ class CombatEventReconstructor:
     def _process_skill_cast_event(self, event_data: Dict[str, Any]):
         """Legacy no-op for old replay payloads that still mention skill_cast."""
         return
+
+    def _process_formation_changed_event(self, event_data: Dict[str, Any]):
+        """Apply an authoritative formation transition without toggling it."""
+        unit_id = event_data.get('unit_id')
+        if not unit_id:
+            raise ValueError(
+                f"formation_changed event missing unit_id at seq={event_data.get('seq')}"
+            )
+
+        previous_position = event_data.get('previous_position')
+        new_position = event_data.get('new_position')
+        if previous_position not in ('front', 'back') or new_position not in ('front', 'back'):
+            raise ValueError(
+                f"formation_changed event has invalid positions at seq={event_data.get('seq')}: "
+                f"previous={previous_position!r}, new={new_position!r}"
+            )
+        if previous_position == new_position:
+            raise ValueError(
+                f"formation_changed event has no transition at seq={event_data.get('seq')}"
+            )
+
+        unit_dict = self._get_unit_dict(unit_id)
+        if unit_dict is None:
+            raise ValueError(
+                f"formation_changed references unknown unit_id={unit_id} "
+                f"at seq={event_data.get('seq')}"
+            )
+
+        current_position = unit_dict.get('position')
+        # Replayed SSE duplicates are safe: the event already reached its
+        # canonical destination, so applying it again is a no-op. Any other
+        # mismatch means the history is missing or out of order.
+        if current_position == new_position:
+            return
+        if current_position != previous_position:
+            raise ValueError(
+                f"formation_changed position mismatch for unit_id={unit_id} "
+                f"at seq={event_data.get('seq')}: expected current={previous_position!r}, "
+                f"actual={current_position!r}"
+            )
+        unit_dict['position'] = new_position
 
     def _process_stat_buff_event(self, event_data: Dict[str, Any]):
         """Process stat_buff event.

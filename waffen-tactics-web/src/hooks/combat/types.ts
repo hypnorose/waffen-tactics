@@ -127,6 +127,7 @@ export interface CombatEvent {
   unit_defense?: number
   permanent?: boolean
   source_id?: string
+  source_name?: string
   source?: string
   effect_id?: string
   effect_type?: string
@@ -149,6 +150,10 @@ export interface CombatEvent {
   scope?: string
   limit?: number | string
   reason?: string
+  previous_position?: 'front' | 'back'
+  new_position?: 'front' | 'back'
+  position?: 'front' | 'back'
+  target_side?: string
   value?: any
   applied_delta?: number  // Authoritative delta applied by backend (for stat_buff events)
   // Animation events

@@ -17,6 +17,60 @@ def _deliver_canonical_event(
         event_callback(event_type, payload)
 
 
+def emit_formation_changed(
+    event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    target: Any,
+    previous_position: str,
+    new_position: str,
+    *,
+    source: Optional[Any] = None,
+    side: Optional[str] = None,
+    target_side: Optional[str] = None,
+    passive_id: Optional[str] = None,
+    trigger: Optional[str] = None,
+    effect: Optional[str] = None,
+    cause: Optional[str] = None,
+    timestamp: Optional[float] = None,
+) -> Dict[str, Any]:
+    """Emit one authoritative, replayable unit formation transition.
+
+    Position changes are state mutations even when they are caused by a
+    passive. The event deliberately carries both sides of the transition so
+    replay can set the authored result idempotently instead of toggling based
+    on whatever state happens to be visible at the time of delivery.
+    """
+    supported = {"front", "back"}
+    if previous_position not in supported or new_position not in supported:
+        raise ValueError(
+            "formation_changed requires supported positions: "
+            f"previous={previous_position!r}, new={new_position!r}"
+        )
+    if previous_position == new_position:
+        raise ValueError("formation_changed requires a real position transition")
+
+    ts = timestamp if timestamp is not None else _now_ts()
+    payload = {
+        "unit_id": getattr(target, "id", None),
+        "unit_name": getattr(target, "name", None),
+        "previous_position": previous_position,
+        "new_position": new_position,
+        # Keep a direct canonical alias for consumers that render the current
+        # formation without needing to interpret the transition pair.
+        "position": new_position,
+        "source_id": getattr(source, "id", None) if source is not None else None,
+        "source_name": getattr(source, "name", None) if source is not None else None,
+        "passive_id": passive_id,
+        "trigger": trigger,
+        "effect": effect,
+        "cause": cause,
+        "side": side,
+        "target_side": target_side,
+        "timestamp": ts,
+    }
+    _deliver_canonical_event(event_callback, "formation_changed", payload)
+    return payload
+
+
 def _require_non_empty_effect_id(effect_id: Any, event_type: str) -> str:
     """Reject lifecycle events that cannot identify their effect."""
     if not isinstance(effect_id, str) or not effect_id.strip():
