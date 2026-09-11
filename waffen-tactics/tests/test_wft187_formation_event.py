@@ -132,3 +132,90 @@ def test_scheduled_bonus_attack_delivers_formation_before_bonus_hit_and_replays(
     assert formation["seq"] < events[bonus_attack_index][1]["seq"]
 
     assert target.position == "back"
+
+
+def test_swap_enemy_line_is_deterministic_across_multiple_alive_targets_and_ignores_dead_targets():
+    owner = _unit(
+        "e7e66be4",
+        {
+            "id": "set2.passive.yossarian",
+            "name": "Yossarian",
+            "effect": "swap_enemy_line",
+            "runtime": {"type": "swap_enemy_line"},
+        },
+        position="back",
+    )
+
+    def run_once():
+        enemies = [
+            _unit("opp_1"),
+            _unit("opp_2", position="back"),
+            _unit("opp_3"),
+            _unit("opp_dead", hp=0),
+        ]
+        events = []
+        PassiveProcessor().bonus_attack_plan(
+            owner,
+            None,
+            [owner],
+            enemies,
+            lambda event_type, payload: events.append((event_type, payload)),
+            "team_a",
+            3.75,
+        )
+        formation = [payload for event_type, payload in events if event_type == "formation_changed"]
+        return enemies, formation
+
+    first_enemies, first_events = run_once()
+    second_enemies, second_events = run_once()
+
+    assert len(first_events) == 1
+    assert len(second_events) == 1
+    assert first_events[0]["unit_id"] == second_events[0]["unit_id"]
+    assert first_events[0]["unit_id"] in {"opp_1", "opp_2", "opp_3"}
+    assert first_events[0]["unit_id"] != "opp_dead"
+    assert first_events[0]["previous_position"] != first_events[0]["new_position"]
+
+    first_positions = {enemy.id: enemy.position for enemy in first_enemies}
+    second_positions = {enemy.id: enemy.position for enemy in second_enemies}
+    assert first_positions == second_positions
+    assert first_positions["opp_dead"] == "front"
+    assert sum(
+        first_positions[enemy_id] != initial_position
+        for enemy_id, initial_position in {
+            "opp_1": "front",
+            "opp_2": "back",
+            "opp_3": "front",
+        }.items()
+    ) == 1
+
+
+def test_swap_enemy_line_without_a_legal_target_is_a_noop():
+    owner = _unit(
+        "e7e66be4",
+        {
+            "id": "set2.passive.yossarian",
+            "name": "Yossarian",
+            "effect": "swap_enemy_line",
+            "runtime": {"type": "swap_enemy_line"},
+        },
+        position="back",
+    )
+    enemies = [_unit("opp_dead_front", hp=0), _unit("opp_dead_back", position="back", hp=0)]
+    events = []
+
+    PassiveProcessor().bonus_attack_plan(
+        owner,
+        None,
+        [owner],
+        enemies,
+        lambda event_type, payload: events.append((event_type, payload)),
+        "team_a",
+        3.75,
+    )
+
+    assert not [payload for event_type, payload in events if event_type == "formation_changed"]
+    assert {enemy.id: enemy.position for enemy in enemies} == {
+        "opp_dead_front": "front",
+        "opp_dead_back": "back",
+    }

@@ -37,27 +37,11 @@ def _unit(unit_id, position="front"):
 def test_supplied_desync_fixture_replays_position_before_following_attack(fixture_path):
     fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
     desync = fixture["desync"]
-    legacy_passive = fixture["legacy_window"][0]
+    legacy_passives = [
+        event for event in fixture["legacy_window"][:-1]
+        if event["type"] == "passive_triggered" and event.get("effect") == "swap_enemy_line"
+    ]
     following_attack = fixture["legacy_window"][-1]
-
-    formation = {
-        "type": "formation_changed",
-        "seq": legacy_passive["seq"],
-        "event_id": f"fixture:{fixture['source_export']}:formation",
-        "unit_id": desync["unit_id"],
-        "unit_name": "Anamol04",
-        "previous_position": desync["ui_position"],
-        "new_position": desync["server_position"],
-        "position": desync["server_position"],
-        "source_id": legacy_passive["unit_id"],
-        "passive_id": legacy_passive["unit_id"],
-        "trigger": "on_bonus_attack",
-        "effect": legacy_passive["effect"],
-        "cause": legacy_passive["effect"],
-        "side": "team_a",
-        "target_side": "team_b",
-        "timestamp": 3.75,
-    }
 
     initial_opponent = [_unit(desync["unit_id"], desync["ui_position"]), _unit("opp_0"), _unit("opp_2")]
     reconstructor = CombatEventReconstructor()
@@ -65,12 +49,43 @@ def test_supplied_desync_fixture_replays_position_before_following_attack(fixtur
         "player_units": [_unit("e7e66be4")],
         "opponent_units": initial_opponent,
     })
-    reconstructor.process_event("formation_changed", formation)
+
+    formation_events = []
+    for legacy_passive in legacy_passives:
+        target_id = legacy_passive["target_id"]
+        current_position = reconstructor.reconstructed_opponent_units[target_id]["position"]
+        new_position = "back" if current_position == "front" else "front"
+        formation = {
+            "type": "formation_changed",
+            "seq": legacy_passive["seq"],
+            "event_id": f"fixture:{fixture['source_export']}:formation:{target_id}",
+            "unit_id": target_id,
+            "unit_name": "Anamol04" if target_id == desync["unit_id"] else target_id,
+            "previous_position": current_position,
+            "new_position": new_position,
+            "position": new_position,
+            "source_id": legacy_passive["unit_id"],
+            "passive_id": legacy_passive["unit_id"],
+            "trigger": "on_bonus_attack",
+            "effect": legacy_passive["effect"],
+            "cause": legacy_passive["effect"],
+            "side": "team_a",
+            "target_side": "team_b",
+            "timestamp": 3.75,
+        }
+        reconstructor.process_event("formation_changed", formation)
+        formation_events.append(formation)
+
     assert reconstructor.reconstructed_opponent_units[desync["unit_id"]]["position"] == desync["server_position"]
+    assert len(formation_events) == len(legacy_passives)
+    assert all(event["seq"] < following_attack["seq"] for event in formation_events)
+    for legacy_passive in legacy_passives:
+        assert reconstructor.reconstructed_opponent_units[legacy_passive["target_id"]]["position"] == "back"
 
     # The same committed event can be observed twice after reconnect; it must
     # remain a no-op instead of toggling the unit back to the front line.
-    reconstructor.process_event("formation_changed", formation)
+    for formation in formation_events:
+        reconstructor.process_event("formation_changed", formation)
     assert reconstructor.reconstructed_opponent_units[desync["unit_id"]]["position"] == desync["server_position"]
 
     assert following_attack["seq"] > formation["seq"]
