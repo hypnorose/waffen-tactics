@@ -10,11 +10,15 @@ import json
 from itertools import combinations_with_replacement
 from pathlib import Path
 
-from waffen_tactics.services.item_contract import validate_item_matrix
+from waffen_tactics.services.item_contract import (
+    EXPECTED_COMBINED_ITEM_COUNT,
+    validate_item_matrix,
+)
 from waffen_tactics.services.items import apply_item_stats
 
 
 MATRIX_PATH = Path(__file__).resolve().parents[1] / "item_recipe_matrix_wft139.json"
+MARKDOWN_MATRIX_PATH = Path(__file__).resolve().parents[2] / "docs" / "ITEM_RECIPE_MATRIX_WFT139.md"
 
 
 def _load_matrix() -> dict:
@@ -227,6 +231,23 @@ def test_wft139_matrix_has_six_bases_and_all_21_unordered_pairs():
     assert set(recipe_map) == {
         tuple(sorted(pair)) for pair in combinations_with_replacement(base_ids, 2)
     }
+
+
+def test_wft139_markdown_copy_matches_recipe_names_and_effect_descriptions():
+    matrix = _load_matrix()
+    rows = [
+        line
+        for line in MARKDOWN_MATRIX_PATH.read_text(encoding="utf-8").splitlines()
+        if line.startswith("| ") and line.split("|")[1].strip().isdigit()
+    ]
+
+    assert len(rows) == len(matrix["recipes"]) == EXPECTED_COMBINED_ITEM_COUNT
+
+    for recipe, row in zip(matrix["recipes"], rows):
+        cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
+        assert len(cells) == 4, row
+        assert cells[2] == recipe["name"]
+        assert cells[3] == recipe["effect_description"]
 
 
 def test_wft139_matrix_preserves_approved_base_items():
