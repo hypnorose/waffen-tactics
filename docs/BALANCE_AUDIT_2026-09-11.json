@@ -3546,10 +3546,10 @@
       {
         "path": "all_wins",
         "combats": 15,
-        "level": 6,
-        "xp_remainder": 2,
+        "level": 5,
+        "xp_remainder": 0,
         "xp_per_loss": 2,
-        "xp_per_win": 4
+        "xp_per_win": 2
       }
     ],
     "gold_paths_without_spending": [
@@ -4865,30 +4865,6 @@
         },
         "proposed_change": "Author-review the per-unit baseline/proposed actions in unit_statuses; do not apply automatic numeric changes.",
         "expected_consequence": "Unit changes are reviewed after system-rule findings, avoiding a unit patch that masks a systemic imbalance."
-      },
-      {
-        "id": "economy.xp_contract_confirmation",
-        "scope": "XP economy",
-        "baseline": [
-          {
-            "path": "all_losses",
-            "combats": 15,
-            "level": 5,
-            "xp_remainder": 0,
-            "xp_per_loss": 2,
-            "xp_per_win": "n/a"
-          },
-          {
-            "path": "all_wins",
-            "combats": 15,
-            "level": 6,
-            "xp_remainder": 2,
-            "xp_per_loss": 2,
-            "xp_per_win": 4
-          }
-        ],
-        "proposed_change": "Confirm one canonical XP-per-combat and win-bonus contract before balance sign-off.",
-        "expected_consequence": "Future unit and trait measurements are not confounded by an unresolved progression-rate interpretation."
       }
     ],
     "accepted_risks": [

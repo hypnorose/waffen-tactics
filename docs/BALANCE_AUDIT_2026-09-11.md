@@ -13,7 +13,7 @@ The status is a screening signal, not an automatic balance patch. Pairwise data 
 ## Findings and disposition
 
 - Must-fix: `0`.
-- Should-fix: `2`.
+- Should-fix: `1`.
 - Accepted risks: `2`.
 
 Each finding records its baseline, proposed change, and expected consequence. No numeric unit, trait, or economy value is changed by this audit.
@@ -23,7 +23,6 @@ Each finding records its baseline, proposed change, and expected consequence. No
 ### Should-fix
 
 - `balance.unit_screening_outliers` (unit values and passives): Author-review the per-unit baseline/proposed actions in unit_statuses; do not apply automatic numeric changes. Baseline: `{'underpowered': 13, 'healthy': 8, 'overpowered': 11, 'outlier_units': ['4tune', '9wojtaz9', 'alyson_stark', 'anamol04', 'aus_sher', 'bbobel', 'chessowy_mentos', 'empty_melancholy', 'fiko', 'galanonim', 'jadlainwestycji', 'jaeger', 'klemens_zydoslawski', 'knauff', 'kotmarcek', 'marcel_galadotka', 'merex', 'mr0czeq1', 'pytl', 'skibidi_kubus', 'sofronow', 'szachowymentor', 'szalwia', 'yossarian']}` Consequence: Unit changes are reviewed after system-rule findings, avoiding a unit patch that masks a systemic imbalance.
-- `economy.xp_contract_confirmation` (XP economy): Confirm one canonical XP-per-combat and win-bonus contract before balance sign-off. Baseline: `[{'path': 'all_losses', 'combats': 15, 'level': 5, 'xp_remainder': 0, 'xp_per_loss': 2, 'xp_per_win': 'n/a'}, {'path': 'all_wins', 'combats': 15, 'level': 6, 'xp_remainder': 2, 'xp_per_loss': 2, 'xp_per_win': 4}]` Consequence: Future unit and trait measurements are not confounded by an unresolved progression-rate interpretation.
 ### Accepted risks
 
 - `metadata.legacy_faction_class` (historical faction/class metadata): No active Set 2 change; retain as non-blocking legacy metadata until an author explicitly normalizes it. Baseline: `[{'unit_id': 'skibidi_kubus', 'missing': ['classes']}]` Consequence: The active runtime remains on the approved 32-unit/12-trait contract without invented mappings.
@@ -166,7 +165,7 @@ The runtime currently scales HP by ×1.6 and attack by ×1.4 per star step; defe
 ## Economy audit
 
 - Shop has 5 offer slots; reroll costs `2g`; buying XP costs `4g` for `4 XP`.
-- XP path discrepancy: the live route grants +2 XP per combat, while the helper adds another +2 XP on wins (4 XP on a win).
+- XP contract: the live route and retained processor award exactly +2 XP for every completed combat, on both wins and losses.
 - Approved income formula: `base 5 + interest min(5, gold//10 after win bonus) + win bonus 1 + fixed milestone 5g every fifth completed round`.
 - Approved milestone contract: every fifth completed round grants fixed `5g`; round 3 grants exactly `3` item parts; other fifth-round milestones grant one base item part, with `+1` extra at round 10, `+2` at round 20, `+3` at round 30, and so on.
 - Item parts are canonical `BASE_ITEMS` IDs appended to `PlayerState.item_inventory`, so the persisted inventory is the player-visible reward state.

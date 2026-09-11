@@ -749,9 +749,12 @@ def economy_audit() -> dict[str, Any]:
     for outcome in ("all_losses", "all_wins"):
         level, xp = 1, 0
         for round_index in range(1, 16):
-            xp_amount = 2 if outcome == "all_losses" else 4
+            # The canonical post-combat contract awards +2 XP for every
+            # completed combat, independent of the winner. Keep this audit
+            # model aligned with process_combat_results and PlayerState.
+            xp_amount = 2
             level, xp = advance_route(level, xp, xp_amount)
-        xp_rows.append({"path": outcome, "combats": 15, "level": level, "xp_remainder": xp, "xp_per_loss": 2, "xp_per_win": 4 if outcome == "all_wins" else "n/a"})
+        xp_rows.append({"path": outcome, "combats": 15, "level": level, "xp_remainder": xp, "xp_per_loss": 2, "xp_per_win": 2 if outcome == "all_wins" else "n/a"})
 
     gold_rows = []
     for outcome in ("all_losses", "all_wins"):
@@ -911,14 +914,6 @@ def build_findings(report: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
         "proposed_change": "Author-review the per-unit baseline/proposed actions in unit_statuses; do not apply automatic numeric changes.",
         "expected_consequence": "Unit changes are reviewed after system-rule findings, avoiding a unit patch that masks a systemic imbalance.",
     })
-    should_fix.append({
-        "id": "economy.xp_contract_confirmation",
-        "scope": "XP economy",
-        "baseline": report["economy"]["xp_paths"],
-        "proposed_change": "Confirm one canonical XP-per-combat and win-bonus contract before balance sign-off.",
-        "expected_consequence": "Future unit and trait measurements are not confounded by an unresolved progression-rate interpretation.",
-    })
-
     legacy_gaps = report["roster_integrity"]["missing_faction_or_class"]
     if legacy_gaps:
         accepted_risks.append({
@@ -1056,7 +1051,7 @@ def markdown_report(report: dict[str, Any]) -> str:
         "## Economy audit",
         "",
         f"- Shop has 5 offer slots; reroll costs `{report['economy']['reroll_cost']}g`; buying XP costs `{report['economy']['xp_purchase']['gold']}g` for `{report['economy']['xp_purchase']['xp']} XP`.",
-        f"- XP path discrepancy: the live route grants +2 XP per combat, while the helper adds another +2 XP on wins (4 XP on a win).",
+        "- XP contract: the live route and retained processor award exactly +2 XP for every completed combat, on both wins and losses.",
         f"- Approved income formula: `{report['economy']['income_formula']}`.",
         "- Approved milestone contract: every fifth completed round grants fixed `5g`; round 3 grants exactly `3` item parts; other fifth-round milestones grant one base item part, with `+1` extra at round 10, `+2` at round 20, `+3` at round 30, and so on.",
         "- Item parts are canonical `BASE_ITEMS` IDs appended to `PlayerState.item_inventory`, so the persisted inventory is the player-visible reward state.",
