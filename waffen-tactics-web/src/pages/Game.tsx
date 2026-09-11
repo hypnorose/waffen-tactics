@@ -13,6 +13,7 @@ import { loadUnits } from '../data/units'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import ItemsPanel from '../components/ItemsPanel'
 import type { Item } from '../data/items'
+import { buildDiscordAvatarUrl } from '../services/avatar'
 
 export default function Game() {
   const { user, logout } = useAuthStore()
@@ -61,7 +62,8 @@ export default function Game() {
     const ensureAvatar = async () => {
       if (!user?.id) return
       try {
-        const avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=256`
+        const avatarUrl = buildDiscordAvatarUrl(user.id, user.avatar)
+        if (!avatarUrl) return
         await gameAPI.ensurePlayerAvatar({ avatarUrl })
       } catch (err) {
         // Non-fatal; ignore
@@ -70,6 +72,8 @@ export default function Game() {
     }
     ensureAvatar()
   }, [user])
+
+  const playerAvatarUrl = buildDiscordAvatarUrl(user?.id, user?.avatar, 128)
   
   useEffect(() => {
     // Check if game is over
@@ -291,11 +295,21 @@ export default function Game() {
           <div className="flex items-center justify-between">
             {/* Left: Avatar + User Info + Stats */}
             <div className="flex items-center gap-4">
-              <img
-                src={`https://cdn.discordapp.com/avatars/${user?.id}/${user?.avatar}.png`}
-                alt="Avatar"
-                className="w-12 h-12 rounded-full ring-2 ring-primary/30"
-              />
+              {playerAvatarUrl ? (
+                <img
+                  src={playerAvatarUrl}
+                  alt="Avatar"
+                  className="w-12 h-12 rounded-full ring-2 ring-primary/30"
+                />
+              ) : (
+                <div
+                  role="img"
+                  aria-label="Brak avatara"
+                  className="w-12 h-12 rounded-full ring-2 ring-primary/30 bg-slate-700 flex items-center justify-center font-bold text-primary"
+                >
+                  {user?.username?.charAt(0).toUpperCase() || '?'}
+                </div>
+              )}
               <div className="flex items-center gap-4">
                 <div>
                   <div className="text-sm font-bold">{user?.username}</div>

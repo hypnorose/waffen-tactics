@@ -65,6 +65,11 @@ AVATAR_TIMEOUT = (
 class AvatarFetchError(RuntimeError):
     """Safe internal error for rejected or incomplete avatar downloads."""
 
+    def __init__(self, reason: str, *, upstream_status: int | None = None):
+        super().__init__(reason)
+        self.reason = reason
+        self.upstream_status = upstream_status
+
 
 def _avatar_allowed_hosts():
     configured = os.getenv('AVATAR_ALLOWED_HOSTS', 'cdn.discordapp.com')
@@ -125,7 +130,7 @@ def _validate_avatar_url(url: str, allowed_hosts=None):
 
 def _image_bytes_from_response(response):
     if response.status_code != 200:
-        raise AvatarFetchError('upstream_status')
+        raise AvatarFetchError('upstream_status', upstream_status=response.status_code)
     content_type = response.headers.get('Content-Type', '').split(';', 1)[0].strip().lower()
     allowed_types = {
         'image/png': b'\x89PNG\r\n\x1a\n',
@@ -372,7 +377,13 @@ def player_avatar_route(user_id):
             avatar_url = f"https://cdn.discordapp.com/avatars/{payload.get('user_id')}/{avatar_hash}.png?size=256"
 
         if not avatar_url:
-            return jsonify({'error': 'No avatar URL available'}), 400
+            return jsonify({
+                'avatarUrl': None,
+                'cached': False,
+                'available': False,
+                'code': 'avatar_not_configured',
+                'request_id': request_id,
+            }), 200
 
         # Validate even when a local cache exists so a caller cannot use the
         # endpoint as an SSRF oracle by swapping the URL on a cached user.
@@ -392,7 +403,13 @@ def player_avatar_route(user_id):
                 run_async(db_manager.set_opponent_avatar_local(int(user_id), f"players/{filename}"))
             except Exception:
                 pass
-            return jsonify({'avatarUrl': f"/avatars/players/{filename}", 'cached': True})
+            return jsonify({
+                'avatarUrl': f"/avatars/players/{filename}",
+                'cached': True,
+                'available': True,
+                'code': 'avatar_available',
+                'request_id': request_id,
+            })
 
         # Download and validate the complete body before creating the file.
         avatar_bytes = _fetch_avatar_bytes(str(avatar_url))
@@ -403,18 +420,47 @@ def player_avatar_route(user_id):
         except Exception:
             pass
 
-        return jsonify({'avatarUrl': f"/avatars/players/{filename}", 'cached': False})
-    except AvatarFetchError as exc:
-        logger.warning(
-            'avatar fetch rejected request_id=%s reason=%s',
-            request_id,
-            str(exc),
-        )
         return jsonify({
-            'error': 'Avatar unavailable',
-            'code': 'avatar_fetch_failed',
+            'avatarUrl': f"/avatars/players/{filename}",
+            'cached': False,
+            'available': True,
+            'code': 'avatar_available',
             'request_id': request_id,
-        }), 400
+        })
+    except AvatarFetchError as exc:
+        request_reasons = {
+            'invalid_url',
+            'unsupported_url',
+            'credentials_in_url',
+            'host_not_allowed',
+            'invalid_port',
+            'private_address',
+            'invalid_resolved_address',
+        }
+        if exc.reason in request_reasons:
+            status = 400
+            code = 'avatar_request_invalid'
+        elif exc.reason in {'invalid_destination', 'local_write_failed'}:
+            status = 503
+            code = 'avatar_service_unavailable'
+        else:
+            status = 502
+            code = 'avatar_unavailable'
+        logger.warning(
+            'avatar fetch rejected request_id=%s reason=%s upstream_status=%s',
+            request_id,
+            exc.reason,
+            exc.upstream_status,
+        )
+        payload = {
+            'error': 'Avatar unavailable',
+            'code': code,
+            'reason': exc.reason,
+            'request_id': request_id,
+        }
+        if exc.upstream_status is not None:
+            payload['upstream_status'] = exc.upstream_status
+        return jsonify(payload), status
     except (TypeError, ValueError, KeyError):
         logger.warning('avatar request rejected request_id=%s reason=invalid_request', request_id)
         return jsonify({

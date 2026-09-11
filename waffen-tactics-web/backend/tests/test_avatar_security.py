@@ -63,8 +63,8 @@ def test_redirect_to_private_address_is_revalidated(monkeypatch):
 
 
 class _Response:
-    def __init__(self, content_type='image/png', chunks=(b'\x89PNG\r\n\x1a\nimage',), length=None):
-        self.status_code = 200
+    def __init__(self, content_type='image/png', chunks=(b'\x89PNG\r\n\x1a\nimage',), length=None, status_code=200):
+        self.status_code = status_code
         body_length = sum(len(chunk) for chunk in chunks)
         self.headers = {
             'Content-Type': content_type,
@@ -143,6 +143,93 @@ def test_valid_image_is_written_inside_avatar_directory(client, monkeypatch, tmp
     destination = tmp_path / '42.png'
     assert destination.read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
     assert destination.parent.resolve() == tmp_path.resolve()
+
+
+def test_upstream_non_200_is_reported_as_avatar_unavailable_with_status(client, monkeypatch, tmp_path, caplog):
+    _allow_public_avatar_host(monkeypatch)
+    monkeypatch.setattr(game_routes, 'AVATAR_DIRECTORY', tmp_path)
+    monkeypatch.setattr(
+        game_routes.requests,
+        'get',
+        lambda *args, **kwargs: _Response(status_code=404),
+    )
+    token = jwt.encode({'user_id': '42', 'exp': 4102444800}, JWT_SECRET, algorithm='HS256')
+
+    with caplog.at_level(logging.WARNING):
+        result = client.post(
+            '/game/player-avatar',
+            json={'avatarUrl': 'https://cdn.discordapp.com/avatar.png'},
+            headers={'Authorization': f'Bearer {token}', 'X-Request-ID': 'avatar-upstream-404'},
+        )
+
+    assert result.status_code == 502
+    assert result.get_json() == {
+        'error': 'Avatar unavailable',
+        'code': 'avatar_unavailable',
+        'reason': 'upstream_status',
+        'upstream_status': 404,
+        'request_id': 'avatar-upstream-404',
+    }
+    assert 'request_id=avatar-upstream-404' in caplog.text
+    assert 'reason=upstream_status' in caplog.text
+    assert 'upstream_status=404' in caplog.text
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_missing_custom_avatar_is_a_stable_noop(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(game_routes, 'AVATAR_DIRECTORY', tmp_path)
+    monkeypatch.setattr(
+        game_routes.requests,
+        'get',
+        lambda *args, **kwargs: pytest.fail('a missing custom avatar must not fetch a CDN URL'),
+    )
+    token = jwt.encode({'user_id': '42', 'exp': 4102444800}, JWT_SECRET, algorithm='HS256')
+
+    result = client.post(
+        '/game/player-avatar',
+        json={},
+        headers={'Authorization': f'Bearer {token}', 'X-Request-ID': 'avatar-not-configured'},
+    )
+
+    assert result.status_code == 200
+    assert result.get_json() == {
+        'avatarUrl': None,
+        'cached': False,
+        'available': False,
+        'code': 'avatar_not_configured',
+        'request_id': 'avatar-not-configured',
+    }
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_second_valid_avatar_request_uses_local_cache(client, monkeypatch, tmp_path):
+    _allow_public_avatar_host(monkeypatch)
+    monkeypatch.setattr(game_routes, 'AVATAR_DIRECTORY', tmp_path)
+    response = _Response()
+    calls = []
+    monkeypatch.setattr(
+        game_routes.requests,
+        'get',
+        lambda *args, **kwargs: calls.append(args[0]) or response,
+    )
+    token = jwt.encode({'user_id': '42', 'exp': 4102444800}, JWT_SECRET, algorithm='HS256')
+    headers = {'Authorization': f'Bearer {token}', 'X-Request-ID': 'avatar-cache'}
+    body = {'avatarUrl': 'https://cdn.discordapp.com/avatar.png'}
+
+    first = client.post('/game/player-avatar', json=body, headers=headers)
+    second = client.post('/game/player-avatar', json=body, headers=headers)
+
+    assert first.status_code == 200
+    assert first.get_json()['cached'] is False
+    assert second.status_code == 200
+    assert second.get_json() == {
+        'avatarUrl': '/avatars/players/42.png',
+        'cached': True,
+        'available': True,
+        'code': 'avatar_available',
+        'request_id': 'avatar-cache',
+    }
+    assert calls == ['https://cdn.discordapp.com/avatar.png']
 
 
 @pytest.mark.parametrize(
