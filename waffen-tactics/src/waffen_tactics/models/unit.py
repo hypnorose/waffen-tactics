@@ -134,6 +134,20 @@ class ComputedStats:
 
         for eff in effects:
             etype = eff.get('type')
+            if etype == 'item':
+                item_stats = eff.get('stats', {})
+                if isinstance(item_stats, dict):
+                    lifesteal = max(lifesteal, float(item_stats.get('lifesteal_percent', 0) or 0))
+                    hp_regen_per_sec += float(item_stats.get('hp_regen_per_sec', 0) or 0)
+            elif etype in ('buff', 'debuff'):
+                stat = eff.get('stat')
+                delta = float(eff.get('applied_delta', 0) or 0)
+                if stat == 'lifesteal':
+                    lifesteal += delta
+                elif stat == 'damage_reduction':
+                    damage_reduction += delta
+                elif stat == 'hp_regen_per_sec':
+                    hp_regen_per_sec += delta
             if etype == 'lifesteal':
                 lifesteal = max(lifesteal, float(eff.get('value', 0)))
             elif etype == 'damage_reduction':

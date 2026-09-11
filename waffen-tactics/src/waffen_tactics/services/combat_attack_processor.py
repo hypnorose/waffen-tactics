@@ -152,8 +152,8 @@ class CombatAttackProcessor:
                     # still ordinary mana changes, never skill casts.
                     if passive_plan.get('mana_self'):
                         combat_state = getattr(self, '_combat_state', None)
-                        emit_mana_change(
-                            event_callback,
+                        mana_self_payload = emit_mana_change(
+                            None,
                             unit,
                             passive_plan['mana_self'],
                             side=side,
@@ -162,6 +162,25 @@ class CombatAttackProcessor:
                             unit_index=i,
                             unit_side=side,
                         )
+                        if isinstance(passive_plan.get('item_context'), dict) and isinstance(mana_self_payload, dict):
+                            item_context = passive_plan['item_context']
+                            mana_self_payload.update({
+                                'item_id': item_context.get('item_id'),
+                                'item_effect_id': item_context.get('item_effect_id'),
+                                'item_effect': item_context.get('item_effect'),
+                            })
+                        if event_callback and isinstance(mana_self_payload, dict):
+                            event_callback('mana_update', mana_self_payload)
+                        if passive_processor and isinstance(mana_self_payload, dict):
+                            passive_processor.after_attack_mana(
+                                unit,
+                                attacking_team,
+                                int(mana_self_payload.get('amount', 0)),
+                                event_callback,
+                                side,
+                                time,
+                                bonus_attack=False,
+                            )
                     if passive_plan.get('mana_burn') and target is not None:
                         target_side = 'team_b' if side == 'team_a' else 'team_a'
                         target_index = defending_team.index(target)
@@ -287,6 +306,7 @@ class CombatAttackProcessor:
                             damage_multiplier=action_plan.get('damage_multiplier', 1.0),
                             ignore_defense_pct=action_plan.get('ignore_defense_pct', 0.0),
                         ) if bonus_attack else dmg
+                        action_damage += int(action_plan.get('additional_raw_damage', 0) or 0)
 
                         damage_plan = {}
                         if getattr(self, 'passive_processor', None):
@@ -319,6 +339,15 @@ class CombatAttackProcessor:
                                 unit_side=unit_side,
                                 bonus_attack=bonus_attack,
                             )
+
+                            item_context = action_plan.get('item_context')
+                            if isinstance(item_context, dict) and isinstance(dmg_payload, dict):
+                                dmg_payload.update({
+                                    'item_id': item_context.get('item_id'),
+                                    'item_effect_id': item_context.get('item_effect_id'),
+                                    'item_effect': item_context.get('item_effect'),
+                                })
+
                             append_result('damage_dodged', {
                                 'unit_id': getattr(target_obj, 'id', None),
                                 'unit_name': getattr(target_obj, 'name', None),
@@ -349,6 +378,55 @@ class CombatAttackProcessor:
                                 unit_side=unit_side,
                                 bonus_attack=bonus_attack,
                             )
+
+                            # Reflect damage is a separate canonical hit after
+                            # the direct hit. It never re-enters damage_plan,
+                            # which prevents reflect recursion.
+                            for reflected_target, reflected_amount, reflected_item in damage_plan.get('reflected', []):
+                                if reflected_amount <= 0 or getattr(reflected_target, '_dead', False):
+                                    continue
+                                reflector_side = 'team_a' if side_val == 'team_b' else 'team_b'
+                                reflected_team = self.team_a if side_val == 'team_a' else self.team_b
+                                reflected_index = next((idx for idx, unit in enumerate(reflected_team) if unit is reflected_target), None)
+                                reflected_payload = emit_damage(
+                                    None, target_obj, reflected_target,
+                                    raw_damage=reflected_amount,
+                                    damage_type='physical', side=reflector_side,
+                                    timestamp=deliver_ts, cause='item_reflect',
+                                    emit_event=False, hp_arrays=hp_arrays,
+                                    unit_index=reflected_index, unit_side=side_val,
+                                )
+                                reflected_payload.update({
+                                    'item_id': reflected_item.get('item_id'),
+                                    'item_effect_id': reflected_item.get('item_effect_id'),
+                                    'item_effect': reflected_item.get('item_effect'),
+                                    'cause': 'item_reflect',
+                                })
+                                reflected_attack = self._build_unit_attack_payload(
+                                    target_obj, reflected_target, reflected_amount,
+                                    reflector_side, deliver_ts,
+                                    reflected_payload.get('pre_hp', reflected_target.hp),
+                                    reflected_payload.get('post_hp', reflected_target.hp),
+                                    dmg_payload=reflected_payload,
+                                )
+                                reflected_attack.update({
+                                    'cause': 'item_reflect',
+                                    'item_id': reflected_item.get('item_id'),
+                                    'item_effect_id': reflected_item.get('item_effect_id'),
+                                    'item_effect': reflected_item.get('item_effect'),
+                                })
+                                append_result('unit_attack', reflected_attack)
+                                if reflected_payload.get('post_hp') == 0 and not getattr(reflected_target, '_dead', False):
+                                    reflected_died = emit_unit_died(
+                                        None, reflected_target, side=side_val,
+                                        timestamp=deliver_ts,
+                                        unit_hp=reflected_payload.get('pre_hp'),
+                                        hp_arrays=hp_arrays,
+                                        unit_index=reflected_index,
+                                        unit_side=side_val,
+                                    )
+                                    if reflected_died:
+                                        append_result('unit_died', reflected_died)
 
                             for redirected_target, redirected_amount in damage_plan.get('redirects', []):
                                 if redirected_amount <= 0 or getattr(redirected_target, '_dead', False):
@@ -490,10 +568,51 @@ class CombatAttackProcessor:
                             bonus_attack=bonus_attack,
                             dmg_payload=dmg_payload,
                         )
+                        if isinstance(action_plan.get('item_context'), dict):
+                            item_context = action_plan['item_context']
+                            ua.update({
+                                'item_id': item_context.get('item_id'),
+                                'item_effect_id': item_context.get('item_effect_id'),
+                                'item_effect': item_context.get('item_effect'),
+                            })
                         append_result('unit_attack', ua)
 
                         if mana_payload:
                             append_result('mana_update', mana_payload)
+
+                        # Bonus-attack item mana is applied after the normal
+                        # bonus attack reset and uses the same canonical path.
+                        if action_plan.get('bonus_mana'):
+                            combat_state = getattr(self, '_combat_state', None)
+                            bonus_mana = emit_mana_change(
+                                None,
+                                attacker,
+                                int(action_plan['bonus_mana']),
+                                side=side_val,
+                                timestamp=deliver_ts,
+                                mana_arrays=combat_state.mana_arrays if combat_state else None,
+                                unit_index=atk_index,
+                                unit_side=side_val,
+                            )
+                            if bonus_mana:
+                                if getattr(self, 'passive_processor', None):
+                                    self.passive_processor.after_attack_mana(
+                                        attacker,
+                                        self.team_a if side_val == 'team_a' else self.team_b,
+                                        int(bonus_mana.get('amount', 0)),
+                                        local_collector,
+                                        side_val,
+                                        deliver_ts,
+                                        bonus_attack=True,
+                                    )
+                                if isinstance(action_plan.get('item_context'), dict):
+                                    item_context = action_plan['item_context']
+                                    bonus_mana.update({
+                                        'item_id': item_context.get('item_id'),
+                                        'item_effect_id': item_context.get('item_effect_id'),
+                                        'item_effect': item_context.get('item_effect'),
+                                    })
+                                append_result('mana_update', bonus_mana)
 
                         # Bonus attack team-mana effects are ordinary mana
                         # updates, intentionally without a skill event.
@@ -542,6 +661,8 @@ class CombatAttackProcessor:
                             if stun_payload:
                                 append_result('unit_stunned', stun_payload)
                         secondary_scope = action_plan.get('secondary_scope')
+                        secondary_operations = list(action_plan.get('secondary_hits', []))
+                        secondary_operations.extend(action_plan.get('secondary_targets', []))
                         if secondary_scope:
                             target_team = self.team_b if side_val == 'team_a' else self.team_a
                             candidates = [u for u in target_team if u is not target_obj and getattr(u, 'hp', 0) > 0]
@@ -551,16 +672,35 @@ class CombatAttackProcessor:
                                 candidates = [min(candidates, key=lambda u: getattr(u, 'hp', 0))]
                             elif secondary_scope != 'all':
                                 candidates = candidates[:1]
-                            for secondary in candidates:
+                            secondary_operations.extend((secondary, None, action_plan.get('item_context')) for secondary in candidates)
+                        if secondary_operations:
+                            target_team = self.team_b if side_val == 'team_a' else self.team_a
+                            for secondary, explicit_damage, secondary_item in secondary_operations:
+                                if getattr(secondary, 'hp', 0) <= 0 or getattr(secondary, '_dead', False):
+                                    continue
                                 secondary_side = 'team_b' if side_val == 'team_a' else 'team_a'
                                 secondary_index = next((idx for idx, u in enumerate(target_team) if u is secondary), None)
-                                if action_plan.get('secondary_raw_multiplier') is not None:
+                                if explicit_damage is not None:
+                                    secondary_damage = int(explicit_damage)
+                                elif action_plan.get('secondary_raw_multiplier') is not None:
                                     secondary_damage = int(getattr(attacker, 'attack', 0) * float(action_plan['secondary_raw_multiplier']))
                                 else:
                                     secondary_damage = self._calculate_damage(attacker, secondary, damage_multiplier=action_plan.get('secondary_multiplier', 0.0))
-                                secondary_payload = emit_damage(None, attacker, secondary, raw_damage=secondary_damage, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='passive_secondary', emit_event=False, hp_arrays=hp_arrays, unit_index=secondary_index, unit_side=secondary_side, bonus_attack=bonus_attack)
+                                secondary_payload = emit_damage(None, attacker, secondary, raw_damage=secondary_damage, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='item_secondary' if secondary_item else 'passive_secondary', emit_event=False, hp_arrays=hp_arrays, unit_index=secondary_index, unit_side=secondary_side, bonus_attack=bonus_attack)
+                                if isinstance(secondary_item, dict):
+                                    secondary_payload.update({
+                                        'item_id': secondary_item.get('item_id'),
+                                        'item_effect_id': secondary_item.get('item_effect_id'),
+                                        'item_effect': secondary_item.get('item_effect'),
+                                    })
                                 secondary_attack = self._build_unit_attack_payload(attacker, secondary, secondary_damage, side_val, deliver_ts, secondary_payload.get('pre_hp', secondary.hp), secondary_payload.get('post_hp', secondary.hp), bonus_attack=bonus_attack, dmg_payload=secondary_payload)
-                                secondary_attack['cause'] = 'passive_secondary'
+                                secondary_attack['cause'] = 'item_secondary' if secondary_item else 'passive_secondary'
+                                if isinstance(secondary_item, dict):
+                                    secondary_attack.update({
+                                        'item_id': secondary_item.get('item_id'),
+                                        'item_effect_id': secondary_item.get('item_effect_id'),
+                                        'item_effect': secondary_item.get('item_effect'),
+                                    })
                                 append_result('unit_attack', secondary_attack)
 
                         # The target-side threshold passives see authoritative
@@ -704,7 +844,17 @@ class CombatAttackProcessor:
                     ls = getattr(ls, 'lifesteal', 0.0)
                 else:
                     ls = 0.0
-                if ls and damage > 0:
+                from .items import ITEMS
+                has_item_lifesteal = any(
+                    isinstance(effect, dict)
+                    and effect.get('type') == 'item'
+                    and ITEMS.get(effect.get('item_id'), {}).get('effect', {}).get('family') == 'lifesteal'
+                    for effect in (getattr(unit, 'effects', []) or [])
+                )
+                if ls and damage > 0 and (
+                    not (hasattr(self, 'schedule_event') and event_callback)
+                    or not has_item_lifesteal
+                ):
                     heal = int(damage * (ls / 100.0))
                     if heal > 0:
                         # Use canonical emitter for lifesteal healing

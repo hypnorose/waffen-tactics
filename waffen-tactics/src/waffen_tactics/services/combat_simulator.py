@@ -75,6 +75,8 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
         # Initialize processors that require construction
         CombatEffectProcessor.__init__(self, modular_effect_processor=modular_effect_processor)
         self.passive_processor = PassiveProcessor()
+        self.passive_processor.simulator = self
+        self.passive_processor.items.simulator = self
         # Basic simulator state
         self.dt = dt
         self.timeout = timeout
@@ -328,6 +330,11 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                     stat=effect.get('stat'),
                     applied_delta=effect.get('applied_delta'),
                     applied_amount=effect.get('applied_amount'),
+                    item_id=effect.get('item_id'),
+                    item_effect_id=effect.get('item_effect_id'),
+                    item_effect=effect.get('item_effect'),
+                    stack=effect.get('stack') or effect.get('stacks'),
+                    stack_cap=effect.get('stack_cap'),
                 )
 
         return
@@ -482,10 +489,14 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
 
         # ensure unit runtime fields exist
         for u in self.team_a + self.team_b:
-            if not hasattr(u, 'mana'):
-                u.mana = 0
-            if not hasattr(u, 'last_attack_time'):
-                u.last_attack_time = 0.0
+            # A CombatSimulator instance represents one fresh fight. Reset
+            # transient attack timing when callers reuse unit objects while
+            # preserving an explicitly supplied starting mana value.
+            u.last_attack_time = 0.0
+            # Item counters/timers are combat-local and the approved matrix
+            # explicitly resets them between fights.
+            if hasattr(u, 'item_runtime_state'):
+                u.item_runtime_state = {}
 
         log = []
         time = 0.0

@@ -47,6 +47,10 @@ class CombatUnit:
         self.traits = list(traits or [])
         self.passive = copy.deepcopy(passive) if isinstance(passive, dict) else None
         self.passive_state: Dict[str, Any] = {}
+        # Fight-local item counters/timers are deliberately kept separate
+        # from persistent loadout data and are serialized only for replay
+        # snapshots.
+        self.item_runtime_state: Dict[str, Any] = {}
         
         # Computed stats cache
         self._computed_stats = ComputedStats.from_effects(self._state.effects)
@@ -98,7 +102,8 @@ class CombatUnit:
             'current_mana': mana,
             'max_mana': self._stats.max_mana,
             'shield': self._state.shield,
-            'buffed_stats': buffed_stats_snapshot
+            'buffed_stats': buffed_stats_snapshot,
+            'item_runtime_state': copy.deepcopy(self.item_runtime_state),
         }
 
     # `take_damage` removed — HP mutation must be performed via canonical

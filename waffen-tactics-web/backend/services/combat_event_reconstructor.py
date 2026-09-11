@@ -120,6 +120,8 @@ class CombatEventReconstructor:
             self._process_stat_buff_event(event_data)
         elif event_type == 'hp_regen':
             self._process_hp_regen_event(event_data)
+        elif event_type == 'regen_gain':
+            self._process_regen_gain_event(event_data)
         elif event_type == 'skill_cast':
             self._process_skill_cast_event(event_data)
         elif event_type == 'passive_triggered':
@@ -517,6 +519,33 @@ class CombatEventReconstructor:
             )
         unit_dict['hp'] = event_data['post_hp']
         # print(f"  Regenerated HP for unit {unit_id} from {old_hp} to {unit_dict['hp']}")
+
+    def _process_regen_gain_event(self, event_data: Dict[str, Any]):
+        """Apply the authoritative post-state of an HP-regen source."""
+        unit_id = event_data.get('unit_id')
+        if not unit_id:
+            raise ValueError(f"HP regen gain event missing unit_id: {event_data}")
+        unit_dict = self._get_unit_dict(unit_id)
+        if unit_dict is None:
+            raise ValueError(
+                f"HP regen gain event references unknown unit_id={unit_id} "
+                f"at seq={event_data.get('seq')}: {event_data}"
+            )
+
+        post_regen = event_data.get('post_hp_regen_per_sec')
+        if (
+            isinstance(post_regen, bool)
+            or not isinstance(post_regen, (int, float))
+            or not math.isfinite(float(post_regen))
+        ):
+            raise ValueError(
+                f"HP regen gain event missing canonical post_hp_regen_per_sec "
+                f"for unit_id={unit_id} at seq={event_data.get('seq')}: {event_data}"
+            )
+
+        buffed_stats = dict(unit_dict.get('buffed_stats') or {})
+        buffed_stats['hp_regen_per_sec'] = post_regen
+        unit_dict['buffed_stats'] = buffed_stats
 
     def _process_stun_event(self, event_data: Dict[str, Any]):
         """Process unit_stunned event."""

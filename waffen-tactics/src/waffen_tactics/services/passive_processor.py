@@ -20,6 +20,7 @@ from .event_canonicalizer import (
     emit_unit_stunned,
 )
 from .set2_runtime import Set2Runtime
+from .item_runtime import ItemRuntime
 
 
 EventCallback = Optional[Callable[[str, Dict[str, Any]], None]]
@@ -30,6 +31,7 @@ class PassiveProcessor:
 
     def __init__(self) -> None:
         self.set2 = Set2Runtime()
+        self.items = ItemRuntime()
 
     def _definition(self, unit: Any) -> Optional[Dict[str, Any]]:
         value = getattr(unit, "passive", None)
@@ -119,6 +121,7 @@ class PassiveProcessor:
 
     def initialize(self, team_a: List[Any], team_b: List[Any], callback: EventCallback, timestamp: float = 0.0) -> None:
         """Apply all start passives once, before the first attack."""
+        self.items.initialize(team_a, team_b, callback, timestamp)
         for side, owners, enemies in (("team_a", team_a, team_b), ("team_b", team_b, team_a)):
             for owner in owners:
                 definition = self._definition(owner)
@@ -205,6 +208,10 @@ class PassiveProcessor:
         if set2_plan.get("damage_multiplier") is not None:
             plan["damage_multiplier"] = plan.get("damage_multiplier", 1.0) * set2_plan["damage_multiplier"]
         plan.update({key: value for key, value in set2_plan.items() if key != "damage_multiplier"})
+        item_plan = self.items.before_attack(unit, target, team, enemies, callback, side, timestamp)
+        if item_plan.get("damage_multiplier") is not None:
+            plan["damage_multiplier"] = plan.get("damage_multiplier", 1.0) * item_plan["damage_multiplier"]
+        plan.update({key: value for key, value in item_plan.items() if key != "damage_multiplier"})
         return plan
 
     def _apply_attack_effect(self, unit: Any, target: Any, definition: Dict[str, Any], team: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float, plan: Dict[str, Any]) -> None:
@@ -275,6 +282,10 @@ class PassiveProcessor:
         if set2_plan.get("damage_multiplier") is not None:
             plan["damage_multiplier"] = plan.get("damage_multiplier", 1.0) * set2_plan["damage_multiplier"]
         plan.update({key: value for key, value in set2_plan.items() if key != "damage_multiplier"})
+        item_plan = self.items.bonus_attack_plan(unit, target, team, enemies, callback, side, timestamp)
+        if item_plan.get("damage_multiplier") is not None:
+            plan["damage_multiplier"] = plan.get("damage_multiplier", 1.0) * item_plan["damage_multiplier"]
+        plan.update({key: value for key, value in item_plan.items() if key != "damage_multiplier"})
         self._emit(callback, unit, "on_bonus_attack", effect or "bonus_attack", side, timestamp, target_id=getattr(target, "id", None))
         return plan
 
@@ -315,6 +326,7 @@ class PassiveProcessor:
                         emit_regen_gain(callback, unit, unit.max_hp * self._scaled_value(owner, definition["value"]) / 100 / max(1, definition.get("duration", 5)), duration=definition.get("duration", 5), side=side, timestamp=timestamp)
                     self._emit(callback, owner, "on_ally_hp_below", effect, side, timestamp, target_id=unit.id)
 
+        self.items.after_damage(unit, old_hp, new_hp, team, enemies, callback, side, timestamp)
         self.set2.after_damage(unit, old_hp, new_hp, team, enemies, callback, side, timestamp)
 
     def on_kill(self, killer: Any, team: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float) -> None:
@@ -334,18 +346,28 @@ class PassiveProcessor:
             self._emit(callback, killer, "on_kill", effect, side, timestamp)
 
     def on_unit_death(self, dead: Any, surviving_team: List[Any], enemy_team: List[Any], callback: EventCallback, side: str, timestamp: float) -> None:
+        self.items.on_unit_death(dead, surviving_team, enemy_team, callback, side, timestamp)
         self.set2.on_unit_death(dead, surviving_team, enemy_team, callback, side, timestamp, hp_arrays=getattr(self, "_hp_arrays", None))
 
     def damage_plan(self, attacker: Any, target: Any, raw_damage: int, team: List[Any], enemies: List[Any], side: str, timestamp: float, callback: EventCallback) -> Dict[str, Any]:
-        return self.set2.damage_plan(attacker, target, raw_damage, team, enemies, side, timestamp, callback)
+        plan = self.set2.damage_plan(attacker, target, raw_damage, team, enemies, side, timestamp, callback)
+        item_plan = self.items.damage_plan(attacker, target, raw_damage, team, enemies, side, timestamp, callback)
+        for key, value in item_plan.items():
+            if isinstance(value, list):
+                plan.setdefault(key, []).extend(value)
+            else:
+                plan[key] = value
+        return plan
 
     def try_revive(self, target: Any, callback: EventCallback, side: str, timestamp: float, unit_index: Optional[int], unit_side: Optional[str]) -> bool:
         return self.set2.try_revive(target, callback, side, timestamp, getattr(self, "_hp_arrays", None), unit_index, unit_side)
 
     def after_attack_mana(self, unit: Any, team: List[Any], amount: int, callback: EventCallback, side: str, timestamp: float, *, bonus_attack: bool = False) -> None:
+        self.items.after_attack_mana(unit, amount, callback, side, timestamp)
         self.set2.after_attack_mana(unit, team, amount, callback, side, timestamp, bonus_attack=bonus_attack)
 
     def after_attack_damage(self, unit: Any, damage: int, callback: EventCallback, side: str, timestamp: float) -> None:
+        self.items.after_attack_damage(unit, damage, callback, side, timestamp)
         self.set2.after_attack_damage(unit, damage, callback, side, timestamp)
 
     def after_bonus_damage(self, unit: Any, damage: int, team: List[Any], callback: EventCallback, side: str, timestamp: float) -> None:
@@ -357,4 +379,28 @@ class PassiveProcessor:
             hp_mirror = getattr(self, "_hp_arrays", {}).get("team_a") if getattr(self, "_hp_arrays", None) else None
         elif getattr(self, "_hp_arrays", None):
             hp_mirror = self._hp_arrays.get("team_b")
+        item_deaths = self.items.per_second(team, enemies, side, timestamp, callback, simulator=getattr(self, "simulator", None))
+        simulator = getattr(self, "simulator", None)
+        if simulator is not None:
+            for killer, dead in item_deaths:
+                if getattr(dead, "_dead", False) or dead not in enemies:
+                    continue
+                defending_index = enemies.index(dead)
+                defending_side = "team_b" if side == "team_a" else "team_a"
+                defending_hp = simulator.b_hp if defending_side == "team_b" else simulator.a_hp
+                attacking_hp = simulator.a_hp if side == "team_a" else simulator.b_hp
+                simulator._process_unit_death(
+                    killer,
+                    enemies,
+                    defending_hp,
+                    team,
+                    attacking_hp,
+                    defending_index,
+                    timestamp,
+                    [],
+                    callback,
+                    side,
+                )
+                self.on_kill(killer, team, enemies, callback, side, timestamp)
+                self.on_unit_death(dead, team, enemies, callback, side, timestamp)
         self.set2.per_second(team, enemies, side, timestamp, callback, hp_mirror=hp_mirror)

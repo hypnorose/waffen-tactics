@@ -106,11 +106,21 @@ class CombatRegenerationProcessor:
         event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
     ) -> None:
         """Apply one unit's effect/base mana regeneration."""
-        base_mana_regen = getattr(unit.stats, 'mana_regen', 0)
+        # CombatManager applies item mana-regeneration to the mutable combat
+        # stat. Reading the immutable template here would silently discard it.
+        base_mana_regen = getattr(
+            unit,
+            'mana_regen',
+            getattr(unit.stats, 'mana_regen', 0),
+        )
         effect_bonus = sum(
             float(effect.get('value', 0))
             for effect in getattr(unit, 'effects', [])
             if effect.get('type') == 'mana_regen'
+            and (
+                effect.get('expires_at') is None
+                or time < float(effect.get('expires_at'))
+            )
         )
         multiplier = 1.0
         multiplier_expires_at = getattr(unit, '_set2_mana_regen_expires_at', None)

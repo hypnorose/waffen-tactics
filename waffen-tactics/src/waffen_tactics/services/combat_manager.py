@@ -63,7 +63,13 @@ class CombatManager:
                 base_defense = int(unit.stats.defense)
                 base_attack_speed = float(unit.stats.attack_speed)
                 
-                base_stats = {'hp': base_hp, 'attack': base_attack, 'defense': base_defense, 'attack_speed': base_attack_speed}
+                base_stats = {
+                    'hp': base_hp,
+                    'attack': base_attack,
+                    'defense': base_defense,
+                    'attack_speed': base_attack_speed,
+                    'mana_regen': getattr(unit.stats, 'mana_regen', 5),
+                }
                 buffed_stats = self.synergy_engine.apply_stat_buffs(base_stats, unit, active_synergies)
                 buffed_stats = self.synergy_engine.apply_dynamic_effects(unit, buffed_stats, active_synergies, player)
 
@@ -75,13 +81,18 @@ class CombatManager:
                     buffed_stats['attack_speed'] += ui.persistent_buffs.get('attack_speed', 0)
 
                 item_effects = []
-                for item_id in getattr(ui, 'items', []):
+                for slot, item_id in enumerate(getattr(ui, 'items', [])):
                     item = ITEMS.get(item_id)
                     if not item:
                         raise InvalidCombatInputError(f"Unknown equipped item: {item_id!r}")
                     item_effects.append({
                         'type': 'item',
+                        'id': f"item:{ui.instance_id}:{slot}:{item_id}",
                         'item_id': item_id,
+                        'item_effect_id': f"{item_id}:effect",
+                        'source': f"a_{ui.instance_id}",
+                        'slot': slot,
+                        'stats': copy.deepcopy(item.get('stats', {})),
                         'description': item.get('description', ''),
                         'effect': copy.deepcopy(item.get('effect')),
                     })
@@ -89,6 +100,7 @@ class CombatManager:
                 # Keep combat and player-state projections on one item-stat
                 # contract. Structured item effects remain available to the
                 # later combat/replay wiring task.
+                buffed_stats.setdefault('mana_regen', getattr(unit.stats, 'mana_regen', 5))
                 buffed_stats = apply_item_stats(buffed_stats, getattr(ui, 'items', []))
 
                 hp = buffed_stats['hp']
@@ -101,7 +113,7 @@ class CombatManager:
                 # Get active effects
                 effects_a = self.synergy_engine.get_active_effects(unit, active_synergies) + item_effects
 
-                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, stats=combat_stats, position=validate_position(ui.position), base_stats=base_stats, star_level=ui.star_level, passive=getattr(unit, 'passive', None), cost=unit.cost, traits=getattr(unit, 'traits', unit.factions + unit.classes)))
+                team_a_combat.append(CombatUnit(id=f"a_{ui.instance_id}", name=unit.name, hp=hp, attack=attack, defense=defense, attack_speed=attack_speed, effects=effects_a, max_mana=unit.stats.max_mana, mana_regen=int(buffed_stats.get('mana_regen', getattr(unit.stats, 'mana_regen', 0))), stats=combat_stats, position=validate_position(ui.position), base_stats=base_stats, star_level=ui.star_level, passive=getattr(unit, 'passive', None), cost=unit.cost, traits=getattr(unit, 'traits', unit.factions + unit.classes)))
 
             # Opponent team
             opponent_units = [u for u in opponent_board]

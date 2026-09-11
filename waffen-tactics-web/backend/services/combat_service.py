@@ -2,6 +2,7 @@
 Combat Service - Pure business logic for combat operations
 """
 import asyncio
+import copy
 from typing import Dict, Any, Tuple, Optional, List, Callable
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from waffen_tactics.models.player_state import PlayerState
 import json
 from waffen_tactics.services.event_canonicalizer import emit_heal, emit_damage
 from waffen_tactics.services.economy import apply_post_combat_rewards
+from waffen_tactics.services.items import ITEMS, apply_item_stats
 from waffen_tactics.services.combat_errors import (
     CombatError,
     CombatExecutionError,
@@ -51,6 +53,32 @@ def _load_game_config():
     return defaults
 
 GAME_CONFIG = _load_game_config()
+
+
+def _item_effects_for_combat(item_ids: Any, owner_id: str) -> List[Dict[str, Any]]:
+    """Build stable runtime item effects from the persisted loadout."""
+    if item_ids is None:
+        item_ids = []
+    if not isinstance(item_ids, list):
+        raise InvalidCombatInputError(f"Invalid item loadout for unit {owner_id!r}")
+
+    effects: List[Dict[str, Any]] = []
+    for slot, item_id in enumerate(item_ids):
+        item = ITEMS.get(item_id)
+        if not item:
+            raise InvalidCombatInputError(f"Unknown equipped item: {item_id!r}")
+        effects.append({
+            'type': 'item',
+            'id': f"item:{owner_id}:{slot}:{item_id}",
+            'item_id': item_id,
+            'item_effect_id': f"{item_id}:effect",
+            'source': owner_id,
+            'slot': slot,
+            'stats': copy.deepcopy(item.get('stats', {})),
+            'description': item.get('description', ''),
+            'effect': copy.deepcopy(item.get('effect')),
+        })
+    return effects
 
 # Initialize services (these would be injected in a proper DI setup)
 DB_PATH = str(Path(__file__).parent.parent.parent.parent / 'waffen-tactics' / 'waffen_tactics_game.db')
@@ -330,18 +358,21 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     star_level = 1
                     position = 'front'
                     persistent_buffs = {}
+                    item_ids = []
                 elif isinstance(unit_instance, dict):
                     instance_id = unit_instance.get('instance_id') or unit_instance.get('id') or unit_instance.get('unit_id')
                     unit_id_key = unit_instance.get('unit_id') or unit_instance.get('template_id') or unit_instance.get('id')
                     star_level = unit_instance.get('star_level', 1)
                     position = validate_position(unit_instance.get('position', 'front'))
                     persistent_buffs = unit_instance.get('persistent_buffs', {}) or {}
+                    item_ids = unit_instance.get('items', []) or []
                 else:
                     instance_id = getattr(unit_instance, 'instance_id', None)
                     unit_id_key = getattr(unit_instance, 'unit_id', None)
                     star_level = getattr(unit_instance, 'star_level', 1)
                     position = validate_position(getattr(unit_instance, 'position', 'front'))
                     persistent_buffs = getattr(unit_instance, 'persistent_buffs', {}) or {}
+                    item_ids = getattr(unit_instance, 'items', []) or []
             except Exception as e:
                 # Surface malformed entries as explicit errors so they appear in logs
                 raise RuntimeError(f"Malformed unit entry in player.board: {unit_instance!r}") from e
@@ -369,7 +400,13 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                 # Keep mana constant across star levels — do not multiply by star_level
                 max_mana = int(base_max_mana)
 
-                base_stats_dict = {'hp': hp, 'attack': attack, 'defense': defense, 'attack_speed': attack_speed}
+                base_stats_dict = {
+                    'hp': hp,
+                    'attack': attack,
+                    'defense': defense,
+                    'attack_speed': attack_speed,
+                    'mana_regen': stat_val(base_stats, 'mana_regen', 5),
+                }
 
                 # Apply synergies using SynergyEngine
                 buffed_stats = game_manager.synergy_engine.apply_stat_buffs(base_stats_dict, unit, player_active)
@@ -382,13 +419,17 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     if stat in buffed_stats:
                         buffed_stats[stat] += value
 
+                buffed_stats.setdefault('mana_regen', stat_val(base_stats, 'mana_regen', 5))
+                item_effects = _item_effects_for_combat(item_ids, str(instance_id))
+                buffed_stats = apply_item_stats(buffed_stats, item_ids)
+
                 hp = buffed_stats['hp']
                 attack = buffed_stats['attack']
                 defense = buffed_stats['defense']
                 attack_speed = buffed_stats['attack_speed']
 
                 # Get active effects
-                effects_for_unit = game_manager.synergy_engine.get_active_effects(unit, player_active)
+                effects_for_unit = game_manager.synergy_engine.get_active_effects(unit, player_active) + item_effects
 
                 # Add max_mana and current_mana to buffed_stats
                 buffed_stats['max_mana'] = max_mana
@@ -405,7 +446,7 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     position=position,
                     effects=effects_for_unit,
                     max_mana=max_mana,
-                    mana_regen=stat_val(base_stats, 'mana_regen', 5),
+                    mana_regen=int(buffed_stats.get('mana_regen', stat_val(base_stats, 'mana_regen', 5))),
                     stats=base_stats,
                     skill={
                         'name': unit.skill.name,
@@ -434,6 +475,7 @@ def prepare_player_units_for_combat(user_id: str) -> Tuple[bool, str, Optional[T
                     'factions': unit.factions,
                     'classes': unit.classes,
                     'position': combat_unit.position,
+                    'items': list(item_ids),
                      'avatar': getattr(unit, 'avatar', None),
                      'passive': getattr(unit, 'passive', None),
                      'buffed_stats': buffed_stats
@@ -543,7 +585,13 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                 # Keep mana constant for opponents as well
                 max_mana = int(base_max_mana_b)
 
-                base_stats_dict_b = {'hp': hp, 'attack': attack, 'defense': defense, 'attack_speed': attack_speed}
+                base_stats_dict_b = {
+                    'hp': hp,
+                    'attack': attack,
+                    'defense': defense,
+                    'attack_speed': attack_speed,
+                    'mana_regen': stat_val(base_stats_b, 'mana_regen', 5),
+                }
 
                 # Apply synergies using SynergyEngine
                 buffed_stats_b = game_manager.synergy_engine.apply_stat_buffs(base_stats_dict_b, unit, opponent_active)
@@ -558,13 +606,18 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                 if buffed_stats_b is None:
                     buffed_stats_b = base_stats_dict_b.copy()
 
+                buffed_stats_b.setdefault('mana_regen', stat_val(base_stats_b, 'mana_regen', 5))
+                item_ids_b = unit_data.get('items', []) if isinstance(unit_data, dict) else []
+                item_effects_b = _item_effects_for_combat(item_ids_b, f'opp_{i}')
+                buffed_stats_b = apply_item_stats(buffed_stats_b, item_ids_b)
+
                 hp = buffed_stats_b['hp']
                 attack = buffed_stats_b['attack']
                 defense = buffed_stats_b['defense']
                 attack_speed = buffed_stats_b['attack_speed']
 
                 # Get active effects
-                effects_b_for_unit = game_manager.synergy_engine.get_active_effects(unit, opponent_active)
+                effects_b_for_unit = game_manager.synergy_engine.get_active_effects(unit, opponent_active) + item_effects_b
 
                 # Determine position: prefer explicit position from saved team data,
                 # otherwise place first 3 units in front and remaining in back to
@@ -583,7 +636,7 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                     position=pos,
                     effects=effects_b_for_unit,
                     max_mana=max_mana,
-                    mana_regen=stat_val(base_stats_b, 'mana_regen', 5),
+                    mana_regen=int(buffed_stats_b.get('mana_regen', stat_val(base_stats_b, 'mana_regen', 5))),
                     stats=base_stats_b,
                     skill={
                         'name': unit.skill.name,
@@ -609,6 +662,7 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                     'factions': unit.factions,
                     'classes': unit.classes,
                     'position': combat_unit.position,
+                    'items': list(item_ids_b),
                     'avatar': getattr(unit, 'avatar', None),
                     'passive': getattr(unit, 'passive', None),
                     'buffed_stats': {

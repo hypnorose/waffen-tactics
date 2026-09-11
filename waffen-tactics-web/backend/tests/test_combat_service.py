@@ -75,6 +75,7 @@ class TestCombatService(unittest.TestCase):
         self.mock_unit_instance.star_level = 1
         self.mock_unit_instance.position = "front"
         self.mock_unit_instance.persistent_buffs = {}
+        self.mock_unit_instance.items = []
 
     @patch('services.combat_service.db_manager')
     @patch('services.combat_service.game_manager')
@@ -104,6 +105,32 @@ class TestCombatService(unittest.TestCase):
         self.assertEqual(len(player_units), 1)
         self.assertEqual(len(player_unit_info), 1)
         self.assertIn("TestTrait", synergies_data)
+
+    @patch('services.combat_service.db_manager')
+    @patch('services.combat_service.game_manager')
+    def test_prepare_player_units_carries_persisted_items_into_shared_combat(self, mock_game_manager, mock_db_manager):
+        mock_db_manager.load_player = AsyncMock(return_value=self.mock_player)
+        self.mock_player.board = [self.mock_unit_instance]
+        self.mock_unit_instance.items = ['helena_o_smaku_kurkumy']
+        mock_game_manager.data.units = [self.mock_unit]
+        mock_game_manager.get_board_synergies.return_value = {}
+        mock_game_manager.synergy_engine.apply_stat_buffs.return_value = {
+            'hp': 100, 'attack': 20, 'defense': 5, 'attack_speed': 0.8
+        }
+        mock_game_manager.synergy_engine.apply_dynamic_effects.return_value = {
+            'hp': 100, 'attack': 20, 'defense': 5, 'attack_speed': 0.8
+        }
+        mock_game_manager.synergy_engine.get_active_effects.return_value = []
+
+        success, _message, result = prepare_player_units_for_combat(self.user_id)
+
+        self.assertTrue(success)
+        player_units, player_unit_info, _synergies = result
+        combat_unit = player_units[0]
+        self.assertEqual(combat_unit.attack, 30)
+        self.assertEqual(combat_unit.mana_regen, 8)
+        self.assertEqual(combat_unit.effects[0]['item_id'], 'helena_o_smaku_kurkumy')
+        self.assertEqual(player_unit_info[0]['items'], ['helena_o_smaku_kurkumy'])
 
     @patch('services.combat_service.db_manager')
     def test_prepare_player_units_for_combat_no_player(self, mock_db_manager):

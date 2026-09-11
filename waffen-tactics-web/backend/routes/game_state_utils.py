@@ -111,6 +111,7 @@ def enrich_player_state(player: PlayerState) -> dict:
                 'attack': base_attack,
                 'defense': base_defense,
                 'attack_speed': round(base_attack_speed, 3),
+                'mana_regen': stat_val(base, 'mana_regen', 5),
                 'max_mana': base_max_mana,
                 'current_mana': 0
             }
@@ -126,6 +127,7 @@ def enrich_player_state(player: PlayerState) -> dict:
                 if stat in buffed_stats:
                     buffed_stats[stat] += value
 
+            buffed_stats.setdefault('mana_regen', stat_val(base, 'mana_regen', 5))
             buffed_stats = apply_item_stats(buffed_stats, getattr(ui, 'items', []))
 
             # Add max_mana and current_mana to buffed_stats

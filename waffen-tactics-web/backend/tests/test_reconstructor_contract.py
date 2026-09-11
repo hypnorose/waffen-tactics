@@ -184,6 +184,7 @@ def test_damage_event_prefers_canonical_post_shield_over_compatibility_alias():
         ("unit_heal", {"unit_id": "ghost", "post_hp": 90}, "unknown unit_id"),
         ("heal", {"unit_id": "ghost", "post_hp": 90}, "unknown unit_id"),
         ("hp_regen", {"unit_id": "ghost", "post_hp": 90}, "unknown unit_id"),
+        ("regen_gain", {"unit_id": "ghost", "post_hp_regen_per_sec": 2}, "unknown unit_id"),
         (
             "damage_over_time_applied",
             {"unit_id": "ghost", "effect_id": "dot-1", "damage": 5, "expires_at": 2.0},
@@ -203,7 +204,7 @@ def test_unit_targeted_replay_events_reject_unknown_units_atomically(event_type,
     assert reconstructor.reconstructed_opponent_units["enemy"] == before_opponent
 
 
-@pytest.mark.parametrize("event_type", ["unit_died", "unit_heal", "heal", "hp_regen"])
+@pytest.mark.parametrize("event_type", ["unit_died", "unit_heal", "heal", "hp_regen", "regen_gain"])
 def test_unit_targeted_replay_events_reject_missing_identity_atomically(event_type):
     reconstructor = _reconstructor(_unit(hp=80))
     before_player = dict(reconstructor.reconstructed_player_units["u1"])
@@ -214,6 +215,19 @@ def test_unit_targeted_replay_events_reject_missing_identity_atomically(event_ty
 
     assert reconstructor.reconstructed_player_units["u1"] == before_player
     assert reconstructor.reconstructed_opponent_units["enemy"] == before_opponent
+
+
+def test_regen_gain_applies_authoritative_post_state():
+    reconstructor = _reconstructor(_unit(buffed_stats={"hp_regen_per_sec": 0}))
+
+    reconstructor.process_event("regen_gain", {
+        "seq": 34,
+        "unit_id": "u1",
+        "amount_per_sec": 12,
+        "post_hp_regen_per_sec": 12,
+    })
+
+    assert reconstructor.reconstructed_player_units["u1"]["buffed_stats"]["hp_regen_per_sec"] == 12
 
 
 @pytest.mark.parametrize("event_type", ["skill_cast", "passive_triggered", "animation_start", "gold_reward"])

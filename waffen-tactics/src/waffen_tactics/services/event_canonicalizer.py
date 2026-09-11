@@ -255,7 +255,10 @@ def emit_stat_buff(
             if value_type == 'percentage' and stat == 'attack_speed':
                 delta = round(cur * (float(value) / 100.0), 6)
             else:
-                delta = int(round(float(value)))
+                # Float combat stats (notably item attack speed and regen
+                # stacks) must retain their authored precision in both the
+                # live state and the replay payload.
+                delta = round(float(value), 6) if stat in ('attack_speed', 'lifesteal', 'damage_reduction', 'hp_regen_per_sec') else int(round(float(value)))
             set_and_verify(stat, cur + delta)
         elif stat in ('max_hp', 'max_mana', 'current_mana'):
             # int fields
@@ -330,7 +333,7 @@ def emit_stat_buff(
         'unit_name': getattr(recipient, 'name', None),
         'stat': stat,
         'value': value,
-        'amount': int(value) if isinstance(value, (int, float)) else value,
+        'amount': (round(float(value), 6) if stat in ('attack_speed', 'lifesteal', 'damage_reduction', 'hp_regen_per_sec') else int(value)) if isinstance(value, (int, float)) else value,
         'value_type': value_type,
         'duration': duration,
         'permanent': permanent,
@@ -1383,6 +1386,11 @@ def emit_effect_expired(
     stat: Optional[str] = None,
     applied_delta: Optional[int] = None,
     applied_amount: Optional[int] = None,
+    item_id: Optional[str] = None,
+    item_effect_id: Optional[str] = None,
+    item_effect: Optional[Dict[str, Any]] = None,
+    stack: Optional[int] = None,
+    stack_cap: Optional[int] = None,
 ):
     """Emit an `effect_expired` event describing an expired effect on a unit.
 
@@ -1417,6 +1425,17 @@ def emit_effect_expired(
         payload['applied_delta'] = applied_delta
     if applied_amount is not None:
         payload['applied_amount'] = applied_amount
+    if item_id is not None or item_effect_id is not None:
+        if not item_id or not item_effect_id:
+            raise ValueError('effect_expired item context requires item_id and item_effect_id')
+        payload.update({
+            'item_id': item_id,
+            'item_effect_id': item_effect_id,
+            'item_effect': item_effect,
+            'stack': stack,
+            'stacks': stack,
+            'stack_cap': stack_cap,
+        })
 
     # Do not swallow errors — let them propagate to the caller for visibility
     if event_callback:
