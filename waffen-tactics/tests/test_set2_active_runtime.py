@@ -80,14 +80,39 @@ def test_refresh_contract_does_not_stack_empty_melancholy_defense():
         "runtime": {"type": "defense_on_hit"},
     })
     processor = PassiveProcessor()
+    events = []
 
-    processor.after_damage(unit, 100, 90, [unit], [], None, "team_a", 1.0)
-    processor.after_damage(unit, 90, 80, [unit], [], None, "team_a", 1.5)
+    processor.after_damage(unit, 100, 90, [unit], [], lambda t, p: events.append((t, p)), "team_a", 1.0)
+    processor.after_damage(unit, 90, 80, [unit], [], lambda t, p: events.append((t, p)), "team_a", 1.5)
 
     assert unit.defense == 13
     active = [effect for effect in unit.effects if effect.get("set2_refresh_key") == "set2:empty_melancholy:empty"]
     assert len(active) == 1
     assert active[0]["expires_at"] == 2.5
+    assert [event_type for event_type, _ in events] == [
+        "stat_buff", "effect_expired", "effect_applied"
+    ]
+
+
+def test_half_hp_regen_initial_application_has_no_phantom_expiration():
+    unit = CombatUnit("opp_0", "Opp", 100, 10, 5, 1.0, passive={
+        "runtime": {"type": "half_hp_regen", "heal_percent": 20, "duration": 3},
+    })
+    events = []
+
+    PassiveProcessor().after_damage(
+        unit,
+        old_hp=100,
+        new_hp=40,
+        team=[unit],
+        enemies=[],
+        callback=lambda event_type, payload: events.append((event_type, payload)),
+        side="team_b",
+        timestamp=1.0,
+    )
+
+    assert [event_type for event_type, _ in events] == ["effect_applied"]
+    assert [effect["id"] for effect in unit.effects] == ["set2:opp_0:regen"]
 
 
 def test_nowociota_refreshes_attack_speed_expiry_after_enemy_kill_without_stacking():

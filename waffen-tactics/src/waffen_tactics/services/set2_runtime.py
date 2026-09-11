@@ -306,14 +306,14 @@ class Set2Runtime:
             target = self._stable_choice([unit for unit in self._alive(allies) if unit is not owner], f"{owner.id}:mana-ally")
             for recipient in [owner, target]:
                 if recipient:
-                    recipient.effects = list(getattr(recipient, "effects", []) or []) + [{
+                    effect = {
                         "id": f"set2:{owner.id}:mana-regen:{getattr(recipient, 'id', 'unknown')}",
                         "type": "mana_regen",
                         "value": 1,
                         "source": owner.id,
                         "passive_effect": "set2_mr0czeq1",
-                    }]
-                    emit_effect_applied(callback, recipient, recipient.effects[-1], side=side, timestamp=timestamp)
+                    }
+                    emit_effect_applied(callback, recipient, effect, side=side, timestamp=timestamp)
 
         elif runtime_type == "start_enemy_damage_lowest":
             target = min(self._alive(enemies), key=lambda unit: (int(getattr(unit, "hp", 0)), str(getattr(unit, "id", ""))), default=None)
@@ -382,7 +382,6 @@ class Set2Runtime:
             "source": getattr(source, "id", None),
             "passive_effect": "set2_mana_regen",
         }
-        target.effects = list(getattr(target, "effects", []) or []) + [effect]
         emit_effect_applied(callback, target, effect, side=side, timestamp=timestamp)
 
     def _initialize_traits(self, owner: Any, allies: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float) -> None:
@@ -615,7 +614,6 @@ class Set2Runtime:
                 "expires_at": timestamp + float(runtime.get("duration", 3)),
                 "source": target.id,
             }
-            target.effects = [entry for entry in getattr(target, "effects", []) if entry.get("id") != effect["id"]] + [effect]
             emit_effect_applied(callback, target, effect, side=side, timestamp=timestamp)
 
         if runtime_type == "defense_on_hit":

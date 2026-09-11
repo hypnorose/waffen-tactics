@@ -927,6 +927,35 @@ describe('applyCombatEvent - Effect Handling', () => {
   })
 
   describe('effect_expired events', () => {
+    it('replays the Set 2 regen lifecycle through seq=134 without a missing-effect crash', () => {
+      let newState = applyCombatEvent(state, {
+        type: 'effect_applied',
+        unit_id: 'opp_0',
+        effect_id: 'set2:opp_0:regen',
+        effect_type: 'set2_regen_over_time',
+        effect: {
+          id: 'set2:opp_0:regen',
+          type: 'set2_regen_over_time',
+          amount_per_sec: 40,
+          expires_at: 4,
+          source: 'opp_0',
+        },
+        seq: 133,
+        timestamp: 1,
+      }, { simTime: 1 })
+
+      newState = applyCombatEvent(newState, {
+        type: 'effect_expired',
+        unit_id: 'opp_0',
+        effect_id: 'set2:opp_0:regen',
+        effect_type: 'set2_regen_over_time',
+        seq: 134,
+        timestamp: 4,
+      }, { simTime: 4 })
+
+      expect(newState.opponentUnits[0].effects).toEqual([])
+    })
+
     it('should remove effect and revert stats', () => {
       // First add a buff
       const buffEvent: CombatEvent = {
