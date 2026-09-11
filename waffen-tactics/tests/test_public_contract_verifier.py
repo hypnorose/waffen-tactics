@@ -57,7 +57,7 @@ def test_verify_accepts_array_and_wrapped_public_payloads(monkeypatch, tmp_path:
         "/api/game/traits": {"traits": [{"id": "t1"}]},
     }
 
-    def fake_urlopen(request, timeout):
+    def fake_urlopen(request, timeout, context=None):
         for endpoint, payload in payloads.items():
             if request.full_url.endswith(endpoint):
                 return _Response(payload)
@@ -77,7 +77,7 @@ def test_verify_fails_closed_on_duplicate_public_ids(monkeypatch, tmp_path: Path
     (data_dir / "units.json").write_text(json.dumps({"units": [{"id": "u1"}]}), encoding="utf-8")
     (data_dir / "traits.json").write_text(json.dumps({"traits": [{"id": "t1"}]}), encoding="utf-8")
 
-    def fake_urlopen(request, timeout):
+    def fake_urlopen(request, timeout, context=None):
         if request.full_url.endswith("/api/game/units"):
             return _Response([{"id": "u1"}, {"id": "u1"}])
         return _Response([{"id": "t1"}])
@@ -86,3 +86,18 @@ def test_verify_fails_closed_on_duplicate_public_ids(monkeypatch, tmp_path: Path
 
     with pytest.raises(verifier.ContractProbeError, match="duplicate ids"):
         verifier.verify("https://example.test", repo_root)
+
+
+def test_fetch_json_uses_certificate_verifying_context(monkeypatch):
+    marker = object()
+    seen = {}
+
+    def fake_urlopen(request, timeout, context=None):
+        seen["context"] = context
+        return _Response({"ok": True})
+
+    monkeypatch.setattr(verifier, "_tls_context", lambda: marker)
+    monkeypatch.setattr(verifier, "urlopen", fake_urlopen)
+
+    assert verifier._fetch_json("https://example.test/api", timeout=3) == {"ok": True}
+    assert seen["context"] is marker

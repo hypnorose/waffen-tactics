@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import ssl
 import sys
 from pathlib import Path
 from typing import Any, Iterable
@@ -60,10 +61,34 @@ def _ids(records: Iterable[dict[str, Any]], source: str) -> list[str]:
     return result
 
 
+def _tls_context() -> ssl.SSLContext:
+    """Build a certificate-verifying context from the maintained CA bundle.
+
+    Python installations on Windows can have an incomplete or stale OpenSSL
+    default CA path even when the operating-system and server trust stores
+    are healthy.  certifi supplies a maintained public CA bundle; using it
+    still performs normal hostname and certificate-chain verification and
+    never disables TLS verification.
+    """
+
+    try:
+        import certifi
+    except ImportError as exc:
+        raise ContractProbeError(
+            "certifi is required for the public HTTPS contract verifier"
+        ) from exc
+
+    return ssl.create_default_context(cafile=certifi.where())
+
+
 def _fetch_json(url: str, timeout: float) -> Any:
     request = Request(url, headers={"Accept": "application/json"})
     try:
-        with urlopen(request, timeout=timeout) as response:  # nosec B310: URL is an explicit release target
+        with urlopen(
+            request,
+            context=_tls_context(),
+            timeout=timeout,
+        ) as response:  # nosec B310: URL is an explicit release target
             status = response.getcode()
             body = response.read().decode("utf-8")
     except (HTTPError, URLError, TimeoutError, OSError) as exc:
