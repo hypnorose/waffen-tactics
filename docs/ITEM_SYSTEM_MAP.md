@@ -1,6 +1,6 @@
 # Waffen Tactics — item system map
 
-Date: 2026-09-10  
+Date: 2026-09-11
 Scope: Waffen Tactics 2 / approved Set 2 item content
 
 This document is a handoff map for the active canonical pipeline. Plane remains
@@ -14,8 +14,8 @@ the source of truth for issue state and author decisions.
 | Human-readable matrix | [`ITEM_RECIPE_MATRIX_WFT139.md`](ITEM_RECIPE_MATRIX_WFT139.md) | Approved content copy |
 | Structured content copy | [`waffen-tactics/item_recipe_matrix_wft139.json`](../waffen-tactics/item_recipe_matrix_wft139.json) | Approved canonical runtime/API source |
 | Runtime effect contract | WFT-140, Plane comment `c7b4c2eb-9cc2-49a7-9c13-19b7a7ffda3e` | **Done**: deterministic order, refresh/replace default, explicit caps, reset, RNG and replay rules |
-| Seeded content/contract checks | WFT-149 | `Todo`; 6 tests cover the approved 6+21 matrix and accepted runtime contract |
-| Canonical runtime source | WFT-141 | `In Progress`; loader, actions, backend projection and frontend catalog migration |
+| Seeded content/contract checks | WFT-149 | `In Review`; seeded JSON and contract checks cover the approved 6+21 matrix and accepted runtime contract |
+| Canonical runtime source | WFT-141 | `In Review`; loader, actions, backend projection and frontend catalog migration |
 
 WFT-139 approval replaces the earlier AI-generated recipe proposal as the content
 source. WFT-140 supplies the accepted prototype runtime semantics. WFT-141 now
@@ -37,6 +37,20 @@ effect execution and deployment evidence remain separate follow-up gates.
 
 The order above is the intended handoff sequence. The WFT-140 contract gate is
 closed; runtime work still must pass through WFT-141's canonical-source gate.
+
+## Current Plane state
+
+Verified on 2026-09-11 against the local Plane project:
+
+- WFT-138, WFT-141, WFT-146, WFT-147, WFT-148 and WFT-149 are `In Review`.
+- WFT-142 through WFT-145 are `Backlog` and structurally `blocked_by` WFT-23.
+- WFT-149 is structurally `blocked_by` the canonical-source/runtime/replay item chain
+  (WFT-141, WFT-142, WFT-143, WFT-144, WFT-145, WFT-146 and WFT-147); its automated
+  checks pass, but runtime effect execution and deployment/Game View evidence remain open.
+- WFT-23 is `In Progress`; it owns the current Set 2 roster/content boundary and must
+  not be changed by this map update.
+- WFT-16 is `In Review`; WFT-160 tracks the separate expired public HTTPS certificate
+  and is a release-gate blocker.
 
 ## Legacy runtime boundary
 
