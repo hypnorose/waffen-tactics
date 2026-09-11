@@ -43,6 +43,14 @@ def enrich_player_state(player: PlayerState) -> dict:
     # once per board, bench, or shop entry.
     game_manager = GameManager()
 
+    # Validate every persisted roster/shop reference before producing any
+    # player-facing projection.  A stale legacy ID must not become a partial
+    # response with silently missing units.
+    try:
+        game_manager.validate_player_state(player)
+    except Exception as exc:
+        raise PlayerStateEnrichmentError('active_roster') from exc
+
     # Compute synergies - include all traits with their counts
     synergies = {}
     try:
@@ -206,8 +214,7 @@ def enrich_player_state(player: PlayerState) -> dict:
                 continue
             unit = next((u for u in game_manager.data.units if u.id == uid), None)
             if not unit:
-                last_shop_detailed.append({'unit_id': uid})
-                continue
+                raise ValueError(f"Unit '{uid}' not found in active Set 2 shop data.")
 
             # Shop offers are always fresh units at star_level=1 with no synergies applied
             base = deepcopy(unit.stats)

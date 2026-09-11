@@ -5,6 +5,7 @@ from typing import Dict, Any, List
 from waffen_tactics.models.unit import Unit, Stats, Skill
 from waffen_tactics.models.skill import Skill as NewSkill, Effect, TargetType, EffectType
 from waffen_tactics.services.skill_parser import skill_parser, SkillParseError
+from waffen_tactics.services.set2_contract import validate_active_set2_dataset
 
 DATA_FILE = Path(__file__).resolve().parents[3] / "units.json"
 TRAITS_FILE = Path(__file__).resolve().parents[3] / "traits.json"
@@ -85,6 +86,12 @@ def load_game_data() -> GameData:
     
     with open(ROLES_FILE, "r", encoding="utf-8") as f:
         roles_data = json.load(f)
+
+    # The active runtime source is the approved Set 2 dataset.  Validate the
+    # raw records before exposing them through GameData; never map or repair a
+    # legacy record into the active roster.  Skill parsing below intentionally
+    # runs first so malformed skill fixtures keep their precise fail-closed
+    # error rather than being obscured by a roster-shape error.
     
     roles = roles_data.get("roles", {})
     
@@ -123,6 +130,14 @@ def load_game_data() -> GameData:
             raise ValueError(f"Missing canonical Set 2 passive for unit {unit_id}")
         unit.passive = passive
         units.append(unit)
+
+    dataset_errors = validate_active_set2_dataset(
+        data.get("units"),
+        traits_data.get("traits"),
+    )
+    if dataset_errors:
+        joined_errors = "; ".join(dataset_errors)
+        raise ValueError(f"Invalid active Set 2 dataset: {joined_errors}")
     
     traits = traits_data.get("traits", [])
     factions = data.get("factions", [])

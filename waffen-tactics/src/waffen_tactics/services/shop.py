@@ -18,6 +18,7 @@ RARITY_ODDS_BY_LEVEL = {
 
 class ShopService:
     def __init__(self, units: List[Unit], traits: List[Dict] = None):
+        self.units_by_id: Dict[str, Unit] = {u.id: u for u in units}
         self.units_by_cost: Dict[int, List[Unit]] = {}
         for u in units:
             self.units_by_cost.setdefault(u.cost, []).append(u)
@@ -38,6 +39,12 @@ class ShopService:
 
     def generate_offers(self, player: PlayerState, force_new: bool = False) -> List[str]:
         """Generate shop offers for player, filtering out units already at 3★"""
+        for index, unit_id in enumerate(player.last_shop):
+            if unit_id and unit_id not in self.units_by_id:
+                raise ValueError(
+                    f"Unknown active Set 2 shop[{index}] id: {unit_id!r}"
+                )
+
         if player.locked_shop and not force_new and player.last_shop:
             return player.last_shop
 

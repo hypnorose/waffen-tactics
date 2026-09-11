@@ -192,13 +192,16 @@ class UnitManager:
 
         bot_logger.info(f"[GM_MOVE_TO_BOARD] Found unit: {unit_instance.unit_id} (star {unit_instance.star_level})")
 
+        unit = next((u for u in self.data.units if u.id == unit_instance.unit_id), None)
+        if not unit:
+            return False, "Błąd danych jednostki!"
+
         # Set position and move to board
         unit_instance.position = position
         player.bench.remove(unit_instance)
         player.board.append(unit_instance)
         bot_logger.info(f"[GM_MOVE_TO_BOARD] Moved successfully to {position}! New state - Board: {len(player.board)}, Bench: {len(player.bench)}")
 
-        unit = next((u for u in self.data.units if u.id == unit_instance.unit_id), None)
         stars = '⭐' * unit_instance.star_level
         return True, f"{unit.name} {stars} na planszy ({position})!"
 
@@ -227,12 +230,15 @@ class UnitManager:
 
         bot_logger.info(f"[GM_MOVE_TO_BENCH] Found unit: {unit_instance.unit_id} (star {unit_instance.star_level})")
 
+        unit = next((u for u in self.data.units if u.id == unit_instance.unit_id), None)
+        if not unit:
+            return False, "Błąd danych jednostki!"
+
         # Move to bench
         player.board.remove(unit_instance)
         player.bench.append(unit_instance)
         bot_logger.info(f"[GM_MOVE_TO_BENCH] Moved successfully! New state - Board: {len(player.board)}, Bench: {len(player.bench)}")
 
-        unit = next((u for u in self.data.units if u.id == unit_instance.unit_id), None)
         stars = '⭐' * unit_instance.star_level
         return True, f"{unit.name} {stars} na ławce!"
 
@@ -272,12 +278,15 @@ class UnitManager:
             bot_logger.error(f"[GM_SWITCH_LINE] Available board units: {[(u.instance_id, u.unit_id) for u in player.board]}")
             return False, "Jednostka nie jest na planszy!"
 
+        unit = next((u for u in self.data.units if u.id == unit_instance.unit_id), None)
+        if not unit:
+            return False, "Błąd danych jednostki!"
+
         # Change position
         old_position = unit_instance.position
         unit_instance.position = position
         bot_logger.info(f"[GM_SWITCH_LINE] Switched {unit_instance.unit_id} from {old_position} to {position}")
 
-        unit = next((u for u in self.data.units if u.id == unit_instance.unit_id), None)
         stars = '⭐' * unit_instance.star_level
         return True, f"{unit.name} {stars} przeniesiony do linii {position}!"
 
@@ -294,6 +303,9 @@ class UnitManager:
         every source unit and item.
         """
         if star_level >= 3:
+            return None
+
+        if not any(unit.id == unit_id for unit in self.data.units):
             return None
 
         # Keep the original list objects and unit instances so rollback also

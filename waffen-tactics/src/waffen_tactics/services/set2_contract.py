@@ -19,6 +19,45 @@ SET2_TRAIT_COUNT = 12
 SET2_REMOVED_TRAIT_NAMES = frozenset({"Żołnierz mentora"})
 
 
+def validate_active_set2_dataset(
+    units: Any,
+    traits: Any,
+    *,
+    expected_unit_count: int = SET2_ROSTER_SIZE,
+    expected_trait_count: int | None = SET2_TRAIT_COUNT,
+) -> list[str]:
+    """Validate the complete dataset before it becomes active runtime data.
+
+    The roster and trait validators intentionally remain independently useful
+    for authoring fixtures.  Runtime loading also needs the cross-record
+    invariant that every unit trait resolves to the same active trait source.
+    """
+
+    errors = [
+        *validate_set2_roster(units, expected_count=expected_unit_count),
+        *validate_set2_traits(traits, expected_count=expected_trait_count),
+    ]
+
+    trait_names = set()
+    if isinstance(traits, Sequence) and not isinstance(traits, (str, bytes)):
+        trait_names = {
+            trait.get("name")
+            for trait in traits
+            if _is_object(trait) and _non_empty_string(trait.get("name"))
+        }
+    if isinstance(units, Sequence) and not isinstance(units, (str, bytes)):
+        for index, unit in enumerate(units):
+            if not _is_object(unit) or not isinstance(unit.get("traits"), list):
+                continue
+            for trait_name in unit["traits"]:
+                if trait_name not in trait_names:
+                    errors.append(
+                        f"unit[{index}].traits references unknown active Set 2 trait: {trait_name!r}"
+                    )
+
+    return errors
+
+
 def _is_positive_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
