@@ -87,6 +87,36 @@ class Set2Runtime:
             return 0
         return max(int(effect.get("set2_tier", 0) or 0) for effect in effects)
 
+    @classmethod
+    def trait_value(cls, unit: Any, name: str) -> Optional[float]:
+        """Read the authored numeric value for the unit's active trait tier.
+
+        ``SynergyEngine`` copies this value from the canonical trait effect to
+        ``set2_value`` when it builds combat effects. Keeping the lookup here
+        data-driven prevents stateful hooks from drifting away from the
+        player-facing dataset.
+        """
+        effects = sorted(
+            cls._trait_effects(unit, name),
+            key=lambda effect: int(effect.get("set2_tier", 0) or 0),
+            reverse=True,
+        )
+        for effect in effects:
+            value = effect.get("set2_value")
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return float(value)
+        return None
+
+    @classmethod
+    def _required_trait_value(cls, unit: Any, name: str) -> float:
+        value = cls.trait_value(unit, name)
+        if value is None:
+            raise RuntimeError(
+                f"Missing canonical numeric value for active Set 2 trait {name!r} "
+                f"on unit {getattr(unit, 'id', None)!r}"
+            )
+        return value
+
     @staticmethod
     def _alive(units: Iterable[Any]) -> List[Any]:
         return [unit for unit in units if not getattr(unit, "_dead", False) and int(getattr(unit, "hp", 0) or 0) > 0]
@@ -447,8 +477,9 @@ class Set2Runtime:
             return
         tier = max(self.trait_tier(unit, trait) for unit in owners)
         if trait == "Figlarz":
+            duration = self._required_trait_value(owners[0], "Figlarz")
             for target in self._alive(enemies):
-                emit_unit_stunned(callback, target, 1.0, source=owners[0], side=side, timestamp=timestamp)
+                emit_unit_stunned(callback, target, duration, source=owners[0], side=side, timestamp=timestamp)
             for owner in owners:
                 self._state(owner)["set2_figlarz_initialized"] = True
 
@@ -700,8 +731,9 @@ class Set2Runtime:
             for owner in self._alive(surviving_team):
                 if self.trait_tier(owner, "Figlarz"):
                     if not self._state(owner).get("set2_figlarz_last_death") == getattr(dead, "id", None):
+                        duration = self._required_trait_value(owner, "Figlarz")
                         for target in self._alive(enemy_team):
-                            emit_unit_stunned(callback, target, 1.0, source=owner, side=side, timestamp=timestamp)
+                            emit_unit_stunned(callback, target, duration, source=owner, side=side, timestamp=timestamp)
                         self._state(owner)["set2_figlarz_last_death"] = getattr(dead, "id", None)
                     break
 
@@ -765,7 +797,8 @@ class Set2Runtime:
         haxball = self.trait_tier(target, "Haxball") > 0
         recipients = [unit for unit in self._alive(enemies) if unit is not target and self.trait_tier(unit, "Haxball") > 0]
         if haxball and recipients:
-            redirected = int(raw_damage * 0.5)
+            redirect_percent = self._required_trait_value(target, "Haxball")
+            redirected = int(raw_damage * redirect_percent / 100.0)
             primary = max(0, int(raw_damage) - redirected)
             share, remainder = divmod(redirected, len(recipients))
             return {

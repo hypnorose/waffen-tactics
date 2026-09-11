@@ -70,6 +70,34 @@ def _validate_modular_effect(effect: Any, path: str) -> list[str]:
     return errors
 
 
+def _numeric_tier_signature(tier: Any) -> tuple[Any, ...] | None:
+    """Return authored numeric values for a tier when its shape exposes them."""
+
+    if not isinstance(tier, Sequence) or isinstance(tier, (str, bytes)):
+        return None
+
+    values: list[Any] = []
+    for effect in tier:
+        if not _is_object(effect):
+            return None
+        authored_effect = effect.get("effect")
+        if _is_object(authored_effect) and isinstance(authored_effect.get("value"), (int, float)) and not isinstance(authored_effect.get("value"), bool):
+            values.append(authored_effect["value"])
+            continue
+        rewards = effect.get("rewards")
+        if not isinstance(rewards, Sequence) or isinstance(rewards, (str, bytes)):
+            return None
+        reward_values = [
+            reward.get("value")
+            for reward in rewards
+            if _is_object(reward) and isinstance(reward.get("value"), (int, float)) and not isinstance(reward.get("value"), bool)
+        ]
+        if not reward_values:
+            return None
+        values.append(reward_values[0])
+    return tuple(values) if values else None
+
+
 def validate_set2_roster(
     records: Any,
     *,
@@ -214,6 +242,16 @@ def validate_set2_traits(
                         f"{tier_path}[{effect_index}]",
                     )
                 )
+
+        # Multi-tier records with a numeric authored value must not silently
+        # repeat an adjacent tier value. Two-tier contracts are intentionally
+        # allowed here because some binary traits are not percentage-scaled.
+        if len(tiers) > 2:
+            signatures = [_numeric_tier_signature(tier) for tier in tiers]
+            if all(signature is not None for signature in signatures):
+                repeated = any(left == right for left, right in zip(signatures, signatures[1:]))
+                if repeated:
+                    errors.append(f"{path}.modular_effects contains repeated adjacent numeric tier values")
 
     duplicates = sorted({trait_id for trait_id in ids if ids.count(trait_id) > 1})
     errors.extend(f"duplicate trait id: {trait_id}" for trait_id in duplicates)

@@ -120,3 +120,18 @@ def test_set2_traits_contract_rejects_malformed_threshold_type_without_raising()
 
     assert any("thresholds must be a sorted list" in error for error in errors)
     assert any("modular_effects must match" in error for error in errors)
+
+
+def test_set2_traits_contract_rejects_repeated_adjacent_numeric_tier_values():
+    traits = _traits(1)
+    traits[0]["thresholds"] = [2, 4, 6]
+    tiers = []
+    for value in (10, 10, 20):
+        effect = _passive()
+        effect["effect"]["value"] = value
+        tiers.append([effect])
+    traits[0]["modular_effects"] = tiers
+
+    errors = validate_set2_traits(traits, expected_count=1)
+
+    assert "trait[0].modular_effects contains repeated adjacent numeric tier values" in errors

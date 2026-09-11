@@ -286,7 +286,7 @@
       "id": "set2.trait.figlarz",
       "name": "Figlarz",
       "type": "trait",
-      "description": "Na starcie ogłusza wszystkich wrogów na 1 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
+      "description": "Na starcie ogłusza wszystkich wrogów na 1,0 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
       "target": "team",
       "thresholds": [
         2,
@@ -294,9 +294,9 @@
         6
       ],
       "threshold_descriptions": [
-        "Na starcie ogłusza wszystkich wrogów na 1 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
-        "Na starcie ogłusza wszystkich wrogów na 1 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
-        "Na starcie ogłusza wszystkich wrogów na 1 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci."
+        "Na starcie ogłusza wszystkich wrogów na 1,0 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
+        "Na starcie ogłusza wszystkich wrogów na 1,5 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
+        "Na starcie ogłusza wszystkich wrogów na 2,0 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci."
       ],
       "modular_effects": [
         [
@@ -308,7 +308,7 @@
               "type": "set2_trait",
               "trait": "Figlarz",
               "tier": 1,
-              "value": 1
+              "value": 1.0
             },
             "limit": {
               "stacking": "none"
@@ -319,7 +319,7 @@
                 "effect": "set2_trait",
                 "trait": "Figlarz",
                 "tier": 1,
-                "value": 1
+                "value": 1.0
               }
             ]
           }
@@ -333,7 +333,7 @@
               "type": "set2_trait",
               "trait": "Figlarz",
               "tier": 2,
-              "value": 1
+              "value": 1.5
             },
             "limit": {
               "stacking": "none"
@@ -344,7 +344,7 @@
                 "effect": "set2_trait",
                 "trait": "Figlarz",
                 "tier": 2,
-                "value": 1
+                "value": 1.5
               }
             ]
           }
@@ -358,7 +358,7 @@
               "type": "set2_trait",
               "trait": "Figlarz",
               "tier": 3,
-              "value": 1
+              "value": 2.0
             },
             "limit": {
               "stacking": "none"
@@ -369,7 +369,7 @@
                 "effect": "set2_trait",
                 "trait": "Figlarz",
                 "tier": 3,
-                "value": 1
+                "value": 2.0
               }
             ]
           }
@@ -957,15 +957,15 @@
       "id": "set2.trait.haxball",
       "name": "Haxball",
       "type": "trait",
-      "description": "50% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania.",
+      "description": "40% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania.",
       "target": "trait",
       "thresholds": [
         2,
         3
       ],
       "threshold_descriptions": [
-        "50% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania.",
-        "50% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania."
+        "40% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania.",
+        "60% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania."
       ],
       "modular_effects": [
         [
@@ -977,7 +977,7 @@
               "type": "set2_trait",
               "trait": "Haxball",
               "tier": 1,
-              "value": 50
+              "value": 40
             },
             "limit": {
               "stacking": "none"
@@ -988,7 +988,7 @@
                 "effect": "set2_trait",
                 "trait": "Haxball",
                 "tier": 1,
-                "value": 50
+                "value": 40
               }
             ]
           }
@@ -1002,7 +1002,7 @@
               "type": "set2_trait",
               "trait": "Haxball",
               "tier": 2,
-              "value": 50
+              "value": 60
             },
             "limit": {
               "stacking": "none"
@@ -1013,7 +1013,7 @@
                 "effect": "set2_trait",
                 "trait": "Haxball",
                 "tier": 2,
-                "value": 50
+                "value": 60
               }
             ]
           }

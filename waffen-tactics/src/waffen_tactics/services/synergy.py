@@ -468,6 +468,12 @@ class SynergyEngine:
                     # Each combat unit owns independent condition state for
                     # once/max/round semantics; never share the dataset dict.
                     runtime_effect = copy.deepcopy(effect)
+                    # Normalize the authored tier value onto the runtime
+                    # record. Stateful Set 2 hooks must consume this value
+                    # instead of maintaining a second balance table.
+                    authored_effect = runtime_effect.get('effect')
+                    if isinstance(authored_effect, dict) and 'value' in authored_effect:
+                        runtime_effect['set2_value'] = authored_effect['value']
                     if trait_name in {
                         'Konfident', 'Wierny widz', 'Nowociota', 'Figlarz',
                         'Weeb', 'Starociota', 'Inwestor', 'Femboy',
