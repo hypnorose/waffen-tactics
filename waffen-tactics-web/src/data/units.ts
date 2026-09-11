@@ -14,9 +14,11 @@ export interface Unit {
   cost: number
   factions: string[]
   classes: string[]
+  traits?: string[]
   role?: string
   role_color?: string
   avatar?: string
+  max_mana?: number
   skill?: {
     name: string
     description: string

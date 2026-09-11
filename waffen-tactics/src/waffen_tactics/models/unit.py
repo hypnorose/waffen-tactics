@@ -43,6 +43,9 @@ class Unit:
     avatar: str = ""
     last_attack_time: float = 0.0
     traits: List[str] = field(default_factory=list)
+    # Keep the authored roster value available to player-facing contracts.
+    # Combat stats remain a separate runtime projection.
+    max_mana: int | None = None
 
     @staticmethod
     def from_json(d: Dict[str, Any], default_stats: Stats, default_skill: Skill, role_color: str = "#6b7280") -> "Unit":
@@ -60,6 +63,7 @@ class Unit:
             avatar=d.get("avatar", ""),
             last_attack_time=0.0,
             traits=list(d.get("traits", list(d.get("factions", [])) + list(d.get("classes", [])))),
+            max_mana=int(d["max_mana"]) if d.get("max_mana") is not None else None,
         )
 
 

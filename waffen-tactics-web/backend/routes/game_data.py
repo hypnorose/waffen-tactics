@@ -87,15 +87,27 @@ def get_units_data():
                     'effects': [unit.skill.effect] if unit.skill.effect else []
                 }
         
+        # These fields are authored in the active Set 2 roster and must be
+        # exposed as-is. Runtime `stats` is intentionally kept as a separate
+        # projection used by combat and existing UI consumers.
+        canonical_max_mana = getattr(unit, 'max_mana', None)
+        if not isinstance(canonical_max_mana, int):
+            canonical_max_mana = None
+        canonical_traits = getattr(unit, 'traits', [])
+        if not isinstance(canonical_traits, (list, tuple)):
+            canonical_traits = []
+
         units_data.append({
             'id': unit.id,
             'name': unit.name,
             'cost': unit.cost,
             'factions': unit.factions,
             'classes': unit.classes,
+            'traits': list(canonical_traits),
             'role': getattr(unit, 'role', None),
             'role_color': getattr(unit, 'role_color', '#6b7280'),
             'avatar': getattr(unit, 'avatar', None),
+            'max_mana': canonical_max_mana,
             'skill': skill_data,
             'passive': getattr(unit, 'passive', None),
             'stats': stats_dict
@@ -163,9 +175,11 @@ def get_traits_data():
                 threshold_descriptions.append(trait.get('description', ''))
         
         traits_data.append({
+            'id': trait.get('id'),
             'name': trait['name'],
             'type': trait['type'],
             'description': trait.get('description', ''),
+            'target': trait.get('target'),
             'thresholds': trait['thresholds'],
             'threshold_descriptions': threshold_descriptions,
             'modular_effects': trait['modular_effects']

@@ -27,6 +27,7 @@ class TestCanonicalPlayerFacingData:
             (REPO_ROOT / 'waffen-tactics' / 'units.json').read_text(encoding='utf-8')
         )['units']
         canonical_ids = {unit['id'] for unit in canonical_units}
+        canonical_by_id = {unit['id']: unit for unit in canonical_units}
 
         units = get_units_data()
         units_by_id = {unit['id']: unit for unit in units}
@@ -44,12 +45,15 @@ class TestCanonicalPlayerFacingData:
             assert isinstance(passive, dict), f'{unit_id} is missing passive data'
             assert str(passive.get('kind', '')).strip(), f'{unit_id} passive has no kind'
             assert str(passive.get('description', '')).strip(), f'{unit_id} passive has no description'
+            assert unit['traits'] == canonical_by_id[unit_id]['traits']
+            assert unit['max_mana'] == canonical_by_id[unit_id]['max_mana']
 
     def test_canonical_traits_have_resolved_threshold_descriptions(self):
         canonical_traits = json.loads(
             (REPO_ROOT / 'waffen-tactics' / 'traits.json').read_text(encoding='utf-8')
         )['traits']
         canonical_names = {trait['name'] for trait in canonical_traits}
+        canonical_by_name = {trait['name']: trait for trait in canonical_traits}
 
         traits = get_traits_data()
         traits_by_name = {trait['name']: trait for trait in traits}
@@ -58,9 +62,12 @@ class TestCanonicalPlayerFacingData:
 
         for trait_name in sorted(canonical_names):
             trait = traits_by_name[trait_name]
+            canonical = canonical_by_name[trait_name]
             descriptions = trait['threshold_descriptions']
 
             assert str(trait.get('description', '')).strip(), f'{trait_name} has no base description'
+            assert trait['id'] == canonical['id']
+            assert trait['target'] == canonical['target']
             assert len(descriptions) == len(trait['thresholds']), (
                 f'{trait_name} threshold description count does not match thresholds'
             )
