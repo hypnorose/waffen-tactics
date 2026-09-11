@@ -2,7 +2,9 @@ import { getUnit, getCostBorderColor, getFactionColor, getPassiveTitle } from '.
 import { useRef, useState } from 'react'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import EquippedItems from './EquippedItems'
-import { formatItemStat, formatItemTrigger, ITEM_ICONS, type Item } from '../data/items'
+import { formatItemStat, formatItemTrigger, ITEM_ICONS, type Item, type ItemUnitPreview } from '../data/items'
+import ItemPreviewTooltip from './ItemPreviewTooltip'
+import { ItemUnitPreviewContent } from './ItemPreviewContent'
 
 interface UnitCardProps {
   unitId: string
@@ -32,6 +34,7 @@ interface UnitCardProps {
   lastRoundStats?: CombatUnitRoundStats
   items?: string[]
   itemCatalog?: Item[]
+  itemPreview?: ItemUnitPreview
 }
 
 export default function UnitCard({
@@ -48,6 +51,7 @@ export default function UnitCard({
   lastRoundStats,
   items,
   itemCatalog = [],
+  itemPreview,
 }: UnitCardProps) {
   const unit = getUnit(unitId)
   const itemById = new Map(itemCatalog.map(item => [item.id, item]))
@@ -149,6 +153,9 @@ export default function UnitCard({
         disabled ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
+      <ItemPreviewTooltip anchorRef={containerRef} open={Boolean(itemPreview)}>
+        {itemPreview && <ItemUnitPreviewContent preview={itemPreview} itemCatalog={itemCatalog} currentStats={displayStats ?? undefined} />}
+      </ItemPreviewTooltip>
       {(
         <div
           className="hidden group-hover:block absolute p-3 rounded-lg z-[100] shadow-2xl text-xs w-[240px] border-2 pointer-events-none"

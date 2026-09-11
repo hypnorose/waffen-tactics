@@ -1,6 +1,6 @@
 import { formatItemStat, formatItemTrigger, ITEM_ICONS, type Item } from '../data/items'
 
-export default function ItemTooltipContent({ item, itemCatalog }: { item: Item; itemCatalog: Item[] }) {
+export default function ItemTooltipContent({ item, itemCatalog, showHint = true }: { item: Item; itemCatalog: Item[]; showHint?: boolean }) {
   const itemById = new Map(itemCatalog.map(candidate => [candidate.id, candidate]))
 
   return (
@@ -24,7 +24,7 @@ export default function ItemTooltipContent({ item, itemCatalog }: { item: Item; 
       {item.components && <div className="mt-2 border-t border-slate-700 pt-2 text-[11px] text-indigo-200">
         Składniki: {item.components.map(component => itemById.get(component)?.name || component).join(' + ')}
       </div>}
-      <div className="mt-2 text-[10px] text-slate-500">Przeciągnij na kartę jednostki lub drugi przedmiot</div>
+      {showHint && <div className="mt-2 text-[10px] text-slate-500">Przeciągnij na kartę jednostki lub drugi przedmiot</div>}
     </div>
   )
 }

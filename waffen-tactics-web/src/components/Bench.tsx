@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import UnitCard from './UnitCard'
 import { useGameStore } from '../store/gameStore'
 import { gameAPI } from '../services/api'
-import type { Item } from '../data/items'
+import { getUnitItemPreview, type Item } from '../data/items'
 
 interface BenchProps {
   playerState: any
@@ -10,13 +10,19 @@ interface BenchProps {
   onNotification: (message: string, type?: 'error' | 'success' | 'info') => void
   onEquipItem?: (instanceId: string, itemId: string) => void
   itemCatalog?: Item[]
+  draggedItemId?: string | null
 }
 
-export default function Bench({ playerState, onUpdate, onNotification, onEquipItem, itemCatalog = [] }: BenchProps) {
+export default function Bench({ playerState, onUpdate, onNotification, onEquipItem, itemCatalog = [], draggedItemId = null }: BenchProps) {
   const [loading, setLoading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [previewTargetId, setPreviewTargetId] = useState<string | null>(null)
   const { detailedView } = useGameStore()
+
+  useEffect(() => {
+    if (!draggedItemId) setPreviewTargetId(null)
+  }, [draggedItemId])
 
   const handleMoveToBoard = async (instanceId: string) => {
     const maxPerLine = Math.ceil(playerState.max_board_size * 0.75)
@@ -103,7 +109,10 @@ export default function Bench({ playerState, onUpdate, onNotification, onEquipIt
         onDrop={async (e) => {
           e.preventDefault()
           setIsDragOver(false)
-          const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+          const rawData = e.dataTransfer.getData('text/plain')
+          if (!rawData) return
+          let data: any
+          try { data = JSON.parse(rawData) } catch { return }
           if (data.type === 'unitAction') {
             if (data.action === 'moveToBoard') {
               // Check if unit is already on bench
@@ -121,8 +130,30 @@ export default function Bench({ playerState, onUpdate, onNotification, onEquipIt
           <div 
             key={unitInstance.instance_id} 
             className={`flex-shrink-0 relative ${detailedView ? '' : 'max-w-[9rem]'}`}
-            onDragOver={(e) => { if (e.dataTransfer.types.includes('text/item-id')) e.preventDefault() }}
-            onDrop={(e) => { e.preventDefault(); const itemId = e.dataTransfer.getData('text/item-id'); if (itemId) onEquipItem?.(unitInstance.instance_id, itemId) }}
+            onDragEnter={(e) => {
+              if (draggedItemId || e.dataTransfer.types.includes('text/item-id')) {
+                e.preventDefault()
+                setPreviewTargetId(unitInstance.instance_id)
+              }
+            }}
+            onDragOver={(e) => {
+              if (draggedItemId || e.dataTransfer.types.includes('text/item-id')) {
+                e.preventDefault()
+                setPreviewTargetId(unitInstance.instance_id)
+              }
+            }}
+            onDragLeave={(e) => {
+              const nextTarget = e.relatedTarget as Node | null
+              if (!nextTarget || !e.currentTarget.contains(nextTarget)) setPreviewTargetId(null)
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setPreviewTargetId(null)
+              const itemId = e.dataTransfer.getData('text/item-id')
+              if (itemId) onEquipItem?.(unitInstance.instance_id, itemId)
+            }}
+            onDragEnd={() => setPreviewTargetId(null)}
             draggable
             onDragStart={(e) => {
               setIsDragging(true)
@@ -151,7 +182,7 @@ export default function Bench({ playerState, onUpdate, onNotification, onEquipIt
                 💰
               </button>
             </div>
-            <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} itemCatalog={itemCatalog} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} />
+            <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} itemCatalog={itemCatalog} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} itemPreview={previewTargetId === unitInstance.instance_id && draggedItemId ? getUnitItemPreview(itemCatalog, unitInstance.items || [], draggedItemId) ?? undefined : undefined} />
           </div>
         ))}
         {/* Show one placeholder if bench is not full */}

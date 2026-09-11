@@ -57,6 +57,8 @@ export default function ItemTooltip({ item, itemCatalog, children, className, tr
   const {
     onMouseEnter: onTriggerMouseEnter,
     onMouseLeave: onTriggerMouseLeave,
+    onFocus: onTriggerFocus,
+    onBlur: onTriggerBlur,
     ...restTriggerProps
   } = triggerProps || {}
 
@@ -72,6 +74,15 @@ export default function ItemTooltip({ item, itemCatalog, children, className, tr
       }}
       onMouseLeave={event => {
         onTriggerMouseLeave?.(event)
+        scheduleClose()
+      }}
+      onFocus={event => {
+        onTriggerFocus?.(event)
+        cancelClose()
+        setIsOpen(true)
+      }}
+      onBlur={event => {
+        onTriggerBlur?.(event)
         scheduleClose()
       }}
     >

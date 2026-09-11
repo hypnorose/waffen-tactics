@@ -5,7 +5,7 @@ import { gameAPI } from '../services/api'
 import { getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
 import { getAllUnits, getCostBorderColor } from '../data/units'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
-import type { Item } from '../data/items'
+import { getUnitItemPreview, type Item } from '../data/items'
 
 interface GameBoardProps {
   playerState: any
@@ -14,13 +14,15 @@ interface GameBoardProps {
   roundStatsByUnit?: Record<string, CombatUnitRoundStats>
   onEquipItem?: (instanceId: string, itemId: string) => void
   itemCatalog?: Item[]
+  draggedItemId?: string | null
 }
 
-export default function GameBoard({ playerState, onUpdate, onNotification, roundStatsByUnit, onEquipItem, itemCatalog = [] }: GameBoardProps) {
+export default function GameBoard({ playerState, onUpdate, onNotification, roundStatsByUnit, onEquipItem, itemCatalog = [], draggedItemId = null }: GameBoardProps) {
   const [loading, setLoading] = useState(false)
   const [traits, setTraits] = useState<any[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [previewTargetId, setPreviewTargetId] = useState<string | null>(null)
   const { detailedView } = useGameStore()
 
   useEffect(() => {
@@ -34,6 +36,10 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
     }
     loadTraits()
   }, [])
+
+  useEffect(() => {
+    if (!draggedItemId) setPreviewTargetId(null)
+  }, [draggedItemId])
 
   const handleMoveToBench = async (instanceId: string) => {
     if (playerState.bench.length >= playerState.max_bench_size) {
@@ -159,7 +165,10 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
         onDrop={async (e) => {
           e.preventDefault()
           setIsDragOver(false)
-          const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+          const rawData = e.dataTransfer.getData('text/plain')
+          if (!rawData) return
+          let data: any
+          try { data = JSON.parse(rawData) } catch { return }
           if (data.type === 'unitAction') {
             if (data.action === 'sell') {
               // If dragging from bench to board, move to board instead of sell
@@ -190,8 +199,30 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
               <div 
                 key={unitInstance.instance_id} 
                 className={`relative ${detailedView ? 'max-w-[14rem]' : 'max-w-[9rem]'}`}
-                onDragOver={event => { if (event.dataTransfer.types.includes('text/item-id')) event.preventDefault() }}
-                onDrop={event => { event.preventDefault(); const itemId = event.dataTransfer.getData('text/item-id'); if (itemId) onEquipItem?.(unitInstance.instance_id, itemId) }}
+                onDragEnter={event => {
+                  if (draggedItemId || event.dataTransfer.types.includes('text/item-id')) {
+                    event.preventDefault()
+                    setPreviewTargetId(unitInstance.instance_id)
+                  }
+                }}
+                onDragOver={event => {
+                  if (draggedItemId || event.dataTransfer.types.includes('text/item-id')) {
+                    event.preventDefault()
+                    setPreviewTargetId(unitInstance.instance_id)
+                  }
+                }}
+                onDragLeave={event => {
+                  const nextTarget = event.relatedTarget as Node | null
+                  if (!nextTarget || !event.currentTarget.contains(nextTarget)) setPreviewTargetId(null)
+                }}
+                onDrop={event => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setPreviewTargetId(null)
+                  const itemId = event.dataTransfer.getData('text/item-id')
+                  if (itemId) onEquipItem?.(unitInstance.instance_id, itemId)
+                }}
+                onDragEnd={() => setPreviewTargetId(null)}
                 draggable
                 onDragStart={(e) => {
                   setIsDragging(true)
@@ -230,7 +261,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
                 >
                   {lineType === 'front' ? '⬇' : '⬆'}
                 </button>
-                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} itemCatalog={itemCatalog} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} lastRoundStats={roundStatsByUnit?.[unitInstance.instance_id]} />
+                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} itemCatalog={itemCatalog} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} lastRoundStats={roundStatsByUnit?.[unitInstance.instance_id]} itemPreview={previewTargetId === unitInstance.instance_id && draggedItemId ? getUnitItemPreview(itemCatalog, unitInstance.items || [], draggedItemId) ?? undefined : undefined} />
               </div>
             )
           } else {

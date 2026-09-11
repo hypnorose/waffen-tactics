@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import ItemsPanel from '../ItemsPanel'
 import { getRecipePreview } from '../../data/items'
+import { gameAPI } from '../../services/api'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -12,9 +13,28 @@ vi.mock('../../services/api', () => ({
     getItems: vi.fn().mockResolvedValue({
       data: [{ id: 'spices', name: 'Przyprawy', kind: 'base', stats: { attack: 5 } }],
     }),
-    combineItem: vi.fn(),
+    combineItem: vi.fn().mockResolvedValue({ data: { state: { item_inventory: [] }, message: 'Połączono' } }),
   },
 }))
+
+const createDataTransfer = () => {
+  const values = new Map<string, string>()
+  const types: string[] = []
+  return {
+    types,
+    setData: (type: string, value: string) => {
+      values.set(type, value)
+      if (!types.includes(type)) types.push(type)
+    },
+    getData: (type: string) => values.get(type) || '',
+  }
+}
+
+const dispatchDrag = (target: Element, type: string, dataTransfer: ReturnType<typeof createDataTransfer>) => {
+  const event = new Event(type, { bubbles: true, cancelable: true })
+  Object.defineProperty(event, 'dataTransfer', { value: dataTransfer })
+  target.dispatchEvent(event)
+}
 
 describe('ItemsPanel tooltip ownership', () => {
   let root: Root | null = null
@@ -174,6 +194,51 @@ describe('ItemsPanel tooltip ownership', () => {
     expect(stale).not.toBeNull()
     expect(stale?.getAttribute('aria-label')).toBe('Nieznany przedmiot: legacy_item_id')
     expect(container.textContent).toContain('Nieznany przedmiot: legacy_item_id')
+  })
+
+  it('previews a canonical recipe during drag-over and combines only after drop', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const catalog = [
+      { id: 'spices', name: 'Przyprawy', kind: 'base', components: [], stats: { attack: 5 }, effect: null, content_version: 'test' },
+      { id: 'safe', name: 'Sejf', kind: 'base', components: [], stats: { defense: 3 }, effect: null, content_version: 'test' },
+      { id: 'skrytka', name: 'Skrytka na oregano', kind: 'combined', components: ['spices', 'safe'], stats: { attack: 12, defense: 7 }, effect: null, content_version: 'test' },
+    ] as any
+
+    await act(async () => {
+      root = createRoot(container)
+      root.render(
+        <ItemsPanel
+          itemCatalog={catalog}
+          playerState={{ item_inventory: ['spices', 'safe'] } as any}
+          onUpdate={vi.fn()}
+          onNotification={vi.fn()}
+        />,
+      )
+      await Promise.resolve()
+    })
+
+    const source = container.querySelector('[aria-label^="Przyprawy"]') as HTMLElement
+    const target = container.querySelector('[aria-label^="Sejf"]') as HTMLElement
+    const dataTransfer = createDataTransfer()
+
+    await act(async () => {
+      dispatchDrag(source, 'dragstart', dataTransfer)
+      dispatchDrag(target, 'dragenter', dataTransfer)
+      dispatchDrag(target, 'dragover', dataTransfer)
+      await Promise.resolve()
+    })
+
+    expect(document.body.textContent).toContain('Skrytka na oregano')
+    expect(gameAPI.combineItem).not.toHaveBeenCalled()
+
+    await act(async () => {
+      dispatchDrag(target, 'drop', dataTransfer)
+      await Promise.resolve()
+    })
+
+    expect(gameAPI.combineItem).toHaveBeenCalledTimes(1)
+    expect(gameAPI.combineItem).toHaveBeenCalledWith('spices', 'safe')
   })
 
   it('previews only exact unordered canonical recipe pairs', () => {

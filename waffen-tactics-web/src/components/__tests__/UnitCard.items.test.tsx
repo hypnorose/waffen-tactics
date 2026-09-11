@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import UnitCard from '../UnitCard'
+import { getUnitItemPreview } from '../../data/items'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -25,6 +26,12 @@ const itemCatalog = [
   { id: 'item-1', name: 'Item 1', kind: 'base', stats: { attack: 5 } },
   { id: 'item-2', name: 'Item 2', kind: 'base', stats: { defense: 5 } },
   { id: 'item-3', name: 'Item 3', kind: 'base', stats: { hp: 5 } },
+] as any
+
+const previewCatalog = [
+  { id: 'spices', name: 'Przyprawy', kind: 'base', components: [], stats: { attack: 5 }, effect: null, content_version: 'test' },
+  { id: 'safe', name: 'Sejf', kind: 'base', components: [], stats: { defense: 3 }, effect: null, content_version: 'test' },
+  { id: 'skrytka', name: 'Skrytka na oregano', kind: 'combined', components: ['spices', 'safe'], stats: { attack: 12, defense: 7 }, effect: null, content_version: 'test' },
 ] as any
 
 describe('UnitCard equipped item layout', () => {
@@ -68,5 +75,33 @@ describe('UnitCard equipped item layout', () => {
     expect(headings[0].parentElement?.className).toContain(compactHeight)
     expect(headings[1].parentElement?.className).toContain(detailedHeight)
     expect(container.querySelectorAll('[data-item-state]')).toHaveLength(itemCount * 2)
+  })
+
+  it('renders a portal preview for a unit target without changing equipped items', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const preview = getUnitItemPreview(previewCatalog, ['spices'], 'safe')
+
+    await act(async () => {
+      root = createRoot(container)
+      root.render(
+        <UnitCard
+          unitId="preview-unit"
+          detailed
+          items={['spices']}
+          itemCatalog={previewCatalog}
+          baseStats={{ attack: 10, defense: 5, hp: 100, attack_speed: 1, max_mana: 100 }}
+          itemPreview={preview ?? undefined}
+        />,
+      )
+      await Promise.resolve()
+    })
+
+    const previewNode = document.body.querySelector('[data-item-preview]')
+    expect(previewNode).not.toBeNull()
+    expect(previewNode?.textContent).toContain('Podgląd wyposażenia')
+    expect(previewNode?.textContent).toContain('Sejf')
+    expect(previewNode?.textContent).toContain('Wyposażenie po operacji')
+    expect(container.querySelectorAll('[data-item-state]')).toHaveLength(1)
   })
 })

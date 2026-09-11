@@ -25,6 +25,18 @@ export interface Item {
   content_version: string
 }
 
+export interface ItemUnitPreview {
+  legal: boolean
+  incomingItem: Item
+  resultingItem: Item
+  nextItemIds: string[]
+  mode: 'equip' | 'auto-combine' | 'blocked'
+  replacedItemId?: string
+  slotIndex?: number
+  statChanges: Record<string, number>
+  reason?: string
+}
+
 // Icons are presentation-only. Names, stats, components, and descriptions
 // always come from the backend WFT-139 catalog.
 export const ITEM_ICONS: Record<string, string> = {
@@ -100,4 +112,78 @@ export const getRecipePreview = (catalog: Item[], first: string, second: string)
       && item.components.length === 2
       && item.components.slice().sort().join('\u0000') === pair
   ))
+}
+
+/**
+ * Pure client-side projection of the backend equip_item contract.
+ * The backend scans all equipped slots and replaces the last compatible base
+ * item, so the preview must do the same without mutating player state.
+ */
+export const getUnitItemPreview = (
+  catalog: Item[],
+  equippedItemIds: string[],
+  incomingItemId: string,
+): ItemUnitPreview | null => {
+  const itemById = new Map(catalog.map(item => [item.id, item]))
+  const incomingItem = itemById.get(incomingItemId)
+  if (!incomingItem) return null
+
+  const nextItemIds = [...equippedItemIds]
+  let resultingItem = incomingItem
+  let replacedItemId: string | undefined
+  let slotIndex: number | undefined
+
+  if (incomingItem.kind === 'base') {
+    for (let index = 0; index < nextItemIds.length; index += 1) {
+      const equippedItem = itemById.get(nextItemIds[index])
+      if (!equippedItem || equippedItem.kind !== 'base') continue
+      const recipe = getRecipePreview(catalog, incomingItem.id, equippedItem.id)
+      if (!recipe) continue
+      // Keep scanning: the backend intentionally uses the last match.
+      resultingItem = recipe
+      replacedItemId = equippedItem.id
+      slotIndex = index
+    }
+  }
+
+  if (slotIndex !== undefined) {
+    nextItemIds[slotIndex] = resultingItem.id
+  } else if (nextItemIds.length < 3) {
+    nextItemIds.push(incomingItem.id)
+  } else {
+    return {
+      legal: false,
+      incomingItem,
+      resultingItem,
+      nextItemIds,
+      mode: 'blocked',
+      statChanges: {},
+      reason: 'Jednostka ma już 3 przedmioty',
+    }
+  }
+
+  const statChanges: Record<string, number> = {}
+  const addStats = (item: Item, multiplier: number) => {
+    Object.entries(item.stats).forEach(([stat, value]) => {
+      statChanges[stat] = (statChanges[stat] || 0) + value * multiplier
+    })
+  }
+  if (replacedItemId) {
+    const replacedItem = itemById.get(replacedItemId)
+    if (replacedItem) addStats(replacedItem, -1)
+    addStats(resultingItem, 1)
+  } else {
+    addStats(incomingItem, 1)
+  }
+
+  return {
+    legal: true,
+    incomingItem,
+    resultingItem,
+    nextItemIds,
+    mode: replacedItemId ? 'auto-combine' : 'equip',
+    replacedItemId,
+    slotIndex,
+    statChanges,
+  }
 }
