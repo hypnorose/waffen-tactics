@@ -285,51 +285,134 @@ class UnitManager:
         """
         Check if player has 3 copies and auto-upgrade
         Returns new star level if upgraded, None otherwise
+
+        Items are transferred in deterministic source order (bench, then board,
+        then each unit's item slot order).  The first three items stay equipped
+        on the upgraded unit; any remaining items are returned to the player's
+        inventory instead of being discarded.  The complete upgrade chain is
+        transactional in memory so an exception or placement failure restores
+        every source unit and item.
         """
         if star_level >= 3:
             return None
 
-        # Find all matching units
-        matching = player.find_matching_units(unit_id, star_level)
+        # Keep the original list objects and unit instances so rollback also
+        # preserves references held by callers and tests.
+        original_bench = list(player.bench)
+        original_board = list(player.board)
+        original_inventory = list(player.item_inventory)
 
-        if len(matching) >= 3:
-            # Take first 3 units
-            units_to_merge = matching[:3]
+        def restore_snapshot() -> None:
+            player.bench[:] = original_bench
+            player.board[:] = original_board
+            player.item_inventory[:] = original_inventory
 
-            # Check if any merged unit was on board
-            merged_on_board = any(unit in player.board for unit in units_to_merge)
+        try:
+            current_star_level = star_level
+            highest_upgrade = None
 
-            # Remove from bench/board
-            for unit in units_to_merge:
-                if unit in player.bench:
-                    player.bench.remove(unit)
-                elif unit in player.board:
-                    player.board.remove(unit)
+            while current_star_level < 3:
+                # find_matching_units already defines the canonical and
+                # deterministic source order: bench followed by board.
+                matching = player.find_matching_units(unit_id, current_star_level)
+                if len(matching) < 3:
+                    return highest_upgrade
 
-            # Create upgraded unit
-            upgraded = UnitInstance(unit_id=unit_id, star_level=star_level + 1)
-            # Combine persistent buffs from all merged units
-            combined_buffs = {}
-            for unit in units_to_merge:
-                for stat, value in unit.persistent_buffs.items():
-                    combined_buffs[stat] = combined_buffs.get(stat, 0) + value
-            upgraded.persistent_buffs = combined_buffs
+                units_to_merge = matching[:3]
+                board_sources = [
+                    unit for unit in units_to_merge
+                    if any(unit is board_unit for board_unit in player.board)
+                ]
+                merged_on_board = bool(board_sources)
 
-            # Prefer board if any merged unit was on board and there's space
-            if merged_on_board and len(player.board) < player.max_board_size:
-                upgraded.position = units_to_merge[0].position
-                player.board.append(upgraded)
-            elif len(player.bench) < player.max_bench_size:
-                player.bench.append(upgraded)
-            elif len(player.board) < player.max_board_size:
-                player.board.append(upgraded)
-            else:
-                # No space, put back one unit
-                player.bench.append(units_to_merge[0])
-                return None
+                # Preflight the destination after removing exactly these
+                # instances.  A failed placement must not consume two of the
+                # three source units, as the old implementation did.
+                source_ids = {id(unit) for unit in units_to_merge}
+                bench_after = sum(1 for unit in player.bench if id(unit) not in source_ids)
+                board_after = sum(1 for unit in player.board if id(unit) not in source_ids)
 
-            # Try to upgrade again (3x ⭐⭐ → ⭐⭐⭐)
-            further_upgrade = self.try_auto_upgrade(player, unit_id, star_level + 1)
-            return further_upgrade if further_upgrade else star_level + 1
+                destination = None
+                if merged_on_board and board_after < player.max_board_size:
+                    destination = 'board'
+                elif bench_after < player.max_bench_size:
+                    destination = 'bench'
+                elif board_after < player.max_board_size:
+                    destination = 'board'
 
-        return None
+                if destination is None:
+                    restore_snapshot()
+                    bot_logger.warning(
+                        '[GM_AUTO_UPGRADE] Upgrade rejected: no destination for %s star %s; '
+                        'source_units=%s',
+                        unit_id,
+                        current_star_level,
+                        [unit.instance_id for unit in units_to_merge],
+                    )
+                    return None
+
+                source_items = [
+                    item_id
+                    for unit in units_to_merge
+                    for item_id in (list(getattr(unit, 'items', []) or []))
+                ]
+                equipped_items = source_items[:3]
+                overflow_items = source_items[3:]
+
+                # Remove by identity rather than dataclass equality: two
+                # malformed/legacy instances with equal fields must still be
+                # treated as separate owned units.
+                player.bench[:] = [
+                    unit for unit in player.bench if id(unit) not in source_ids
+                ]
+                player.board[:] = [
+                    unit for unit in player.board if id(unit) not in source_ids
+                ]
+
+                upgraded = UnitInstance(
+                    unit_id=unit_id,
+                    star_level=current_star_level + 1,
+                    items=equipped_items,
+                )
+
+                # Combine persistent buffs from all merged units.
+                combined_buffs = {}
+                for unit in units_to_merge:
+                    for stat, value in unit.persistent_buffs.items():
+                        combined_buffs[stat] = combined_buffs.get(stat, 0) + value
+                upgraded.persistent_buffs = combined_buffs
+
+                # Preserve the established placement rule and source order.
+                if destination == 'board':
+                    upgraded.position = units_to_merge[0].position
+                    player.board.append(upgraded)
+                else:
+                    player.bench.append(upgraded)
+
+                if overflow_items:
+                    player.item_inventory.extend(overflow_items)
+
+                bot_logger.info(
+                    '[GM_AUTO_UPGRADE] Merged %s star %s -> %s; source_units=%s; '
+                    'equipped_items=%s; overflow_items=%s; destination=%s',
+                    unit_id,
+                    current_star_level,
+                    current_star_level + 1,
+                    [unit.instance_id for unit in units_to_merge],
+                    equipped_items,
+                    overflow_items,
+                    destination,
+                )
+
+                highest_upgrade = current_star_level + 1
+                current_star_level += 1
+
+            return highest_upgrade
+        except Exception:
+            restore_snapshot()
+            bot_logger.exception(
+                '[GM_AUTO_UPGRADE] Rolled back upgrade for %s starting at star %s',
+                unit_id,
+                star_level,
+            )
+            raise
