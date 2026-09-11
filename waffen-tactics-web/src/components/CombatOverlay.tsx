@@ -39,8 +39,6 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     finalState,
     synergies,
     traits,
-    hoveredTrait,
-    setHoveredTrait,
     opponentInfo,
     showLog,
     setShowLog,
@@ -139,7 +137,7 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
                     Pokaż synergie
                   </summary>
                   <div style={{ marginTop: 8 }}>
-                    <SynergiesPanel synergies={synergies} traits={traits} hoveredTrait={hoveredTrait} setHoveredTrait={setHoveredTrait} />
+                    <SynergiesPanel synergies={synergies} traits={traits} />
                   </div>
                 </details>
                 {isFinished && (

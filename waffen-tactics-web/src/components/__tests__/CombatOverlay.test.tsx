@@ -38,8 +38,6 @@ const mockLogic = {
   finalState: null,
   synergies: {},
   traits: [],
-  hoveredTrait: null,
-  setHoveredTrait: vi.fn(),
   opponentInfo: null,
   showLog: true,
   setShowLog: vi.fn(),

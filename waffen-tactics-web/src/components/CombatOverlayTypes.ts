@@ -59,8 +59,6 @@ export interface CombatOverlayProps {
 export interface SynergiesPanelProps {
   synergies: Record<string, {count: number, tier: number}>
   traits: TraitDefinition[]
-  hoveredTrait: string | null
-  setHoveredTrait: (trait: string | null) => void
 }
 
 export interface CombatSpeedSliderProps {

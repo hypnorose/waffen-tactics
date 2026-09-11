@@ -26,7 +26,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
   useEffect(() => {
     combatStateRef.current = combatState
   }, [combatState])
-  const [hoveredTrait, setHoveredTrait] = useState<string | null>(null)
   const [showLog, setShowLog] = useState(false)
   const [combatSpeed, setCombatSpeed] = useState(() => {
     const saved = localStorage.getItem('combatSpeed')
@@ -500,8 +499,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     finalState: combatState.finalState,
     synergies: combatState.synergies,
     traits: combatState.traits,
-    hoveredTrait,
-    setHoveredTrait,
     opponentInfo: combatState.opponentInfo,
     showLog,
     setShowLog,
