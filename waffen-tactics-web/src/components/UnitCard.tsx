@@ -179,7 +179,7 @@ export default function UnitCard({
       role="button"
       aria-label={`Jednostka: ${unit.name}`}
       data-board-unit-card={boardLayout ? 'true' : undefined}
-      className={`relative group ${detailed ? 'w-56' : 'w-36'} select-none ${boardLayout ? `${detailed ? 'board-unit-card-detailed' : 'board-unit-card'}` : ''} ${onClick && !disabled ? 'cursor-pointer' : ''} ${
+      className={`relative group ${boardLayout ? 'w-full' : detailed ? 'w-56' : 'w-36'} select-none ${boardLayout ? `${detailed ? 'board-unit-card-detailed' : 'board-unit-card'}` : ''} ${onClick && !disabled ? 'cursor-pointer' : ''} ${
         disabled ? 'opacity-50 cursor-not-allowed' : ''
       }`}
       style={boardLayout ? { height: detailed ? boardUnitCardSizingStyle.detailedHeight : boardUnitCardSizingStyle.compactHeight } : undefined}

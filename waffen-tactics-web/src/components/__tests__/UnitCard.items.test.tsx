@@ -172,6 +172,9 @@ describe('UnitCard equipped item layout', () => {
 
     const cards = Array.from(container.querySelectorAll('[data-board-unit-card="true"]'))
     expect(cards).toHaveLength(3)
+    for (const card of cards) {
+      expect(card.className).toContain('w-full')
+    }
     expect(new Set(cards.map((card) => (card as HTMLElement).style.height))).toEqual(new Set(['var(--board-unit-card-height-compact, 10rem)']))
     expect(container.querySelectorAll('.board-unit-card-faction-slot')).toHaveLength(3)
     expect(container.querySelectorAll('.board-unit-card-items-slot')).toHaveLength(3)
