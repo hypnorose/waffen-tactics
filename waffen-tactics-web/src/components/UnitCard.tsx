@@ -51,6 +51,7 @@ export default function UnitCard({
 }: UnitCardProps) {
   const unit = getUnit(unitId)
   const itemById = new Map(itemCatalog.map(item => [item.id, item]))
+  const hasEquippedItems = Boolean(items?.length)
   const passiveTitle = getPassiveTitle(unit?.passive)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
@@ -319,7 +320,7 @@ export default function UnitCard({
       )}
 
       <div
-          className={`w-full rounded-lg ${detailed ? 'p-2' : 'p-1'} transition-all duration-150 border-2 bg-gray-800/90 hover:bg-gray-800 ${detailed ? 'h-64' : 'h-36'} flex flex-col relative`}
+          className={`w-full rounded-lg ${detailed ? 'p-2' : 'p-1'} transition-all duration-150 border-2 bg-gray-800/90 hover:bg-gray-800 ${detailed ? (hasEquippedItems ? 'min-h-72' : 'min-h-64') : (hasEquippedItems ? 'min-h-40' : 'min-h-36')} h-auto flex flex-col relative`}
         style={{
           borderColor: getCostBorderColor(unit.cost),
           boxShadow: `0 0 10px ${getCostBorderColor(unit.cost)}40`,
@@ -337,7 +338,7 @@ export default function UnitCard({
           </div>
         )}
 
-        <div className="flex justify-center mb-2">
+        <div className="flex shrink-0 justify-center mb-2">
           <div
             className={`${detailed ? 'w-48 h-24' : 'w-28 h-14'} rounded-lg flex items-center justify-center font-bold text-2xl border-2 relative overflow-hidden`}
             style={{ borderColor: getCostBorderColor(unit.cost), backgroundColor: '#1e293b' }}
@@ -370,9 +371,16 @@ export default function UnitCard({
           </div>
         </div>
 
-        <h3 className={`text-center text-xs font-bold ${detailed ? 'mb-1' : 'mb-0.5'} truncate px-1 flex items-center justify-center gap-1 ${detailed ? '' : 'text-[9px]'}`}>{unit.name} <span>{getRoleEmoji(unit.role)}</span></h3>
+        <h3
+          title={unit.name}
+          aria-label={`Jednostka: ${unit.name}`}
+          className={`min-w-0 shrink-0 text-center text-xs font-bold ${detailed ? 'mb-1' : 'mb-0.5'} px-1 flex items-center justify-center gap-1 ${detailed ? '' : 'text-[9px]'}`}
+        >
+          <span className="min-w-0 truncate">{unit.name}</span>
+          <span className="shrink-0">{getRoleEmoji(unit.role)}</span>
+        </h3>
 
-        <div className="flex flex-wrap gap-0.5 justify-center mb-2 px-1">
+        <div className="flex shrink-0 flex-wrap gap-0.5 justify-center mb-2 px-1">
           {unit.factions.map((faction) => (
             <span key={faction} className={`px-1 py-0.5 rounded text-[9px] ${getFactionColor(faction)} text-white`}>
               {faction}
@@ -385,7 +393,9 @@ export default function UnitCard({
           ))}
         </div>
 
-        <EquippedItems itemIds={items} itemCatalog={itemCatalog} />
+        <div className="shrink-0">
+          <EquippedItems itemIds={items} itemCatalog={itemCatalog} />
+        </div>
 
         {lastRoundStats?.participated && !detailed && (
           <div className="flex items-center justify-center gap-2 border-t border-slate-700/80 pt-1 text-[9px] leading-none">
