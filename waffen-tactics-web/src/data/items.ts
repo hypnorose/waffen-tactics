@@ -87,6 +87,78 @@ export const formatItemStat = (stat: string, value: number) => {
   return `${amount} ${ITEM_STAT_LABELS[stat] || stat}`
 }
 
+const ITEM_STAT_DESCRIPTION_PHRASES: Record<string, string[]> = {
+  attack: ['ataku', 'obrażeń', 'ATK'],
+  defense: ['obrony', 'DEF'],
+  hp: ['HP'],
+  attack_speed: ['szybkości ataku', 'attack speed', 'ataku/s'],
+  mana_regen: ['regeneracji many', 'many/s', 'mana/s', 'mana regen'],
+  max_mana: ['maks\\.?\\s*many', 'max\\.?\\s*mana'],
+  hp_regen_per_sec: ['HP regeneracji/s', 'regeneracji HP/s', 'HP/s', 'health regen/s'],
+  lifesteal_percent: ['life\\s*steal', 'lifesteal'],
+}
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const itemStatNumberVariants = (value: number) => {
+  const raw = String(value)
+  const trimmed = raw.includes('.') ? raw.replace(/0+$/, '').replace(/\.$/, '') : raw
+  const variants = new Set([raw, raw.replace('.', ','), trimmed, trimmed.replace('.', ',')])
+  if (!Number.isInteger(value)) {
+    const fixed = value.toFixed(2)
+    variants.add(fixed)
+    variants.add(fixed.replace('.', ','))
+  }
+  return [...variants].sort((first, second) => second.length - first.length)
+}
+
+const itemStatDescriptionPattern = (stat: string, value: number) => {
+  const phrases = ITEM_STAT_DESCRIPTION_PHRASES[stat]
+  if (!phrases) return null
+  const numberPattern = itemStatNumberVariants(value).map(escapeRegExp).join('|')
+  const phrasePattern = phrases.join('|')
+  return new RegExp(
+    `^\\s*[+-]?\\s*(?:${numberPattern})${stat === 'lifesteal_percent' ? '\\s*%?' : ''}\\s+(?:${phrasePattern})(?=\\s*(?:[,\\.]|$))`,
+    'i',
+  )
+}
+
+const hasLeadingItemStatDescription = (description: string, stats: Record<string, number>) => (
+  Object.entries(stats).some(([stat, value]) => itemStatDescriptionPattern(stat, value)?.test(description) ?? false)
+)
+
+/**
+ * Keep only the mechanic-specific part of the canonical item description.
+ * Numeric stat rows are generated from `item.stats`, so matching leading
+ * clauses are removed without touching different proc values such as a
+ * per-attack +1 attack bonus.
+ */
+export const getItemMechanicDescription = (item: Item) => {
+  const description = item.description?.trim() || item.effect?.description?.trim()
+  if (!description) return undefined
+
+  let remaining = description
+  if (/^(?:daje|zapewnia|dodaje|posiada|otrzymuje)\s+/i.test(remaining)) {
+    const withoutLeadIn = remaining.replace(/^(?:daje|zapewnia|dodaje|posiada|otrzymuje)\s+/i, '')
+    if (hasLeadingItemStatDescription(withoutLeadIn, item.stats)) remaining = withoutLeadIn
+  }
+
+  let removedStat = true
+  while (removedStat) {
+    removedStat = false
+    for (const [stat, value] of Object.entries(item.stats)) {
+      const match = itemStatDescriptionPattern(stat, value)?.exec(remaining)
+      if (!match) continue
+      remaining = remaining.slice(match[0].length).replace(/^\s*(?:,\s*|\.\s*)/, '').trim()
+      removedStat = true
+      break
+    }
+  }
+
+  const mechanic = remaining.replace(/^[,.;]\s*/, '').trim()
+  return mechanic || undefined
+}
+
 const ITEM_TRIGGER_LABELS: Record<string, string> = {
   on_equip: 'Po założeniu',
   start_of_combat: 'Na początku walki',

@@ -1,4 +1,4 @@
-import { formatItemStat, ITEM_ICONS, type Item, type ItemUnitPreview } from '../data/items'
+import { ITEM_ICONS, type Item, type ItemUnitPreview } from '../data/items'
 import ItemTooltipContent from './ItemTooltipContent'
 
 const itemLabel = (item: Item) => `${ITEM_ICONS[item.id] || '◆'} ${item.name}`
@@ -23,13 +23,11 @@ export function ItemRecipePreviewContent({ first, second, result, itemCatalog }:
   )
 }
 
-export function ItemUnitPreviewContent({ preview, itemCatalog, currentStats }: {
+export function ItemUnitPreviewContent({ preview, itemCatalog }: {
   preview: ItemUnitPreview
   itemCatalog: Item[]
-  currentStats?: Record<string, number | undefined>
 }) {
   const itemById = new Map(itemCatalog.map(item => [item.id, item]))
-  const statEntries = Object.entries(preview.statChanges).filter(([, value]) => value !== 0)
 
   return (
     <div data-item-preview-content>
@@ -57,16 +55,6 @@ export function ItemUnitPreviewContent({ preview, itemCatalog, currentStats }: {
         </div>
       </div>
 
-      {preview.legal && statEntries.length > 0 && (
-        <div className="mt-2 border-t border-slate-700 pt-2 text-[11px] text-emerald-200">
-          <div className="mb-1 font-semibold text-emerald-300">Zmiana statystyk</div>
-          {statEntries.map(([stat, delta]) => {
-            const current = currentStats?.[stat]
-            const next = typeof current === 'number' ? current + delta : undefined
-            return <div key={stat}>{formatItemStat(stat, delta)}{typeof next === 'number' && ` · ${current} → ${next}`}</div>
-          })}
-        </div>
-      )}
     </div>
   )
 }

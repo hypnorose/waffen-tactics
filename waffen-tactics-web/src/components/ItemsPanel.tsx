@@ -90,7 +90,7 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
           const sourceIndex = Number(event.dataTransfer.getData('text/item-index'))
           if (source && !(source === itemId && sourceIndex === index) && item.kind === 'base') performCombine(source, itemId)
         },
-        'aria-label': `${item.name}${item.description ? ` — ${item.description}` : ''}`,
+        'aria-label': item.name,
       }}>
       {ITEM_ICONS[itemId] || '◆'}
       {!equipped && <span className="absolute -bottom-1 -right-1 rounded-full bg-slate-950 px-1 text-[9px] text-slate-300">{item.kind === 'combined' ? '★' : '×'}</span>}

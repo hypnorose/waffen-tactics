@@ -31,7 +31,7 @@ const itemCatalog = [
 const previewCatalog = [
   { id: 'spices', name: 'Przyprawy', kind: 'base', components: [], stats: { attack: 5 }, effect: null, content_version: 'test' },
   { id: 'safe', name: 'Sejf', kind: 'base', components: [], stats: { defense: 3 }, effect: null, content_version: 'test' },
-  { id: 'skrytka', name: 'Skrytka na oregano', kind: 'combined', components: ['spices', 'safe'], stats: { attack: 12, defense: 7 }, effect: null, content_version: 'test' },
+  { id: 'skrytka', name: 'Skrytka na oregano', kind: 'combined', components: ['spices', 'safe'], stats: { attack: 12, defense: 7 }, description: '+12 ataku, +7 obrony, trafiony przeciwnik ma -30% obrony przez 2 s.', effect: null, content_version: 'test' },
 ] as any
 
 describe('UnitCard equipped item layout', () => {
@@ -103,6 +103,33 @@ describe('UnitCard equipped item layout', () => {
     expect(previewNode?.textContent).toContain('Sejf')
     expect(previewNode?.textContent).toContain('Wyposażenie po operacji')
     expect(container.querySelectorAll('[data-item-state]')).toHaveLength(1)
+  })
+
+  it('uses the generated result stat rows once in the unit item preview', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const preview = getUnitItemPreview(previewCatalog, ['spices'], 'skrytka')
+
+    await act(async () => {
+      root = createRoot(container)
+      root.render(
+        <UnitCard
+          unitId="preview-unit"
+          detailed
+          items={['spices']}
+          itemCatalog={previewCatalog}
+          itemPreview={preview ?? undefined}
+        />,
+      )
+      await Promise.resolve()
+    })
+
+    const previewText = document.body.querySelector('[data-item-preview]')?.textContent || ''
+    expect(previewText.match(/\+12 Obrażenia/g)).toHaveLength(1)
+    expect(previewText.match(/\+7 Obrona/g)).toHaveLength(1)
+    expect(previewText).not.toContain('+12 ataku')
+    expect(previewText).not.toContain('+7 obrony')
+    expect(previewText).toContain('trafiony przeciwnik ma -30% obrony przez 2 s.')
   })
 
   it('uses the same board shell height and neutral reserved slots for every item count', () => {

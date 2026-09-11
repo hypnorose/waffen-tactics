@@ -150,6 +150,7 @@ describe('combat and table unit metric ownership', () => {
 
     expect(container.textContent).toContain('ETF przyprawowy')
     expect(container.textContent).toContain('+30 Obrażenia')
+    expect(container.textContent).not.toContain('+30 ataku.')
     expect(container.textContent).toContain('Aktywacja: Przy ataku · 2 s')
     expect(container.textContent).toContain('Nieznany przedmiot: legacy_item_id')
   })

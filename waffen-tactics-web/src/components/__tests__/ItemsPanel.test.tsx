@@ -91,11 +91,11 @@ describe('ItemsPanel tooltip ownership', () => {
             name: 'ETF przyprawowy',
             kind: 'combined',
             components: ['spices', 'spices'],
-            stats: { attack: 30 },
-            description: '+30 ataku.',
+            stats: { attack: 10, mana_regen: 3 },
+            description: '+10 ataku, +3 regeneracji many, +5 many przy ataku.',
             effect: {
               family: 'per_attack_stack',
-              description: '+30 ataku.',
+              description: '+10 ataku, +3 regeneracji many, +5 many przy ataku.',
               trigger: 'on_attack',
               target: 'owner',
               scope: 'self',
@@ -119,7 +119,7 @@ describe('ItemsPanel tooltip ownership', () => {
 
     const itemEntry = container.querySelector('[aria-label^="ETF przyprawowy"]')
     expect(itemEntry).not.toBeNull()
-    expect(itemEntry?.getAttribute('aria-label')).toContain('+30 ataku.')
+    expect(itemEntry?.getAttribute('aria-label')).toBe('ETF przyprawowy')
 
     await act(async () => {
       itemEntry?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
@@ -128,8 +128,10 @@ describe('ItemsPanel tooltip ownership', () => {
 
     expect(document.body.textContent).toContain('ETF przyprawowy')
     expect(document.body.textContent).toContain('Obrażenia')
-    expect(document.body.textContent).toContain('+30 Obrażenia')
-    expect(document.body.textContent).toContain('+30 ataku.')
+    expect(document.body.textContent).toContain('+10 Obrażenia')
+    expect(document.body.textContent).toContain('+3 Regeneracja many')
+    expect(document.body.textContent).toContain('+5 many przy ataku.')
+    expect(document.body.textContent).not.toContain('+10 ataku')
     expect(document.body.textContent).toContain('Aktywacja: Przy ataku')
     expect(document.body.textContent).toContain('Czas działania: 2 s')
     expect(document.body.textContent).toContain('Stacki: maks. 10')

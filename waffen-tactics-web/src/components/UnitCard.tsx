@@ -2,7 +2,7 @@ import { getUnit, getCostBorderColor, getFactionColor, getPassiveTitle } from '.
 import { useRef, useState } from 'react'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import EquippedItems from './EquippedItems'
-import { formatItemStat, formatItemTrigger, ITEM_ICONS, type Item, type ItemUnitPreview } from '../data/items'
+import { formatItemStat, formatItemTrigger, getItemMechanicDescription, ITEM_ICONS, type Item, type ItemUnitPreview } from '../data/items'
 import ItemPreviewTooltip from './ItemPreviewTooltip'
 import { ItemUnitPreviewContent } from './ItemPreviewContent'
 import { boardUnitCardSizingStyle } from './combatUnitCardLayout'
@@ -159,7 +159,7 @@ export default function UnitCard({
       style={boardLayout ? { height: detailed ? boardUnitCardSizingStyle.detailedHeight : boardUnitCardSizingStyle.compactHeight } : undefined}
     >
       <ItemPreviewTooltip anchorRef={containerRef} open={Boolean(itemPreview)}>
-        {itemPreview && <ItemUnitPreviewContent preview={itemPreview} itemCatalog={itemCatalog} currentStats={displayStats ?? undefined} />}
+        {itemPreview && <ItemUnitPreviewContent preview={itemPreview} itemCatalog={itemCatalog} />}
       </ItemPreviewTooltip>
       {(
         <div
@@ -220,10 +220,11 @@ export default function UnitCard({
                 <div className="space-y-2">
                   {items.slice(0, 3).map((itemId, index) => {
                     const item = itemById.get(itemId)
+                    const mechanicDescription = item ? getItemMechanicDescription(item) : undefined
                     return <div key={`${itemId}-${index}`} className="border-b border-slate-700/70 pb-1 last:border-0 last:pb-0">
                       <div className={`font-semibold ${item ? 'text-amber-100' : 'text-red-200'}`}>{ITEM_ICONS[itemId] || '◆'} {item?.name || `Nieznany przedmiot: ${itemId}`}</div>
                       {item && <div className="text-emerald-200">{Object.entries(item.stats).map(([stat, value]) => formatItemStat(stat, value)).join(', ')}</div>}
-                      {item?.description && <div className="text-slate-300">{item.description}</div>}
+                      {mechanicDescription && <div className="text-slate-300">{mechanicDescription}</div>}
                       {item?.effect && <div className="text-cyan-200">Aktywacja: {formatItemTrigger(item.effect.trigger)}{item.effect.duration !== null ? ` · ${item.effect.duration} s` : ''}</div>}
                     </div>
                   })}

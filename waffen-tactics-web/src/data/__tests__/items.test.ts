@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getUnitItemPreview, type Item } from '../items'
+import { getItemMechanicDescription, getUnitItemPreview, type Item } from '../items'
 
 const item = (overrides: Partial<Item>): Item => ({
   id: 'item',
@@ -61,5 +61,44 @@ describe('getUnitItemPreview', () => {
       statChanges: {},
     })
     expect(equipped).toEqual(['safe', 'etf', 'skrytka'])
+  })
+})
+
+describe('getItemMechanicDescription', () => {
+  it('removes a stat-only description because the stat row is generated from stats', () => {
+    const itemDefinition = item({
+      stats: { attack: 30 },
+      description: '+30 ataku.',
+    })
+
+    expect(getItemMechanicDescription(itemDefinition)).toBeUndefined()
+  })
+
+  it('keeps a unique mechanic after removing several generated stat clauses', () => {
+    const itemDefinition = item({
+      stats: { attack: 10, mana_regen: 3 },
+      description: '+10 ataku, +3 regeneracji many, +5 many przy ataku.',
+    })
+
+    expect(getItemMechanicDescription(itemDefinition)).toBe('+5 many przy ataku.')
+  })
+
+  it('supports decimal formatting and does not remove different proc values', () => {
+    const itemDefinition = item({
+      stats: { defense: 15, attack_speed: 0.15 },
+      description: '+15 obrony, +0,15 szybkości ataku. Przy ataku właściciel zyskuje +1 ataku, +0,10 szybkości ataku i +1 obrony; maksymalnie 10 stacków.',
+    })
+
+    expect(getItemMechanicDescription(itemDefinition)).toContain('Przy ataku właściciel zyskuje +1 ataku')
+    expect(getItemMechanicDescription(itemDefinition)).toContain('+0,10 szybkości ataku')
+  })
+
+  it('removes a declarative duplicate even when the description starts with a filler verb', () => {
+    const itemDefinition = item({
+      stats: { attack: 10 },
+      description: 'Daje +10 ATK.',
+    })
+
+    expect(getItemMechanicDescription(itemDefinition)).toBeUndefined()
   })
 })
