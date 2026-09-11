@@ -11,15 +11,19 @@ vi.mock('../../data/units', () => ({
   getCostBorderColor: () => '#6b7280',
   getFactionColor: () => 'bg-slate-500',
   getPassiveTitle: () => null,
-  getUnit: (unitId: string) => ({
-    id: unitId,
-    name: unitId === 'long-unit' ? 'Bardzo długi nick jednostki testowej' : `Unit ${unitId}`,
-    cost: 2,
-    factions: ['Faction'],
-    classes: ['Class'],
-    avatar: '',
-    stats: { hp: 100, attack: 10, defense: 5, attack_speed: 1, max_mana: 100 },
-  }),
+  getUnit: (unitId: string) => {
+    const empty = unitId === 'empty-unit'
+    const full = unitId === 'full-unit'
+    return {
+      id: unitId,
+      name: unitId === 'long-unit' ? 'Bardzo długi nick jednostki testowej' : `Unit ${unitId}`,
+      cost: 2,
+      factions: empty ? [] : full ? ['Faction One', 'Faction Two'] : ['Faction'],
+      classes: empty ? [] : full ? ['Class One', 'Class Two'] : ['Class'],
+      avatar: '',
+      stats: { hp: 100, attack: 10, defense: 5, attack_speed: 1, max_mana: 100 },
+    }
+  },
 }))
 
 const itemCatalog = [
@@ -173,5 +177,47 @@ describe('UnitCard equipped item layout', () => {
     expect(container.querySelectorAll('.board-unit-card-items-slot')).toHaveLength(3)
     expect(container.querySelectorAll('.board-unit-card-items-slot[aria-hidden="true"]')).toHaveLength(1)
     expect(container.textContent).toContain('Bardzo długi nick jednostki testowej')
+  })
+
+  it('keeps board geometry stable between empty and full traits while showing round stats', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    act(() => {
+      root = createRoot(container)
+      root.render(
+        <>
+          <UnitCard unitId="empty-unit" boardLayout items={[]} itemCatalog={itemCatalog} />
+          <UnitCard
+            unitId="full-unit"
+            boardLayout
+            items={['item-1', 'item-2', 'item-3']}
+            itemCatalog={itemCatalog}
+            lastRoundStats={{
+              unit_name: 'Unit full-unit',
+              damage_dealt: 100,
+              damage_received: 40,
+              avg_dps: 12.5,
+              avg_damage_received: 5,
+              active_seconds: 8,
+              participated: true,
+            }}
+          />
+          <UnitCard unitId="empty-unit" boardLayout detailed items={[]} itemCatalog={itemCatalog} />
+          <UnitCard unitId="full-unit" boardLayout detailed items={['item-1', 'item-2', 'item-3']} itemCatalog={itemCatalog} />
+        </>,
+      )
+    })
+
+    const cards = Array.from(container.querySelectorAll('[data-board-unit-card="true"]')) as HTMLElement[]
+    expect(cards).toHaveLength(4)
+    expect(new Set(cards.slice(0, 2).map(card => card.style.height))).toEqual(new Set(['var(--board-unit-card-height-compact, 10rem)']))
+    expect(new Set(cards.slice(2).map(card => card.style.height))).toEqual(new Set(['var(--board-unit-card-height-detailed, 18rem)']))
+    expect(container.querySelectorAll('.board-unit-card-faction-slot')).toHaveLength(4)
+    expect(container.querySelectorAll('.board-unit-card-items-slot')).toHaveLength(4)
+    expect(container.querySelectorAll('.board-unit-card-faction-slot[aria-hidden="true"]')).toHaveLength(2)
+    expect(container.querySelectorAll('.board-unit-card-items-slot[aria-hidden="true"]')).toHaveLength(2)
+    expect(container.textContent).toContain('DPS 12.5')
+    expect(container.textContent).toContain('-HP/s 5.0')
   })
 })
