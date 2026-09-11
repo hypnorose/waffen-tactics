@@ -167,6 +167,50 @@ def test_verify_reports_malformed_public_traits(monkeypatch, tmp_path: Path):
     ]
 
 
+def test_verify_reports_malformed_public_unit_schema(monkeypatch, tmp_path: Path):
+    repo_root = tmp_path
+    data_dir = repo_root / "waffen-tactics"
+    data_dir.mkdir()
+    (data_dir / "units.json").write_text(
+        json.dumps({"units": [{"id": "u1", "name": "Unit", "cost": 1}]}),
+        encoding="utf-8",
+    )
+    (data_dir / "traits.json").write_text(json.dumps({"traits": [{"id": "t1"}]}), encoding="utf-8")
+    (data_dir / "item_recipe_matrix_wft139.json").write_text(
+        json.dumps({
+            "matrix_id": "WFT-139",
+            "status": "approved-runtime-contract",
+            "base_items": [{"id": "b1"}],
+            "recipes": [{"id": "c1"}],
+        }),
+        encoding="utf-8",
+    )
+
+    payloads = {
+        "/api/game/units": [{"id": "u1", "name": "Unit"}],
+        "/api/game/traits": [{"id": "t1"}],
+        "/api/game/items": [{"id": "b1"}, {"id": "c1"}],
+    }
+
+    def fake_urlopen(request, timeout, context=None):
+        for endpoint, payload in payloads.items():
+            if request.full_url.endswith(endpoint):
+                return _Response(payload)
+        raise AssertionError(request.full_url)
+
+    monkeypatch.setattr(verifier, "urlopen", fake_urlopen)
+
+    report = verifier.verify("https://example.test", repo_root)
+    unit_result = next(contract for contract in report["contracts"] if contract["name"] == "units")
+
+    assert report["ok"] is False
+    assert unit_result["missing_ids"] == []
+    assert unit_result["unexpected_ids"] == []
+    assert unit_result["schema_errors"] == [
+        "/api/game/units[0] is missing required keys: ['cost']",
+    ]
+
+
 def test_verify_fails_closed_on_duplicate_public_ids(monkeypatch, tmp_path: Path):
     repo_root = tmp_path
     data_dir = repo_root / "waffen-tactics"

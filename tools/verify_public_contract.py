@@ -190,7 +190,7 @@ def verify(base_url: str, repo_root: Path, timeout: float = 10.0) -> dict[str, A
         local = _ids(local_records, name)
         public_payload = _fetch_json(f"{base}{endpoint}", timeout)
         public_records = _records(public_payload, name, f"public {endpoint}")
-        if name == "traits":
+        if name in {"units", "traits"}:
             public = _valid_public_ids(public_records, endpoint)
             schema_errors = _schema_errors(local_records, public_records, endpoint)
         else:
