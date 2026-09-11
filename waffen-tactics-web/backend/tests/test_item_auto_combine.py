@@ -33,7 +33,7 @@ def test_equip_auto_combines_a_plus_a():
     assert unit.items == ['etf_przyprawowy']
 
 
-def test_equip_uses_first_compatible_partner_in_slot_order():
+def test_equip_uses_last_compatible_partner_in_slot_order():
     unit = UnitInstance('unit', instance_id='unit-1', items=['spices', 'safe'])
     player = PlayerState(user_id=3, board=[unit], item_inventory=['coat'])
 
@@ -41,7 +41,7 @@ def test_equip_uses_first_compatible_partner_in_slot_order():
 
     assert success is True
     assert player.item_inventory == []
-    assert unit.items == ['plaszcz_ze_100_bawelny', 'safe']
+    assert unit.items == ['spices', 'forteca_z_ksiazek']
 
 
 def test_equip_can_combine_into_a_full_three_slot_loadout():
@@ -52,7 +52,7 @@ def test_equip_can_combine_into_a_full_three_slot_loadout():
 
     assert success is True
     assert player.item_inventory == []
-    assert unit.items == ['helena_o_smaku_kurkumy', 'safe', 'coat']
+    assert unit.items == ['spices', 'safe', 'bluza_z_bytom']
 
 
 def test_equip_rejects_a_full_loadout_without_a_compatible_base_partner():

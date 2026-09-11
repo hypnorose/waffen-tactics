@@ -14,7 +14,7 @@ def equip_item(player, instance_id, item_id):
 
     # The approved WFT-139 matrix is the only source of auto-combine rules.
     # Keep slot order deterministic when more than one base-item partner is
-    # already equipped; the first compatible slot is replaced by the result.
+    # already equipped; the last compatible slot is replaced by the result.
     partner_index = None
     combined_id = None
     if item_id in BASE_ITEMS:
@@ -25,7 +25,6 @@ def equip_item(player, instance_id, item_id):
             if candidate:
                 partner_index = index
                 combined_id = candidate
-                break
 
     if combined_id is not None and partner_index is not None:
         player.item_inventory.remove(item_id)
