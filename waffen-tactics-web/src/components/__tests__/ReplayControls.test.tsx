@@ -59,4 +59,13 @@ describe('ReplayControls', () => {
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('niedostępna')
     expect(container.querySelector('[aria-label="Pozycja replayu"]')).not.toBeNull()
   })
+
+  it('disables replay controls when the transport has stopped with an error', () => {
+    const container = renderControls({ disabled: true })
+
+    expect(container.textContent).toContain('Replay zatrzymany')
+    expect((container.querySelector('[aria-label="Uruchom replay od początku"]') as HTMLButtonElement).disabled).toBe(true)
+    expect((container.querySelector('[aria-label="Wstrzymaj replay"]') as HTMLButtonElement).disabled).toBe(true)
+    expect((container.querySelector('[aria-label="Pozycja replayu"]') as HTMLInputElement).disabled).toBe(true)
+  })
 })

@@ -6,6 +6,7 @@ interface Props {
   currentEvent?: CombatEvent
   isPlaying: boolean
   error?: string | null
+  disabled?: boolean
   onRestart: () => void
   onTogglePlay: () => void
   onSeek: (index: number) => void
@@ -17,18 +18,20 @@ export default function ReplayControls({
   currentEvent,
   isPlaying,
   error,
+  disabled = false,
   onRestart,
   onTogglePlay,
   onSeek,
 }: Props) {
   const hasEvents = eventCount > 0
+  const controlsDisabled = disabled || !hasEvents
   const maxIndex = Math.max(0, eventCount - 1)
   const selectedIndex = hasEvents ? Math.min(Math.max(currentIndex, 0), maxIndex) : 0
   const timeLabel = typeof currentEvent?.timestamp === 'number'
     ? `t=${currentEvent.timestamp.toFixed(2)} s`
     : 'czas nieznany'
   const eventLabel = hasEvents
-    ? `Zdarzenie ${selectedIndex + 1} z ${eventCount} · ${timeLabel}`
+    ? `${disabled ? 'Replay zatrzymany · ' : ''}Zdarzenie ${selectedIndex + 1} z ${eventCount} · ${timeLabel}`
     : 'Oczekiwanie na canonical replay'
 
   return (
@@ -55,15 +58,15 @@ export default function ReplayControls({
       <button
         type="button"
         onClick={onRestart}
-        disabled={!hasEvents}
+        disabled={controlsDisabled}
         aria-label="Uruchom replay od początku"
         style={{
           border: '1px solid rgba(251,191,36,0.6)',
           borderRadius: 6,
           padding: '5px 8px',
-          background: hasEvents ? '#334155' : '#1e293b',
-          color: hasEvents ? '#fde68a' : '#64748b',
-          cursor: hasEvents ? 'pointer' : 'not-allowed',
+          background: controlsDisabled ? '#1e293b' : '#334155',
+          color: controlsDisabled ? '#64748b' : '#fde68a',
+          cursor: controlsDisabled ? 'not-allowed' : 'pointer',
           fontWeight: 700,
         }}
       >
@@ -72,15 +75,15 @@ export default function ReplayControls({
       <button
         type="button"
         onClick={onTogglePlay}
-        disabled={!hasEvents}
+        disabled={controlsDisabled}
         aria-label={isPlaying ? 'Wstrzymaj replay' : 'Wznów replay'}
         style={{
           border: '1px solid rgba(96,165,250,0.6)',
           borderRadius: 6,
           padding: '5px 8px',
-          background: hasEvents ? '#334155' : '#1e293b',
-          color: hasEvents ? '#bfdbfe' : '#64748b',
-          cursor: hasEvents ? 'pointer' : 'not-allowed',
+          background: controlsDisabled ? '#1e293b' : '#334155',
+          color: controlsDisabled ? '#64748b' : '#bfdbfe',
+          cursor: controlsDisabled ? 'not-allowed' : 'pointer',
           fontWeight: 700,
         }}
       >
@@ -96,11 +99,11 @@ export default function ReplayControls({
           max={maxIndex}
           step="1"
           value={selectedIndex}
-          disabled={!hasEvents}
+          disabled={controlsDisabled}
           aria-label="Pozycja replayu"
           aria-valuetext={eventLabel}
           onChange={event => onSeek(Number(event.currentTarget.value))}
-          style={{ width: '100%', accentColor: '#fbbf24', cursor: hasEvents ? 'pointer' : 'not-allowed' }}
+          style={{ width: '100%', accentColor: '#fbbf24', cursor: controlsDisabled ? 'not-allowed' : 'pointer' }}
         />
       </label>
       {error && (

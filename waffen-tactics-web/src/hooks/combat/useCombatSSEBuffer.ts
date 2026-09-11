@@ -1,5 +1,44 @@
 import { useState, useEffect } from 'react'
-import { CombatEvent } from './types'
+import { CombatEvent, CombatTransportError } from './types'
+
+export type CombatSSEFrameClassification =
+  | { kind: 'event', event: CombatEvent }
+  | { kind: 'error', error: CombatTransportError }
+
+const FALLBACK_COMBAT_ERROR_MESSAGE = 'Nie udało się uruchomić walki. Odśwież stronę i spróbuj ponownie.'
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+export function classifyCombatSSEFrame(data: unknown): CombatSSEFrameClassification | null {
+  if (!isRecord(data) || typeof data.type !== 'string') {
+    return null
+  }
+
+  if (data.type === 'error') {
+    const code = typeof data.code === 'string' && data.code.trim()
+      ? data.code.trim()
+      : 'combat_request_failed'
+    const message = typeof data.message === 'string' && data.message.trim()
+      ? data.message
+      : FALLBACK_COMBAT_ERROR_MESSAGE
+    const retriable = typeof data.retriable === 'boolean' ? data.retriable : true
+
+    return {
+      kind: 'error',
+      error: { type: 'error', code, message, retriable },
+    }
+  }
+
+  return { kind: 'event', event: data as unknown as CombatEvent }
+}
+
+type SharedSSESnapshot = {
+  bufferedEvents: CombatEvent[]
+  isBufferedComplete: boolean
+  combatError: CombatTransportError | null
+}
 
 // Shared committed batch/replay state per token. The transport uses SSE
 // framing, but the backend does not promise live event delivery.
@@ -8,7 +47,10 @@ type SharedSSEState = {
   ingest: CombatEvent[]
   bufferedEvents: CombatEvent[]
   isBufferedComplete: boolean
-  listeners: Set<(state: { bufferedEvents: CombatEvent[]; isBufferedComplete: boolean }) => void>
+  combatError: CombatTransportError | null
+  stopped: boolean
+  reader?: ReadableStreamDefaultReader<Uint8Array>
+  listeners: Set<(state: SharedSSESnapshot) => void>
   creatingPromise?: Promise<SharedSSEState>
   endTime?: number // timestamp when 'end' received, for TTL
 }
@@ -52,6 +94,8 @@ function ensureSharedSSE(token: string) {
     ingest: [],
     bufferedEvents: [],
     isBufferedComplete: false,
+    combatError: null,
+    stopped: false,
     listeners: new Set(),
     creatingPromise: undefined
   }
@@ -80,10 +124,32 @@ function ensureSharedSSE(token: string) {
         ingest: [],
         bufferedEvents: [],
         isBufferedComplete: false,
+        combatError: null,
+        stopped: false,
         listeners: new Set()
+      }
+      state.reader = reader
+
+      const notify = () => {
+        const snapshot: SharedSSESnapshot = {
+          bufferedEvents: state.bufferedEvents,
+          isBufferedComplete: state.isBufferedComplete,
+          combatError: state.combatError,
+        }
+        state.listeners.forEach(l => l(snapshot))
+      }
+
+      const stopWithError = (error: CombatTransportError) => {
+        if (state.combatError) return
+        state.combatError = error
+        state.stopped = true
+        state.eventSource = null
+        void state.reader?.cancel().catch(() => undefined)
+        notify()
       }
 
       const processChunk = (chunk: string) => {
+        if (state.stopped) return
         buffer += chunk
         const lines = buffer.split('\n')
         buffer = lines.pop() || '' // Keep incomplete line in buffer
@@ -92,14 +158,25 @@ function ensureSharedSSE(token: string) {
           if (line.startsWith('data: ')) {
             const dataStr = line.slice(6)
             try {
-              const data: CombatEvent = JSON.parse(dataStr)
+              const classification = classifyCombatSSEFrame(JSON.parse(dataStr))
+              if (!classification) {
+                console.error('Ignoring malformed combat SSE frame')
+                continue
+              }
+
+              if (classification.kind === 'error') {
+                stopWithError(classification.error)
+                return
+              }
+
+              const data = classification.event
               // console.log(`[SSE DEBUG] Token ${token} ConnId ${connectionId}: Received ${data.type} seq:${data.seq}`)
               if (!state.isBufferedComplete) {
                 state.ingest.push(data)
                 // Expose received batch frames immediately; the backend sends
                 // the batch only after simulation and the idempotent commit.
                 state.bufferedEvents = [...state.ingest]
-                state.listeners.forEach(l => l({ bufferedEvents: state.bufferedEvents, isBufferedComplete: false }))
+                notify()
 
                 if (data.type === 'end') {
                   state.endTime = Date.now()
@@ -108,7 +185,7 @@ function ensureSharedSSE(token: string) {
                   state.isBufferedComplete = true
                   // notify listeners
                   // console.log(`[SSE DEBUG] Token ${token} ConnId ${connectionId}: Notifying ${state.listeners.size} listeners`)
-                  state.listeners.forEach(l => l({ bufferedEvents: state.bufferedEvents, isBufferedComplete: true }))
+                  notify()
                   // Allow live updates for a short time, then close
                   setTimeout(() => {
                     // console.log(`[SSE DEBUG] Token ${token} ConnId ${connectionId}: Closing after timeout`)
@@ -118,7 +195,7 @@ function ensureSharedSSE(token: string) {
               } else {
                 // live update
                 state.bufferedEvents = [...state.bufferedEvents, data]
-                state.listeners.forEach(l => l({ bufferedEvents: state.bufferedEvents, isBufferedComplete: true }))
+                notify()
               }
             } catch (err) {
               console.error('Error parsing combat event', err)
@@ -128,8 +205,9 @@ function ensureSharedSSE(token: string) {
       }
 
       const readStream = () => {
+        if (state.stopped) return
         reader.read().then(({ done, value }) => {
-          if (done) {
+          if (done || state.stopped) {
             // console.log(`[SSE DEBUG] Token ${token} ConnId ${connectionId}: Stream ended`)
             return
           }
@@ -160,12 +238,17 @@ function ensureSharedSSE(token: string) {
 export function useCombatSSEBuffer(token: string) {
   const [bufferedEvents, setBufferedEvents] = useState<CombatEvent[]>([])
   const [isBufferedComplete, setIsBufferedComplete] = useState(false)
+  const [combatError, setCombatError] = useState<CombatTransportError | null>(null)
 
   useEffect(() => { 
     if (!token) {
       console.error('No token found!')
       return
     }
+
+    setBufferedEvents([])
+    setIsBufferedComplete(false)
+    setCombatError(null)
 
     // Always start a fresh combat stream for a newly opened overlay.
     // Reusing an existing token stream can leave replay stuck on stale
@@ -185,10 +268,12 @@ export function useCombatSSEBuffer(token: string) {
       // Initialize local state from shared
       setBufferedEvents(state.bufferedEvents)
       setIsBufferedComplete(state.isBufferedComplete)
+      setCombatError(state.combatError)
 
-      const listener = ({ bufferedEvents: be, isBufferedComplete: ic }: { bufferedEvents: CombatEvent[]; isBufferedComplete: boolean }) => {
+      const listener = ({ bufferedEvents: be, isBufferedComplete: ic, combatError: ce }: SharedSSESnapshot) => {
         setBufferedEvents(be)
         setIsBufferedComplete(ic)
+        setCombatError(ce)
       }
       state.listeners.add(listener)
       // console.log(`[SSE DEBUG] Token ${token}: Added listener, now listeners.size: ${state.listeners.size}`)
@@ -211,5 +296,5 @@ export function useCombatSSEBuffer(token: string) {
     }
   }, [token])
 
-  return { bufferedEvents, isBufferedComplete }
+  return { bufferedEvents, isBufferedComplete, combatError }
 }

@@ -52,9 +52,18 @@ export interface TraitDefinition {
 
 export type CombatDeliveryMode = 'batch_replay'
 
+export interface CombatTransportError {
+  type: 'error'
+  code: string
+  message: string
+  retriable: boolean
+}
+
 export interface CombatEvent {
   type: string
   delivery_mode?: CombatDeliveryMode
+  code?: string
+  retriable?: boolean
   message?: string
   player_units?: Unit[]
   opponent_units?: Unit[]

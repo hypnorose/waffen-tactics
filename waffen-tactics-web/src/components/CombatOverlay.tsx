@@ -58,6 +58,7 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     replayEventIndex,
     replayPlaying,
     replaySeekError,
+    combatError,
     restartReplay,
     toggleReplay,
     seekReplay,
@@ -177,6 +178,7 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
                 currentEvent={replayEvents[replayEventIndex]}
                 isPlaying={replayPlaying}
                 error={replaySeekError}
+                disabled={Boolean(combatError)}
                 onRestart={restartReplay}
                 onTogglePlay={toggleReplay}
                 onSeek={seekReplay}
@@ -188,6 +190,39 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
           <GoldNotification breakdown={displayedGoldBreakdown} onDismiss={handleGoldDismiss} />
           {import.meta.env.DEV && showDesyncInspector && <DesyncInspector desyncLogs={(desyncLogs as any) || []} onClear={(clearDesyncLogs as any) || (() => {})} onExport={(exportDesyncJSON as any) || (() => '[]')} />}
         </>
+      )}
+
+      {combatError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          style={{
+            position: 'fixed',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 100,
+            width: 'min(92vw, 460px)',
+            padding: 20,
+            border: '1px solid rgba(248,113,113,0.8)',
+            borderRadius: 12,
+            background: 'rgba(69,10,10,0.97)',
+            color: '#fee2e2',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Walka zatrzymana</div>
+          <div style={{ fontSize: 14, lineHeight: 1.45 }}>{combatError.message}</div>
+          <div style={{ marginTop: 10, color: '#fecaca', fontSize: 12 }}>
+            Kod: <code>{combatError.code}</code>
+          </div>
+          <div style={{ marginTop: 12, fontSize: 12, color: '#fca5a5' }}>
+            {combatError.retriable
+              ? 'Spróbuj ponownie po odświeżeniu strony.'
+              : 'Odśwież stronę, aby wczytać aktualny stan gry.'}
+          </div>
+        </div>
       )}
 
       <div className={`absolute inset-0 bg-slate-950 backdrop-blur-sm flex items-center justify-center z-[65] transition-all duration-300 ${showMatchmakingOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
