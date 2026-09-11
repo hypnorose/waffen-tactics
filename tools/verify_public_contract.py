@@ -47,6 +47,23 @@ def _records(payload: Any, collection_key: str, source: str) -> list[dict[str, A
     return normalized
 
 
+def _item_records(payload: Any, source: str) -> list[dict[str, Any]]:
+    """Return the approved WFT-139 base and combined item records."""
+
+    if not isinstance(payload, dict):
+        raise ContractProbeError(f"{source} must be a WFT-139 matrix object")
+    if payload.get("matrix_id") != "WFT-139":
+        raise ContractProbeError(f"{source} has an unexpected matrix identity")
+    if payload.get("status") != "approved-runtime-contract":
+        raise ContractProbeError(f"{source} is not approved for runtime")
+
+    base_items = payload.get("base_items")
+    recipes = payload.get("recipes")
+    if not isinstance(base_items, list) or not isinstance(recipes, list):
+        raise ContractProbeError(f"{source} must contain base_items and recipes lists")
+    return _records([*base_items, *recipes], "items", source)
+
+
 def _ids(records: Iterable[dict[str, Any]], source: str) -> list[str]:
     result: list[str] = []
     for index, record in enumerate(records):
@@ -120,11 +137,16 @@ def verify(base_url: str, repo_root: Path, timeout: float = 10.0) -> dict[str, A
     contracts = (
         ("units", "units.json", "/api/game/units"),
         ("traits", "traits.json", "/api/game/traits"),
+        ("items", "item_recipe_matrix_wft139.json", "/api/game/items"),
     )
     results: list[dict[str, Any]] = []
     for name, filename, endpoint in contracts:
         local_payload = _load_json(repo_root / "waffen-tactics" / filename)
-        local = _ids(_records(local_payload, name, f"local {filename}"), name)
+        if name == "items":
+            local_records = _item_records(local_payload, f"local {filename}")
+        else:
+            local_records = _records(local_payload, name, f"local {filename}")
+        local = _ids(local_records, name)
         public_payload = _fetch_json(f"{base}{endpoint}", timeout)
         public = _ids(_records(public_payload, name, f"public {endpoint}"), endpoint)
         results.append(_compare(name, local, public))
@@ -138,7 +160,7 @@ def verify(base_url: str, repo_root: Path, timeout: float = 10.0) -> dict[str, A
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Compare public units/traits IDs with the local canonical dataset."
+        description="Compare public units, traits and item IDs with local canonical data."
     )
     parser.add_argument("--base-url", required=True, help="Public HTTPS origin to inspect")
     parser.add_argument(

@@ -52,10 +52,20 @@ def test_verify_accepts_array_and_wrapped_public_payloads(monkeypatch, tmp_path:
     data_dir.mkdir()
     (data_dir / "units.json").write_text(json.dumps({"units": [{"id": "u1"}]}), encoding="utf-8")
     (data_dir / "traits.json").write_text(json.dumps({"traits": [{"id": "t1"}]}), encoding="utf-8")
+    (data_dir / "item_recipe_matrix_wft139.json").write_text(
+        json.dumps({
+            "matrix_id": "WFT-139",
+            "status": "approved-runtime-contract",
+            "base_items": [{"id": "b1"}],
+            "recipes": [{"id": "c1"}],
+        }),
+        encoding="utf-8",
+    )
 
     payloads = {
         "/api/game/units": [{"id": "u1"}],
         "/api/game/traits": {"traits": [{"id": "t1"}]},
+        "/api/game/items": [{"id": "c1"}, {"id": "b1"}],
     }
 
     def fake_urlopen(request, timeout, context=None):
@@ -68,7 +78,48 @@ def test_verify_accepts_array_and_wrapped_public_payloads(monkeypatch, tmp_path:
     report = verifier.verify("https://example.test", repo_root)
 
     assert report["ok"] is True
+    assert [contract["name"] for contract in report["contracts"]] == [
+        "units", "traits", "items"
+    ]
     assert all(contract["ok"] for contract in report["contracts"])
+
+
+def test_verify_reports_stale_public_item_ids(monkeypatch, tmp_path: Path):
+    repo_root = tmp_path
+    data_dir = repo_root / "waffen-tactics"
+    data_dir.mkdir()
+    (data_dir / "units.json").write_text(json.dumps({"units": [{"id": "u1"}]}), encoding="utf-8")
+    (data_dir / "traits.json").write_text(json.dumps({"traits": [{"id": "t1"}]}), encoding="utf-8")
+    (data_dir / "item_recipe_matrix_wft139.json").write_text(
+        json.dumps({
+            "matrix_id": "WFT-139",
+            "status": "approved-runtime-contract",
+            "base_items": [{"id": "b1"}, {"id": "b2"}],
+            "recipes": [{"id": "c1"}, {"id": "c2"}],
+        }),
+        encoding="utf-8",
+    )
+
+    payloads = {
+        "/api/game/units": [{"id": "u1"}],
+        "/api/game/traits": {"traits": [{"id": "t1"}]},
+        "/api/game/items": [{"id": "spices"}, {"id": "sugar_rush"}],
+    }
+
+    def fake_urlopen(request, timeout, context=None):
+        for endpoint, payload in payloads.items():
+            if request.full_url.endswith(endpoint):
+                return _Response(payload)
+        raise AssertionError(request.full_url)
+
+    monkeypatch.setattr(verifier, "urlopen", fake_urlopen)
+
+    report = verifier.verify("https://example.test", repo_root)
+    item_result = next(contract for contract in report["contracts"] if contract["name"] == "items")
+
+    assert report["ok"] is False
+    assert item_result["missing_ids"] == ["b1", "b2", "c1", "c2"]
+    assert item_result["unexpected_ids"] == ["spices", "sugar_rush"]
 
 
 def test_verify_fails_closed_on_duplicate_public_ids(monkeypatch, tmp_path: Path):
