@@ -1,4 +1,5 @@
 import json
+import ssl
 from pathlib import Path
 
 import pytest
@@ -101,3 +102,10 @@ def test_fetch_json_uses_certificate_verifying_context(monkeypatch):
 
     assert verifier._fetch_json("https://example.test/api", timeout=3) == {"ok": True}
     assert seen["context"] is marker
+
+
+def test_tls_context_requires_hostname_and_certificate_verification():
+    context = verifier._tls_context()
+
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname is True
