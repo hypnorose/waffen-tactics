@@ -10,6 +10,7 @@ export const getItemInstanceKey = (itemId: string, index: number) => `${itemId}-
 export default function ItemsPanel({ playerState, onUpdate, onNotification, itemCatalog }: Props) {
   const [loadedItems, setLoadedItems] = useState<Item[]>([])
   const [hoveredItemKey, setHoveredItemKey] = useState<string | null>(null)
+  const [tooltipPlacement, setTooltipPlacement] = useState<'above' | 'below'>('below')
   const [combining, setCombining] = useState<[string, string] | null>(null)
   const combineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const draggedItem = useRef<{ itemId: string; index: number } | null>(null)
@@ -43,7 +44,26 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
     setCombining(null)
   }
 
-  const renderTooltip = (item: Item) => <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 z-50 w-64 -translate-x-1/2 rounded-lg border border-amber-300/60 bg-slate-950 px-3 py-2 text-left text-xs shadow-2xl">
+  const getTooltipPlacement = (element: HTMLElement): 'above' | 'below' => {
+    const rect = element.getBoundingClientRect()
+    const margin = 10
+    const navbarSafeTop = 76
+    const estimatedHeight = 240
+    const hasRoomBelow = rect.bottom + margin + estimatedHeight <= window.innerHeight - margin
+    const hasRoomAbove = rect.top - margin - estimatedHeight >= navbarSafeTop
+
+    // Prefer below near the top of the page so an upward tooltip never hides
+    // beneath the sticky navbar. Flip only when the viewport requires it.
+    if (hasRoomBelow || !hasRoomAbove) return 'below'
+    return 'above'
+  }
+
+  const renderTooltip = (item: Item) => <div
+    data-tooltip-placement={tooltipPlacement}
+    className={`pointer-events-none absolute left-1/2 z-[1000] w-64 -translate-x-1/2 rounded-lg border border-amber-300/60 bg-slate-950 px-3 py-2 text-left text-xs shadow-2xl ${
+      tooltipPlacement === 'above' ? 'bottom-[calc(100%+10px)]' : 'top-[calc(100%+10px)]'
+    }`}
+  >
     <div className="mb-1 flex items-center gap-2 text-sm font-bold text-amber-100"><span className="text-lg">{ITEM_ICONS[item.id] || '◆'}</span>{item.name}</div>
     <div className="mb-2 text-[10px] uppercase tracking-wide text-slate-400">{item.kind === 'combined' ? 'Przedmiot połączony' : 'Przedmiot bazowy'}</div>
     <div className="space-y-0.5 text-emerald-200">{Object.entries(item.stats).map(([stat, value]) => <div key={stat}>{formatItemStat(stat, value)}</div>)}</div>
@@ -85,7 +105,10 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
         const sourceIndex = Number(event.dataTransfer.getData('text/item-index'))
         if (source && !(source === itemId && sourceIndex === index) && item.kind === 'base') finishCombine(source, itemId)
       }}
-      onMouseEnter={() => setHoveredItemKey(itemKey)}
+      onMouseEnter={event => {
+        setTooltipPlacement(getTooltipPlacement(event.currentTarget))
+        setHoveredItemKey(itemKey)
+      }}
       onMouseLeave={() => { setHoveredItemKey(null); cancelCombine() }}
       aria-label={`${item.name}${item.description ? ` — ${item.description}` : ''}`}
       className={`relative flex items-center justify-center w-12 h-12 rounded-lg border-2 text-2xl select-none transition-all ${item.kind === 'combined' ? 'border-amber-300 bg-amber-500/15' : 'border-slate-500 bg-slate-800/80'} ${isCombining ? 'scale-110 ring-2 ring-amber-300 animate-pulse' : 'hover:border-amber-300 hover:-translate-y-0.5'} ${equipped ? 'w-9 h-9 text-lg' : 'cursor-grab active:cursor-grabbing'}`}>
