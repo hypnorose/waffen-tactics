@@ -82,7 +82,23 @@ body {
 
 @media (max-height: 760px) {
   .combat-overlay-board {
-    padding: 0.75rem !important;
+    padding: 0.5rem !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  /* Both formations can be taller than half of a 720px viewport. Let each
+     slot keep its content height and let the board provide the scroll range;
+     the previous flex: 1 + overflow:hidden combination clipped the player
+     back line at the bottom of the frame. */
+  .combat-opponent-slot,
+  .combat-player-slot {
+    flex: 0 0 auto !important;
+    min-height: max-content;
+  }
+
+  .combat-player-slot {
+    justify-content: flex-start !important;
   }
 
   .combat-units-panel {
@@ -107,13 +123,14 @@ body {
 
   .combat-unit-grid {
     gap: 0.25rem !important;
+    max-height: none !important;
   }
 
   .combat-unit-card {
-    --combat-unit-card-width: 104px;
-    --combat-unit-card-padding: 0.2rem;
-    --combat-unit-card-padding-opponent: 0.1rem;
-    --combat-unit-avatar-height: 38px;
+    --combat-unit-card-width: 96px;
+    --combat-unit-card-padding: 0.15rem;
+    --combat-unit-card-padding-opponent: 0.08rem;
+    --combat-unit-avatar-height: 32px;
     --combat-unit-bar-height: 0.3rem;
     --combat-unit-bar-gap: 0.1rem;
     box-sizing: border-box;
