@@ -18,7 +18,7 @@ interface UseCombatOverlayLogicProps {
 
 export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true }: UseCombatOverlayLogicProps) {
   const { token } = useAuthStore()
-  const { bufferedEvents, isBufferedComplete } = useCombatSSEBuffer(token || '')
+  const { bufferedEvents, isBufferedComplete, combatError } = useCombatSSEBuffer(token || '')
   const [playhead, setPlayhead] = useState(0)
   const [combatState, setCombatState] = useState<CombatState>(createEmptyCombatState)
   const combatStateRef = useRef(combatState)
@@ -97,6 +97,17 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     setReplayPaused(true)
   }
 
+  // A typed transport error terminates the committed batch. Keep any already
+  // received canonical events available for inspection, but never continue
+  // applying them or present the replay as playable after the stream stops.
+  useEffect(() => {
+    if (!combatError) return
+    clearReplayTimer()
+    setReplayPaused(true)
+    setAllEventsReplayed(false)
+    setReplaySeekError(null)
+  }, [combatError])
+
   const seekReplay = (targetIndex: number) => {
     clearReplayTimerAndPause()
 
@@ -154,6 +165,11 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     
     if (!replayEnabled) {
       console.log('[REPLAY LOOP] Gate closed, clearing timer')
+      clearReplayTimer()
+      return
+    }
+
+    if (combatError) {
       clearReplayTimer()
       return
     }
@@ -372,7 +388,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
     // Schedule next
     scheduleNextEvent(event, playhead)
-  }, [replayEnabled, replayPaused, isBufferedComplete, bufferedEvents, playhead, combatSpeed])
+  }, [replayEnabled, replayPaused, combatError, isBufferedComplete, bufferedEvents, playhead, combatSpeed])
 
   // Start replay when buffered
   useEffect(() => {
@@ -382,6 +398,10 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
     if (!replayEnabled) {
       console.log('[REPLAY INIT] Gate not enabled, skipping')
+      return
+    }
+    if (combatError) {
+      console.log('[REPLAY INIT] Combat transport error, replay remains stopped')
       return
     }
     if (bufferedEvents.length === 0) {
@@ -416,7 +436,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     setReplayPaused(false)
     setReplaySeekError(null)
     setPlayhead(0)
-  }, [replayEnabled, bufferedEvents])
+  }, [replayEnabled, bufferedEvents, combatError])
 
   useEffect(() => {
     return () => {
@@ -469,7 +489,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     combatState.opponentUnits.length > 0 ||
     !!combatState.opponentInfo
 
-  const isSearchingOpponent = !hasCombatInitData && bufferedEvents.length === 0 && !isBufferedComplete
+  const isSearchingOpponent = !combatError && !hasCombatInitData && bufferedEvents.length === 0 && !isBufferedComplete
 
   return {
     playerUnits: combatState.playerUnits,
@@ -500,8 +520,9 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     simTime: combatState.simTime,
     replayEvents: bufferedEvents,
     replayEventIndex: bufferedEvents.length > 0 ? Math.min(playhead, bufferedEvents.length - 1) : 0,
-    replayPlaying: replayEnabled && !replayPaused && bufferedEvents.length > 0,
+    replayPlaying: replayEnabled && !combatError && !replayPaused && bufferedEvents.length > 0,
     replaySeekError,
+    combatError,
     restartReplay,
     toggleReplay,
     seekReplay,
