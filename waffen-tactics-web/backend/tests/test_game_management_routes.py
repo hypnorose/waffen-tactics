@@ -3,6 +3,7 @@ import pytest
 
 import routes.game_management as game_management
 from routes.auth import JWT_SECRET
+from waffen_tactics.services.database import PlayerActionConflictError
 
 
 REQUEST_ID = 'game-lifecycle-error-test'
@@ -69,6 +70,32 @@ def test_reset_preserves_known_not_found_response(client, monkeypatch):
 
     assert response.status_code == 404
     assert response.json == {'error': 'No game found'}
+
+
+@pytest.mark.parametrize(
+    ('route', 'method', 'monkeypatch_target'),
+    [
+        ('/game/start', 'post', 'create_new_game_data'),
+        ('/game/reset', 'post', 'reset_player_game_data'),
+        ('/game/surrender', 'post', 'surrender_player_game_data'),
+    ],
+)
+def test_lifecycle_conflicts_are_explicit_409(client, monkeypatch, route, method, monkeypatch_target):
+    def raise_conflict(*args, **kwargs):
+        raise PlayerActionConflictError('lifecycle conflict')
+
+    monkeypatch.setattr(game_management, monkeypatch_target, raise_conflict)
+
+    response = getattr(client, method)(
+        route,
+        headers={'Authorization': f'Bearer {_token()}'},
+    )
+
+    assert response.status_code == 409
+    assert response.json == {
+        'error': 'lifecycle conflict',
+        'code': 'player_action_conflict',
+    }
 
 
 def test_game_state_enrichment_errors_use_safe_contract(client, monkeypatch, caplog):

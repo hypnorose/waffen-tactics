@@ -247,6 +247,137 @@ class DatabaseManager:
                 ) from exc
             raise
 
+    async def apply_player_lifecycle_action(
+        self,
+        user_id: int,
+        action_name: str,
+        mutation: Callable[
+            [Optional[PlayerState]],
+            Tuple[bool, str, Optional[PlayerState], Optional[Dict[str, Any]]],
+        ],
+        idempotency_key: Optional[str] = None,
+    ) -> Tuple[bool, str, Optional[PlayerState]]:
+        """Atomically apply start/reset/surrender lifecycle transitions.
+
+        Lifecycle actions can create a missing player and surrender also writes
+        a leaderboard row. Keeping both operations inside the same write
+        transaction as the player row prevents a stale load/save pair from
+        overwriting a concurrent player mutation or recording a duplicate
+        surrender on retry.
+
+        ``mutation`` receives the current player, or ``None`` when no player
+        exists, and returns ``(success, message, next_player,
+        leaderboard_entry)``. The final tuple is deliberately the same shape
+        as ``apply_player_action`` so route handlers can share their response
+        handling.
+        """
+        normalized_key = str(idempotency_key).strip() if idempotency_key else None
+        if normalized_key and len(normalized_key) > 200:
+            raise PlayerActionConflictError("Idempotency key is too long")
+
+        try:
+            async with aiosqlite.connect(self.db_path, timeout=5.0) as db:
+                await db.execute("PRAGMA busy_timeout = 5000")
+                await db.execute("BEGIN IMMEDIATE")
+                await self._ensure_action_results_table(db)
+
+                if normalized_key:
+                    async with db.execute(
+                        """SELECT action_name, success, message, state_json
+                           FROM player_action_results
+                           WHERE user_id = ? AND action_key = ?""",
+                        (int(user_id), normalized_key),
+                    ) as cursor:
+                        existing = await cursor.fetchone()
+                    if existing:
+                        stored_action, success, message, state_json = existing
+                        if stored_action != action_name:
+                            raise PlayerActionConflictError(
+                                f"Idempotency key already belongs to action '{stored_action}'"
+                            )
+                        cached_player = None
+                        if state_json:
+                            try:
+                                cached_player = PlayerState.from_dict(json.loads(state_json))
+                            except (TypeError, ValueError, KeyError, json.JSONDecodeError) as exc:
+                                raise InvalidStoredPlayerStateError(
+                                    f"Cached result for player {user_id} is invalid"
+                                ) from exc
+                        await db.commit()
+                        return bool(success), message, cached_player
+
+                async with db.execute(
+                    "SELECT state_json FROM players WHERE user_id = ?",
+                    (int(user_id),),
+                ) as cursor:
+                    row = await cursor.fetchone()
+
+                current_player = None
+                if row:
+                    try:
+                        current_player = PlayerState.from_dict(json.loads(row[0]))
+                    except (TypeError, ValueError, KeyError, json.JSONDecodeError) as exc:
+                        raise InvalidStoredPlayerStateError(
+                            f"Stored state for player {user_id} is invalid"
+                        ) from exc
+
+                success, message, next_player, leaderboard_entry = mutation(current_player)
+                state_json = self._serialize_player(next_player) if success else None
+
+                if success:
+                    if row:
+                        await db.execute(
+                            """UPDATE players
+                               SET state_json = ?, updated_at = CURRENT_TIMESTAMP
+                               WHERE user_id = ?""",
+                            (state_json, int(user_id)),
+                        )
+                    else:
+                        await db.execute(
+                            """INSERT INTO players (user_id, state_json, updated_at)
+                               VALUES (?, ?, CURRENT_TIMESTAMP)""",
+                            (int(user_id), state_json),
+                        )
+
+                    if leaderboard_entry:
+                        await db.execute(
+                            """INSERT INTO leaderboard
+                               (user_id, nickname, wins, losses, level, round_number, team_json)
+                               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                            (
+                                int(leaderboard_entry['user_id']),
+                                str(leaderboard_entry['nickname']),
+                                int(leaderboard_entry['wins']),
+                                int(leaderboard_entry['losses']),
+                                int(leaderboard_entry['level']),
+                                int(leaderboard_entry['round_number']),
+                                json.dumps(leaderboard_entry.get('team_units', []), allow_nan=False),
+                            ),
+                        )
+
+                if normalized_key:
+                    await db.execute(
+                        """INSERT INTO player_action_results
+                           (user_id, action_key, action_name, success, message, state_json)
+                           VALUES (?, ?, ?, ?, ?, ?)""",
+                        (
+                            int(user_id), normalized_key, action_name,
+                            int(bool(success)), message, state_json,
+                        ),
+                    )
+                await db.commit()
+                return bool(success), message, next_player if success else None
+        except PlayerActionConflictError:
+            raise
+        except InvalidStoredPlayerStateError:
+            raise
+        except aiosqlite.OperationalError as exc:
+            if "locked" in str(exc).lower() or "busy" in str(exc).lower():
+                raise PlayerActionConflictError(
+                    f"Player {user_id} lifecycle action could not acquire the database lock"
+                ) from exc
+            raise
+
     async def get_player_action_result(
         self,
         user_id: int,

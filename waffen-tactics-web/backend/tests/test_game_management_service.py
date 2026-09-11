@@ -65,23 +65,25 @@ class TestGameManagementService(unittest.TestCase):
     @patch('services.game_management_service.game_manager')
     def test_create_new_game_data_new_player(self, mock_game_manager, mock_db_manager):
         """Test creating new game for new player"""
-        mock_db_manager.load_player = AsyncMock(return_value=None)
         mock_game_manager.create_new_player.return_value = self.mock_player
-        mock_db_manager.save_player = AsyncMock()
+        mock_db_manager.apply_player_lifecycle_action = AsyncMock(
+            return_value=(True, "Gra rozpoczęta!", self.mock_player)
+        )
 
         with patch('services.game_management_service.get_player_state_data') as mock_get_state:
             mock_get_state.return_value = {'user_id': 123, 'level': 1}
 
             result = create_new_game_data(self.user_id)
 
-            mock_game_manager.create_new_player.assert_called_once_with(123)
-            mock_game_manager.generate_shop.assert_called_once_with(self.mock_player)
+            mock_db_manager.apply_player_lifecycle_action.assert_called_once()
             self.assertEqual(result, {'user_id': 123, 'level': 1})
 
     @patch('services.game_management_service.db_manager')
     def test_reset_player_game_data_no_player(self, mock_db_manager):
         """Test resetting when no player exists"""
-        mock_db_manager.load_player = AsyncMock(return_value=None)
+        mock_db_manager.apply_player_lifecycle_action = AsyncMock(
+            return_value=(False, "No game found", None)
+        )
 
         with self.assertRaises(ValueError) as context:
             reset_player_game_data(self.user_id)
@@ -91,7 +93,9 @@ class TestGameManagementService(unittest.TestCase):
     @patch('services.game_management_service.db_manager')
     def test_surrender_player_game_data_no_player(self, mock_db_manager):
         """Test surrendering when no player exists"""
-        mock_db_manager.load_player = AsyncMock(return_value=None)
+        mock_db_manager.apply_player_lifecycle_action = AsyncMock(
+            return_value=(False, "No game found", None)
+        )
 
         with self.assertRaises(ValueError) as context:
             surrender_player_game_data(self.user_id, self.username)

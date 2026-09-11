@@ -53,7 +53,10 @@ def get_player_state_data(user_id: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def create_new_game_data(user_id: str) -> Dict[str, Any]:
+def create_new_game_data(
+    user_id: str,
+    idempotency_key: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Create new game data for a player.
 
@@ -63,25 +66,32 @@ def create_new_game_data(user_id: str) -> Dict[str, Any]:
     Returns:
         New player state dict
     """
-    player = _run_async(db_manager.load_player(int(user_id)))
-
-    if not player:
-        # Create new player
-        player = game_manager.create_new_player(int(user_id))
-        game_manager.generate_shop(player)
-        _run_async(db_manager.save_player(player))
-        print(f"✨ Created new player: {user_id}")
-    else:
-        # Generate shop if empty (e.g., after combat without lock)
-        if not player.last_shop:
+    def mutation(player):
+        if not player:
+            player = game_manager.create_new_player(int(user_id))
             game_manager.generate_shop(player)
-            _run_async(db_manager.save_player(player))
+            print(f"✨ Created new player: {user_id}")
+        elif not player.last_shop:
+            # Generate shop if empty (e.g., after combat without lock).
+            game_manager.generate_shop(player)
             print(f"🛒 Generated shop for existing player: {user_id}")
+        return True, "Gra rozpoczęta!", player, None
+
+    success, message, _ = _run_async(
+        db_manager.apply_player_lifecycle_action(
+            int(user_id), 'start_game', mutation, idempotency_key=idempotency_key
+        )
+    )
+    if not success:
+        raise ValueError(message)
 
     return get_player_state_data(user_id)
 
 
-def reset_player_game_data(user_id: str) -> Dict[str, Any]:
+def reset_player_game_data(
+    user_id: str,
+    idempotency_key: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Reset player game data to start over.
 
@@ -91,19 +101,30 @@ def reset_player_game_data(user_id: str) -> Dict[str, Any]:
     Returns:
         Reset player state dict
     """
-    player = _run_async(db_manager.load_player(int(user_id)))
-    if not player:
-        raise ValueError("No game found")
+    def mutation(player):
+        if not player:
+            return False, "No game found", None, None
+        # Create fresh player.
+        next_player = game_manager.create_new_player(int(user_id))
+        game_manager.generate_shop(next_player)
+        return True, "Gra zresetowana!", next_player, None
 
-    # Create fresh player
-    player = game_manager.create_new_player(int(user_id))
-    game_manager.generate_shop(player)
-    _run_async(db_manager.save_player(player))
+    success, message, _ = _run_async(
+        db_manager.apply_player_lifecycle_action(
+            int(user_id), 'reset_game', mutation, idempotency_key=idempotency_key
+        )
+    )
+    if not success:
+        raise ValueError(message)
 
     return get_player_state_data(user_id)
 
 
-def surrender_player_game_data(user_id: str, username: str) -> Dict[str, Any]:
+def surrender_player_game_data(
+    user_id: str,
+    username: str,
+    idempotency_key: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Surrender current game and reset (lose streak).
 
@@ -114,25 +135,35 @@ def surrender_player_game_data(user_id: str, username: str) -> Dict[str, Any]:
     Returns:
         Reset player state dict
     """
-    player = _run_async(db_manager.load_player(int(user_id)))
-    if not player:
-        raise ValueError("No game found")
+    def mutation(player):
+        if not player:
+            return False, "No game found", None, None
 
-    # Save to leaderboard before surrendering
-    team_units = [{'unit_id': ui.unit_id, 'star_level': ui.star_level} for ui in player.board]
-    _run_async(db_manager.save_to_leaderboard(
-        user_id=int(user_id),
-        nickname=username,
-        wins=player.wins,
-        losses=player.losses,
-        level=player.level,
-        round_number=player.round_number,
-        team_units=team_units
-    ))
+        # Reset player to start over (lose streak), while recording the old
+        # result in the same database transaction.
+        team_units = [
+            {'unit_id': ui.unit_id, 'star_level': ui.star_level}
+            for ui in player.board
+        ]
+        leaderboard_entry = {
+            'user_id': int(user_id),
+            'nickname': username,
+            'wins': player.wins,
+            'losses': player.losses,
+            'level': player.level,
+            'round_number': player.round_number,
+            'team_units': team_units,
+        }
+        next_player = game_manager.create_new_player(int(user_id))
+        game_manager.generate_shop(next_player)
+        return True, "Poddano grę!", next_player, leaderboard_entry
 
-    # Reset player to start over (lose streak)
-    player = game_manager.create_new_player(int(user_id))
-    game_manager.generate_shop(player)
-    _run_async(db_manager.save_player(player))
+    success, message, _ = _run_async(
+        db_manager.apply_player_lifecycle_action(
+            int(user_id), 'surrender_game', mutation, idempotency_key=idempotency_key
+        )
+    )
+    if not success:
+        raise ValueError(message)
 
     return get_player_state_data(user_id)
