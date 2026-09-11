@@ -102,7 +102,7 @@ export default function Bench({ playerState, onUpdate, onNotification, onEquipIt
   return (
     <div>
       <div 
-        className={`flex flex-wrap ${detailedView ? 'gap-2' : 'gap-0.5'} justify-center items-center ${detailedView ? 'p-4' : 'p-2'} rounded-lg transition-all duration-200 mx-auto ${isDragOver ? 'ring-2 ring-green-300 ring-opacity-50' : ''}`}
+        className={`unit-collection flex flex-wrap ${detailedView ? 'gap-2' : 'gap-0.5'} justify-center items-center ${detailedView ? 'p-4' : 'p-2'} rounded-lg transition-all duration-200 mx-auto ${isDragOver ? 'ring-2 ring-green-300 ring-opacity-50' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
         onDragLeave={() => setIsDragOver(false)}
         onDragEnd={() => { setIsDragging(false); setIsDragOver(false); }}
@@ -129,7 +129,7 @@ export default function Bench({ playerState, onUpdate, onNotification, onEquipIt
         {playerState.bench.map((unitInstance: any) => (
           <div 
             key={unitInstance.instance_id} 
-            className={`flex-shrink-0 relative ${detailedView ? '' : 'max-w-[9rem]'}`}
+            className={`bench-unit-slot flex-shrink-0 relative ${detailedView ? '' : 'max-w-[9rem]'}`}
             onDragEnter={(e) => {
               if (draggedItemId || e.dataTransfer.types.includes('text/item-id')) {
                 e.preventDefault()
@@ -187,7 +187,7 @@ export default function Bench({ playerState, onUpdate, onNotification, onEquipIt
         ))}
         {/* Show one placeholder if bench is not full */}
         {playerState.bench.length < playerState.max_bench_size && (
-          <div className={`flex-shrink-0 ${detailedView ? '' : 'max-w-[9rem]'}`}>
+          <div className={`bench-placeholder flex-shrink-0 ${detailedView ? '' : 'max-w-[9rem]'}`}>
             <div className={`rounded-lg bg-surface/30 ${detailedView ? 'w-56 h-64' : 'w-36 h-36'} flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600`}>
               <span className="text-2xl">∅</span>
             </div>

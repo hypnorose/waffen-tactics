@@ -137,6 +137,35 @@ describe('ItemsPanel tooltip ownership', () => {
     expect(document.body.textContent).toContain('Stacki: maks. 10')
   })
 
+  it('opens the item tooltip from a tap without a hover event', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    await act(async () => {
+      root = createRoot(container)
+      root.render(
+        <ItemsPanel
+          itemCatalog={[{ id: 'spices', name: 'Przyprawy', kind: 'base', stats: { attack: 5 } } as any]}
+          playerState={{ item_inventory: ['spices'] } as any}
+          onUpdate={vi.fn()}
+          onNotification={vi.fn()}
+        />,
+      )
+      await Promise.resolve()
+    })
+
+    const itemEntry = container.querySelector('[aria-label="Przyprawy"]') as HTMLElement
+    expect(itemEntry.getAttribute('aria-expanded')).toBe('false')
+
+    await act(async () => {
+      itemEntry.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(itemEntry.getAttribute('aria-expanded')).toBe('true')
+    expect(document.body.querySelector('[data-item-tooltip]')).not.toBeNull()
+  })
+
   it('places a top-row tooltip below the item instead of under the sticky navbar', async () => {
     const container = document.createElement('div')
     document.body.appendChild(container)

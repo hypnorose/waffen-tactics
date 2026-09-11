@@ -59,6 +59,7 @@ export default function ItemTooltip({ item, itemCatalog, children, className, tr
     onMouseLeave: onTriggerMouseLeave,
     onFocus: onTriggerFocus,
     onBlur: onTriggerBlur,
+    onClick: onTriggerClick,
     ...restTriggerProps
   } = triggerProps || {}
 
@@ -67,6 +68,8 @@ export default function ItemTooltip({ item, itemCatalog, children, className, tr
       {...restTriggerProps}
       ref={triggerRef}
       className={className}
+      role="button"
+      aria-expanded={isOpen}
       onMouseEnter={event => {
         onTriggerMouseEnter?.(event)
         cancelClose()
@@ -84,6 +87,12 @@ export default function ItemTooltip({ item, itemCatalog, children, className, tr
       onBlur={event => {
         onTriggerBlur?.(event)
         scheduleClose()
+      }}
+      onClick={event => {
+        onTriggerClick?.(event)
+        if (event.defaultPrevented) return
+        cancelClose()
+        setIsOpen(open => !open)
       }}
     >
       {children}

@@ -101,4 +101,20 @@ describe('combat unit tooltip positioning', () => {
     expect(tooltip.style.top).toBe('232px')
     expect(container.querySelector('[data-combat-unit-tooltip="unit-tooltip-1"]')).toBeNull()
   })
+
+  it('opens and closes the tooltip with keyboard focus and activation', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    act(() => {
+      root = createRoot(container)
+      root.render(createElement(CombatUnitCard as any, { unit: baseUnit }))
+    })
+
+    const card = container.querySelector('.combat-unit-card') as HTMLDivElement
+    act(() => card.focus())
+    expect(card.getAttribute('aria-expanded')).toBe('true')
+
+    act(() => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))
+    expect(card.getAttribute('aria-expanded')).toBe('false')
+  })
 })

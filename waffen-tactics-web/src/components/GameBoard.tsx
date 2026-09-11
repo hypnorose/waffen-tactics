@@ -144,7 +144,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
   const renderUnitGrid = (units: any[], lineName: string, lineType: 'front' | 'back') => {
     const maxPerLine = Math.ceil(playerState.max_board_size * 0.75)
     return (
-    <div className="space-y-2">
+    <div className="board-line space-y-2">
       <div className="flex items-center justify-center gap-2">
         <h3 className={`text-sm font-bold ${lineType === 'front' ? 'text-red-400' : 'text-blue-400'}`}>
           {lineType === 'front' ? '⚔️' : '🏹'} {lineName}
@@ -153,7 +153,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
       </div>
       
       <div 
-        className={`flex flex-wrap ${detailedView ? 'gap-2' : 'gap-0.5'} justify-center items-center ${detailedView ? 'p-4' : 'p-2'} rounded-lg transition-all duration-200 border-2 mx-auto ${
+        className={`board-line-grid flex flex-wrap ${detailedView ? 'gap-2' : 'gap-0.5'} justify-center items-center ${detailedView ? 'p-4' : 'p-2'} rounded-lg transition-all duration-200 border-2 mx-auto ${
           lineType === 'front' 
             ? 'border-red-500/30 bg-red-500/5' 
             : 'border-blue-500/30 bg-blue-500/5'
@@ -279,7 +279,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
   )
 }
   return (
-    <div className="space-y-6">
+    <div className="game-board space-y-6">
       {/* Construction Notice */}
       {/* Front Line */}
       {renderUnitGrid(frontLineUnits, 'Linia Frontowa', 'front')}

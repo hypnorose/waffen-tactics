@@ -105,6 +105,25 @@ describe('UnitCard equipped item layout', () => {
     expect(container.querySelectorAll('[data-item-state]')).toHaveLength(1)
   })
 
+  it('opens the roster tooltip from a tap', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    act(() => {
+      root = createRoot(container)
+      root.render(<UnitCard unitId="preview-unit" />)
+    })
+
+    const card = container.querySelector('[aria-label="Jednostka: Unit preview-unit"]') as HTMLElement
+    const tooltip = card.querySelector('.absolute') as HTMLElement
+    expect(tooltip.className).toContain('hidden')
+
+    act(() => card.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+
+    expect(tooltip.className).toContain('block')
+    expect(tooltip.className).not.toContain('hidden')
+  })
+
   it('uses the generated result stat rows once in the unit item preview', async () => {
     const container = document.createElement('div')
     document.body.appendChild(container)

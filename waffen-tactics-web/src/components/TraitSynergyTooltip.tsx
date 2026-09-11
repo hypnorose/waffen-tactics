@@ -48,7 +48,22 @@ export default function TraitSynergyTooltip({ traitName, data, traitData }: Prop
       ref={triggerRef}
       className="relative"
       onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
+      onMouseLeave={() => {
+        if (document.activeElement !== triggerRef.current) setShowTooltip(false)
+      }}
+      onFocus={() => setShowTooltip(true)}
+      onBlur={() => setShowTooltip(false)}
+      onClick={() => setShowTooltip(current => !current)}
+      onKeyDown={event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          setShowTooltip(current => !current)
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-expanded={showTooltip}
+      aria-label={`${traitName}, ${data.count} jednostek${isActive ? `, Tier ${data.tier}` : ''}`}
     >
       <div
         style={{

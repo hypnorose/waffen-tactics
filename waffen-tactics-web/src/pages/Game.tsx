@@ -250,7 +250,7 @@ export default function Game() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-surface/30">
+      <div className="game-page min-h-screen bg-gradient-to-br from-background via-background to-surface/30">
       {/* Game Over Overlay */}
       {isGameOver && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -290,11 +290,11 @@ export default function Game() {
       )}
 
       {/* Top Bar - Avatar, HP, Level, Username, Wyloguj */}
-      <div className="bg-surface/80 backdrop-blur-md border-b border-primary/20 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
+      <div className="game-topbar bg-surface/80 backdrop-blur-md border-b border-primary/20 sticky top-0 z-50">
+        <div className="game-topbar-inner container mx-auto px-4 py-3">
+          <div className="game-topbar-row flex items-center justify-between">
             {/* Left: Avatar + User Info + Stats */}
-            <div className="flex items-center gap-4">
+            <div className="game-topbar-player flex items-center gap-4">
               {playerAvatarUrl ? (
                 <img
                   src={playerAvatarUrl}
@@ -315,7 +315,7 @@ export default function Game() {
                   <div className="text-sm font-bold">{user?.username}</div>
                   <div className="text-xs text-text/60">Runda {playerState.round_number}</div>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
+                <div className="game-topbar-stats flex items-center gap-3 text-sm">
                   {/* HP */}
                   <div className={`flex items-center gap-1 px-2 py-1 rounded ${playerState.hp <= 0 ? 'bg-red-500/40 animate-pulse' : 'bg-red-500/20'}`}>
                     <span>❤️</span>
@@ -348,7 +348,7 @@ export default function Game() {
             </div>
             
             {/* Right: Combat/Surrender Buttons + Leaderboard + Logout + Global Toggle */}
-            <div className="flex items-center gap-3">
+            <div className="game-topbar-actions flex items-center gap-3">
               {!isGameOver && (
                 <>
                   <button
@@ -391,10 +391,10 @@ export default function Game() {
         </div>
       </div>
 
-      <div className={`container mx-auto px-4 py-6 max-w-7xl space-y-4 ${isGameOver ? 'pointer-events-none opacity-50' : ''}`}>
+      <div className={`game-content container mx-auto px-4 py-6 max-w-7xl space-y-4 ${isGameOver ? 'pointer-events-none opacity-50' : ''}`}>
         {!isGameOver && <ItemsPanel playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} itemCatalog={itemCatalog} onItemDragStart={setDraggedItemId} onItemDragEnd={() => setDraggedItemId(null)} />}
         {/* Board Section */}
-        <div className="card">
+        <div className="game-section card">
           <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
             <span>🎯</span> Plansza bojowa 
             <span className={`text-sm font-mono ${
@@ -410,7 +410,7 @@ export default function Game() {
         </div>
 
         {/* Bench Section */}
-        <div className="card">
+        <div className="game-section card">
           <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
             <span>📦</span> Ławka
             <span className={`text-sm font-mono ${
@@ -426,7 +426,7 @@ export default function Game() {
 
         {/* Shop Section */}
         {!isGameOver && (
-          <div className="card">
+          <div className="game-section card">
             <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
               <span>🛍️</span> Sklep
             </h2>

@@ -110,12 +110,12 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
     </ItemTooltip>
   }
 
-  return <section className="card border border-amber-500/30">
-    <div className="flex items-center justify-between mb-3">
+  return <section className="items-panel card border border-amber-500/30">
+    <div className="items-panel-header flex items-center justify-between mb-3">
       <div><h2 className="text-lg font-bold">Przedmioty</h2><p className="text-xs text-text/60">Przeciągnij na jednostkę albo na drugi przedmiot, aby połączyć</p></div>
       <span className="text-sm text-text/60">{owned.length} szt.</span>
     </div>
-    <div className="flex flex-wrap gap-3 min-h-[64px] p-3 rounded-lg bg-slate-950/40 border border-slate-700">
+    <div className="items-inventory flex flex-wrap gap-3 min-h-[64px] p-3 rounded-lg bg-slate-950/40 border border-slate-700">
       {owned.map((itemId, index) => renderItem(itemId, index))}
       {!owned.length && <span className="text-sm text-text/50">Brak przedmiotów</span>}
     </div>

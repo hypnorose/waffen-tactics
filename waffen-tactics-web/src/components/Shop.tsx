@@ -211,7 +211,7 @@ export default function Shop({ playerState, onUpdate, onNotification }: ShopProp
                         {/* Shop Units - responsive grid so expanded cards wrap without overlap */}
                         <div className="pb-2" style={{ overflow: 'visible' }}>
                             <div
-                                className={`grid gap-3 justify-center transition-all duration-200 ${isDragOver ? 'ring-2 ring-red-300 ring-opacity-50 rounded-lg p-2' : ''}`}
+                                className={`shop-unit-grid grid gap-3 justify-center transition-all duration-200 ${isDragOver ? 'ring-2 ring-red-300 ring-opacity-50 rounded-lg p-2' : ''}`}
                                 style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(14rem, 1fr))' }}
                                 onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                                 onDragLeave={() => setIsDragOver(false)}

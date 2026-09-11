@@ -54,10 +54,10 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-surface border-2 border-primary/30 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+    <div className="traits-modal fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="traits-modal-dialog bg-surface border-2 border-primary/30 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-primary/20">
+        <div className="traits-modal-header flex items-center justify-between p-6 border-b border-primary/20">
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <span>📚</span> Informacje o Traitach
           </h2>
@@ -70,7 +70,7 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="traits-modal-content flex-1 overflow-y-auto p-6">
           {loading ? (
             <div className="text-center py-8">Ładowanie...</div>
           ) : (
@@ -150,7 +150,7 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
         </div>
 
         {/* Footer */}
-        <div className="border-t border-primary/20 p-4 flex justify-end">
+        <div className="traits-modal-footer border-t border-primary/20 p-4 flex justify-end">
           <button
             onClick={onClose}
             className="btn bg-primary hover:bg-primary/80 px-6 py-2"

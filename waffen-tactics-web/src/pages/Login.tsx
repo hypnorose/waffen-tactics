@@ -16,8 +16,8 @@ export default function Login() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="card max-w-md w-full text-center space-y-6">
+    <div className="login-screen flex items-center justify-center p-4">
+      <div className="login-card card max-w-md w-full text-center space-y-6">
         <h1 className="text-4xl font-bold text-primary">⚔️ Waffen Tactics</h1>
         <p className="text-text/80">
           Strategiczna gra auto-battler w stylu TFT

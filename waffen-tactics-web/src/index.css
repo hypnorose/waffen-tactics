@@ -21,6 +21,89 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
+  background: #2C2F33;
+}
+
+html,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+button,
+[role='button'],
+input[type='range'] {
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+[role='button']:focus-visible,
+input:focus-visible {
+  outline: 3px solid #fde68a;
+  outline-offset: 2px;
+}
+
+.game-page,
+.login-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
+
+.game-topbar-inner {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+.game-content {
+  min-width: 0;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+.game-topbar-row,
+.game-topbar-player,
+.game-topbar-actions,
+.game-topbar-stats,
+.game-section,
+.unit-collection,
+.shop-unit-grid,
+.items-inventory {
+  min-width: 0;
+}
+
+.game-topbar-actions > button,
+.game-topbar-actions > [role='button'],
+.game-section button,
+.login-screen button {
+  min-height: 44px;
+}
+
+.items-inventory {
+  overflow-wrap: anywhere;
+}
+
+.combat-overlay-root {
+  padding: max(0.5rem, env(safe-area-inset-top)) max(0.5rem, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.combat-overlay-panel,
+.combat-overlay-board,
+.combat-control-panel,
+.combat-opponent-slot,
+.combat-player-slot {
+  min-width: 0;
+  min-height: 0;
+}
+
+.combat-log-modal,
+.combat-matchmaking-panel,
+.combat-victory-panel,
+.traits-modal-dialog {
+  box-sizing: border-box;
 }
 
 @layer components {
@@ -144,6 +227,184 @@ body {
 }
 
 @media (max-width: 899px) {
+  .game-topbar-inner {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+
+  .game-topbar-row {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .game-topbar-player {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .game-topbar-player > div:last-child {
+    flex: 1 1 12rem;
+    min-width: 0;
+  }
+
+  .game-topbar-stats {
+    flex-wrap: wrap;
+    gap: 0.35rem !important;
+  }
+
+  .game-topbar-stats > div {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 4.2rem;
+  }
+
+  .game-topbar-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 0.5rem !important;
+  }
+
+  .game-topbar-actions > button,
+  .game-topbar-actions > [role='button'] {
+    width: 100%;
+    min-width: 0;
+    margin-left: 0 !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    white-space: normal;
+  }
+
+  .game-content {
+    padding-top: 1rem !important;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+  }
+
+  .game-section {
+    padding: 0.75rem !important;
+  }
+
+  .items-panel-header {
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .items-panel-header > div:first-child {
+    min-width: 0;
+  }
+
+  .items-panel-header p {
+    overflow-wrap: anywhere;
+  }
+
+  .traits-modal {
+    align-items: stretch;
+    padding: max(0.5rem, env(safe-area-inset-top)) max(0.5rem, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left));
+  }
+
+  .traits-modal-dialog {
+    max-width: 100% !important;
+    max-height: 100% !important;
+  }
+
+  .traits-modal-header {
+    padding: 0.75rem !important;
+    gap: 0.5rem;
+  }
+
+  .traits-modal-header h2 {
+    min-width: 0;
+    font-size: 1.1rem;
+  }
+
+  .traits-modal-content {
+    padding: 0.75rem !important;
+  }
+
+  .traits-modal-footer {
+    padding: 0.75rem !important;
+  }
+
+  .unit-collection {
+    overflow-x: hidden;
+  }
+
+  .shop-unit-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)) !important;
+  }
+
+  .combat-overlay-panel {
+    flex-direction: column !important;
+  }
+
+  .combat-control-panel {
+    width: 100% !important;
+    flex: 0 0 auto !important;
+    max-height: min(42dvh, 22rem);
+    border-right: 0 !important;
+    border-bottom: 2px solid #334155;
+    padding: 0.75rem !important;
+  }
+
+  .combat-overlay-board {
+    flex: 1 1 auto !important;
+    width: 100%;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 0.5rem !important;
+  }
+
+  .combat-opponent-slot,
+  .combat-player-slot {
+    flex: 0 0 auto !important;
+    width: 100%;
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .combat-unit-grid {
+    grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)) !important;
+    gap: 0.35rem !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .combat-unit-card {
+    width: 100% !important;
+  }
+
+  .combat-log-modal {
+    top: max(0.5rem, env(safe-area-inset-top)) !important;
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+    width: auto !important;
+    height: min(60dvh, 26rem) !important;
+    max-height: calc(100dvh - 1rem) !important;
+  }
+
+  .combat-replay-controls {
+    grid-template-columns: auto auto !important;
+  }
+
+  .combat-replay-controls > label {
+    grid-column: 1 / -1;
+  }
+
+  .combat-matchmaking-panel {
+    min-width: 0 !important;
+    width: min(28rem, calc(100vw - 2rem)) !important;
+    padding: 1.5rem !important;
+  }
+
+  .combat-victory-panel {
+    max-width: calc(100vw - 2rem);
+    padding: 1.5rem !important;
+  }
+
+  .combat-victory-panel > div {
+    font-size: clamp(1.75rem, 9vw, 3rem) !important;
+  }
+
   .board-unit-card-slot {
     width: min(100%, 8rem);
     flex-basis: min(100%, 8rem);
@@ -151,6 +412,45 @@ body {
 
   .board-unit-card {
     height: var(--board-unit-card-height-compact, 10rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .game-topbar-inner {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+
+  .game-topbar-player > img,
+  .game-topbar-player > [role='img'] {
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+  }
+
+  .game-topbar-stats > div {
+    min-width: 3.6rem;
+    font-size: 0.75rem;
+  }
+
+  .game-topbar-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .game-topbar-actions > button,
+  .game-topbar-actions > [role='button'] {
+    font-size: 0.75rem;
+  }
+
+  .game-section h2 {
+    font-size: 1rem;
+  }
+
+  .combat-control-panel {
+    max-height: 40dvh;
+  }
+
+  .combat-unit-grid {
+    grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)) !important;
   }
 }
 

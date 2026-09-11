@@ -135,7 +135,22 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
       ref={rootRef}
       className="combat-unit-card group"
       onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
+      onMouseLeave={() => {
+        if (document.activeElement !== rootRef.current) setShowTooltip(false)
+      }}
+      onFocus={() => setShowTooltip(true)}
+      onBlur={() => setShowTooltip(false)}
+      onClick={() => setShowTooltip(current => !current)}
+      onKeyDown={event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          setShowTooltip(current => !current)
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      aria-expanded={showTooltip}
+      aria-label={`Jednostka bojowa: ${unit.name}`}
       style={{
         backgroundColor: '#0f172a',
         borderRadius: isOpponent ? '0.25rem' : '0.5rem',

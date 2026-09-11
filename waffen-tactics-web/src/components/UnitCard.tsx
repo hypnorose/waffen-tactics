@@ -64,6 +64,45 @@ export default function UnitCard({
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [tooltipTop, setTooltipTop] = useState<number | null>(null)
   const [tooltipSide, setTooltipSide] = useState<'left' | 'right'>('right')
+  const [showUnitTooltip, setShowUnitTooltip] = useState(false)
+
+  const closeUnitTooltip = () => {
+    setShowUnitTooltip(false)
+    setTooltipTop(null)
+  }
+
+  const openUnitTooltip = () => {
+    if (isDragging) return
+    setShowUnitTooltip(true)
+    setTimeout(() => {
+      const cont = containerRef.current
+      const tip = tooltipRef.current
+      if (!cont || !tip) return
+      const contRect = cont.getBoundingClientRect()
+      const tipHeight = tip.offsetHeight
+      const tipWidth = tip.offsetWidth
+      const viewportHeight = window.innerHeight
+      const viewportWidth = window.innerWidth
+      const margin = 8
+
+      if (contRect.left + contRect.width + tipWidth + margin > viewportWidth) {
+        setTooltipSide('left')
+      } else {
+        setTooltipSide('right')
+      }
+
+      let offset = 0
+      const tipBottom = contRect.top + offset + tipHeight
+      if (tipBottom > viewportHeight - margin) {
+        offset = viewportHeight - margin - contRect.top - tipHeight
+      }
+
+      const minOffset = margin - contRect.top
+      if (offset < minOffset) offset = minOffset
+
+      setTooltipTop(Math.round(offset))
+    }, 10)
+  }
 
   const getRoleEmoji = (role?: string) => {
     switch (role) {
@@ -118,40 +157,27 @@ export default function UnitCard({
   return (
     <div
       ref={containerRef}
-      onMouseEnter={() => {
-        if (isDragging) return;
-        setTimeout(() => {
-          const cont = containerRef.current
-          const tip = tooltipRef.current
-          if (!cont || !tip) return
-          const contRect = cont.getBoundingClientRect()
-          const tipHeight = tip.offsetHeight
-          const tipWidth = tip.offsetWidth
-          const viewportHeight = window.innerHeight
-          const viewportWidth = window.innerWidth
-          const margin = 8
-
-          // Determine side
-          if (contRect.left + contRect.width + tipWidth + margin > viewportWidth) {
-            setTooltipSide('left')
-          } else {
-            setTooltipSide('right')
-          }
-
-          let offset = 0
-          const tipBottom = contRect.top + offset + tipHeight
-          if (tipBottom > viewportHeight - margin) {
-            offset = viewportHeight - margin - contRect.top - tipHeight
-          }
-
-          const minOffset = margin - contRect.top
-          if (offset < minOffset) offset = minOffset
-
-          setTooltipTop(Math.round(offset))
-        }, 10)
+      onMouseEnter={openUnitTooltip}
+      onMouseLeave={() => {
+        if (document.activeElement !== containerRef.current) closeUnitTooltip()
       }}
-      onMouseLeave={() => setTooltipTop(null)}
-      onClick={!disabled ? onClick : undefined}
+      onTouchStart={openUnitTooltip}
+      onFocus={openUnitTooltip}
+      onBlur={closeUnitTooltip}
+      onClick={!disabled ? () => {
+        openUnitTooltip()
+        onClick?.()
+      } : undefined}
+      onKeyDown={event => {
+        if (!disabled && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault()
+          setShowUnitTooltip(current => !current)
+          onClick?.()
+        }
+      }}
+      tabIndex={disabled ? -1 : 0}
+      role="button"
+      aria-label={`Jednostka: ${unit.name}`}
       data-board-unit-card={boardLayout ? 'true' : undefined}
       className={`relative group ${detailed ? 'w-56' : 'w-36'} select-none ${boardLayout ? `${detailed ? 'board-unit-card-detailed' : 'board-unit-card'}` : ''} ${onClick && !disabled ? 'cursor-pointer' : ''} ${
         disabled ? 'opacity-50 cursor-not-allowed' : ''
@@ -163,7 +189,7 @@ export default function UnitCard({
       </ItemPreviewTooltip>
       {(
         <div
-          className="hidden group-hover:block absolute p-3 rounded-lg z-[100] shadow-2xl text-xs w-[240px] border-2 pointer-events-none"
+          className={`${showUnitTooltip ? 'block' : 'hidden'} group-hover:block absolute p-3 rounded-lg z-[100] shadow-2xl text-xs w-[240px] border-2 pointer-events-none`}
           ref={tooltipRef}
           style={{
             backgroundColor: '#0f172a',

@@ -38,6 +38,7 @@ export default function ReplayControls({
 
   return (
     <div
+      className="combat-replay-controls"
       aria-label="Sterowanie replayem walki"
       aria-hidden={!visible}
       style={{

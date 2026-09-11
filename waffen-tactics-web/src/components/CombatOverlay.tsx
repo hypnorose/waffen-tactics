@@ -121,11 +121,12 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
   }, [showMatchmakingOverlay])
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+    <div className="combat-overlay-root" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
       {!showMatchmakingOverlay && (
         <>
-          <div style={combatOverlayPanelStyle}>
+          <div className="combat-overlay-panel" style={combatOverlayPanelStyle}>
             <div
+              className="combat-control-panel"
               id="combat-control-panel"
               aria-hidden={!combatPanelExpanded}
               style={{ ...combatOverlaySidebarStyle, display: combatPanelExpanded ? 'flex' : 'none' }}
@@ -247,7 +248,7 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
       )}
 
       <div className={`absolute inset-0 bg-slate-950 backdrop-blur-sm flex items-center justify-center z-[65] transition-all duration-300 ${showMatchmakingOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <div className="bg-slate-900/90 border border-slate-600 rounded-xl p-8 min-w-[440px] text-center shadow-2xl">
+        <div className="combat-matchmaking-panel bg-slate-900/90 border border-slate-600 rounded-xl p-8 min-w-[440px] text-center shadow-2xl">
           <div className="flex justify-center mb-5">
             <div className="w-12 h-12 border-4 border-yellow-400/40 border-t-yellow-300 rounded-full animate-spin" />
           </div>
@@ -261,7 +262,7 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
       </div>
 
       <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-60 transition-all duration-300 ease-out ${showVictoryOverlay ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
-        <div className="bg-surface border-4 border-primary/60 rounded-xl p-8 shadow-2xl">
+        <div className="combat-victory-panel bg-surface border-4 border-primary/60 rounded-xl p-8 shadow-2xl">
           <div className={`text-5xl font-bold text-center ${victory ? 'text-green-400' : 'text-red-400'}`}>
             {victory ? '🎉 ZWYCIĘSTWO! 🎉' : defeatMessage || '💔 PRZEGRANA! 💔'}
           </div>
