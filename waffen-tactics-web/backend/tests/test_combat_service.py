@@ -274,6 +274,38 @@ class TestCombatService(unittest.TestCase):
 
         mock_game_manager.synergy_engine.compute.assert_not_called()
 
+    @patch('services.combat_service.game_manager')
+    @patch('services.combat_service.db_manager')
+    def test_prepare_opponent_units_rejects_malformed_snapshot_metadata(self, mock_db_manager, mock_game_manager):
+        """A snapshot missing its board must use the typed invalid-input contract."""
+        mock_db_manager.get_random_opponent = AsyncMock(return_value={
+            'nickname': 'TestOpponent',
+            'wins': 10,
+            'level': 5,
+        })
+
+        with self.assertRaisesRegex(InvalidCombatInputError, r'Malformed opponent snapshot: missing board'):
+            prepare_opponent_units_for_combat(self.mock_player)
+
+        mock_game_manager.synergy_engine.compute.assert_not_called()
+
+    @patch('services.combat_service.game_manager')
+    @patch('services.combat_service.db_manager')
+    def test_prepare_opponent_units_rejects_invalid_star_level(self, mock_db_manager, mock_game_manager):
+        """A persisted star level must be an integer accepted by scaling."""
+        mock_db_manager.get_random_opponent = AsyncMock(return_value={
+            'nickname': 'TestOpponent',
+            'wins': 10,
+            'level': 5,
+            'board': [{'unit_id': 'unit_001', 'star_level': '1'}],
+        })
+        mock_game_manager.data.units = [self.mock_unit]
+
+        with self.assertRaisesRegex(InvalidCombatInputError, r'invalid star_level'):
+            prepare_opponent_units_for_combat(self.mock_player)
+
+        mock_game_manager.synergy_engine.compute.assert_not_called()
+
     @patch('services.combat_service.db_manager')
     def test_prepare_opponent_units_for_combat_fallback(self, mock_db_manager):
         """Test opponent unit preparation fallback when no opponent found"""
@@ -444,6 +476,15 @@ class TestCombatService(unittest.TestCase):
         self.assertTrue(payload['retriable'])
         self.assertNotIn('secret', payload['message'])
         self.assertNotIn('token', payload['message'])
+
+    def test_invalid_combat_sse_payload_has_non_retriable_safe_contract(self):
+        payload = combat_error_sse_payload(InvalidCombatInputError('unknown unit=mrvlook'))
+        self.assertEqual(payload, {
+            'type': 'error',
+            'code': 'invalid_combat_input',
+            'retriable': False,
+            'message': 'Combat data is invalid. Please refresh and try again.',
+        })
 
     @patch('services.combat_service.game_manager')
     def test_process_combat_results_victory(self, mock_game_manager):

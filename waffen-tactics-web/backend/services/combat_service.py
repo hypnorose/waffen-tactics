@@ -262,11 +262,14 @@ def resolve_persisted_team_units(
             if isinstance(entry, str):
                 unit_id = entry
             elif isinstance(entry, dict):
-                unit_id = (
-                    entry.get('unit_id')
-                    or entry.get('template_id')
-                    or entry.get('id')
-                )
+                if require_saved_entries:
+                    unit_id = entry.get('unit_id')
+                else:
+                    unit_id = (
+                        entry.get('unit_id')
+                        or entry.get('template_id')
+                        or entry.get('id')
+                    )
             else:
                 unit_id = getattr(entry, 'unit_id', None)
         except Exception as exc:
@@ -283,6 +286,12 @@ def resolve_persisted_team_units(
             raise InvalidCombatInputError(
                 f"Malformed {side} team entry at index {index}: missing star_level"
             )
+        if require_saved_entries:
+            star_level = entry.get('star_level')
+            if isinstance(star_level, bool) or not isinstance(star_level, int) or star_level < 1:
+                raise InvalidCombatInputError(
+                    f"Malformed {side} team entry at index {index}: invalid star_level"
+                )
 
         unit = next(
             (candidate for candidate in game_manager.data.units if candidate.id == unit_id),
@@ -548,6 +557,20 @@ def prepare_opponent_units_for_combat(player: PlayerState) -> Tuple[List[CombatU
                     opponent_data = None
 
         if opponent_data:
+            if not isinstance(opponent_data, dict):
+                raise InvalidCombatInputError(
+                    'Malformed opponent snapshot: expected an object'
+                )
+            missing_snapshot_fields = [
+                field for field in ('nickname', 'wins', 'level', 'board')
+                if field not in opponent_data
+            ]
+            if missing_snapshot_fields:
+                raise InvalidCombatInputError(
+                    'Malformed opponent snapshot: missing '
+                    + ', '.join(missing_snapshot_fields)
+                )
+
             opponent_name = opponent_data['nickname']
             opponent_wins = opponent_data['wins']
             opponent_level = opponent_data['level']
