@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { gameAPI } from '../services/api'
 import type { PlayerState } from '../store/gameStore'
-import { formatItemStat, formatItemTrigger, getRecipePreview, ITEM_ICONS, type Item } from '../data/items'
+import { getRecipePreview, ITEM_ICONS, type Item } from '../data/items'
+import ItemTooltip from './ItemTooltip'
 
 type Props = { playerState: PlayerState; onUpdate: (state: PlayerState) => void; onNotification: (message: string, type?: 'error' | 'success' | 'info') => void; itemCatalog?: Item[] }
 
@@ -9,8 +10,6 @@ export const getItemInstanceKey = (itemId: string, index: number) => `${itemId}-
 
 export default function ItemsPanel({ playerState, onUpdate, onNotification, itemCatalog }: Props) {
   const [loadedItems, setLoadedItems] = useState<Item[]>([])
-  const [hoveredItemKey, setHoveredItemKey] = useState<string | null>(null)
-  const [tooltipPlacement, setTooltipPlacement] = useState<'above' | 'below'>('below')
   const [combining, setCombining] = useState<[string, string] | null>(null)
   const combineTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const draggedItem = useRef<{ itemId: string; index: number } | null>(null)
@@ -44,39 +43,6 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
     setCombining(null)
   }
 
-  const getTooltipPlacement = (element: HTMLElement): 'above' | 'below' => {
-    const rect = element.getBoundingClientRect()
-    const margin = 10
-    const navbarSafeTop = 76
-    const estimatedHeight = 240
-    const hasRoomBelow = rect.bottom + margin + estimatedHeight <= window.innerHeight - margin
-    const hasRoomAbove = rect.top - margin - estimatedHeight >= navbarSafeTop
-
-    // Prefer below near the top of the page so an upward tooltip never hides
-    // beneath the sticky navbar. Flip only when the viewport requires it.
-    if (hasRoomBelow || !hasRoomAbove) return 'below'
-    return 'above'
-  }
-
-  const renderTooltip = (item: Item) => <div
-    data-tooltip-placement={tooltipPlacement}
-    className={`pointer-events-none absolute left-1/2 z-[1000] w-64 -translate-x-1/2 rounded-lg border border-amber-300/60 bg-slate-950 px-3 py-2 text-left text-xs shadow-2xl ${
-      tooltipPlacement === 'above' ? 'bottom-[calc(100%+10px)]' : 'top-[calc(100%+10px)]'
-    }`}
-  >
-    <div className="mb-1 flex items-center gap-2 text-sm font-bold text-amber-100"><span className="text-lg">{ITEM_ICONS[item.id] || '◆'}</span>{item.name}</div>
-    <div className="mb-2 text-[10px] uppercase tracking-wide text-slate-400">{item.kind === 'combined' ? 'Przedmiot połączony' : 'Przedmiot bazowy'}</div>
-    <div className="space-y-0.5 text-emerald-200">{Object.entries(item.stats).map(([stat, value]) => <div key={stat}>{formatItemStat(stat, value)}</div>)}</div>
-    {item.description && <div className="mt-2 border-t border-slate-700 pt-2 leading-snug text-slate-200">{item.description}</div>}
-    {item.effect && <div className="mt-2 border-t border-slate-700 pt-2 text-[11px] text-cyan-200">
-      <div>Aktywacja: {formatItemTrigger(item.effect.trigger)}</div>
-      {item.effect.duration !== null && <div>Czas działania: {item.effect.duration} s</div>}
-      {item.effect.stacking.max_stacks > 1 && <div>Stacki: maks. {item.effect.stacking.max_stacks}</div>}
-    </div>}
-    {item.components && <div className="mt-2 border-t border-slate-700 pt-2 text-[11px] text-indigo-200">Składniki: {item.components.map(component => itemById.get(component)?.name || component).join(' + ')}</div>}
-    <div className="mt-2 text-[10px] text-slate-500">Przeciągnij na kartę jednostki lub drugi przedmiot</div>
-  </div>
-
   const renderItem = (itemId: string, index: number, equipped = false) => {
     const item = itemById.get(itemId)
     const itemKey = getItemInstanceKey(itemId, index)
@@ -91,32 +57,30 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
       <span className="sr-only">Nieznany przedmiot: {itemId}</span>
     </div>
     const isCombining = combining?.includes(itemId) && !equipped
-    return <div key={itemKey} draggable={!equipped}
-      onDragStart={event => { if (!equipped) { draggedItem.current = { itemId, index }; event.dataTransfer.setData('text/item-id', itemId); event.dataTransfer.setData('text/item-index', `${index}`) } }}
-      onDragEnd={() => { draggedItem.current = null; cancelCombine() }}
-      onDragEnter={event => {
-        const source = draggedItem.current
-        if (source && !(source.itemId === itemId && source.index === index) && !equipped && item.kind === 'base') finishCombine(source.itemId, itemId)
-      }}
-      onDragOver={event => event.preventDefault()}
-      onDrop={event => {
-        event.preventDefault()
-        const source = event.dataTransfer.getData('text/item-id')
-        const sourceIndex = Number(event.dataTransfer.getData('text/item-index'))
-        if (source && !(source === itemId && sourceIndex === index) && item.kind === 'base') finishCombine(source, itemId)
-      }}
-      onMouseEnter={event => {
-        setTooltipPlacement(getTooltipPlacement(event.currentTarget))
-        setHoveredItemKey(itemKey)
-      }}
-      onMouseLeave={() => { setHoveredItemKey(null); cancelCombine() }}
-      aria-label={`${item.name}${item.description ? ` — ${item.description}` : ''}`}
-      className={`relative flex items-center justify-center w-12 h-12 rounded-lg border-2 text-2xl select-none transition-all ${item.kind === 'combined' ? 'border-amber-300 bg-amber-500/15' : 'border-slate-500 bg-slate-800/80'} ${isCombining ? 'scale-110 ring-2 ring-amber-300 animate-pulse' : 'hover:border-amber-300 hover:-translate-y-0.5'} ${equipped ? 'w-9 h-9 text-lg' : 'cursor-grab active:cursor-grabbing'}`}>
+    return <ItemTooltip key={itemKey} item={item} itemCatalog={items}
+      className={`relative flex items-center justify-center w-12 h-12 rounded-lg border-2 text-2xl select-none transition-all ${item.kind === 'combined' ? 'border-amber-300 bg-amber-500/15' : 'border-slate-500 bg-slate-800/80'} ${isCombining ? 'scale-110 ring-2 ring-amber-300 animate-pulse' : 'hover:border-amber-300 hover:-translate-y-0.5'} ${equipped ? 'w-9 h-9 text-lg' : 'cursor-grab active:cursor-grabbing'}`}
+      triggerProps={{
+        draggable: !equipped,
+        onDragStart: event => { if (!equipped) { draggedItem.current = { itemId, index }; event.dataTransfer.setData('text/item-id', itemId); event.dataTransfer.setData('text/item-index', `${index}`) } },
+        onDragEnd: () => { draggedItem.current = null; cancelCombine() },
+        onDragEnter: event => {
+          const source = draggedItem.current
+          if (source && !(source.itemId === itemId && source.index === index) && !equipped && item.kind === 'base') finishCombine(source.itemId, itemId)
+        },
+        onDragOver: event => event.preventDefault(),
+        onDrop: event => {
+          event.preventDefault()
+          const source = event.dataTransfer.getData('text/item-id')
+          const sourceIndex = Number(event.dataTransfer.getData('text/item-index'))
+          if (source && !(source === itemId && sourceIndex === index) && item.kind === 'base') finishCombine(source, itemId)
+        },
+        onMouseLeave: cancelCombine,
+        'aria-label': `${item.name}${item.description ? ` — ${item.description}` : ''}`,
+      }}>
       {ITEM_ICONS[itemId] || '◆'}
       {!equipped && <span className="absolute -bottom-1 -right-1 rounded-full bg-slate-950 px-1 text-[9px] text-slate-300">{item.kind === 'combined' ? '★' : '×'}</span>}
       {isCombining && <span className="absolute -bottom-5 whitespace-nowrap text-[10px] text-amber-200">łączenie…</span>}
-      {hoveredItemKey === itemKey && !equipped && renderTooltip(item)}
-    </div>
+    </ItemTooltip>
   }
 
   return <section className="card border border-amber-500/30">

@@ -51,7 +51,11 @@ describe('ItemsPanel tooltip ownership', () => {
       await Promise.resolve()
     })
 
-    expect(container.querySelectorAll('.pointer-events-none')).toHaveLength(1)
+    const tooltip = document.body.querySelector('[data-item-tooltip]') as HTMLElement
+    expect(document.body.querySelectorAll('[data-item-tooltip]')).toHaveLength(1)
+    expect(tooltip.parentElement).toBe(document.body)
+    expect(tooltip.style.position).toBe('fixed')
+    expect(tooltip.style.zIndex).toBe('2000')
   })
 
   it('renders canonical names, stats, and descriptions from the API catalog', async () => {
@@ -102,13 +106,13 @@ describe('ItemsPanel tooltip ownership', () => {
       await Promise.resolve()
     })
 
-    expect(container.textContent).toContain('ETF przyprawowy')
-    expect(container.textContent).toContain('Obrażenia')
-    expect(container.textContent).toContain('+30 Obrażenia')
-    expect(container.textContent).toContain('+30 ataku.')
-    expect(container.textContent).toContain('Aktywacja: Przy ataku')
-    expect(container.textContent).toContain('Czas działania: 2 s')
-    expect(container.textContent).toContain('Stacki: maks. 10')
+    expect(document.body.textContent).toContain('ETF przyprawowy')
+    expect(document.body.textContent).toContain('Obrażenia')
+    expect(document.body.textContent).toContain('+30 Obrażenia')
+    expect(document.body.textContent).toContain('+30 ataku.')
+    expect(document.body.textContent).toContain('Aktywacja: Przy ataku')
+    expect(document.body.textContent).toContain('Czas działania: 2 s')
+    expect(document.body.textContent).toContain('Stacki: maks. 10')
   })
 
   it('places a top-row tooltip below the item instead of under the sticky navbar', async () => {
@@ -146,7 +150,7 @@ describe('ItemsPanel tooltip ownership', () => {
       await Promise.resolve()
     })
 
-    expect(container.querySelector('[data-tooltip-placement="below"]')).not.toBeNull()
+    expect(document.body.querySelector('[data-tooltip-placement="below"]')).not.toBeNull()
   })
 
   it('shows an explicit stale-id state instead of inventing an item definition', async () => {

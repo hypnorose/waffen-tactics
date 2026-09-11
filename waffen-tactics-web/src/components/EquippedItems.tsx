@@ -1,4 +1,5 @@
 import { ITEM_ICONS, type Item } from '../data/items'
+import ItemTooltip from './ItemTooltip'
 
 export default function EquippedItems({ itemIds, itemCatalog = [] }: { itemIds?: string[]; itemCatalog?: Item[] }) {
   if (!itemIds?.length) return null
@@ -9,9 +10,14 @@ export default function EquippedItems({ itemIds, itemCatalog = [] }: { itemIds?:
     {itemIds.slice(0, 3).map((itemId, index) => {
       const item = itemById.get(itemId)
       const label = item ? item.name : `Nieznany przedmiot: ${itemId}`
-      return <div key={`${itemId}-${index}`} data-item-state={item ? 'known' : 'stale'} className={`relative flex h-6 w-6 items-center justify-center rounded border bg-slate-950/90 text-sm shadow ${item ? 'border-amber-300/70' : 'border-red-400/80 text-red-200'}`} aria-label={label} title={label}>
+      if (!item) return <div key={`${itemId}-${index}`} data-item-state="stale" className="relative flex h-6 w-6 items-center justify-center rounded border border-red-400/80 bg-slate-950/90 text-sm text-red-200 shadow" aria-label={label} title={label}>
         {ITEM_ICONS[itemId] || '◆'}
       </div>
+      return <ItemTooltip key={`${itemId}-${index}`} item={item} itemCatalog={itemCatalog}
+        className="relative flex h-6 w-6 items-center justify-center rounded border border-amber-300/70 bg-slate-950/90 text-sm shadow"
+        triggerProps={{ 'data-item-state': 'known', 'aria-label': label, title: label }}>
+        {ITEM_ICONS[itemId] || '◆'}
+      </ItemTooltip>
     })}
   </div>
 }
