@@ -104,4 +104,28 @@ describe('UnitCard equipped item layout', () => {
     expect(previewNode?.textContent).toContain('Wyposażenie po operacji')
     expect(container.querySelectorAll('[data-item-state]')).toHaveLength(1)
   })
+
+  it('uses the same board shell height and neutral reserved slots for every item count', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    act(() => {
+      root = createRoot(container)
+      root.render(
+        <>
+          <UnitCard unitId="long-unit" boardLayout items={[]} itemCatalog={itemCatalog} />
+          <UnitCard unitId="long-unit" boardLayout items={['item-1']} itemCatalog={itemCatalog} />
+          <UnitCard unitId="long-unit" boardLayout items={['item-1', 'item-2', 'item-3']} itemCatalog={itemCatalog} />
+        </>,
+      )
+    })
+
+    const cards = Array.from(container.querySelectorAll('[data-board-unit-card="true"]'))
+    expect(cards).toHaveLength(3)
+    expect(new Set(cards.map((card) => (card as HTMLElement).style.height))).toEqual(new Set(['var(--board-unit-card-height-compact, 10rem)']))
+    expect(container.querySelectorAll('.board-unit-card-faction-slot')).toHaveLength(3)
+    expect(container.querySelectorAll('.board-unit-card-items-slot')).toHaveLength(3)
+    expect(container.querySelectorAll('.board-unit-card-items-slot[aria-hidden="true"]')).toHaveLength(1)
+    expect(container.textContent).toContain('Bardzo długi nick jednostki testowej')
+  })
 })

@@ -5,6 +5,7 @@ import EquippedItems from './EquippedItems'
 import { formatItemStat, formatItemTrigger, ITEM_ICONS, type Item, type ItemUnitPreview } from '../data/items'
 import ItemPreviewTooltip from './ItemPreviewTooltip'
 import { ItemUnitPreviewContent } from './ItemPreviewContent'
+import { boardUnitCardSizingStyle } from './combatUnitCardLayout'
 
 interface UnitCardProps {
   unitId: string
@@ -35,6 +36,7 @@ interface UnitCardProps {
   items?: string[]
   itemCatalog?: Item[]
   itemPreview?: ItemUnitPreview
+  boardLayout?: boolean
 }
 
 export default function UnitCard({
@@ -52,6 +54,7 @@ export default function UnitCard({
   items,
   itemCatalog = [],
   itemPreview,
+  boardLayout = false,
 }: UnitCardProps) {
   const unit = getUnit(unitId)
   const itemById = new Map(itemCatalog.map(item => [item.id, item]))
@@ -149,9 +152,11 @@ export default function UnitCard({
       }}
       onMouseLeave={() => setTooltipTop(null)}
       onClick={!disabled ? onClick : undefined}
-      className={`relative group ${detailed ? 'w-56' : 'w-36'} select-none ${onClick && !disabled ? 'cursor-pointer' : ''} ${
+      data-board-unit-card={boardLayout ? 'true' : undefined}
+      className={`relative group ${detailed ? 'w-56' : 'w-36'} select-none ${boardLayout ? `${detailed ? 'board-unit-card-detailed' : 'board-unit-card'}` : ''} ${onClick && !disabled ? 'cursor-pointer' : ''} ${
         disabled ? 'opacity-50 cursor-not-allowed' : ''
       }`}
+      style={boardLayout ? { height: detailed ? boardUnitCardSizingStyle.detailedHeight : boardUnitCardSizingStyle.compactHeight } : undefined}
     >
       <ItemPreviewTooltip anchorRef={containerRef} open={Boolean(itemPreview)}>
         {itemPreview && <ItemUnitPreviewContent preview={itemPreview} itemCatalog={itemCatalog} currentStats={displayStats ?? undefined} />}
@@ -327,7 +332,7 @@ export default function UnitCard({
       )}
 
       <div
-          className={`w-full rounded-lg ${detailed ? 'p-2' : 'p-1'} transition-all duration-150 border-2 bg-gray-800/90 hover:bg-gray-800 ${detailed ? (hasEquippedItems ? 'min-h-72' : 'min-h-64') : (hasEquippedItems ? 'min-h-40' : 'min-h-36')} h-auto flex flex-col relative`}
+          className={`${boardLayout ? 'board-unit-card-shell' : ''} w-full rounded-lg ${detailed ? 'p-2' : 'p-1'} transition-all duration-150 border-2 bg-gray-800/90 hover:bg-gray-800 ${boardLayout ? '' : `${detailed ? (hasEquippedItems ? 'min-h-72' : 'min-h-64') : (hasEquippedItems ? 'min-h-40' : 'min-h-36')} h-auto`} flex flex-col relative`}
         style={{
           borderColor: getCostBorderColor(unit.cost),
           boxShadow: `0 0 10px ${getCostBorderColor(unit.cost)}40`,
@@ -387,7 +392,7 @@ export default function UnitCard({
           <span className="shrink-0">{getRoleEmoji(unit.role)}</span>
         </h3>
 
-        <div className="flex shrink-0 flex-wrap gap-0.5 justify-center mb-2 px-1">
+        <div className={`flex shrink-0 flex-wrap gap-0.5 justify-center mb-2 px-1 ${boardLayout ? 'board-unit-card-faction-slot' : ''}`} aria-hidden={boardLayout && unit.factions.length === 0 && unit.classes.length === 0 ? true : undefined}>
           {unit.factions.map((faction) => (
             <span key={faction} className={`px-1 py-0.5 rounded text-[9px] ${getFactionColor(faction)} text-white`}>
               {faction}
@@ -400,16 +405,31 @@ export default function UnitCard({
           ))}
         </div>
 
-        <div className="shrink-0">
-          <EquippedItems itemIds={items} itemCatalog={itemCatalog} />
-        </div>
+        {boardLayout ? (
+          <div className="board-unit-card-items-slot" aria-hidden={!hasEquippedItems}>
+            <EquippedItems itemIds={items} itemCatalog={itemCatalog} />
+          </div>
+        ) : (
+          <div className="shrink-0">
+            <EquippedItems itemIds={items} itemCatalog={itemCatalog} />
+          </div>
+        )}
 
-        {lastRoundStats?.participated && !detailed && (
+        {!detailed && (boardLayout ? (
+          <div className="board-unit-card-stats-slot flex items-center justify-center gap-2 border-t border-slate-700/80 pt-1 text-[9px] leading-none" aria-hidden={!lastRoundStats?.participated}>
+            {lastRoundStats?.participated && (
+              <>
+                <span className="text-orange-300" title="Średni DPS z ostatniej rundy">DPS {lastRoundStats.avg_dps.toFixed(1)}</span>
+                <span className="text-red-300" title="Średnie przyjęte obrażenia na sekundę">-HP/s {lastRoundStats.avg_damage_received.toFixed(1)}</span>
+              </>
+            )}
+          </div>
+        ) : lastRoundStats?.participated ? (
           <div className="flex items-center justify-center gap-2 border-t border-slate-700/80 pt-1 text-[9px] leading-none">
             <span className="text-orange-300" title="Średni DPS z ostatniej rundy">DPS {lastRoundStats.avg_dps.toFixed(1)}</span>
             <span className="text-red-300" title="Średnie przyjęte obrażenia na sekundę">-HP/s {lastRoundStats.avg_damage_received.toFixed(1)}</span>
           </div>
-        )}
+        ) : null)}
 
         {scaledStats && detailed && (
           <div className="text-[10px] space-y-0.5 flex-1 flex flex-col justify-end">

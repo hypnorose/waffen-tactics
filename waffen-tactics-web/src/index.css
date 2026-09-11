@@ -85,6 +85,75 @@ body {
   outline-offset: 3px;
 }
 
+/* Board slots use the same geometry for empty, partially equipped, and fully
+   equipped units. The values stay tokenized so the mobile pass can override
+   them without changing UnitCard markup. */
+.board-unit-card-slot {
+  width: var(--board-unit-card-width-compact, 9rem);
+  flex: 0 0 var(--board-unit-card-width-compact, 9rem);
+}
+
+.board-unit-card-slot-detailed {
+  width: var(--board-unit-card-width-detailed, 14rem);
+  flex-basis: var(--board-unit-card-width-detailed, 14rem);
+}
+
+.board-unit-card,
+.board-unit-card-shell,
+.board-unit-card-empty {
+  box-sizing: border-box;
+}
+
+.board-unit-card {
+  height: var(--board-unit-card-height-compact, 10rem);
+}
+
+.board-unit-card-detailed,
+.board-unit-card-detailed > .board-unit-card-shell,
+.board-unit-card-empty-detailed {
+  height: var(--board-unit-card-height-detailed, 18rem);
+}
+
+.board-unit-card-shell {
+  height: 100%;
+  min-height: 0 !important;
+}
+
+.board-unit-card-faction-slot {
+  height: 1.5rem;
+  min-height: 1.5rem;
+  overflow: hidden;
+  align-content: center;
+}
+
+.board-unit-card-items-slot {
+  height: 2.5rem;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.board-unit-card-stats-slot {
+  min-height: 1.25rem;
+}
+
+.board-unit-card-empty {
+  width: 100%;
+  height: var(--board-unit-card-height-compact, 10rem);
+}
+
+@media (max-width: 899px) {
+  .board-unit-card-slot {
+    width: min(100%, 8rem);
+    flex-basis: min(100%, 8rem);
+  }
+
+  .board-unit-card {
+    height: var(--board-unit-card-height-compact, 10rem);
+  }
+}
+
 @media (max-height: 760px) {
   .combat-overlay-board {
     padding: 0.5rem !important;

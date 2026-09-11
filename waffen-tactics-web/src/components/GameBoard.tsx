@@ -198,7 +198,7 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
             return (
               <div 
                 key={unitInstance.instance_id} 
-                className={`relative ${detailedView ? 'max-w-[14rem]' : 'max-w-[9rem]'}`}
+                className={`board-unit-card-slot ${detailedView ? 'board-unit-card-slot-detailed' : ''} relative`}
                 onDragEnter={event => {
                   if (draggedItemId || event.dataTransfer.types.includes('text/item-id')) {
                     event.preventDefault()
@@ -261,14 +261,14 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
                 >
                   {lineType === 'front' ? '⬇' : '⬆'}
                 </button>
-                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} isDragging={isDragging} items={unitInstance.items} itemCatalog={itemCatalog} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} lastRoundStats={roundStatsByUnit?.[unitInstance.instance_id]} itemPreview={previewTargetId === unitInstance.instance_id && draggedItemId ? getUnitItemPreview(itemCatalog, unitInstance.items || [], draggedItemId) ?? undefined : undefined} />
+                <UnitCard unitId={unitInstance.unit_id} starLevel={unitInstance.star_level} showCost={false} detailed={detailedView} boardLayout isDragging={isDragging} items={unitInstance.items} itemCatalog={itemCatalog} baseStats={unitInstance.base_stats} buffedStats={unitInstance.buffed_stats} position={unitInstance.position} lastRoundStats={roundStatsByUnit?.[unitInstance.instance_id]} itemPreview={previewTargetId === unitInstance.instance_id && draggedItemId ? getUnitItemPreview(itemCatalog, unitInstance.items || [], draggedItemId) ?? undefined : undefined} />
               </div>
             )
           } else {
             // Empty slot placeholder
             return (
-              <div key={`empty-${lineType}-${index}`} className={`w-full ${detailedView ? 'max-w-[14rem]' : 'max-w-[9rem]'}`}>
-                <div className={`rounded-lg bg-surface/30 ${detailedView ? 'h-64' : 'h-36'} flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600`}>
+              <div key={`empty-${lineType}-${index}`} className={`board-unit-card-slot ${detailedView ? 'board-unit-card-slot-detailed' : ''}`}>
+                <div className={`board-unit-card-empty ${detailedView ? 'board-unit-card-empty-detailed' : ''} rounded-lg bg-surface/30 flex items-center justify-center text-text/30 border-2 border-dashed border-gray-600`} aria-hidden="true">
                   <span className="text-2xl">∅</span>
                 </div>
               </div>
