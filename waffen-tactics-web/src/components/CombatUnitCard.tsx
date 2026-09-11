@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { getPassiveTitle, getUnit, type UnitPassive } from '../data/units'
 import { useUnitAnchors } from '../hooks/useUnitAnchors'
 import type { EffectSummary } from '../hooks/combat/types'
 import { combatUnitCardOpponentSizingStyle, combatUnitCardSizingStyle } from './combatUnitCardLayout'
 import CombatEffectBadge from './CombatEffectBadge'
+import { getCombatTooltipPosition, type CombatTooltipPosition } from './combatTooltipPosition'
 
 interface Unit {
   id: string
@@ -60,6 +62,7 @@ const getRarityColor = (cost?: number) => {
 export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget, currentTime }: Props) {
   const passiveTitle = getPassiveTitle(unit.passive)
   const [showTooltip, setShowTooltip] = useState(false)
+  const [tooltipPosition, setTooltipPosition] = useState<CombatTooltipPosition | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const { register } = useUnitAnchors()
 
@@ -67,6 +70,27 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
     register(unit.id, rootRef.current)
     return () => register(unit.id, null)
   }, [unit.id, register])
+
+  const updateTooltipPosition = useCallback(() => {
+    const root = rootRef.current
+    if (!root) return
+
+    const rect = root.getBoundingClientRect()
+    setTooltipPosition(getCombatTooltipPosition(rect, { width: window.innerWidth, height: window.innerHeight }))
+  }, [])
+
+  useEffect(() => {
+    if (!showTooltip) return
+
+    updateTooltipPosition()
+    window.addEventListener('resize', updateTooltipPosition)
+    window.addEventListener('scroll', updateTooltipPosition, true)
+
+    return () => {
+      window.removeEventListener('resize', updateTooltipPosition)
+      window.removeEventListener('scroll', updateTooltipPosition, true)
+    }
+  }, [showTooltip, updateTooltipPosition])
   const displayMaxHp = unit.buffed_stats?.hp ?? unit.max_hp
   const displayHp = Math.min(unit.hp, displayMaxHp)
   const displayAttack = unit.buffed_stats?.attack ?? unit.attack
@@ -188,9 +212,25 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
         />
       </div>
 
-      {/* Tooltip */}
-      {showTooltip && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-800 border border-gray-600 text-white text-sm rounded-lg p-4 shadow-xl z-[100] min-w-[300px]">
+      {/* Tooltip is portaled so the board/frame overflow cannot clip it. */}
+      {showTooltip && tooltipPosition && typeof document !== 'undefined' && createPortal(
+        <div
+          data-combat-unit-tooltip={unit.id}
+          className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg p-4 shadow-xl"
+          style={{
+            position: 'fixed',
+            left: tooltipPosition.left,
+            top: tooltipPosition.top,
+            width: 320,
+            maxWidth: 'calc(100vw - 16px)',
+            maxHeight: 'min(360px, calc(100vh - 16px))',
+            boxSizing: 'border-box',
+            overflowY: 'auto',
+            zIndex: 1100,
+            pointerEvents: 'none',
+          }}
+          role="tooltip"
+        >
           <div className="flex items-center mb-3">
             {unit.avatar && (
               <img src={typeof unit.avatar === 'string' ? unit.avatar : (unit as any)?.avatar?.url || ''} alt={unit.name} className="w-10 h-10 rounded mr-3 object-cover" />
@@ -234,8 +274,14 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
             {displayHpRegen > 0 && <div>💚 Regen: +{Math.round(displayHpRegen)}/s</div>}
           </div>
           {/* Arrow */}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
-        </div>
+          <div
+            className="absolute left-1/2 transform -translate-x-1/2 w-0 h-0"
+            style={tooltipPosition.placement === 'above'
+              ? { top: '100%', borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid #1f2937' }
+              : { bottom: '100%', borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: '4px solid #1f2937' }}
+          />
+        </div>,
+        document.body,
       )}
 
       {displayHpRegen > 0 && unit.hp > 0 && (
