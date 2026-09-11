@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react'
 import UnitCard from './UnitCard'
 import { useGameStore } from '../store/gameStore'
 import { gameAPI } from '../services/api'
-import { getTraitColor, getTraitDescription, getTraitEffectPresentation } from '../hooks/combatOverlayUtils'
-import { getAllUnits, getCostBorderColor } from '../data/units'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import { getUnitItemPreview, type Item } from '../data/items'
+import TraitSynergyTooltip from './TraitSynergyTooltip'
 
 interface GameBoardProps {
   playerState: any
@@ -297,116 +296,15 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
               .filter(([traitName, data]: [string, any]) => data.count > 0)
               .sort(([, a]: [string, any], [, b]: [string, any]) => b.count - a.count)
               .map(([traitName, data]: [string, any]) => {
-              const isActive = data.tier > 0
-              const color = isActive ? getTraitColor(data.tier) : '#6b7280'
-              const opacity = isActive ? 1 : 0.5
               const traitData = traits.find((t: any) => t.name === traitName)
-              
+
               return (
-                <div 
+                <TraitSynergyTooltip
                   key={traitName}
-                  className="relative group"
-                >
-                  <div 
-                    style={{
-                      backgroundColor: `${color}30`,
-                      borderColor: color,
-                      color: color,
-                      opacity: opacity
-                    }}
-                    className="rounded px-3 py-1 text-xs border-2 font-bold cursor-pointer transition-all hover:opacity-100 hover:scale-105"
-                  >
-                    {traitName} [{data.count}]{isActive && ` T${data.tier}`}
-                  </div>
-                  
-                  {/* Detailed Tooltip */}
-                  {traitData && (
-                    <div 
-                      style={{
-                        backgroundColor: '#1e293b',
-                        border: `2px solid ${color}`,
-                        color: '#e2e8f0'
-                      }}
-                      className="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-3 rounded-md z-50 shadow-xl text-xs min-w-[250px] max-w-[350px]"
-                    >
-                      <div className="font-bold text-sm mb-1" style={{ color: color }}>{traitName}</div>
-                      {traitData.description && (
-                        <div className="text-gray-300 mb-2 text-xs leading-relaxed">{traitData.description}</div>
-                      )}
-                      
-                      <div className="border-t border-gray-600 pt-2 mt-2">
-                        <div className="text-gray-400 text-xs mb-1">Progi aktywacji:</div>
-                        {traitData.thresholds.map((threshold: number, idx: number) => {
-                          const tierNum = idx + 1
-                          const isActive = data.tier >= tierNum
-                          const isCurrent = data.tier === tierNum
-                          const tierColor = getTraitColor(tierNum)
-                          
-                          return (
-                            <div 
-                              key={idx} 
-                              className="flex items-start gap-2 mb-1.5 text-xs"
-                              style={{ 
-                                opacity: isActive ? 1 : 0.6,
-                                color: isActive ? tierColor : '#9ca3af'
-                              }}
-                            >
-                              <span className="font-mono font-bold">
-                                {isActive ? '✅' : isCurrent ? '⏩' : '⬜'}
-                              </span>
-                              <div className="flex-1">
-                                <div className="font-bold">[{threshold}] Tier {tierNum}</div>
-                                <div className="text-xs mt-0.5" style={{ color: isActive ? '#d1d5db' : '#9ca3af' }}>
-                                  {getTraitDescription(traitData, tierNum)}
-                                </div>
-                                {getTraitEffectPresentation(traitData, tierNum).map((effect, effectIndex) => (
-                                  <div key={`${tierNum}-${effectIndex}`} data-trait-effect-details className="mt-1 rounded border border-gray-600/70 bg-black/10 p-1.5 text-[11px] leading-snug">
-                                    <div><span className="text-gray-400">Trigger:</span> {effect.trigger}</div>
-                                    <div><span className="text-gray-400">Cel:</span> {effect.target}</div>
-                                    <div><span className="text-gray-400">Czas:</span> {effect.duration}</div>
-                                    <div><span className="text-gray-400">Odświeżanie:</span> {effect.refresh}</div>
-                                    <div><span className="text-gray-400">Stackowanie:</span> {effect.stacking}</div>
-                                    {effect.conditions.map(condition => <div key={condition}><span className="text-gray-400">Warunek:</span> {condition}</div>)}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                      
-                      <div className="border-t border-gray-600 pt-2 mt-2 text-xs">
-                        <span className="text-gray-400">Status: </span>
-                        <span style={{ color: isActive ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
-                          {isActive 
-                            ? `✓ Tier ${data.tier} Aktywny (${data.count} jednostek)`
-                            : `✗ Nieaktywny (${data.count}/${traitData?.thresholds[0] || 0} jednostek)`
-                          }
-                        </span>
-                      </div>
-                      {/* Avatar row for units in this trait (cost-colored border) */}
-                      <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                        {(() => {
-                          try {
-                            const all = getAllUnits()
-                            const unitsForTrait = all.filter(u => (u.factions || []).includes(traitName) || (u.classes || []).includes(traitName))
-                            return unitsForTrait.slice(0, 12).map(u => (
-                              <img
-                                key={u.id}
-                                src={u.avatar || '/avatars/default.png'}
-                                title={u.name}
-                                alt={u.name}
-                                style={{ width: 34, height: 34, borderRadius: '9999px', objectFit: 'cover', border: `2px solid ${getCostBorderColor(u.cost || 1)}` }}
-                              />
-                            ))
-                          } catch (e) {
-                            return null
-                          }
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  traitName={traitName}
+                  data={data}
+                  traitData={traitData}
+                />
               )
             })}
           </div>
