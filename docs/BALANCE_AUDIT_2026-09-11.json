@@ -1,0 +1,4918 @@
+{
+  "metadata": {
+    "generated_date": "2026-09-11",
+    "source_of_truth": [
+      "waffen-tactics/src/waffen_tactics",
+      "waffen-tactics/units.json",
+      "waffen-tactics/traits.json",
+      "waffen-tactics/unit_roles.json"
+    ],
+    "read_only_audit": true,
+    "cli": {
+      "team_matches": 100,
+      "team_sizes": [
+        3
+      ],
+      "pairwise_seeds": 5,
+      "trait_seeds": 5,
+      "generated_date": "2026-09-11",
+      "output_json": "docs\\BALANCE_AUDIT_2026-09-11.json",
+      "output_md": "docs\\BALANCE_AUDIT_2026-09-11.md",
+      "opponent_variety_only": false,
+      "opponent_variety_matches": 50,
+      "opponent_variety_team_size": 5,
+      "opponent_variety_seed": 42000,
+      "opponent_variety_generated_date": "2026-09-09",
+      "opponent_variety_output_json": "C:\\Users\\yoss\\Documents\\waffentactics\\docs\\OPPONENT_VARIETY_AUDIT_2026-09-09.json",
+      "opponent_variety_output_md": "C:\\Users\\yoss\\Documents\\waffentactics\\docs\\OPPONENT_VARIETY_AUDIT_2026-09-09.md"
+    }
+  },
+  "roster_integrity": {
+    "unit_count": 32,
+    "trait_count": 12,
+    "duplicate_unit_ids": [],
+    "duplicate_trait_names": [],
+    "missing_required_fields": [],
+    "invalid_costs": [],
+    "missing_faction_or_class": [
+      {
+        "unit_id": "skibidi_kubus",
+        "missing": [
+          "classes"
+        ]
+      }
+    ],
+    "invalid_roles": [],
+    "loader_missing_unit_ids": [],
+    "trait_schema_issues": [],
+    "active_set2_contract_issues": [],
+    "role_counts": {
+      "defender": 7,
+      "duelist": 11,
+      "fighter": 6,
+      "mage": 8
+    },
+    "cost_counts": {
+      "1": 6,
+      "2": 7,
+      "3": 8,
+      "4": 6,
+      "5": 5
+    }
+  },
+  "skill_schema": {
+    "effect_type_counts": {
+      "damage": 32
+    },
+    "issues": []
+  },
+  "stat_budget": {
+    "role_definitions": {
+      "defender": {
+        "hp": 600,
+        "attack": 30,
+        "defense": 30,
+        "attack_speed": 0.8,
+        "mana_on_attack": 5,
+        "mana_regen": 4,
+        "color": "#4ade80"
+      },
+      "fighter": {
+        "hp": 500,
+        "attack": 40,
+        "defense": 20,
+        "attack_speed": 1.0,
+        "mana_on_attack": 3,
+        "mana_regen": 5,
+        "color": "#f87171"
+      },
+      "duelist": {
+        "hp": 450,
+        "attack": 60,
+        "defense": 15,
+        "attack_speed": 1.2,
+        "mana_on_attack": 5,
+        "mana_regen": 6,
+        "color": "#d97706"
+      },
+      "mage": {
+        "hp": 400,
+        "attack": 30,
+        "defense": 10,
+        "attack_speed": 0.9,
+        "mana_on_attack": 7,
+        "mana_regen": 8,
+        "color": "#a78bfa"
+      }
+    },
+    "rows": [
+      {
+        "role": "defender",
+        "cost": 1,
+        "representative": "sofronow",
+        "hp": 600,
+        "attack": 30,
+        "defense": 30,
+        "attack_speed": 0.8,
+        "dps": 24.0,
+        "max_mana": 100,
+        "mana_on_attack": 4,
+        "mana_regen": 4
+      },
+      {
+        "role": "defender",
+        "cost": 3,
+        "representative": "empty_melancholy",
+        "hp": 840,
+        "attack": 42,
+        "defense": 42,
+        "attack_speed": 0.8,
+        "dps": 33.6,
+        "max_mana": 100,
+        "mana_on_attack": 4,
+        "mana_regen": 4
+      },
+      {
+        "role": "defender",
+        "cost": 4,
+        "representative": "szanowny_kantor",
+        "hp": 960,
+        "attack": 48,
+        "defense": 48,
+        "attack_speed": 0.8,
+        "dps": 38.4,
+        "max_mana": 100,
+        "mana_on_attack": 4,
+        "mana_regen": 4
+      },
+      {
+        "role": "fighter",
+        "cost": 2,
+        "representative": "anamol04",
+        "hp": 600,
+        "attack": 48,
+        "defense": 24,
+        "attack_speed": 1.0,
+        "dps": 48.0,
+        "max_mana": 80,
+        "mana_on_attack": 5,
+        "mana_regen": 5
+      },
+      {
+        "role": "fighter",
+        "cost": 3,
+        "representative": "uhla",
+        "hp": 700,
+        "attack": 56,
+        "defense": 28,
+        "attack_speed": 1.0,
+        "dps": 56.0,
+        "max_mana": 80,
+        "mana_on_attack": 5,
+        "mana_regen": 5
+      },
+      {
+        "role": "fighter",
+        "cost": 5,
+        "representative": "galanonim",
+        "hp": 900,
+        "attack": 72,
+        "defense": 36,
+        "attack_speed": 1.0,
+        "dps": 72.0,
+        "max_mana": 80,
+        "mana_on_attack": 5,
+        "mana_regen": 5
+      },
+      {
+        "role": "duelist",
+        "cost": 1,
+        "representative": "skibidi_kubus",
+        "hp": 450,
+        "attack": 60,
+        "defense": 15,
+        "attack_speed": 1.2,
+        "dps": 72.0,
+        "max_mana": 60,
+        "mana_on_attack": 7,
+        "mana_regen": 6
+      },
+      {
+        "role": "duelist",
+        "cost": 2,
+        "representative": "kotmarcek",
+        "hp": 540,
+        "attack": 72,
+        "defense": 18,
+        "attack_speed": 1.2,
+        "dps": 86.4,
+        "max_mana": 60,
+        "mana_on_attack": 7,
+        "mana_regen": 6
+      },
+      {
+        "role": "duelist",
+        "cost": 3,
+        "representative": "yossarian",
+        "hp": 630,
+        "attack": 84,
+        "defense": 21,
+        "attack_speed": 1.2,
+        "dps": 100.8,
+        "max_mana": 60,
+        "mana_on_attack": 7,
+        "mana_regen": 6
+      },
+      {
+        "role": "duelist",
+        "cost": 4,
+        "representative": "alyson_stark",
+        "hp": 720,
+        "attack": 96,
+        "defense": 24,
+        "attack_speed": 1.2,
+        "dps": 115.2,
+        "max_mana": 60,
+        "mana_on_attack": 7,
+        "mana_regen": 6
+      },
+      {
+        "role": "duelist",
+        "cost": 5,
+        "representative": "fiko",
+        "hp": 810,
+        "attack": 108,
+        "defense": 27,
+        "attack_speed": 1.2,
+        "dps": 129.6,
+        "max_mana": 60,
+        "mana_on_attack": 7,
+        "mana_regen": 6
+      },
+      {
+        "role": "mage",
+        "cost": 2,
+        "representative": "chessowy_mentos",
+        "hp": 480,
+        "attack": 36,
+        "defense": 12,
+        "attack_speed": 0.9,
+        "dps": 32.4,
+        "max_mana": 40,
+        "mana_on_attack": 10,
+        "mana_regen": 8
+      },
+      {
+        "role": "mage",
+        "cost": 3,
+        "representative": "aus_sher",
+        "hp": 560,
+        "attack": 42,
+        "defense": 14,
+        "attack_speed": 0.9,
+        "dps": 37.8,
+        "max_mana": 40,
+        "mana_on_attack": 10,
+        "mana_regen": 8
+      },
+      {
+        "role": "mage",
+        "cost": 4,
+        "representative": "pytl",
+        "hp": 640,
+        "attack": 48,
+        "defense": 16,
+        "attack_speed": 0.9,
+        "dps": 43.2,
+        "max_mana": 40,
+        "mana_on_attack": 10,
+        "mana_regen": 8
+      },
+      {
+        "role": "mage",
+        "cost": 5,
+        "representative": "szachowymentor",
+        "hp": 720,
+        "attack": 54,
+        "defense": 18,
+        "attack_speed": 0.9,
+        "dps": 48.6,
+        "max_mana": 40,
+        "mana_on_attack": 10,
+        "mana_regen": 8
+      }
+    ]
+  },
+  "star_scaling": {
+    "scaling_formula": {
+      "hp": "base * 1.6^(star-1)",
+      "attack": "base * 1.4^(star-1)",
+      "defense": "base",
+      "attack_speed": "base",
+      "max_mana": "base"
+    },
+    "role_cost_rows": [
+      {
+        "role": "defender",
+        "cost": 1,
+        "representative": "sofronow",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 600,
+            "attack": 30,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 100
+          },
+          {
+            "star": 2,
+            "hp": 960,
+            "attack": 42,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 100
+          },
+          {
+            "star": 3,
+            "hp": 1536,
+            "attack": 58,
+            "defense": 30,
+            "attack_speed": 0.8,
+            "max_mana": 100
+          }
+        ]
+      },
+      {
+        "role": "defender",
+        "cost": 3,
+        "representative": "empty_melancholy",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 840,
+            "attack": 42,
+            "defense": 42,
+            "attack_speed": 0.8,
+            "max_mana": 100
+          },
+          {
+            "star": 2,
+            "hp": 1344,
+            "attack": 58,
+            "defense": 42,
+            "attack_speed": 0.8,
+            "max_mana": 100
+          },
+          {
+            "star": 3,
+            "hp": 2150,
+            "attack": 82,
+            "defense": 42,
+            "attack_speed": 0.8,
+            "max_mana": 100
+          }
+        ]
+      },
+      {
+        "role": "defender",
+        "cost": 4,
+        "representative": "szanowny_kantor",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 960,
+            "attack": 48,
+            "defense": 48,
+            "attack_speed": 0.8,
+            "max_mana": 100
+          },
+          {
+            "star": 2,
+            "hp": 1536,
+            "attack": 67,
+            "defense": 48,
+            "attack_speed": 0.8,
+            "max_mana": 100
+          },
+          {
+            "star": 3,
+            "hp": 2457,
+            "attack": 94,
+            "defense": 48,
+            "attack_speed": 0.8,
+            "max_mana": 100
+          }
+        ]
+      },
+      {
+        "role": "duelist",
+        "cost": 1,
+        "representative": "skibidi_kubus",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 450,
+            "attack": 60,
+            "defense": 15,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          },
+          {
+            "star": 2,
+            "hp": 720,
+            "attack": 84,
+            "defense": 15,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          },
+          {
+            "star": 3,
+            "hp": 1152,
+            "attack": 117,
+            "defense": 15,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          }
+        ]
+      },
+      {
+        "role": "duelist",
+        "cost": 2,
+        "representative": "kotmarcek",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 540,
+            "attack": 72,
+            "defense": 18,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          },
+          {
+            "star": 2,
+            "hp": 864,
+            "attack": 100,
+            "defense": 18,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          },
+          {
+            "star": 3,
+            "hp": 1382,
+            "attack": 141,
+            "defense": 18,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          }
+        ]
+      },
+      {
+        "role": "duelist",
+        "cost": 3,
+        "representative": "yossarian",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 630,
+            "attack": 84,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          },
+          {
+            "star": 2,
+            "hp": 1008,
+            "attack": 117,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          },
+          {
+            "star": 3,
+            "hp": 1612,
+            "attack": 164,
+            "defense": 21,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          }
+        ]
+      },
+      {
+        "role": "duelist",
+        "cost": 4,
+        "representative": "alyson_stark",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 720,
+            "attack": 96,
+            "defense": 24,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          },
+          {
+            "star": 2,
+            "hp": 1152,
+            "attack": 134,
+            "defense": 24,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          },
+          {
+            "star": 3,
+            "hp": 1843,
+            "attack": 188,
+            "defense": 24,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          }
+        ]
+      },
+      {
+        "role": "duelist",
+        "cost": 5,
+        "representative": "fiko",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 810,
+            "attack": 108,
+            "defense": 27,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          },
+          {
+            "star": 2,
+            "hp": 1296,
+            "attack": 151,
+            "defense": 27,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          },
+          {
+            "star": 3,
+            "hp": 2073,
+            "attack": 211,
+            "defense": 27,
+            "attack_speed": 1.2,
+            "max_mana": 60
+          }
+        ]
+      },
+      {
+        "role": "fighter",
+        "cost": 2,
+        "representative": "anamol04",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 600,
+            "attack": 48,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 80
+          },
+          {
+            "star": 2,
+            "hp": 960,
+            "attack": 67,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 80
+          },
+          {
+            "star": 3,
+            "hp": 1536,
+            "attack": 94,
+            "defense": 24,
+            "attack_speed": 1.0,
+            "max_mana": 80
+          }
+        ]
+      },
+      {
+        "role": "fighter",
+        "cost": 3,
+        "representative": "uhla",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 700,
+            "attack": 56,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 80
+          },
+          {
+            "star": 2,
+            "hp": 1120,
+            "attack": 78,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 80
+          },
+          {
+            "star": 3,
+            "hp": 1792,
+            "attack": 109,
+            "defense": 28,
+            "attack_speed": 1.0,
+            "max_mana": 80
+          }
+        ]
+      },
+      {
+        "role": "fighter",
+        "cost": 5,
+        "representative": "galanonim",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 900,
+            "attack": 72,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 80
+          },
+          {
+            "star": 2,
+            "hp": 1440,
+            "attack": 100,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 80
+          },
+          {
+            "star": 3,
+            "hp": 2304,
+            "attack": 141,
+            "defense": 36,
+            "attack_speed": 1.0,
+            "max_mana": 80
+          }
+        ]
+      },
+      {
+        "role": "mage",
+        "cost": 2,
+        "representative": "chessowy_mentos",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 480,
+            "attack": 36,
+            "defense": 12,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          },
+          {
+            "star": 2,
+            "hp": 768,
+            "attack": 50,
+            "defense": 12,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          },
+          {
+            "star": 3,
+            "hp": 1228,
+            "attack": 70,
+            "defense": 12,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          }
+        ]
+      },
+      {
+        "role": "mage",
+        "cost": 3,
+        "representative": "aus_sher",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 560,
+            "attack": 42,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          },
+          {
+            "star": 2,
+            "hp": 896,
+            "attack": 58,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          },
+          {
+            "star": 3,
+            "hp": 1433,
+            "attack": 82,
+            "defense": 14,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          }
+        ]
+      },
+      {
+        "role": "mage",
+        "cost": 4,
+        "representative": "pytl",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 640,
+            "attack": 48,
+            "defense": 16,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          },
+          {
+            "star": 2,
+            "hp": 1024,
+            "attack": 67,
+            "defense": 16,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          },
+          {
+            "star": 3,
+            "hp": 1638,
+            "attack": 94,
+            "defense": 16,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          }
+        ]
+      },
+      {
+        "role": "mage",
+        "cost": 5,
+        "representative": "szachowymentor",
+        "stars": [
+          {
+            "star": 1,
+            "hp": 720,
+            "attack": 54,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          },
+          {
+            "star": 2,
+            "hp": 1152,
+            "attack": 75,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          },
+          {
+            "star": 3,
+            "hp": 1843,
+            "attack": 105,
+            "defense": 18,
+            "attack_speed": 0.9,
+            "max_mana": 40
+          }
+        ]
+      }
+    ]
+  },
+  "pairwise": {
+    "seeds_per_direction": 5,
+    "total_matches": 890,
+    "unit_results": {
+      "anamol04": {
+        "unit_id": "anamol04",
+        "cost": 2,
+        "games": 60,
+        "wins": 50,
+        "timeouts": 0,
+        "win_rate": 0.8333333333333334
+      },
+      "fiko": {
+        "unit_id": "fiko",
+        "cost": 5,
+        "games": 40,
+        "wins": 30,
+        "timeouts": 0,
+        "win_rate": 0.75
+      },
+      "uhla": {
+        "unit_id": "uhla",
+        "cost": 3,
+        "games": 70,
+        "wins": 35,
+        "timeouts": 0,
+        "win_rate": 0.5
+      },
+      "szanowny_kantor": {
+        "unit_id": "szanowny_kantor",
+        "cost": 4,
+        "games": 50,
+        "wins": 20,
+        "timeouts": 0,
+        "win_rate": 0.4
+      },
+      "chessowy_mentos": {
+        "unit_id": "chessowy_mentos",
+        "cost": 2,
+        "games": 60,
+        "wins": 10,
+        "timeouts": 0,
+        "win_rate": 0.16666666666666666
+      },
+      "yossarian": {
+        "unit_id": "yossarian",
+        "cost": 3,
+        "games": 70,
+        "wins": 55,
+        "timeouts": 0,
+        "win_rate": 0.7857142857142857
+      },
+      "galanonim": {
+        "unit_id": "galanonim",
+        "cost": 5,
+        "games": 40,
+        "wins": 10,
+        "timeouts": 0,
+        "win_rate": 0.25
+      },
+      "pytl": {
+        "unit_id": "pytl",
+        "cost": 4,
+        "games": 50,
+        "wins": 10,
+        "timeouts": 0,
+        "win_rate": 0.2
+      },
+      "sofronow": {
+        "unit_id": "sofronow",
+        "cost": 1,
+        "games": 50,
+        "wins": 5,
+        "timeouts": 0,
+        "win_rate": 0.1
+      },
+      "alyson_stark": {
+        "unit_id": "alyson_stark",
+        "cost": 4,
+        "games": 50,
+        "wins": 45,
+        "timeouts": 0,
+        "win_rate": 0.9
+      },
+      "skibidi_kubus": {
+        "unit_id": "skibidi_kubus",
+        "cost": 1,
+        "games": 50,
+        "wins": 50,
+        "timeouts": 0,
+        "win_rate": 1.0
+      },
+      "aus_sher": {
+        "unit_id": "aus_sher",
+        "cost": 3,
+        "games": 70,
+        "wins": 20,
+        "timeouts": 0,
+        "win_rate": 0.2857142857142857
+      },
+      "szalwia": {
+        "unit_id": "szalwia",
+        "cost": 3,
+        "games": 70,
+        "wins": 0,
+        "timeouts": 0,
+        "win_rate": 0.0
+      },
+      "mr0czeq1": {
+        "unit_id": "mr0czeq1",
+        "cost": 2,
+        "games": 60,
+        "wins": 20,
+        "timeouts": 0,
+        "win_rate": 0.3333333333333333
+      },
+      "optimusprime": {
+        "unit_id": "optimusprime",
+        "cost": 3,
+        "games": 70,
+        "wins": 35,
+        "timeouts": 0,
+        "win_rate": 0.5
+      },
+      "kotmarcek": {
+        "unit_id": "kotmarcek",
+        "cost": 2,
+        "games": 60,
+        "wins": 60,
+        "timeouts": 0,
+        "win_rate": 1.0
+      },
+      "bbobel": {
+        "unit_id": "bbobel",
+        "cost": 1,
+        "games": 50,
+        "wins": 15,
+        "timeouts": 0,
+        "win_rate": 0.3
+      },
+      "fallensmokk": {
+        "unit_id": "fallensmokk",
+        "cost": 2,
+        "games": 60,
+        "wins": 35,
+        "timeouts": 0,
+        "win_rate": 0.5833333333333334
+      },
+      "jaeger": {
+        "unit_id": "jaeger",
+        "cost": 1,
+        "games": 50,
+        "wins": 10,
+        "timeouts": 0,
+        "win_rate": 0.2
+      },
+      "kaktusek": {
+        "unit_id": "kaktusek",
+        "cost": 2,
+        "games": 60,
+        "wins": 35,
+        "timeouts": 0,
+        "win_rate": 0.5833333333333334
+      },
+      "empty_melancholy": {
+        "unit_id": "empty_melancholy",
+        "cost": 3,
+        "games": 70,
+        "wins": 10,
+        "timeouts": 0,
+        "win_rate": 0.14285714285714285
+      },
+      "4tune": {
+        "unit_id": "4tune",
+        "cost": 4,
+        "games": 50,
+        "wins": 45,
+        "timeouts": 0,
+        "win_rate": 0.9
+      },
+      "jadlainwestycji": {
+        "unit_id": "jadlainwestycji",
+        "cost": 3,
+        "games": 70,
+        "wins": 55,
+        "timeouts": 0,
+        "win_rate": 0.7857142857142857
+      },
+      "boczek": {
+        "unit_id": "boczek",
+        "cost": 1,
+        "games": 50,
+        "wins": 30,
+        "timeouts": 0,
+        "win_rate": 0.6
+      },
+      "merex": {
+        "unit_id": "merex",
+        "cost": 5,
+        "games": 40,
+        "wins": 40,
+        "timeouts": 0,
+        "win_rate": 1.0
+      },
+      "marcel_galadotka": {
+        "unit_id": "marcel_galadotka",
+        "cost": 2,
+        "games": 60,
+        "wins": 0,
+        "timeouts": 0,
+        "win_rate": 0.0
+      },
+      "klemens_zydoslawski": {
+        "unit_id": "klemens_zydoslawski",
+        "cost": 4,
+        "games": 50,
+        "wins": 0,
+        "timeouts": 0,
+        "win_rate": 0.0
+      },
+      "nicosc": {
+        "unit_id": "nicosc",
+        "cost": 4,
+        "games": 50,
+        "wins": 30,
+        "timeouts": 0,
+        "win_rate": 0.6
+      },
+      "knauff": {
+        "unit_id": "knauff",
+        "cost": 3,
+        "games": 70,
+        "wins": 70,
+        "timeouts": 0,
+        "win_rate": 1.0
+      },
+      "vitas": {
+        "unit_id": "vitas",
+        "cost": 5,
+        "games": 40,
+        "wins": 20,
+        "timeouts": 0,
+        "win_rate": 0.5
+      },
+      "szachowymentor": {
+        "unit_id": "szachowymentor",
+        "cost": 5,
+        "games": 40,
+        "wins": 0,
+        "timeouts": 0,
+        "win_rate": 0.0
+      },
+      "9wojtaz9": {
+        "unit_id": "9wojtaz9",
+        "cost": 1,
+        "games": 50,
+        "wins": 40,
+        "timeouts": 0,
+        "win_rate": 0.8
+      }
+    },
+    "pair_matrix": [
+      {
+        "a": "sofronow",
+        "b": "skibidi_kubus",
+        "cost": 1,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "sofronow",
+        "b": "bbobel",
+        "cost": 1,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "sofronow",
+        "b": "jaeger",
+        "cost": 1,
+        "a_wins": 5,
+        "b_wins": 5,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "sofronow",
+        "b": "boczek",
+        "cost": 1,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "sofronow",
+        "b": "9wojtaz9",
+        "cost": 1,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "skibidi_kubus",
+        "b": "bbobel",
+        "cost": 1,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "skibidi_kubus",
+        "b": "jaeger",
+        "cost": 1,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "skibidi_kubus",
+        "b": "boczek",
+        "cost": 1,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "skibidi_kubus",
+        "b": "9wojtaz9",
+        "cost": 1,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "bbobel",
+        "b": "jaeger",
+        "cost": 1,
+        "a_wins": 5,
+        "b_wins": 5,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "bbobel",
+        "b": "boczek",
+        "cost": 1,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "bbobel",
+        "b": "9wojtaz9",
+        "cost": 1,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "jaeger",
+        "b": "boczek",
+        "cost": 1,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "jaeger",
+        "b": "9wojtaz9",
+        "cost": 1,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "boczek",
+        "b": "9wojtaz9",
+        "cost": 1,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "anamol04",
+        "b": "chessowy_mentos",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "anamol04",
+        "b": "mr0czeq1",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "anamol04",
+        "b": "kotmarcek",
+        "cost": 2,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "anamol04",
+        "b": "fallensmokk",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "anamol04",
+        "b": "kaktusek",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "anamol04",
+        "b": "marcel_galadotka",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "chessowy_mentos",
+        "b": "mr0czeq1",
+        "cost": 2,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "chessowy_mentos",
+        "b": "kotmarcek",
+        "cost": 2,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "chessowy_mentos",
+        "b": "fallensmokk",
+        "cost": 2,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "chessowy_mentos",
+        "b": "kaktusek",
+        "cost": 2,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "chessowy_mentos",
+        "b": "marcel_galadotka",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "mr0czeq1",
+        "b": "kotmarcek",
+        "cost": 2,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "mr0czeq1",
+        "b": "fallensmokk",
+        "cost": 2,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "mr0czeq1",
+        "b": "kaktusek",
+        "cost": 2,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "mr0czeq1",
+        "b": "marcel_galadotka",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "kotmarcek",
+        "b": "fallensmokk",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "kotmarcek",
+        "b": "kaktusek",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "kotmarcek",
+        "b": "marcel_galadotka",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "fallensmokk",
+        "b": "kaktusek",
+        "cost": 2,
+        "a_wins": 5,
+        "b_wins": 5,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "fallensmokk",
+        "b": "marcel_galadotka",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "kaktusek",
+        "b": "marcel_galadotka",
+        "cost": 2,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "uhla",
+        "b": "yossarian",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "uhla",
+        "b": "aus_sher",
+        "cost": 3,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "uhla",
+        "b": "szalwia",
+        "cost": 3,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "uhla",
+        "b": "optimusprime",
+        "cost": 3,
+        "a_wins": 5,
+        "b_wins": 5,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "uhla",
+        "b": "empty_melancholy",
+        "cost": 3,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "uhla",
+        "b": "jadlainwestycji",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "uhla",
+        "b": "knauff",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "yossarian",
+        "b": "aus_sher",
+        "cost": 3,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "yossarian",
+        "b": "szalwia",
+        "cost": 3,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "yossarian",
+        "b": "optimusprime",
+        "cost": 3,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "yossarian",
+        "b": "empty_melancholy",
+        "cost": 3,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "yossarian",
+        "b": "jadlainwestycji",
+        "cost": 3,
+        "a_wins": 5,
+        "b_wins": 5,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "yossarian",
+        "b": "knauff",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "aus_sher",
+        "b": "szalwia",
+        "cost": 3,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "aus_sher",
+        "b": "optimusprime",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "aus_sher",
+        "b": "empty_melancholy",
+        "cost": 3,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "aus_sher",
+        "b": "jadlainwestycji",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "aus_sher",
+        "b": "knauff",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "szalwia",
+        "b": "optimusprime",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "szalwia",
+        "b": "empty_melancholy",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "szalwia",
+        "b": "jadlainwestycji",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "szalwia",
+        "b": "knauff",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "optimusprime",
+        "b": "empty_melancholy",
+        "cost": 3,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "optimusprime",
+        "b": "jadlainwestycji",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "optimusprime",
+        "b": "knauff",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "empty_melancholy",
+        "b": "jadlainwestycji",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "empty_melancholy",
+        "b": "knauff",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "jadlainwestycji",
+        "b": "knauff",
+        "cost": 3,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "szanowny_kantor",
+        "b": "pytl",
+        "cost": 4,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "szanowny_kantor",
+        "b": "alyson_stark",
+        "cost": 4,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "szanowny_kantor",
+        "b": "4tune",
+        "cost": 4,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "szanowny_kantor",
+        "b": "klemens_zydoslawski",
+        "cost": 4,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "szanowny_kantor",
+        "b": "nicosc",
+        "cost": 4,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "pytl",
+        "b": "alyson_stark",
+        "cost": 4,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "pytl",
+        "b": "4tune",
+        "cost": 4,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "pytl",
+        "b": "klemens_zydoslawski",
+        "cost": 4,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "pytl",
+        "b": "nicosc",
+        "cost": 4,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "alyson_stark",
+        "b": "4tune",
+        "cost": 4,
+        "a_wins": 5,
+        "b_wins": 5,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "alyson_stark",
+        "b": "klemens_zydoslawski",
+        "cost": 4,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "alyson_stark",
+        "b": "nicosc",
+        "cost": 4,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "4tune",
+        "b": "klemens_zydoslawski",
+        "cost": 4,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "4tune",
+        "b": "nicosc",
+        "cost": 4,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "klemens_zydoslawski",
+        "b": "nicosc",
+        "cost": 4,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "fiko",
+        "b": "galanonim",
+        "cost": 5,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "fiko",
+        "b": "merex",
+        "cost": 5,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "fiko",
+        "b": "vitas",
+        "cost": 5,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "fiko",
+        "b": "szachowymentor",
+        "cost": 5,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "galanonim",
+        "b": "merex",
+        "cost": 5,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "galanonim",
+        "b": "vitas",
+        "cost": 5,
+        "a_wins": 0,
+        "b_wins": 10,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "galanonim",
+        "b": "szachowymentor",
+        "cost": 5,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "merex",
+        "b": "vitas",
+        "cost": 5,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "merex",
+        "b": "szachowymentor",
+        "cost": 5,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      },
+      {
+        "a": "vitas",
+        "b": "szachowymentor",
+        "cost": 5,
+        "a_wins": 10,
+        "b_wins": 0,
+        "decisive": 10,
+        "timeouts": 0
+      }
+    ],
+    "errors": []
+  },
+  "team_battles": {
+    "matches_per_size": 100,
+    "team_sizes": [
+      3
+    ],
+    "total_battles": 100,
+    "expected_battles": 100,
+    "timeouts": 0,
+    "unit_results": {
+      "anamol04": {
+        "unit_id": "anamol04",
+        "role": "fighter",
+        "cost": 2,
+        "appearances": 17,
+        "wins": 9,
+        "win_rate": 0.5294117647058824
+      },
+      "fiko": {
+        "unit_id": "fiko",
+        "role": "duelist",
+        "cost": 5,
+        "appearances": 23,
+        "wins": 18,
+        "win_rate": 0.782608695652174
+      },
+      "uhla": {
+        "unit_id": "uhla",
+        "role": "fighter",
+        "cost": 3,
+        "appearances": 22,
+        "wins": 11,
+        "win_rate": 0.5
+      },
+      "szanowny_kantor": {
+        "unit_id": "szanowny_kantor",
+        "role": "defender",
+        "cost": 4,
+        "appearances": 18,
+        "wins": 10,
+        "win_rate": 0.5555555555555556
+      },
+      "chessowy_mentos": {
+        "unit_id": "chessowy_mentos",
+        "role": "mage",
+        "cost": 2,
+        "appearances": 21,
+        "wins": 8,
+        "win_rate": 0.38095238095238093
+      },
+      "yossarian": {
+        "unit_id": "yossarian",
+        "role": "duelist",
+        "cost": 3,
+        "appearances": 22,
+        "wins": 13,
+        "win_rate": 0.5909090909090909
+      },
+      "galanonim": {
+        "unit_id": "galanonim",
+        "role": "fighter",
+        "cost": 5,
+        "appearances": 16,
+        "wins": 9,
+        "win_rate": 0.5625
+      },
+      "pytl": {
+        "unit_id": "pytl",
+        "role": "mage",
+        "cost": 4,
+        "appearances": 15,
+        "wins": 7,
+        "win_rate": 0.4666666666666667
+      },
+      "sofronow": {
+        "unit_id": "sofronow",
+        "role": "defender",
+        "cost": 1,
+        "appearances": 16,
+        "wins": 5,
+        "win_rate": 0.3125
+      },
+      "alyson_stark": {
+        "unit_id": "alyson_stark",
+        "role": "duelist",
+        "cost": 4,
+        "appearances": 24,
+        "wins": 18,
+        "win_rate": 0.75
+      },
+      "skibidi_kubus": {
+        "unit_id": "skibidi_kubus",
+        "role": "duelist",
+        "cost": 1,
+        "appearances": 16,
+        "wins": 8,
+        "win_rate": 0.5
+      },
+      "aus_sher": {
+        "unit_id": "aus_sher",
+        "role": "mage",
+        "cost": 3,
+        "appearances": 14,
+        "wins": 5,
+        "win_rate": 0.35714285714285715
+      },
+      "szalwia": {
+        "unit_id": "szalwia",
+        "role": "mage",
+        "cost": 3,
+        "appearances": 13,
+        "wins": 4,
+        "win_rate": 0.3076923076923077
+      },
+      "mr0czeq1": {
+        "unit_id": "mr0czeq1",
+        "role": "mage",
+        "cost": 2,
+        "appearances": 17,
+        "wins": 6,
+        "win_rate": 0.35294117647058826
+      },
+      "optimusprime": {
+        "unit_id": "optimusprime",
+        "role": "fighter",
+        "cost": 3,
+        "appearances": 16,
+        "wins": 9,
+        "win_rate": 0.5625
+      },
+      "kotmarcek": {
+        "unit_id": "kotmarcek",
+        "role": "duelist",
+        "cost": 2,
+        "appearances": 20,
+        "wins": 11,
+        "win_rate": 0.55
+      },
+      "bbobel": {
+        "unit_id": "bbobel",
+        "role": "defender",
+        "cost": 1,
+        "appearances": 25,
+        "wins": 11,
+        "win_rate": 0.44
+      },
+      "fallensmokk": {
+        "unit_id": "fallensmokk",
+        "role": "fighter",
+        "cost": 2,
+        "appearances": 21,
+        "wins": 10,
+        "win_rate": 0.47619047619047616
+      },
+      "jaeger": {
+        "unit_id": "jaeger",
+        "role": "defender",
+        "cost": 1,
+        "appearances": 22,
+        "wins": 9,
+        "win_rate": 0.4090909090909091
+      },
+      "kaktusek": {
+        "unit_id": "kaktusek",
+        "role": "fighter",
+        "cost": 2,
+        "appearances": 24,
+        "wins": 12,
+        "win_rate": 0.5
+      },
+      "empty_melancholy": {
+        "unit_id": "empty_melancholy",
+        "role": "defender",
+        "cost": 3,
+        "appearances": 19,
+        "wins": 6,
+        "win_rate": 0.3157894736842105
+      },
+      "4tune": {
+        "unit_id": "4tune",
+        "role": "duelist",
+        "cost": 4,
+        "appearances": 16,
+        "wins": 10,
+        "win_rate": 0.625
+      },
+      "jadlainwestycji": {
+        "unit_id": "jadlainwestycji",
+        "role": "duelist",
+        "cost": 3,
+        "appearances": 16,
+        "wins": 9,
+        "win_rate": 0.5625
+      },
+      "boczek": {
+        "unit_id": "boczek",
+        "role": "defender",
+        "cost": 1,
+        "appearances": 22,
+        "wins": 6,
+        "win_rate": 0.2727272727272727
+      },
+      "merex": {
+        "unit_id": "merex",
+        "role": "duelist",
+        "cost": 5,
+        "appearances": 16,
+        "wins": 16,
+        "win_rate": 1.0
+      },
+      "marcel_galadotka": {
+        "unit_id": "marcel_galadotka",
+        "role": "mage",
+        "cost": 2,
+        "appearances": 20,
+        "wins": 5,
+        "win_rate": 0.25
+      },
+      "klemens_zydoslawski": {
+        "unit_id": "klemens_zydoslawski",
+        "role": "mage",
+        "cost": 4,
+        "appearances": 17,
+        "wins": 8,
+        "win_rate": 0.47058823529411764
+      },
+      "nicosc": {
+        "unit_id": "nicosc",
+        "role": "defender",
+        "cost": 4,
+        "appearances": 17,
+        "wins": 7,
+        "win_rate": 0.4117647058823529
+      },
+      "knauff": {
+        "unit_id": "knauff",
+        "role": "duelist",
+        "cost": 3,
+        "appearances": 17,
+        "wins": 10,
+        "win_rate": 0.5882352941176471
+      },
+      "vitas": {
+        "unit_id": "vitas",
+        "role": "duelist",
+        "cost": 5,
+        "appearances": 15,
+        "wins": 12,
+        "win_rate": 0.8
+      },
+      "szachowymentor": {
+        "unit_id": "szachowymentor",
+        "role": "mage",
+        "cost": 5,
+        "appearances": 20,
+        "wins": 10,
+        "win_rate": 0.5
+      },
+      "9wojtaz9": {
+        "unit_id": "9wojtaz9",
+        "role": "duelist",
+        "cost": 1,
+        "appearances": 23,
+        "wins": 8,
+        "win_rate": 0.34782608695652173
+      }
+    },
+    "role_results": {
+      "defender": {
+        "appearances": 139,
+        "wins": 54,
+        "win_rate": 0.38848920863309355
+      },
+      "duelist": {
+        "appearances": 208,
+        "wins": 133,
+        "win_rate": 0.6394230769230769
+      },
+      "fighter": {
+        "appearances": 116,
+        "wins": 60,
+        "win_rate": 0.5172413793103449
+      },
+      "mage": {
+        "appearances": 137,
+        "wins": 53,
+        "win_rate": 0.38686131386861317
+      }
+    },
+    "cost_results": {
+      "1": {
+        "appearances": 124,
+        "wins": 47,
+        "win_rate": 0.3790322580645161
+      },
+      "2": {
+        "appearances": 140,
+        "wins": 61,
+        "win_rate": 0.4357142857142857
+      },
+      "3": {
+        "appearances": 139,
+        "wins": 67,
+        "win_rate": 0.48201438848920863
+      },
+      "4": {
+        "appearances": 107,
+        "wins": 60,
+        "win_rate": 0.5607476635514018
+      },
+      "5": {
+        "appearances": 90,
+        "wins": 65,
+        "win_rate": 0.7222222222222222
+      }
+    },
+    "trait_results": {
+      "Konfident": {
+        "trait": "Konfident",
+        "thresholds": [
+          3,
+          5,
+          7
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 3,
+            "appearances": 13,
+            "wins": 6,
+            "win_rate": 0.46153846153846156
+          },
+          "2": {
+            "threshold": 5,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          },
+          "3": {
+            "threshold": 7,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      },
+      "Wierny widz": {
+        "trait": "Wierny widz",
+        "thresholds": [
+          3,
+          5,
+          6
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 3,
+            "appearances": 1,
+            "wins": 0,
+            "win_rate": 0.0
+          },
+          "2": {
+            "threshold": 5,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          },
+          "3": {
+            "threshold": 6,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      },
+      "Nowociota": {
+        "trait": "Nowociota",
+        "thresholds": [
+          3,
+          5,
+          7
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 3,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          },
+          "2": {
+            "threshold": 5,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          },
+          "3": {
+            "threshold": 7,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      },
+      "Figlarz": {
+        "trait": "Figlarz",
+        "thresholds": [
+          2,
+          4,
+          6
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 2,
+            "appearances": 21,
+            "wins": 14,
+            "win_rate": 0.6666666666666666
+          },
+          "2": {
+            "threshold": 4,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          },
+          "3": {
+            "threshold": 6,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      },
+      "Weeb": {
+        "trait": "Weeb",
+        "thresholds": [
+          2,
+          4,
+          6
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 2,
+            "appearances": 19,
+            "wins": 9,
+            "win_rate": 0.47368421052631576
+          },
+          "2": {
+            "threshold": 4,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          },
+          "3": {
+            "threshold": 6,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      },
+      "Starociota": {
+        "trait": "Starociota",
+        "thresholds": [
+          2,
+          3,
+          5
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 2,
+            "appearances": 15,
+            "wins": 13,
+            "win_rate": 0.8666666666666667
+          },
+          "2": {
+            "threshold": 3,
+            "appearances": 1,
+            "wins": 1,
+            "win_rate": 1.0
+          },
+          "3": {
+            "threshold": 5,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      },
+      "Inwestor": {
+        "trait": "Inwestor",
+        "thresholds": [
+          2,
+          3,
+          4
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 2,
+            "appearances": 4,
+            "wins": 3,
+            "win_rate": 0.75
+          },
+          "2": {
+            "threshold": 3,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          },
+          "3": {
+            "threshold": 4,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      },
+      "Femboy": {
+        "trait": "Femboy",
+        "thresholds": [
+          2,
+          3,
+          5
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 2,
+            "appearances": 11,
+            "wins": 7,
+            "win_rate": 0.6363636363636364
+          },
+          "2": {
+            "threshold": 3,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          },
+          "3": {
+            "threshold": 5,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      },
+      "Szachista": {
+        "trait": "Szachista",
+        "thresholds": [
+          2,
+          3
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 2,
+            "appearances": 5,
+            "wins": 2,
+            "win_rate": 0.4
+          },
+          "2": {
+            "threshold": 3,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      },
+      "Twórca": {
+        "trait": "Twórca",
+        "thresholds": [
+          2,
+          3
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 2,
+            "appearances": 3,
+            "wins": 1,
+            "win_rate": 0.3333333333333333
+          },
+          "2": {
+            "threshold": 3,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      },
+      "Muzyk": {
+        "trait": "Muzyk",
+        "thresholds": [
+          1,
+          2
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 1,
+            "appearances": 47,
+            "wins": 26,
+            "win_rate": 0.5531914893617021
+          },
+          "2": {
+            "threshold": 2,
+            "appearances": 3,
+            "wins": 0,
+            "win_rate": 0.0
+          }
+        }
+      },
+      "Haxball": {
+        "trait": "Haxball",
+        "thresholds": [
+          2,
+          3
+        ],
+        "tiers": {
+          "1": {
+            "threshold": 2,
+            "appearances": 3,
+            "wins": 2,
+            "win_rate": 0.6666666666666666
+          },
+          "2": {
+            "threshold": 3,
+            "appearances": 0,
+            "wins": 0,
+            "win_rate": null
+          }
+        }
+      }
+    },
+    "errors": []
+  },
+  "trait_control": {
+    "seeds_per_direction": 5,
+    "rows": [
+      {
+        "trait": "Konfident",
+        "tier": 1,
+        "threshold": 3,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 0,
+        "control_team_wins": 10,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.0,
+        "control_team_win_rate": 1.0,
+        "delta_vs_control": -1.0
+      },
+      {
+        "trait": "Konfident",
+        "tier": 2,
+        "threshold": 5,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 0,
+        "control_team_wins": 10,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.0,
+        "control_team_win_rate": 1.0,
+        "delta_vs_control": -1.0
+      },
+      {
+        "trait": "Konfident",
+        "tier": 3,
+        "threshold": 7,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 0,
+        "control_team_wins": 10,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.0,
+        "control_team_win_rate": 1.0,
+        "delta_vs_control": -1.0
+      },
+      {
+        "trait": "Wierny widz",
+        "tier": 1,
+        "threshold": 3,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 7,
+        "control_team_wins": 3,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.7,
+        "control_team_win_rate": 0.3,
+        "delta_vs_control": 0.39999999999999997
+      },
+      {
+        "trait": "Wierny widz",
+        "tier": 2,
+        "threshold": 5,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 6,
+        "control_team_wins": 4,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.6,
+        "control_team_win_rate": 0.4,
+        "delta_vs_control": 0.19999999999999996
+      },
+      {
+        "trait": "Wierny widz",
+        "tier": 3,
+        "threshold": 6,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 4,
+        "control_team_wins": 6,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.4,
+        "control_team_win_rate": 0.6,
+        "delta_vs_control": -0.19999999999999996
+      },
+      {
+        "trait": "Nowociota",
+        "tier": 1,
+        "threshold": 3,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 1,
+        "control_team_wins": 9,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.1,
+        "control_team_win_rate": 0.9,
+        "delta_vs_control": -0.8
+      },
+      {
+        "trait": "Nowociota",
+        "tier": 2,
+        "threshold": 5,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 0,
+        "control_team_wins": 10,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.0,
+        "control_team_win_rate": 1.0,
+        "delta_vs_control": -1.0
+      },
+      {
+        "trait": "Nowociota",
+        "tier": 3,
+        "threshold": 7,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 0,
+        "control_team_wins": 10,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.0,
+        "control_team_win_rate": 1.0,
+        "delta_vs_control": -1.0
+      },
+      {
+        "trait": "Figlarz",
+        "tier": 1,
+        "threshold": 2,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 10,
+        "control_team_wins": 0,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 1.0,
+        "control_team_win_rate": 0.0,
+        "delta_vs_control": 1.0
+      },
+      {
+        "trait": "Figlarz",
+        "tier": 2,
+        "threshold": 4,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 8,
+        "control_team_wins": 2,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.8,
+        "control_team_win_rate": 0.2,
+        "delta_vs_control": 0.6000000000000001
+      },
+      {
+        "trait": "Figlarz",
+        "tier": 3,
+        "threshold": 6,
+        "matching_units_available": 7,
+        "control_units_available": 25,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 7,
+        "control_team_wins": 3,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.7,
+        "control_team_win_rate": 0.3,
+        "delta_vs_control": 0.39999999999999997
+      },
+      {
+        "trait": "Weeb",
+        "tier": 1,
+        "threshold": 2,
+        "matching_units_available": 6,
+        "control_units_available": 26,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 8,
+        "control_team_wins": 2,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.8,
+        "control_team_win_rate": 0.2,
+        "delta_vs_control": 0.6000000000000001
+      },
+      {
+        "trait": "Weeb",
+        "tier": 2,
+        "threshold": 4,
+        "matching_units_available": 6,
+        "control_units_available": 26,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 7,
+        "control_team_wins": 3,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.7,
+        "control_team_win_rate": 0.3,
+        "delta_vs_control": 0.39999999999999997
+      },
+      {
+        "trait": "Weeb",
+        "tier": 3,
+        "threshold": 6,
+        "matching_units_available": 6,
+        "control_units_available": 26,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 4,
+        "control_team_wins": 6,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.4,
+        "control_team_win_rate": 0.6,
+        "delta_vs_control": -0.19999999999999996
+      },
+      {
+        "trait": "Starociota",
+        "tier": 1,
+        "threshold": 2,
+        "matching_units_available": 6,
+        "control_units_available": 26,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 10,
+        "control_team_wins": 0,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 1.0,
+        "control_team_win_rate": 0.0,
+        "delta_vs_control": 1.0
+      },
+      {
+        "trait": "Starociota",
+        "tier": 2,
+        "threshold": 3,
+        "matching_units_available": 6,
+        "control_units_available": 26,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 9,
+        "control_team_wins": 1,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.9,
+        "control_team_win_rate": 0.1,
+        "delta_vs_control": 0.8
+      },
+      {
+        "trait": "Starociota",
+        "tier": 3,
+        "threshold": 5,
+        "matching_units_available": 6,
+        "control_units_available": 26,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 10,
+        "control_team_wins": 0,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 1.0,
+        "control_team_win_rate": 0.0,
+        "delta_vs_control": 1.0
+      },
+      {
+        "trait": "Inwestor",
+        "tier": 1,
+        "threshold": 2,
+        "matching_units_available": 4,
+        "control_units_available": 28,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 8,
+        "control_team_wins": 2,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.8,
+        "control_team_win_rate": 0.2,
+        "delta_vs_control": 0.6000000000000001
+      },
+      {
+        "trait": "Inwestor",
+        "tier": 2,
+        "threshold": 3,
+        "matching_units_available": 4,
+        "control_units_available": 28,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 10,
+        "control_team_wins": 0,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 1.0,
+        "control_team_win_rate": 0.0,
+        "delta_vs_control": 1.0
+      },
+      {
+        "trait": "Inwestor",
+        "tier": 3,
+        "threshold": 4,
+        "matching_units_available": 4,
+        "control_units_available": 28,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 10,
+        "control_team_wins": 0,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 1.0,
+        "control_team_win_rate": 0.0,
+        "delta_vs_control": 1.0
+      },
+      {
+        "trait": "Femboy",
+        "tier": 1,
+        "threshold": 2,
+        "matching_units_available": 6,
+        "control_units_available": 26,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 9,
+        "control_team_wins": 1,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.9,
+        "control_team_win_rate": 0.1,
+        "delta_vs_control": 0.8
+      },
+      {
+        "trait": "Femboy",
+        "tier": 2,
+        "threshold": 3,
+        "matching_units_available": 6,
+        "control_units_available": 26,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 9,
+        "control_team_wins": 1,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.9,
+        "control_team_win_rate": 0.1,
+        "delta_vs_control": 0.8
+      },
+      {
+        "trait": "Femboy",
+        "tier": 3,
+        "threshold": 5,
+        "matching_units_available": 6,
+        "control_units_available": 26,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 7,
+        "control_team_wins": 3,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.7,
+        "control_team_win_rate": 0.3,
+        "delta_vs_control": 0.39999999999999997
+      },
+      {
+        "trait": "Szachista",
+        "tier": 1,
+        "threshold": 2,
+        "matching_units_available": 3,
+        "control_units_available": 29,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 2,
+        "control_team_wins": 8,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.2,
+        "control_team_win_rate": 0.8,
+        "delta_vs_control": -0.6000000000000001
+      },
+      {
+        "trait": "Szachista",
+        "tier": 2,
+        "threshold": 3,
+        "matching_units_available": 3,
+        "control_units_available": 29,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 4,
+        "control_team_wins": 6,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.4,
+        "control_team_win_rate": 0.6,
+        "delta_vs_control": -0.19999999999999996
+      },
+      {
+        "trait": "Twórca",
+        "tier": 1,
+        "threshold": 2,
+        "matching_units_available": 3,
+        "control_units_available": 29,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 3,
+        "control_team_wins": 7,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.3,
+        "control_team_win_rate": 0.7,
+        "delta_vs_control": -0.39999999999999997
+      },
+      {
+        "trait": "Twórca",
+        "tier": 2,
+        "threshold": 3,
+        "matching_units_available": 3,
+        "control_units_available": 29,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 6,
+        "control_team_wins": 4,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.6,
+        "control_team_win_rate": 0.4,
+        "delta_vs_control": 0.19999999999999996
+      },
+      {
+        "trait": "Muzyk",
+        "tier": 1,
+        "threshold": 1,
+        "matching_units_available": 3,
+        "control_units_available": 29,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 2,
+        "control_team_wins": 8,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.2,
+        "control_team_win_rate": 0.8,
+        "delta_vs_control": -0.6000000000000001
+      },
+      {
+        "trait": "Muzyk",
+        "tier": 2,
+        "threshold": 2,
+        "matching_units_available": 3,
+        "control_units_available": 29,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 1,
+        "control_team_wins": 9,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.1,
+        "control_team_win_rate": 0.9,
+        "delta_vs_control": -0.8
+      },
+      {
+        "trait": "Haxball",
+        "tier": 1,
+        "threshold": 2,
+        "matching_units_available": 3,
+        "control_units_available": 29,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 6,
+        "control_team_wins": 4,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.6,
+        "control_team_win_rate": 0.4,
+        "delta_vs_control": 0.19999999999999996
+      },
+      {
+        "trait": "Haxball",
+        "tier": 2,
+        "threshold": 3,
+        "matching_units_available": 3,
+        "control_units_available": 29,
+        "seeds_per_direction": 5,
+        "decisive_battles": 10,
+        "trait_team_wins": 8,
+        "control_team_wins": 2,
+        "timeouts": 0,
+        "status": "measured",
+        "activation_verified": true,
+        "trait_team_win_rate": 0.8,
+        "control_team_win_rate": 0.2,
+        "delta_vs_control": 0.6000000000000001
+      }
+    ],
+    "errors": []
+  },
+  "determinism": {
+    "checks": [
+      {
+        "team_size": 3,
+        "seed": 310031,
+        "identical": true,
+        "first": {
+          "winner": "opponent",
+          "duration": 14.4,
+          "timeout": false,
+          "team_a_survivors": 0,
+          "team_b_survivors": 3
+        },
+        "second": {
+          "winner": "opponent",
+          "duration": 14.4,
+          "timeout": false,
+          "team_a_survivors": 0,
+          "team_b_survivors": 3
+        }
+      },
+      {
+        "team_size": 3,
+        "seed": 310032,
+        "identical": true,
+        "first": {
+          "winner": "player",
+          "duration": 23.6,
+          "timeout": false,
+          "team_a_survivors": 1,
+          "team_b_survivors": 0
+        },
+        "second": {
+          "winner": "player",
+          "duration": 23.6,
+          "timeout": false,
+          "team_a_survivors": 1,
+          "team_b_survivors": 0
+        }
+      },
+      {
+        "team_size": 3,
+        "seed": 310033,
+        "identical": true,
+        "first": {
+          "winner": "opponent",
+          "duration": 14.6,
+          "timeout": false,
+          "team_a_survivors": 0,
+          "team_b_survivors": 2
+        },
+        "second": {
+          "winner": "opponent",
+          "duration": 14.6,
+          "timeout": false,
+          "team_a_survivors": 0,
+          "team_b_survivors": 2
+        }
+      }
+    ],
+    "passed": true
+  },
+  "trait_threshold_audit": {
+    "Konfident": {
+      "trait": "Konfident",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 3,
+          "appearances": 13,
+          "wins": 6,
+          "win_rate": 0.46153846153846156
+        },
+        "2": {
+          "threshold": 5,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        },
+        "3": {
+          "threshold": 7,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    },
+    "Wierny widz": {
+      "trait": "Wierny widz",
+      "thresholds": [
+        3,
+        5,
+        6
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 3,
+          "appearances": 1,
+          "wins": 0,
+          "win_rate": 0.0
+        },
+        "2": {
+          "threshold": 5,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        },
+        "3": {
+          "threshold": 6,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    },
+    "Nowociota": {
+      "trait": "Nowociota",
+      "thresholds": [
+        3,
+        5,
+        7
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 3,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        },
+        "2": {
+          "threshold": 5,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        },
+        "3": {
+          "threshold": 7,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    },
+    "Figlarz": {
+      "trait": "Figlarz",
+      "thresholds": [
+        2,
+        4,
+        6
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 2,
+          "appearances": 21,
+          "wins": 14,
+          "win_rate": 0.6666666666666666
+        },
+        "2": {
+          "threshold": 4,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        },
+        "3": {
+          "threshold": 6,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    },
+    "Weeb": {
+      "trait": "Weeb",
+      "thresholds": [
+        2,
+        4,
+        6
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 2,
+          "appearances": 19,
+          "wins": 9,
+          "win_rate": 0.47368421052631576
+        },
+        "2": {
+          "threshold": 4,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        },
+        "3": {
+          "threshold": 6,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    },
+    "Starociota": {
+      "trait": "Starociota",
+      "thresholds": [
+        2,
+        3,
+        5
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 2,
+          "appearances": 15,
+          "wins": 13,
+          "win_rate": 0.8666666666666667
+        },
+        "2": {
+          "threshold": 3,
+          "appearances": 1,
+          "wins": 1,
+          "win_rate": 1.0
+        },
+        "3": {
+          "threshold": 5,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    },
+    "Inwestor": {
+      "trait": "Inwestor",
+      "thresholds": [
+        2,
+        3,
+        4
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 2,
+          "appearances": 4,
+          "wins": 3,
+          "win_rate": 0.75
+        },
+        "2": {
+          "threshold": 3,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        },
+        "3": {
+          "threshold": 4,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    },
+    "Femboy": {
+      "trait": "Femboy",
+      "thresholds": [
+        2,
+        3,
+        5
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 2,
+          "appearances": 11,
+          "wins": 7,
+          "win_rate": 0.6363636363636364
+        },
+        "2": {
+          "threshold": 3,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        },
+        "3": {
+          "threshold": 5,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    },
+    "Szachista": {
+      "trait": "Szachista",
+      "thresholds": [
+        2,
+        3
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 2,
+          "appearances": 5,
+          "wins": 2,
+          "win_rate": 0.4
+        },
+        "2": {
+          "threshold": 3,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    },
+    "Twórca": {
+      "trait": "Twórca",
+      "thresholds": [
+        2,
+        3
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 2,
+          "appearances": 3,
+          "wins": 1,
+          "win_rate": 0.3333333333333333
+        },
+        "2": {
+          "threshold": 3,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    },
+    "Muzyk": {
+      "trait": "Muzyk",
+      "thresholds": [
+        1,
+        2
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 1,
+          "appearances": 47,
+          "wins": 26,
+          "win_rate": 0.5531914893617021
+        },
+        "2": {
+          "threshold": 2,
+          "appearances": 3,
+          "wins": 0,
+          "win_rate": 0.0
+        }
+      }
+    },
+    "Haxball": {
+      "trait": "Haxball",
+      "thresholds": [
+        2,
+        3
+      ],
+      "tiers": {
+        "1": {
+          "threshold": 2,
+          "appearances": 3,
+          "wins": 2,
+          "win_rate": 0.6666666666666666
+        },
+        "2": {
+          "threshold": 3,
+          "appearances": 0,
+          "wins": 0,
+          "win_rate": null
+        }
+      }
+    }
+  },
+  "economy": {
+    "shop_odds": [
+      {
+        "level": 1,
+        "odds_percent": {
+          "1": 100
+        },
+        "offers_per_shop": 5,
+        "expected_cost_per_offer": 1.0,
+        "expected_cost_across_five_offers": 5.0
+      },
+      {
+        "level": 2,
+        "odds_percent": {
+          "1": 85,
+          "2": 15
+        },
+        "offers_per_shop": 5,
+        "expected_cost_per_offer": 1.15,
+        "expected_cost_across_five_offers": 5.75
+      },
+      {
+        "level": 3,
+        "odds_percent": {
+          "1": 75,
+          "2": 20,
+          "3": 5
+        },
+        "offers_per_shop": 5,
+        "expected_cost_per_offer": 1.3,
+        "expected_cost_across_five_offers": 6.5
+      },
+      {
+        "level": 4,
+        "odds_percent": {
+          "1": 60,
+          "2": 25,
+          "3": 12,
+          "4": 3
+        },
+        "offers_per_shop": 5,
+        "expected_cost_per_offer": 1.58,
+        "expected_cost_across_five_offers": 7.9
+      },
+      {
+        "level": 5,
+        "odds_percent": {
+          "1": 50,
+          "2": 30,
+          "3": 15,
+          "4": 4,
+          "5": 1
+        },
+        "offers_per_shop": 5,
+        "expected_cost_per_offer": 1.76,
+        "expected_cost_across_five_offers": 8.8
+      },
+      {
+        "level": 6,
+        "odds_percent": {
+          "1": 35,
+          "2": 35,
+          "3": 20,
+          "4": 7,
+          "5": 3
+        },
+        "offers_per_shop": 5,
+        "expected_cost_per_offer": 2.08,
+        "expected_cost_across_five_offers": 10.4
+      },
+      {
+        "level": 7,
+        "odds_percent": {
+          "1": 25,
+          "2": 35,
+          "3": 25,
+          "4": 10,
+          "5": 5
+        },
+        "offers_per_shop": 5,
+        "expected_cost_per_offer": 2.35,
+        "expected_cost_across_five_offers": 11.75
+      },
+      {
+        "level": 8,
+        "odds_percent": {
+          "1": 15,
+          "2": 30,
+          "3": 30,
+          "4": 15,
+          "5": 10
+        },
+        "offers_per_shop": 5,
+        "expected_cost_per_offer": 2.75,
+        "expected_cost_across_five_offers": 13.75
+      },
+      {
+        "level": 9,
+        "odds_percent": {
+          "1": 10,
+          "2": 25,
+          "3": 35,
+          "4": 20,
+          "5": 10
+        },
+        "offers_per_shop": 5,
+        "expected_cost_per_offer": 2.95,
+        "expected_cost_across_five_offers": 14.75
+      },
+      {
+        "level": 10,
+        "odds_percent": {
+          "1": 5,
+          "2": 20,
+          "3": 35,
+          "4": 25,
+          "5": 15
+        },
+        "offers_per_shop": 5,
+        "expected_cost_per_offer": 3.25,
+        "expected_cost_across_five_offers": 16.25
+      }
+    ],
+    "reroll_cost": 2,
+    "xp_purchase": {
+      "gold": 4,
+      "xp": 4
+    },
+    "xp_table": [
+      0,
+      2,
+      4,
+      8,
+      16,
+      28,
+      48,
+      72,
+      104,
+      144
+    ],
+    "xp_paths": [
+      {
+        "path": "all_losses",
+        "combats": 15,
+        "level": 5,
+        "xp_remainder": 0,
+        "xp_per_loss": 2,
+        "xp_per_win": "n/a"
+      },
+      {
+        "path": "all_wins",
+        "combats": 15,
+        "level": 6,
+        "xp_remainder": 2,
+        "xp_per_loss": 2,
+        "xp_per_win": 4
+      }
+    ],
+    "gold_paths_without_spending": [
+      {
+        "path": "all_losses",
+        "starting_gold": 10,
+        "after_round_3": 22,
+        "item_parts_at_round_3": 3,
+        "cumulative_item_parts_after_round_3": 3,
+        "after_round_5": 41,
+        "item_parts_at_round_5": 1,
+        "cumulative_item_parts_after_round_5": 4,
+        "after_round_10": 95,
+        "item_parts_at_round_10": 2,
+        "cumulative_item_parts_after_round_10": 6,
+        "after_round_15": 150,
+        "item_parts_at_round_15": 1,
+        "cumulative_item_parts_after_round_15": 7,
+        "after_round_20": 205,
+        "item_parts_at_round_20": 3,
+        "cumulative_item_parts_after_round_20": 10
+      },
+      {
+        "path": "all_wins",
+        "starting_gold": 10,
+        "after_round_3": 24,
+        "item_parts_at_round_3": 3,
+        "cumulative_item_parts_after_round_3": 3,
+        "after_round_5": 46,
+        "item_parts_at_round_5": 1,
+        "cumulative_item_parts_after_round_5": 4,
+        "after_round_10": 105,
+        "item_parts_at_round_10": 2,
+        "cumulative_item_parts_after_round_10": 6,
+        "after_round_15": 165,
+        "item_parts_at_round_15": 1,
+        "cumulative_item_parts_after_round_15": 7,
+        "after_round_20": 225,
+        "item_parts_at_round_20": 3,
+        "cumulative_item_parts_after_round_20": 10
+      }
+    ],
+    "income_formula": "base 5 + interest min(5, gold//10 after win bonus) + win bonus 1 + fixed milestone 5g every fifth completed round",
+    "milestone_reward_contract": {
+      "fixed_gold_on_every_fifth_round": 5,
+      "round_3_item_parts": 3,
+      "fifth_round_item_parts": "1 on every fifth completed round, plus 1/2/3/... extra parts on rounds 10/20/30/...",
+      "item_part_representation": "canonical BASE_ITEMS IDs persisted in PlayerState.item_inventory"
+    },
+    "upgrade_roi": [
+      {
+        "cost": 1,
+        "copies_to_combine": 3,
+        "gold_spent_for_three_base_copies": 3,
+        "sell_refund_1star": 1,
+        "sell_refund_2star": 2,
+        "sell_refund_3star": 3,
+        "hp_multiplier_2star": 1.6,
+        "hp_multiplier_3star": 2.56,
+        "attack_multiplier_2star": 1.4,
+        "attack_multiplier_3star": 1.96,
+        "defense_multiplier_2star": 1.0,
+        "defense_multiplier_3star": 1.0
+      },
+      {
+        "cost": 2,
+        "copies_to_combine": 3,
+        "gold_spent_for_three_base_copies": 6,
+        "sell_refund_1star": 2,
+        "sell_refund_2star": 4,
+        "sell_refund_3star": 6,
+        "hp_multiplier_2star": 1.6,
+        "hp_multiplier_3star": 2.56,
+        "attack_multiplier_2star": 1.4,
+        "attack_multiplier_3star": 1.96,
+        "defense_multiplier_2star": 1.0,
+        "defense_multiplier_3star": 1.0
+      },
+      {
+        "cost": 3,
+        "copies_to_combine": 3,
+        "gold_spent_for_three_base_copies": 9,
+        "sell_refund_1star": 3,
+        "sell_refund_2star": 6,
+        "sell_refund_3star": 9,
+        "hp_multiplier_2star": 1.6,
+        "hp_multiplier_3star": 2.56,
+        "attack_multiplier_2star": 1.4,
+        "attack_multiplier_3star": 1.96,
+        "defense_multiplier_2star": 1.0,
+        "defense_multiplier_3star": 1.0
+      },
+      {
+        "cost": 4,
+        "copies_to_combine": 3,
+        "gold_spent_for_three_base_copies": 12,
+        "sell_refund_1star": 4,
+        "sell_refund_2star": 8,
+        "sell_refund_3star": 12,
+        "hp_multiplier_2star": 1.6,
+        "hp_multiplier_3star": 2.56,
+        "attack_multiplier_2star": 1.4,
+        "attack_multiplier_3star": 1.96,
+        "defense_multiplier_2star": 1.0,
+        "defense_multiplier_3star": 1.0
+      },
+      {
+        "cost": 5,
+        "copies_to_combine": 3,
+        "gold_spent_for_three_base_copies": 15,
+        "sell_refund_1star": 5,
+        "sell_refund_2star": 10,
+        "sell_refund_3star": 15,
+        "hp_multiplier_2star": 1.6,
+        "hp_multiplier_3star": 2.56,
+        "attack_multiplier_2star": 1.4,
+        "attack_multiplier_3star": 1.96,
+        "defense_multiplier_2star": 1.0,
+        "defense_multiplier_3star": 1.0
+      }
+    ]
+  },
+  "unit_statuses": [
+    {
+      "unit_id": "4tune",
+      "role": "duelist",
+      "cost": 4,
+      "pairwise": {
+        "unit_id": "4tune",
+        "cost": 4,
+        "games": 50,
+        "wins": 45,
+        "timeouts": 0,
+        "win_rate": 0.9
+      },
+      "team_context": {
+        "unit_id": "4tune",
+        "role": "duelist",
+        "cost": 4,
+        "appearances": 16,
+        "wins": 10,
+        "win_rate": 0.625
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 4,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.9,
+          "sample": 50
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "9wojtaz9",
+      "role": "duelist",
+      "cost": 1,
+      "pairwise": {
+        "unit_id": "9wojtaz9",
+        "cost": 1,
+        "games": 50,
+        "wins": 40,
+        "timeouts": 0,
+        "win_rate": 0.8
+      },
+      "team_context": {
+        "unit_id": "9wojtaz9",
+        "role": "duelist",
+        "cost": 1,
+        "appearances": 23,
+        "wins": 8,
+        "win_rate": 0.34782608695652173
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 1,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.8,
+          "sample": 50
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "alyson_stark",
+      "role": "duelist",
+      "cost": 4,
+      "pairwise": {
+        "unit_id": "alyson_stark",
+        "cost": 4,
+        "games": 50,
+        "wins": 45,
+        "timeouts": 0,
+        "win_rate": 0.9
+      },
+      "team_context": {
+        "unit_id": "alyson_stark",
+        "role": "duelist",
+        "cost": 4,
+        "appearances": 24,
+        "wins": 18,
+        "win_rate": 0.75
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 4,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.9,
+          "sample": 50
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "anamol04",
+      "role": "fighter",
+      "cost": 2,
+      "pairwise": {
+        "unit_id": "anamol04",
+        "cost": 2,
+        "games": 60,
+        "wins": 50,
+        "timeouts": 0,
+        "win_rate": 0.8333333333333334
+      },
+      "team_context": {
+        "unit_id": "anamol04",
+        "role": "fighter",
+        "cost": 2,
+        "appearances": 17,
+        "wins": 9,
+        "win_rate": 0.5294117647058824
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 2,
+          "role": "fighter"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.8333333333333334,
+          "sample": 60
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "aus_sher",
+      "role": "mage",
+      "cost": 3,
+      "pairwise": {
+        "unit_id": "aus_sher",
+        "cost": 3,
+        "games": 70,
+        "wins": 20,
+        "timeouts": 0,
+        "win_rate": 0.2857142857142857
+      },
+      "team_context": {
+        "unit_id": "aus_sher",
+        "role": "mage",
+        "cost": 3,
+        "appearances": 14,
+        "wins": 5,
+        "win_rate": 0.35714285714285715
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 3,
+          "role": "mage"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.2857142857142857,
+          "sample": 70
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "bbobel",
+      "role": "defender",
+      "cost": 1,
+      "pairwise": {
+        "unit_id": "bbobel",
+        "cost": 1,
+        "games": 50,
+        "wins": 15,
+        "timeouts": 0,
+        "win_rate": 0.3
+      },
+      "team_context": {
+        "unit_id": "bbobel",
+        "role": "defender",
+        "cost": 1,
+        "appearances": 25,
+        "wins": 11,
+        "win_rate": 0.44
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 1,
+          "role": "defender"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.3,
+          "sample": 50
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "boczek",
+      "role": "defender",
+      "cost": 1,
+      "pairwise": {
+        "unit_id": "boczek",
+        "cost": 1,
+        "games": 50,
+        "wins": 30,
+        "timeouts": 0,
+        "win_rate": 0.6
+      },
+      "team_context": {
+        "unit_id": "boczek",
+        "role": "defender",
+        "cost": 1,
+        "appearances": 22,
+        "wins": 6,
+        "win_rate": 0.2727272727272727
+      },
+      "status": "healthy",
+      "proposal": {
+        "current_values": {
+          "cost": 1,
+          "role": "defender"
+        },
+        "problem": {
+          "status": "healthy",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.6,
+          "sample": 50
+        },
+        "proposed_action": "keep values and monitor after system-rule fixes",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "chessowy_mentos",
+      "role": "mage",
+      "cost": 2,
+      "pairwise": {
+        "unit_id": "chessowy_mentos",
+        "cost": 2,
+        "games": 60,
+        "wins": 10,
+        "timeouts": 0,
+        "win_rate": 0.16666666666666666
+      },
+      "team_context": {
+        "unit_id": "chessowy_mentos",
+        "role": "mage",
+        "cost": 2,
+        "appearances": 21,
+        "wins": 8,
+        "win_rate": 0.38095238095238093
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 2,
+          "role": "mage"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.16666666666666666,
+          "sample": 60
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "empty_melancholy",
+      "role": "defender",
+      "cost": 3,
+      "pairwise": {
+        "unit_id": "empty_melancholy",
+        "cost": 3,
+        "games": 70,
+        "wins": 10,
+        "timeouts": 0,
+        "win_rate": 0.14285714285714285
+      },
+      "team_context": {
+        "unit_id": "empty_melancholy",
+        "role": "defender",
+        "cost": 3,
+        "appearances": 19,
+        "wins": 6,
+        "win_rate": 0.3157894736842105
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 3,
+          "role": "defender"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.14285714285714285,
+          "sample": 70
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "fallensmokk",
+      "role": "fighter",
+      "cost": 2,
+      "pairwise": {
+        "unit_id": "fallensmokk",
+        "cost": 2,
+        "games": 60,
+        "wins": 35,
+        "timeouts": 0,
+        "win_rate": 0.5833333333333334
+      },
+      "team_context": {
+        "unit_id": "fallensmokk",
+        "role": "fighter",
+        "cost": 2,
+        "appearances": 21,
+        "wins": 10,
+        "win_rate": 0.47619047619047616
+      },
+      "status": "healthy",
+      "proposal": {
+        "current_values": {
+          "cost": 2,
+          "role": "fighter"
+        },
+        "problem": {
+          "status": "healthy",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.5833333333333334,
+          "sample": 60
+        },
+        "proposed_action": "keep values and monitor after system-rule fixes",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "fiko",
+      "role": "duelist",
+      "cost": 5,
+      "pairwise": {
+        "unit_id": "fiko",
+        "cost": 5,
+        "games": 40,
+        "wins": 30,
+        "timeouts": 0,
+        "win_rate": 0.75
+      },
+      "team_context": {
+        "unit_id": "fiko",
+        "role": "duelist",
+        "cost": 5,
+        "appearances": 23,
+        "wins": 18,
+        "win_rate": 0.782608695652174
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 5,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.75,
+          "sample": 40
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "galanonim",
+      "role": "fighter",
+      "cost": 5,
+      "pairwise": {
+        "unit_id": "galanonim",
+        "cost": 5,
+        "games": 40,
+        "wins": 10,
+        "timeouts": 0,
+        "win_rate": 0.25
+      },
+      "team_context": {
+        "unit_id": "galanonim",
+        "role": "fighter",
+        "cost": 5,
+        "appearances": 16,
+        "wins": 9,
+        "win_rate": 0.5625
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 5,
+          "role": "fighter"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.25,
+          "sample": 40
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "jadlainwestycji",
+      "role": "duelist",
+      "cost": 3,
+      "pairwise": {
+        "unit_id": "jadlainwestycji",
+        "cost": 3,
+        "games": 70,
+        "wins": 55,
+        "timeouts": 0,
+        "win_rate": 0.7857142857142857
+      },
+      "team_context": {
+        "unit_id": "jadlainwestycji",
+        "role": "duelist",
+        "cost": 3,
+        "appearances": 16,
+        "wins": 9,
+        "win_rate": 0.5625
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 3,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.7857142857142857,
+          "sample": 70
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "jaeger",
+      "role": "defender",
+      "cost": 1,
+      "pairwise": {
+        "unit_id": "jaeger",
+        "cost": 1,
+        "games": 50,
+        "wins": 10,
+        "timeouts": 0,
+        "win_rate": 0.2
+      },
+      "team_context": {
+        "unit_id": "jaeger",
+        "role": "defender",
+        "cost": 1,
+        "appearances": 22,
+        "wins": 9,
+        "win_rate": 0.4090909090909091
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 1,
+          "role": "defender"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.2,
+          "sample": 50
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "kaktusek",
+      "role": "fighter",
+      "cost": 2,
+      "pairwise": {
+        "unit_id": "kaktusek",
+        "cost": 2,
+        "games": 60,
+        "wins": 35,
+        "timeouts": 0,
+        "win_rate": 0.5833333333333334
+      },
+      "team_context": {
+        "unit_id": "kaktusek",
+        "role": "fighter",
+        "cost": 2,
+        "appearances": 24,
+        "wins": 12,
+        "win_rate": 0.5
+      },
+      "status": "healthy",
+      "proposal": {
+        "current_values": {
+          "cost": 2,
+          "role": "fighter"
+        },
+        "problem": {
+          "status": "healthy",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.5833333333333334,
+          "sample": 60
+        },
+        "proposed_action": "keep values and monitor after system-rule fixes",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "klemens_zydoslawski",
+      "role": "mage",
+      "cost": 4,
+      "pairwise": {
+        "unit_id": "klemens_zydoslawski",
+        "cost": 4,
+        "games": 50,
+        "wins": 0,
+        "timeouts": 0,
+        "win_rate": 0.0
+      },
+      "team_context": {
+        "unit_id": "klemens_zydoslawski",
+        "role": "mage",
+        "cost": 4,
+        "appearances": 17,
+        "wins": 8,
+        "win_rate": 0.47058823529411764
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 4,
+          "role": "mage"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.0,
+          "sample": 50
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "knauff",
+      "role": "duelist",
+      "cost": 3,
+      "pairwise": {
+        "unit_id": "knauff",
+        "cost": 3,
+        "games": 70,
+        "wins": 70,
+        "timeouts": 0,
+        "win_rate": 1.0
+      },
+      "team_context": {
+        "unit_id": "knauff",
+        "role": "duelist",
+        "cost": 3,
+        "appearances": 17,
+        "wins": 10,
+        "win_rate": 0.5882352941176471
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 3,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 1.0,
+          "sample": 70
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "kotmarcek",
+      "role": "duelist",
+      "cost": 2,
+      "pairwise": {
+        "unit_id": "kotmarcek",
+        "cost": 2,
+        "games": 60,
+        "wins": 60,
+        "timeouts": 0,
+        "win_rate": 1.0
+      },
+      "team_context": {
+        "unit_id": "kotmarcek",
+        "role": "duelist",
+        "cost": 2,
+        "appearances": 20,
+        "wins": 11,
+        "win_rate": 0.55
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 2,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 1.0,
+          "sample": 60
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "marcel_galadotka",
+      "role": "mage",
+      "cost": 2,
+      "pairwise": {
+        "unit_id": "marcel_galadotka",
+        "cost": 2,
+        "games": 60,
+        "wins": 0,
+        "timeouts": 0,
+        "win_rate": 0.0
+      },
+      "team_context": {
+        "unit_id": "marcel_galadotka",
+        "role": "mage",
+        "cost": 2,
+        "appearances": 20,
+        "wins": 5,
+        "win_rate": 0.25
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 2,
+          "role": "mage"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.0,
+          "sample": 60
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "merex",
+      "role": "duelist",
+      "cost": 5,
+      "pairwise": {
+        "unit_id": "merex",
+        "cost": 5,
+        "games": 40,
+        "wins": 40,
+        "timeouts": 0,
+        "win_rate": 1.0
+      },
+      "team_context": {
+        "unit_id": "merex",
+        "role": "duelist",
+        "cost": 5,
+        "appearances": 16,
+        "wins": 16,
+        "win_rate": 1.0
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 5,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 1.0,
+          "sample": 40
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "mr0czeq1",
+      "role": "mage",
+      "cost": 2,
+      "pairwise": {
+        "unit_id": "mr0czeq1",
+        "cost": 2,
+        "games": 60,
+        "wins": 20,
+        "timeouts": 0,
+        "win_rate": 0.3333333333333333
+      },
+      "team_context": {
+        "unit_id": "mr0czeq1",
+        "role": "mage",
+        "cost": 2,
+        "appearances": 17,
+        "wins": 6,
+        "win_rate": 0.35294117647058826
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 2,
+          "role": "mage"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.3333333333333333,
+          "sample": 60
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "nicosc",
+      "role": "defender",
+      "cost": 4,
+      "pairwise": {
+        "unit_id": "nicosc",
+        "cost": 4,
+        "games": 50,
+        "wins": 30,
+        "timeouts": 0,
+        "win_rate": 0.6
+      },
+      "team_context": {
+        "unit_id": "nicosc",
+        "role": "defender",
+        "cost": 4,
+        "appearances": 17,
+        "wins": 7,
+        "win_rate": 0.4117647058823529
+      },
+      "status": "healthy",
+      "proposal": {
+        "current_values": {
+          "cost": 4,
+          "role": "defender"
+        },
+        "problem": {
+          "status": "healthy",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.6,
+          "sample": 50
+        },
+        "proposed_action": "keep values and monitor after system-rule fixes",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "optimusprime",
+      "role": "fighter",
+      "cost": 3,
+      "pairwise": {
+        "unit_id": "optimusprime",
+        "cost": 3,
+        "games": 70,
+        "wins": 35,
+        "timeouts": 0,
+        "win_rate": 0.5
+      },
+      "team_context": {
+        "unit_id": "optimusprime",
+        "role": "fighter",
+        "cost": 3,
+        "appearances": 16,
+        "wins": 9,
+        "win_rate": 0.5625
+      },
+      "status": "healthy",
+      "proposal": {
+        "current_values": {
+          "cost": 3,
+          "role": "fighter"
+        },
+        "problem": {
+          "status": "healthy",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.5,
+          "sample": 70
+        },
+        "proposed_action": "keep values and monitor after system-rule fixes",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "pytl",
+      "role": "mage",
+      "cost": 4,
+      "pairwise": {
+        "unit_id": "pytl",
+        "cost": 4,
+        "games": 50,
+        "wins": 10,
+        "timeouts": 0,
+        "win_rate": 0.2
+      },
+      "team_context": {
+        "unit_id": "pytl",
+        "role": "mage",
+        "cost": 4,
+        "appearances": 15,
+        "wins": 7,
+        "win_rate": 0.4666666666666667
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 4,
+          "role": "mage"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.2,
+          "sample": 50
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "skibidi_kubus",
+      "role": "duelist",
+      "cost": 1,
+      "pairwise": {
+        "unit_id": "skibidi_kubus",
+        "cost": 1,
+        "games": 50,
+        "wins": 50,
+        "timeouts": 0,
+        "win_rate": 1.0
+      },
+      "team_context": {
+        "unit_id": "skibidi_kubus",
+        "role": "duelist",
+        "cost": 1,
+        "appearances": 16,
+        "wins": 8,
+        "win_rate": 0.5
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 1,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 1.0,
+          "sample": 50
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "sofronow",
+      "role": "defender",
+      "cost": 1,
+      "pairwise": {
+        "unit_id": "sofronow",
+        "cost": 1,
+        "games": 50,
+        "wins": 5,
+        "timeouts": 0,
+        "win_rate": 0.1
+      },
+      "team_context": {
+        "unit_id": "sofronow",
+        "role": "defender",
+        "cost": 1,
+        "appearances": 16,
+        "wins": 5,
+        "win_rate": 0.3125
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 1,
+          "role": "defender"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.1,
+          "sample": 50
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "szachowymentor",
+      "role": "mage",
+      "cost": 5,
+      "pairwise": {
+        "unit_id": "szachowymentor",
+        "cost": 5,
+        "games": 40,
+        "wins": 0,
+        "timeouts": 0,
+        "win_rate": 0.0
+      },
+      "team_context": {
+        "unit_id": "szachowymentor",
+        "role": "mage",
+        "cost": 5,
+        "appearances": 20,
+        "wins": 10,
+        "win_rate": 0.5
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 5,
+          "role": "mage"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.0,
+          "sample": 40
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "szalwia",
+      "role": "mage",
+      "cost": 3,
+      "pairwise": {
+        "unit_id": "szalwia",
+        "cost": 3,
+        "games": 70,
+        "wins": 0,
+        "timeouts": 0,
+        "win_rate": 0.0
+      },
+      "team_context": {
+        "unit_id": "szalwia",
+        "role": "mage",
+        "cost": 3,
+        "appearances": 13,
+        "wins": 4,
+        "win_rate": 0.3076923076923077
+      },
+      "status": "underpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 3,
+          "role": "mage"
+        },
+        "problem": {
+          "status": "underpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.0,
+          "sample": 70
+        },
+        "proposed_action": "review for a buff after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "szanowny_kantor",
+      "role": "defender",
+      "cost": 4,
+      "pairwise": {
+        "unit_id": "szanowny_kantor",
+        "cost": 4,
+        "games": 50,
+        "wins": 20,
+        "timeouts": 0,
+        "win_rate": 0.4
+      },
+      "team_context": {
+        "unit_id": "szanowny_kantor",
+        "role": "defender",
+        "cost": 4,
+        "appearances": 18,
+        "wins": 10,
+        "win_rate": 0.5555555555555556
+      },
+      "status": "healthy",
+      "proposal": {
+        "current_values": {
+          "cost": 4,
+          "role": "defender"
+        },
+        "problem": {
+          "status": "healthy",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.4,
+          "sample": 50
+        },
+        "proposed_action": "keep values and monitor after system-rule fixes",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "uhla",
+      "role": "fighter",
+      "cost": 3,
+      "pairwise": {
+        "unit_id": "uhla",
+        "cost": 3,
+        "games": 70,
+        "wins": 35,
+        "timeouts": 0,
+        "win_rate": 0.5
+      },
+      "team_context": {
+        "unit_id": "uhla",
+        "role": "fighter",
+        "cost": 3,
+        "appearances": 22,
+        "wins": 11,
+        "win_rate": 0.5
+      },
+      "status": "healthy",
+      "proposal": {
+        "current_values": {
+          "cost": 3,
+          "role": "fighter"
+        },
+        "problem": {
+          "status": "healthy",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.5,
+          "sample": 70
+        },
+        "proposed_action": "keep values and monitor after system-rule fixes",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "vitas",
+      "role": "duelist",
+      "cost": 5,
+      "pairwise": {
+        "unit_id": "vitas",
+        "cost": 5,
+        "games": 40,
+        "wins": 20,
+        "timeouts": 0,
+        "win_rate": 0.5
+      },
+      "team_context": {
+        "unit_id": "vitas",
+        "role": "duelist",
+        "cost": 5,
+        "appearances": 15,
+        "wins": 12,
+        "win_rate": 0.8
+      },
+      "status": "healthy",
+      "proposal": {
+        "current_values": {
+          "cost": 5,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "healthy",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.5,
+          "sample": 40
+        },
+        "proposed_action": "keep values and monitor after system-rule fixes",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    },
+    {
+      "unit_id": "yossarian",
+      "role": "duelist",
+      "cost": 3,
+      "pairwise": {
+        "unit_id": "yossarian",
+        "cost": 3,
+        "games": 70,
+        "wins": 55,
+        "timeouts": 0,
+        "win_rate": 0.7857142857142857
+      },
+      "team_context": {
+        "unit_id": "yossarian",
+        "role": "duelist",
+        "cost": 3,
+        "appearances": 22,
+        "wins": 13,
+        "win_rate": 0.5909090909090909
+      },
+      "status": "overpowered",
+      "proposal": {
+        "current_values": {
+          "cost": 3,
+          "role": "duelist"
+        },
+        "problem": {
+          "status": "overpowered",
+          "primary_metric": "controlled_same_cost_pairwise",
+          "win_rate": 0.7857142857142857,
+          "sample": 70
+        },
+        "proposed_action": "review for a nerf after system rules are normalized",
+        "risk": "Changing unit values before star scaling, XP parity, and milestone economy are settled can mask a system-level imbalance."
+      }
+    }
+  ],
+  "findings": {
+    "must_fix": [],
+    "should_fix": [
+      {
+        "id": "balance.unit_screening_outliers",
+        "scope": "unit values and passives",
+        "baseline": {
+          "underpowered": 13,
+          "healthy": 8,
+          "overpowered": 11,
+          "outlier_units": [
+            "4tune",
+            "9wojtaz9",
+            "alyson_stark",
+            "anamol04",
+            "aus_sher",
+            "bbobel",
+            "chessowy_mentos",
+            "empty_melancholy",
+            "fiko",
+            "galanonim",
+            "jadlainwestycji",
+            "jaeger",
+            "klemens_zydoslawski",
+            "knauff",
+            "kotmarcek",
+            "marcel_galadotka",
+            "merex",
+            "mr0czeq1",
+            "pytl",
+            "skibidi_kubus",
+            "sofronow",
+            "szachowymentor",
+            "szalwia",
+            "yossarian"
+          ]
+        },
+        "proposed_change": "Author-review the per-unit baseline/proposed actions in unit_statuses; do not apply automatic numeric changes.",
+        "expected_consequence": "Unit changes are reviewed after system-rule findings, avoiding a unit patch that masks a systemic imbalance."
+      },
+      {
+        "id": "economy.xp_contract_confirmation",
+        "scope": "XP economy",
+        "baseline": [
+          {
+            "path": "all_losses",
+            "combats": 15,
+            "level": 5,
+            "xp_remainder": 0,
+            "xp_per_loss": 2,
+            "xp_per_win": "n/a"
+          },
+          {
+            "path": "all_wins",
+            "combats": 15,
+            "level": 6,
+            "xp_remainder": 2,
+            "xp_per_loss": 2,
+            "xp_per_win": 4
+          }
+        ],
+        "proposed_change": "Confirm one canonical XP-per-combat and win-bonus contract before balance sign-off.",
+        "expected_consequence": "Future unit and trait measurements are not confounded by an unresolved progression-rate interpretation."
+      }
+    ],
+    "accepted_risks": [
+      {
+        "id": "metadata.legacy_faction_class",
+        "scope": "historical faction/class metadata",
+        "baseline": [
+          {
+            "unit_id": "skibidi_kubus",
+            "missing": [
+              "classes"
+            ]
+          }
+        ],
+        "proposed_change": "No active Set 2 change; retain as non-blocking legacy metadata until an author explicitly normalizes it.",
+        "expected_consequence": "The active runtime remains on the approved 32-unit/12-trait contract without invented mappings."
+      },
+      {
+        "id": "measurement.pairwise_screen",
+        "scope": "balance interpretation",
+        "baseline": "Controlled same-cost pairwise is primary, while team context is confounded by traits, composition, target selection, and side asymmetry.",
+        "proposed_change": "Keep the raw JSON and seeds; repeat after any approved rules or value change.",
+        "expected_consequence": "The report remains evidence for author review rather than an automatic balancing authority."
+      }
+    ]
+  }
+}

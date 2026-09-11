@@ -30,6 +30,13 @@ def test_haxball_redirect_emits_damage_then_unit_died_with_authoritative_state(m
     monkeypatch.setenv("WAFFEN_DETERMINISTIC_TARGETING", "1")
     effect = _haxball_effect()
     attacker = _unit("attacker", "Attacker", 100, 50, 100)
+    # Exercise the kill hook reached by a lethal redirected hit. The active
+    # Set 2 roster uses structured passive effects, which exposed the
+    # one-argument list.append callback regression.
+    attacker.passive = {
+        "name": "Kill hook",
+        "effect": {"type": "set2_unit", "runtime": "test"},
+    }
     target = _unit("target", "Target", 100, 10, 0, effects=[effect], traits=["Haxball"])
     redirected = _unit("redirected", "Redirected", 8, 10, 0, effects=[effect], traits=["Haxball"])
     events = []
@@ -56,6 +63,7 @@ def test_haxball_redirect_emits_damage_then_unit_died_with_authoritative_state(m
     assert redirect["post_hp"] == redirect["target_hp"] == 0
     assert redirect["post_shield"] == 0
     assert redirected.hp == 0
+    assert any(event_type == "passive_triggered" for event_type, _ in events)
 
 
 def test_attack_without_haxball_redirect_remains_unit_attack(monkeypatch):

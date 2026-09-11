@@ -39,6 +39,7 @@ from waffen_tactics.services.economy import milestone_reward_counts  # noqa: E40
 from waffen_tactics.services.shop import RARITY_ODDS_BY_LEVEL  # noqa: E402
 from waffen_tactics.services.stat_scaling import scaled_attack, scaled_hp  # noqa: E402
 from waffen_tactics.services.synergy import SynergyEngine  # noqa: E402
+from waffen_tactics.services.set2_contract import validate_active_set2_dataset  # noqa: E402
 
 
 KNOWN_EFFECT_TYPES = {
@@ -110,7 +111,11 @@ def roster_integrity(raw_data: dict[str, Any], traits_data: dict[str, Any], load
     raw_units = raw_data.get("units", [])
     ids = [u.get("id") for u in raw_units]
     duplicates = sorted([unit_id for unit_id, count in Counter(ids).items() if count > 1])
-    required = ("id", "name", "cost", "factions", "classes", "skill")
+    # The active source is the author-led Set 2 contract.  Factions/classes
+    # are retained in the JSON for historical metadata, but they are not
+    # active runtime requirements and must not make the audit report a false
+    # legacy failure (for example, skibidi_kubus intentionally has no class).
+    required = ("id", "name", "cost", "role", "traits", "skill", "passive")
     missing_fields = []
     invalid_costs = []
     missing_faction_or_class = []
@@ -149,6 +154,11 @@ def roster_integrity(raw_data: dict[str, Any], traits_data: dict[str, Any], load
         if not isinstance(effects, list) or len(effects) < len(thresholds or []):
             trait_issues.append({"trait": trait.get("name"), "issue": "threshold_effect_mismatch"})
 
+    active_contract_issues = validate_active_set2_dataset(
+        raw_units,
+        traits_data.get("traits", []),
+    )
+
     return {
         "unit_count": len(raw_units),
         "trait_count": len(traits_data.get("traits", [])),
@@ -160,6 +170,7 @@ def roster_integrity(raw_data: dict[str, Any], traits_data: dict[str, Any], load
         "invalid_roles": invalid_roles,
         "loader_missing_unit_ids": loader_missing,
         "trait_schema_issues": trait_issues,
+        "active_set2_contract_issues": active_contract_issues,
         "role_counts": dict(sorted(Counter(u.get("role") for u in raw_units).items())),
         "cost_counts": dict(sorted(Counter(int(u.get("cost", 0)) for u in raw_units).items())),
     }
@@ -848,6 +859,90 @@ def status_for_unit(unit_id: str, pairwise: dict[str, Any], teams: dict[str, Any
     }
 
 
+def build_findings(report: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """Classify audit evidence without turning screening signals into patches."""
+    must_fix: list[dict[str, Any]] = []
+    should_fix: list[dict[str, Any]] = []
+    accepted_risks: list[dict[str, Any]] = []
+
+    for section_name, errors in (
+        ("team_battles", report["team_battles"]["errors"]),
+        ("pairwise", report["pairwise"]["errors"]),
+        ("trait_control", report["trait_control"]["errors"]),
+    ):
+        for error in errors:
+            must_fix.append({
+                "id": f"runtime.{section_name}",
+                "scope": section_name,
+                "baseline": error,
+                "proposed_change": "Fix the deterministic runtime/audit failure before using the affected measurement.",
+                "expected_consequence": "The affected seeded result becomes measurable instead of being silently treated as balance evidence.",
+            })
+
+    if report["roster_integrity"]["active_set2_contract_issues"]:
+        must_fix.append({
+            "id": "data.active_set2_contract",
+            "scope": "active Set 2 dataset",
+            "baseline": report["roster_integrity"]["active_set2_contract_issues"],
+            "proposed_change": "Resolve the author-led Set 2 contract errors before changing balance values.",
+            "expected_consequence": "Runtime and audit measurements use a structurally valid canonical dataset.",
+        })
+
+    if not report["determinism"]["passed"]:
+        must_fix.append({
+            "id": "runtime.determinism",
+            "scope": "seeded combat",
+            "baseline": report["determinism"]["checks"],
+            "proposed_change": "Make the affected seeded combat path deterministic before interpreting win rates.",
+            "expected_consequence": "Repeated audit runs remain comparable.",
+        })
+
+    statuses = report["unit_statuses"]
+    outliers = [item for item in statuses if item["status"] in {"underpowered", "overpowered"}]
+    should_fix.append({
+        "id": "balance.unit_screening_outliers",
+        "scope": "unit values and passives",
+        "baseline": {
+            "underpowered": sum(item["status"] == "underpowered" for item in statuses),
+            "healthy": sum(item["status"] == "healthy" for item in statuses),
+            "overpowered": sum(item["status"] == "overpowered" for item in statuses),
+            "outlier_units": [item["unit_id"] for item in outliers],
+        },
+        "proposed_change": "Author-review the per-unit baseline/proposed actions in unit_statuses; do not apply automatic numeric changes.",
+        "expected_consequence": "Unit changes are reviewed after system-rule findings, avoiding a unit patch that masks a systemic imbalance.",
+    })
+    should_fix.append({
+        "id": "economy.xp_contract_confirmation",
+        "scope": "XP economy",
+        "baseline": report["economy"]["xp_paths"],
+        "proposed_change": "Confirm one canonical XP-per-combat and win-bonus contract before balance sign-off.",
+        "expected_consequence": "Future unit and trait measurements are not confounded by an unresolved progression-rate interpretation.",
+    })
+
+    legacy_gaps = report["roster_integrity"]["missing_faction_or_class"]
+    if legacy_gaps:
+        accepted_risks.append({
+            "id": "metadata.legacy_faction_class",
+            "scope": "historical faction/class metadata",
+            "baseline": legacy_gaps,
+            "proposed_change": "No active Set 2 change; retain as non-blocking legacy metadata until an author explicitly normalizes it.",
+            "expected_consequence": "The active runtime remains on the approved 32-unit/12-trait contract without invented mappings.",
+        })
+    accepted_risks.append({
+        "id": "measurement.pairwise_screen",
+        "scope": "balance interpretation",
+        "baseline": "Controlled same-cost pairwise is primary, while team context is confounded by traits, composition, target selection, and side asymmetry.",
+        "proposed_change": "Keep the raw JSON and seeds; repeat after any approved rules or value change.",
+        "expected_consequence": "The report remains evidence for author review rather than an automatic balancing authority.",
+    })
+
+    return {
+        "must_fix": must_fix,
+        "should_fix": should_fix,
+        "accepted_risks": accepted_risks,
+    }
+
+
 def pct(value: float | None) -> str:
     return "n/a" if value is None else f"{value * 100:.1f}%"
 
@@ -872,6 +967,24 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         "The status is a screening signal, not an automatic balance patch. Pairwise data is primary; random-team data is reported separately because traits, composition, target selection, and side asymmetry confound it.",
         "",
+        "## Findings and disposition",
+        "",
+        f"- Must-fix: `{len(report['findings']['must_fix'])}`.",
+        f"- Should-fix: `{len(report['findings']['should_fix'])}`.",
+        f"- Accepted risks: `{len(report['findings']['accepted_risks'])}`.",
+        "",
+        "Each finding records its baseline, proposed change, and expected consequence. No numeric unit, trait, or economy value is changed by this audit.",
+        "",
+        "### Must-fix",
+        "",
+        *[f"- `{item['id']}` ({item['scope']}): {item['proposed_change']} Baseline: `{item['baseline']}` Consequence: {item['expected_consequence']}" for item in report['findings']['must_fix']],
+        "### Should-fix",
+        "",
+        *[f"- `{item['id']}` ({item['scope']}): {item['proposed_change']} Baseline: `{item['baseline']}` Consequence: {item['expected_consequence']}" for item in report['findings']['should_fix']],
+        "### Accepted risks",
+        "",
+        *[f"- `{item['id']}` ({item['scope']}): {item['proposed_change']} Baseline: `{item['baseline']}` Consequence: {item['expected_consequence']}" for item in report['findings']['accepted_risks']],
+        "",
         "## Acceptance criteria",
         "",
         f"- Team battles: `{teams['total_battles']}/{teams['expected_battles']}`; simulator errors: `{len(teams['errors'])}`; timeouts: `{teams['timeouts']}`.",
@@ -887,7 +1000,8 @@ def markdown_report(report: dict[str, Any]) -> str:
         f"- Duplicate unit IDs: `{roster['duplicate_unit_ids'] or 'none'}`.",
         f"- Missing required fields: `{roster['missing_required_fields'] or 'none'}`.",
         f"- Invalid costs/roles: `{roster['invalid_costs'] or 'none'}` / `{roster['invalid_roles'] or 'none'}`.",
-        f"- Units missing faction or class: `{roster['missing_faction_or_class'] or 'none'}`.",
+        f"- Active Set 2 contract issues: `{roster['active_set2_contract_issues'] or 'none'}`.",
+        f"- Legacy faction/class metadata gaps (non-blocking): `{roster['missing_faction_or_class'] or 'none'}`.",
         f"- Trait schema issues: `{roster['trait_schema_issues'] or 'none'}`.",
         f"- Skill effect types: `{report['skill_schema']['effect_type_counts']}`.",
         "",
@@ -1079,7 +1193,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         key: str(value) if isinstance(value, Path) else value
         for key, value in vars(args).items()
     }
-    return {
+    report = {
         "metadata": {
             "generated_date": args.generated_date,
             "source_of_truth": ["waffen-tactics/src/waffen_tactics", "waffen-tactics/units.json", "waffen-tactics/traits.json", "waffen-tactics/unit_roles.json"],
@@ -1098,6 +1212,8 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         "economy": economy_audit(),
         "unit_statuses": statuses,
     }
+    report["findings"] = build_findings(report)
+    return report
 
 
 def build_opponent_variety_report(args: argparse.Namespace) -> dict[str, Any]:

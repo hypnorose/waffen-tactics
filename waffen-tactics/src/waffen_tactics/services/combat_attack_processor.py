@@ -472,11 +472,17 @@ class CombatAttackProcessor:
                                     if redirected_died:
                                         results.append(('unit_died', redirected_died))
                                     if getattr(self, 'passive_processor', None):
+                                        # Passive hooks emit (event_type, payload)
+                                        # pairs. Use the same buffered collector
+                                        # as the primary hit path; passing
+                                        # results.append directly accepts only
+                                        # one argument and crashes when a lethal
+                                        # Haxball redirect reaches a kill hook.
                                         self.passive_processor.on_kill(
                                             attacker,
                                             self.team_a if side_val == 'team_a' else self.team_b,
                                             self.team_b if side_val == 'team_a' else self.team_a,
-                                            results.append,
+                                            append_result,
                                             side_val,
                                             deliver_ts,
                                         )
@@ -484,7 +490,7 @@ class CombatAttackProcessor:
                                             redirected_target,
                                             self.team_a if side_val == 'team_a' else self.team_b,
                                             self.team_b if side_val == 'team_a' else self.team_a,
-                                            results.append,
+                                            append_result,
                                             side_val,
                                             deliver_ts,
                                         )
