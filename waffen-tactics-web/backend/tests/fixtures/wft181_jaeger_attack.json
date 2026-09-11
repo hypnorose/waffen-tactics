@@ -1,0 +1,41 @@
+{
+  "source_artifact": "desync_logs_1789115216836.json",
+  "player_units": [
+    {
+      "id": "a58d938e",
+      "name": "Jaeger",
+      "hp": 750,
+      "max_hp": 750,
+      "attack": 30,
+      "defense": 30,
+      "attack_speed": 0.8,
+      "max_mana": 100,
+      "current_mana": 9,
+      "mana_on_attack": 1,
+      "position": "front"
+    }
+  ],
+  "opponent_units": [
+    {
+      "id": "opp_1",
+      "name": "Marcel Galadotka",
+      "hp": 480,
+      "max_hp": 480,
+      "attack": 36,
+      "defense": 12,
+      "attack_speed": 0.9,
+      "max_mana": 40,
+      "current_mana": 11,
+      "mana_on_attack": 1,
+      "position": "front"
+    }
+  ],
+  "expected_attack": {
+    "attacker_id": "opp_1",
+    "target_id": "a58d938e",
+    "pre_hp": 750,
+    "post_hp": 723,
+    "target_hp": 723,
+    "applied_damage": 27
+  }
+}
