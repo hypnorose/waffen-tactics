@@ -1,6 +1,8 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 import { API_BASE_URL } from './apiBaseUrl'
+import { createIdempotencyKey } from './requestIdentity'
+import type { MutationRequestOptions } from './requestIdentity'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -32,6 +34,38 @@ api.interceptors.response.use(
   }
 )
 
+const mutationTails = new Map<string, Promise<unknown>>()
+const inFlightMutations = new Map<string, Promise<any>>()
+
+function postMutation<T = any>(url: string, data: unknown, options?: MutationRequestOptions) {
+  const idempotencyKey = options?.idempotencyKey?.trim() || createIdempotencyKey()
+  const resourceKey = 'player-state'
+  const requestIdentity = `${resourceKey}:${idempotencyKey}`
+  const existing = inFlightMutations.get(requestIdentity)
+  if (existing) return existing
+
+  const previous = mutationTails.get(resourceKey) || Promise.resolve()
+  const request = previous
+    .catch(() => undefined)
+    .then(() => api.post<T>(url, data, { headers: { 'Idempotency-Key': idempotencyKey } }))
+
+  let trackedRequest: Promise<any>
+  trackedRequest = request.finally(() => {
+    if (inFlightMutations.get(requestIdentity) === trackedRequest) {
+      inFlightMutations.delete(requestIdentity)
+    }
+  })
+  inFlightMutations.set(requestIdentity, trackedRequest)
+
+  const serializedTail = trackedRequest.then(() => undefined, () => undefined)
+  mutationTails.set(resourceKey, serializedTail)
+  void serializedTail.finally(() => {
+    if (mutationTails.get(resourceKey) === serializedTail) mutationTails.delete(resourceKey)
+  })
+
+  return trackedRequest
+}
+
 export const authAPI = {
   exchangeCode: (code: string) => 
     api.post('/auth/exchange', { code }),
@@ -44,41 +78,41 @@ export const gameAPI = {
   getPlayerState: () => 
     api.get('/game/state'),
   
-  startGame: () => 
-    api.post('/game/start'),
+  startGame: (options?: MutationRequestOptions) =>
+    postMutation('/game/start', undefined, options),
   
-  buyUnit: (unitId: string) => 
-    api.post('/game/buy', { unit_id: unitId }),
+  buyUnit: (unitId: string, options?: MutationRequestOptions) =>
+    postMutation('/game/buy', { unit_id: unitId }, options),
   
-  sellUnit: (instanceId: string) => 
-    api.post('/game/sell', { instance_id: instanceId }),
+  sellUnit: (instanceId: string, options?: MutationRequestOptions) =>
+    postMutation('/game/sell', { instance_id: instanceId }, options),
   
-  moveToBoard: (instanceId: string, position: 'front' | 'back' = 'front') => 
-    api.post('/game/move-to-board', { instance_id: instanceId, position }),
+  moveToBoard: (instanceId: string, position: 'front' | 'back' = 'front', options?: MutationRequestOptions) =>
+    postMutation('/game/move-to-board', { instance_id: instanceId, position }, options),
   
-  switchLine: (instanceId: string, position: 'front' | 'back') => 
-    api.post('/game/switch-line', { instance_id: instanceId, position }),
+  switchLine: (instanceId: string, position: 'front' | 'back', options?: MutationRequestOptions) =>
+    postMutation('/game/switch-line', { instance_id: instanceId, position }, options),
   
-  moveToBench: (instanceId: string) => 
-    api.post('/game/move-to-bench', { instance_id: instanceId }),
+  moveToBench: (instanceId: string, options?: MutationRequestOptions) =>
+    postMutation('/game/move-to-bench', { instance_id: instanceId }, options),
   
-  rerollShop: () => 
-    api.post('/game/reroll'),
+  rerollShop: (options?: MutationRequestOptions) =>
+    postMutation('/game/reroll', undefined, options),
   
-  buyXP: () => 
-    api.post('/game/buy-xp'),
+  buyXP: (options?: MutationRequestOptions) =>
+    postMutation('/game/buy-xp', undefined, options),
   
-  toggleShopLock: () => 
-    api.post('/game/toggle-lock'),
+  toggleShopLock: (options?: MutationRequestOptions) =>
+    postMutation('/game/toggle-lock', undefined, options),
   
-  startCombat: () => 
-    api.post('/game/combat'),
+  startCombat: (options?: MutationRequestOptions) =>
+    postMutation('/game/combat', undefined, options),
   
-  resetGame: () => 
-    api.post('/game/reset'),
+  resetGame: (options?: MutationRequestOptions) =>
+    postMutation('/game/reset', undefined, options),
   
-  surrender: () => 
-    api.post('/game/surrender'),
+  surrender: (options?: MutationRequestOptions) =>
+    postMutation('/game/surrender', undefined, options),
   
   getLeaderboard: (period: string = '24h') =>
     api.get('/game/leaderboard', { params: { period } }),
@@ -89,10 +123,12 @@ export const gameAPI = {
   getTraits: () => 
     api.get('/game/traits'),
   getItems: () => api.get('/game/items'),
-  equipItem: (instanceId: string, itemId: string) => api.post('/game/equip-item', { instance_id: instanceId, item_id: itemId }),
-  combineItem: (firstItem: string, secondItem: string) => api.post('/game/combine-item', { first_item: firstItem, second_item: secondItem }),
-  ensurePlayerAvatar: (payload?: { avatarUrl?: string }) =>
-    api.post('/game/player-avatar', payload || {}),
+  equipItem: (instanceId: string, itemId: string, options?: MutationRequestOptions) =>
+    postMutation('/game/equip-item', { instance_id: instanceId, item_id: itemId }, options),
+  combineItem: (firstItem: string, secondItem: string, options?: MutationRequestOptions) =>
+    postMutation('/game/combine-item', { first_item: firstItem, second_item: secondItem }, options),
+  ensurePlayerAvatar: (payload?: { avatarUrl?: string }, options?: MutationRequestOptions) =>
+    postMutation('/game/player-avatar', payload || {}, options),
 }
 
 export default api

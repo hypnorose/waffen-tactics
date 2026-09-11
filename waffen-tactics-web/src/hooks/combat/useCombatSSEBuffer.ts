@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../../services/apiBaseUrl'
+import { createIdempotencyKey } from '../../services/requestIdentity'
 import { CombatEvent, CombatTransportError } from './types'
 
 export type CombatSSEFrameClassification =
@@ -231,6 +232,7 @@ function ensureSharedSSE(token: string): Promise<SharedSSEState> {
 
   const placeholder = createSharedState()
   sseMap.set(token, placeholder)
+  const idempotencyKey = createIdempotencyKey('combat')
 
   const notify = (state: SharedSSEState) => {
     const snapshot: SharedSSESnapshot = {
@@ -254,8 +256,9 @@ function ensureSharedSSE(token: string): Promise<SharedSSEState> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Idempotency-Key': idempotencyKey,
     },
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({ token, idempotency_key: idempotencyKey }),
   }).then(async response => {
     if (!response.ok) {
       stopWithError(placeholder, await errorFromHttpResponse(response))
