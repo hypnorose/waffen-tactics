@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { getTraitDescription } from '../../hooks/combatOverlayUtils'
+import { getTraitDescription, getTraitEffectPresentation } from '../../hooks/combatOverlayUtils'
 
 // Mock the API and store for any component tests we might add later
 vi.mock('../../services/api', () => ({
@@ -355,6 +355,67 @@ describe('Trait Display Logic', () => {
 
       const result = getTraitDescription(trait, 1)
       expect(result).toBe('+5 ataku')
+    })
+
+    it('expands canonical slash values into the matching threshold', () => {
+      const trait = {
+        thresholds: [2, 3, 5],
+        threshold_descriptions: [
+          '+10/20/30 obrony i +2/4/6 HP/s; bez kumulacji.',
+          '+10/20/30 obrony i +2/4/6 HP/s; bez kumulacji.',
+          '+10/20/30 obrony i +2/4/6 HP/s; bez kumulacji.',
+        ],
+        modular_effects: [[], [], []],
+      }
+
+      expect(getTraitDescription(trait, 1)).toBe('+10 obrony i +2 HP/s; bez kumulacji.')
+      expect(getTraitDescription(trait, 2)).toBe('+20 obrony i +4 HP/s; bez kumulacji.')
+      expect(getTraitDescription(trait, 3)).toBe('+30 obrony i +6 HP/s; bez kumulacji.')
+    })
+
+    it('keeps every active Set 2 threshold description explicit', () => {
+      const canonicalExamples = [
+        { thresholds: [3, 5, 6], description: 'Po 5 s: +10/15/20% ataku i obrony oraz tarcza 5/8/10% maks. HP.' },
+        { thresholds: [3, 5, 7], description: 'Przez pierwsze 2 s +40/60/80% szybkości ataku.' },
+        { thresholds: [2, 4, 6], description: 'Najsilniejsza jednostka otrzymuje +15/25/35% szybkości ataku.' },
+        { thresholds: [2, 3, 4], description: 'Bonus wynosi 5/10/15% wartości sprzedaży.' },
+        { thresholds: [2, 3, 5], description: 'Bonusowy atak leczy za 10/15/20% ataku.' },
+        { thresholds: [2, 3], description: 'Pierwsza linia ma tarczę 10/20% HP, tylna zadaje +25/50% obrażeń.' },
+        { thresholds: [2, 3], description: 'Cała drużyna regeneruje 2/4 many na sekundę.' },
+        { thresholds: [1, 2], description: 'Bonusowy atak daje 5/10 many.' },
+      ]
+
+      for (const example of canonicalExamples) {
+        for (let tier = 1; tier <= example.thresholds.length; tier += 1) {
+          expect(getTraitDescription({ ...example, threshold_descriptions: [example.description], modular_effects: [] }, tier)).not.toContain('/')
+        }
+      }
+    })
+  })
+
+  describe('getTraitEffectPresentation', () => {
+    it('exposes trigger, target, lifetime, refresh, stacking, and conditions', () => {
+      const [effect] = getTraitEffectPresentation({
+        thresholds: [2],
+        threshold_descriptions: ['Po śmierci odświeża się do końca walki.'],
+        target: 'team',
+        modular_effects: [[{
+          trigger: 'on_enemy_death',
+          target: 'team',
+          conditions: { trigger_once: true },
+          duration: 3,
+          limit: { stacking: 'none' },
+        }]],
+      }, 1)
+
+      expect(effect).toMatchObject({
+        trigger: 'Po śmierci wroga',
+        target: 'Cały zespół',
+        duration: '3 s',
+        refresh: 'Po ponownym wyzwoleniu',
+        stacking: 'Bez stackowania',
+        conditions: ['Jednorazowo'],
+      })
     })
   })
 

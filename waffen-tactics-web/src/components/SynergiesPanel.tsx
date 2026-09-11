@@ -1,4 +1,4 @@
-import { getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
+import { getTraitColor, getTraitDescription, getTraitEffectPresentation } from '../hooks/combatOverlayUtils'
 import { SynergiesPanelProps } from './CombatOverlayTypes'
 // Note: avatar previews removed from combat overlay to keep overlay lightweight
 
@@ -18,8 +18,22 @@ export default function SynergiesPanel({ synergies, traits, hoveredTrait, setHov
                     <div>Tier {(data as any).tier} aktywny ({(data as any).count} jednostek)</div>
                     <div style={{ marginTop: '0.25rem', fontSize: '0.65rem', color: '#cbd5e1' }}>
                       {traits.length > 0 ? (() => {
-                        const trait = traits.find(t => t.name === name);
-                        return trait ? getTraitDescription(trait, (data as any).tier) : 'Trait nie znaleziony';
+                        const trait = traits.find(t => t.name === name)
+                        if (!trait) return 'Trait nie znaleziony'
+                        const tier = Math.max(1, (data as any).tier)
+                        return <>
+                          <div>{getTraitDescription(trait, tier)}</div>
+                          {getTraitEffectPresentation(trait, tier).map((effect, effectIndex) => (
+                            <div key={`${name}-${tier}-${effectIndex}`} data-trait-effect-details style={{ marginTop: '0.35rem', padding: '0.35rem', border: '1px solid rgba(148, 163, 184, 0.4)', borderRadius: '0.25rem' }}>
+                              <div><span style={{ color: '#94a3b8' }}>Trigger:</span> {effect.trigger}</div>
+                              <div><span style={{ color: '#94a3b8' }}>Cel:</span> {effect.target}</div>
+                              <div><span style={{ color: '#94a3b8' }}>Czas:</span> {effect.duration}</div>
+                              <div><span style={{ color: '#94a3b8' }}>Odświeżanie:</span> {effect.refresh}</div>
+                              <div><span style={{ color: '#94a3b8' }}>Stackowanie:</span> {effect.stacking}</div>
+                              {effect.conditions.map(condition => <div key={condition}><span style={{ color: '#94a3b8' }}>Warunek:</span> {condition}</div>)}
+                            </div>
+                          ))}
+                        </>
                       })() : 'Ładowanie opisów...'}
                     </div>
                     {/* avatars intentionally omitted in combat overlay */}

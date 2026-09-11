@@ -68,13 +68,130 @@ const formatReward = (r: any) => {
   return `${sign} ${statName}`
 }
 
+const expandTierValues = (description: string, tierIndex: number, tierCount: number) => {
+  const sequencePattern = /[+-]?\d+(?:[.,]\d+)?(?:\/[+-]?\d+(?:[.,]\d+)?)+/g
+  return description.replace(sequencePattern, sequence => {
+    const values = sequence.split('/')
+    if (values.length !== tierCount) return sequence
+    const selected = values[tierIndex]
+    const leadingSign = /^[+-]/.exec(values[0])?.[0] || ''
+    return /^[+-]/.test(selected) || !leadingSign ? selected : `${leadingSign}${selected}`
+  })
+}
+
+const traitTriggerNames: Record<string, string> = {
+  passive: 'Efekt pasywny',
+  on_attack: 'Przy ataku',
+  on_bonus_attack: 'Przy bonusowym ataku',
+  on_damage_received: 'Po otrzymaniu obrażeń',
+  on_enemy_death: 'Po śmierci wroga',
+  on_ally_hp_below: 'Gdy sojusznik spadnie poniżej progu HP',
+  per_second: 'Co sekundę',
+  on_win: 'Po wygranej rundzie',
+  on_loss: 'Po przegranej rundzie',
+}
+
+const traitTargetNames: Record<string, string> = {
+  owner: 'Właściciel efektu',
+  self: 'Ta jednostka',
+  team: 'Cały zespół',
+  trait: 'Jednostki z tym traitem',
+  enemy: 'Wrogowie',
+}
+
+const getTraitTierCount = (trait: any) => (
+  Array.isArray(trait.thresholds) && trait.thresholds.length > 0
+    ? trait.thresholds.length
+    : Array.isArray(trait.threshold_descriptions) ? trait.threshold_descriptions.length : 0
+)
+
+const getCanonicalTraitDescription = (trait: any, tier: number) => {
+  const tierIndex = tier - 1
+  const descriptions = Array.isArray(trait.threshold_descriptions) ? trait.threshold_descriptions : []
+  const rawDescription = descriptions[tierIndex] || descriptions[0] || trait.description
+  if (typeof rawDescription !== 'string' || !rawDescription.trim() || /<[^>]+>/.test(rawDescription)) return undefined
+  return expandTierValues(rawDescription, tierIndex, getTraitTierCount(trait))
+}
+
+const formatTraitTrigger = (trigger: unknown) => {
+  if (typeof trigger !== 'string' || !trigger.trim()) return 'Nie określono'
+  return traitTriggerNames[trigger] || trigger.replace(/_/g, ' ')
+}
+
+const formatTraitTarget = (target: unknown) => {
+  if (typeof target !== 'string' || !target.trim()) return 'Nie określono'
+  return traitTargetNames[target] || target.replace(/_/g, ' ')
+}
+
+const formatTraitCondition = (key: string, value: unknown) => {
+  if (key === 'trigger_once' && value === true) return 'Jednorazowo'
+  if (key === 'chance_percent') return `Szansa: ${value}%`
+  if (key === 'threshold_percent') return `Próg: ${value}% HP`
+  return `${key.replace(/_/g, ' ')}: ${String(value)}`
+}
+
+const formatTraitDuration = (effect: any, description?: string) => {
+  const candidates = [
+    effect?.duration,
+    effect?.duration_seconds,
+    effect?.duration_s,
+    effect?.effect?.duration,
+    effect?.effect?.duration_seconds,
+    effect?.limit?.duration,
+  ]
+  const duration = candidates.find(value => typeof value === 'number' && Number.isFinite(value))
+  if (duration !== undefined) return `${duration} s`
+  if (description && /raz na walkę|raz na zdarzenie|jednorazowo/i.test(description)) return 'Jednorazowo / po wskazanym zdarzeniu'
+  if (description && /do końca walki|permanent/i.test(description)) return 'Do końca walki'
+  return 'Do review — brak jawnego modelu czasu'
+}
+
+const formatTraitRefresh = (description?: string) => {
+  if (description && /odśwież/i.test(description)) return 'Po ponownym wyzwoleniu'
+  if (description && /powtarza/i.test(description)) return 'Powtarza się po wskazanym zdarzeniu'
+  return 'Do review — brak jawnej zasady odświeżania'
+}
+
+export interface TraitEffectPresentation {
+  trigger: string
+  target: string
+  duration: string
+  refresh: string
+  stacking: string
+  conditions: string[]
+}
+
+export function getTraitEffectPresentation(trait: any, tier: number): TraitEffectPresentation[] {
+  const tierIndex = tier - 1
+  const tierEffects = Array.isArray(trait?.modular_effects?.[tierIndex]) ? trait.modular_effects[tierIndex] : []
+  const description = getCanonicalTraitDescription(trait, tier)
+
+  return tierEffects.map((effect: any) => {
+    const conditions = effect?.conditions && typeof effect.conditions === 'object'
+      ? Object.entries(effect.conditions)
+        .filter(([, value]) => value !== undefined && value !== null && value !== false && value !== '')
+        .map(([key, value]) => formatTraitCondition(key, value))
+      : []
+    const stacking = effect?.limit?.stacking
+    return {
+      trigger: formatTraitTrigger(effect?.trigger),
+      target: formatTraitTarget(effect?.target || trait?.target),
+      duration: formatTraitDuration(effect, description),
+      refresh: formatTraitRefresh(description),
+      stacking: stacking === 'none' ? 'Bez stackowania' : stacking ? String(stacking) : 'Do review — brak jawnej zasady stackowania',
+      conditions,
+    }
+  })
+}
+
 const getTraitDescription = (trait: any, tier: number) => {
   const hasThresholds = Array.isArray(trait.threshold_descriptions)
-  if (!hasThresholds || tier < 1 || tier > trait.threshold_descriptions.length) {
+  const tierCount = getTraitTierCount(trait)
+  if (!hasThresholds || tier < 1 || tier > tierCount) {
     return trait.description || 'Brak opisu'
   }
 
-  const template = trait.threshold_descriptions[tier - 1]
+  const template = getCanonicalTraitDescription(trait, tier) || trait.threshold_descriptions[tier - 1]
 
   // modular_effects is an array of tiers -> arrays of effects
   const tierEffects = trait.modular_effects && trait.modular_effects[tier - 1]
@@ -95,6 +212,13 @@ const getTraitDescription = (trait: any, tier: number) => {
   }).filter(Boolean)
 
   const rewardsStr = rewardParts.join(' ')
+  const hasReadableReward = rewards.some((reward: any) => (
+    typeof reward?.stat === 'string' || ['healing', 'damage', 'shield'].includes(reward?.type)
+  ))
+
+  // Special Set 2 effects carry their player-facing meaning in the canonical
+  // description while rewards.value is only an internal runtime parameter.
+  if (!hasReadableReward && template) return template
 
   // If template contains condition/trigger placeholders prefer the concrete rewards string
   if (template.includes('<trigger') || template.includes('<conditions')) {

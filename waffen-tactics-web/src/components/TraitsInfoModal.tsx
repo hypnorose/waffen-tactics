@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { gameAPI } from '../services/api'
 import { getCostColor } from '../data/units'
-import { getTraitThresholdDescription } from '../data/traits'
+import { getTraitDescription } from '../hooks/combatOverlayUtils'
 
 interface TraitsInfoModalProps {
   isOpen: boolean
@@ -106,12 +106,13 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
                   <div className="space-y-2">
                     <h4 className="font-semibold text-text/90">Poziomy:</h4>
                     {trait.thresholds.map((threshold: number, index: number) => (
-                      <div key={index} className="flex items-center gap-3 text-sm">
+                      <div key={index} className="flex items-start gap-3 text-sm">
                         <span className="font-mono bg-primary/10 px-2 py-1 rounded min-w-[3rem] text-center">
-                          {threshold}+
+                          <span className="block">{threshold}+</span>
+                          <span className="block text-[10px] text-text/50">Tier {index + 1}</span>
                         </span>
                         <span className="text-text/80">
-                          {getTraitThresholdDescription(trait, index)}
+                          {getTraitDescription(trait, index + 1)}
                         </span>
                       </div>
                     ))}

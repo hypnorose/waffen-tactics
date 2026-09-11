@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import UnitCard from './UnitCard'
 import { useGameStore } from '../store/gameStore'
 import { gameAPI } from '../services/api'
-import { getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
+import { getTraitColor, getTraitDescription, getTraitEffectPresentation } from '../hooks/combatOverlayUtils'
 import { getAllUnits, getCostBorderColor } from '../data/units'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import { getUnitItemPreview, type Item } from '../data/items'
@@ -356,11 +356,19 @@ export default function GameBoard({ playerState, onUpdate, onNotification, round
                               </span>
                               <div className="flex-1">
                                 <div className="font-bold">[{threshold}] Tier {tierNum}</div>
-                                {traitData.modular_effects && traitData.modular_effects[idx] && (
-                                  <div className="text-xs mt-0.5" style={{ color: isActive ? '#d1d5db' : '#9ca3af' }}>
-                                    {getTraitDescription(traitData, tierNum)}
+                                <div className="text-xs mt-0.5" style={{ color: isActive ? '#d1d5db' : '#9ca3af' }}>
+                                  {getTraitDescription(traitData, tierNum)}
+                                </div>
+                                {getTraitEffectPresentation(traitData, tierNum).map((effect, effectIndex) => (
+                                  <div key={`${tierNum}-${effectIndex}`} data-trait-effect-details className="mt-1 rounded border border-gray-600/70 bg-black/10 p-1.5 text-[11px] leading-snug">
+                                    <div><span className="text-gray-400">Trigger:</span> {effect.trigger}</div>
+                                    <div><span className="text-gray-400">Cel:</span> {effect.target}</div>
+                                    <div><span className="text-gray-400">Czas:</span> {effect.duration}</div>
+                                    <div><span className="text-gray-400">Odświeżanie:</span> {effect.refresh}</div>
+                                    <div><span className="text-gray-400">Stackowanie:</span> {effect.stacking}</div>
+                                    {effect.conditions.map(condition => <div key={condition}><span className="text-gray-400">Warunek:</span> {condition}</div>)}
                                   </div>
-                                )}
+                                ))}
                               </div>
                             </div>
                           )
