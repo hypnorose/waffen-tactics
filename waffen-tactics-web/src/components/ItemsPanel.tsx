@@ -3,7 +3,7 @@ import { gameAPI } from '../services/api'
 import type { PlayerState } from '../store/gameStore'
 import { getRecipePreview, ITEM_ICONS, type Item } from '../data/items'
 import ItemTooltip from './ItemTooltip'
-import { ItemRecipePreviewContent } from './ItemPreviewContent'
+import ItemRecipePreviewTooltip from './ItemRecipePreviewTooltip'
 
 type Props = {
   playerState: PlayerState
@@ -16,9 +16,15 @@ type Props = {
 
 export const getItemInstanceKey = (itemId: string, index: number) => `${itemId}-${index}`
 
+interface CombiningPreview {
+  first: string
+  second: string
+  anchor: HTMLElement
+}
+
 export default function ItemsPanel({ playerState, onUpdate, onNotification, itemCatalog, onItemDragStart, onItemDragEnd }: Props) {
   const [loadedItems, setLoadedItems] = useState<Item[]>([])
-  const [combining, setCombining] = useState<[string, string] | null>(null)
+  const [combining, setCombining] = useState<CombiningPreview | null>(null)
   const draggedItem = useRef<{ itemId: string; index: number } | null>(null)
   const items = itemCatalog ?? loadedItems
   const itemById = useMemo(() => new Map(items.map(item => [item.id, item])), [items])
@@ -34,13 +40,13 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
     catch (error: any) { onNotification(error.response?.data?.error || 'Nie udało się wykonać operacji') }
   }
 
-  const previewCombine = (first: string, second: string) => {
-    setCombining([first, second])
+  const previewCombine = (first: string, second: string, anchor: HTMLElement) => {
+    setCombining({ first, second, anchor })
   }
 
-  const performCombine = (first: string, second: string) => {
+  const performCombine = (first: string, second: string, anchor: HTMLElement) => {
     if (!getRecipePreview(items, first, second)) {
-      setCombining([first, second])
+      setCombining({ first, second, anchor })
       return
     }
     setCombining(null)
@@ -64,7 +70,7 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
       ⚠️
       <span className="sr-only">Nieznany przedmiot: {itemId}</span>
     </div>
-    const isCombining = combining?.includes(itemId) && !equipped
+    const isCombining = combining && (combining.first === itemId || combining.second === itemId) && !equipped
     return <ItemTooltip key={itemKey} item={item} itemCatalog={items}
       className={`relative flex items-center justify-center w-12 h-12 rounded-lg border-2 text-2xl select-none transition-all ${item.kind === 'combined' ? 'border-amber-300 bg-amber-500/15' : 'border-slate-500 bg-slate-800/80'} ${isCombining ? 'scale-110 ring-2 ring-amber-300 animate-pulse' : 'hover:border-amber-300 hover:-translate-y-0.5'} ${equipped ? 'w-9 h-9 text-lg' : 'cursor-grab active:cursor-grabbing'}`}
       triggerProps={{
@@ -81,14 +87,20 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
         onDragEnd: () => { draggedItem.current = null; cancelCombine(); onItemDragEnd?.() },
         onDragEnter: event => {
           const source = draggedItem.current
-          if (source && !(source.itemId === itemId && source.index === index) && !equipped && item.kind === 'base') previewCombine(source.itemId, itemId)
+          if (source && !(source.itemId === itemId && source.index === index) && !equipped && item.kind === 'base') previewCombine(source.itemId, itemId, event.currentTarget)
         },
         onDragOver: event => event.preventDefault(),
+        onDragLeave: event => {
+          const nextTarget = event.relatedTarget as Node | null
+          if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+            setCombining(current => current?.anchor === event.currentTarget ? null : current)
+          }
+        },
         onDrop: event => {
           event.preventDefault()
           const source = event.dataTransfer.getData('text/item-id')
           const sourceIndex = Number(event.dataTransfer.getData('text/item-index'))
-          if (source && !(source === itemId && sourceIndex === index) && item.kind === 'base') performCombine(source, itemId)
+          if (source && !(source === itemId && sourceIndex === index) && item.kind === 'base') performCombine(source, itemId, event.currentTarget)
         },
         'aria-label': item.name,
       }}>
@@ -108,12 +120,16 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
       {!owned.length && <span className="text-sm text-text/50">Brak przedmiotów</span>}
     </div>
     {combining && (() => {
-      const first = itemById.get(combining[0])
-      const second = itemById.get(combining[1])
+      const first = itemById.get(combining.first)
+      const second = itemById.get(combining.second)
       if (!first || !second) return null
-      return <div data-item-preview className="mt-3 rounded-lg border border-cyan-300/50 bg-slate-950/70 p-3 text-center text-xs text-amber-200">
-        <ItemRecipePreviewContent first={first} second={second} result={getRecipePreview(items, combining[0], combining[1])} itemCatalog={items} />
-      </div>
+      return <ItemRecipePreviewTooltip
+        first={first}
+        second={second}
+        result={getRecipePreview(items, combining.first, combining.second)}
+        itemCatalog={items}
+        anchor={combining.anchor}
+      />
     })()}
   </section>
 }

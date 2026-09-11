@@ -233,6 +233,12 @@ describe('ItemsPanel tooltip ownership', () => {
 
     expect(document.body.textContent).toContain('Skrytka na oregano')
     expect(gameAPI.combineItem).not.toHaveBeenCalled()
+    const preview = document.body.querySelector('[data-item-recipe-preview]') as HTMLElement
+    expect(preview).not.toBeNull()
+    expect(preview.parentElement).toBe(document.body)
+    expect(preview.style.position).toBe('fixed')
+    expect(preview.style.width).toBe('max-content')
+    expect(preview.style.maxWidth).toBe('min(320px, calc(100vw - 16px))')
 
     await act(async () => {
       dispatchDrag(target, 'drop', dataTransfer)
