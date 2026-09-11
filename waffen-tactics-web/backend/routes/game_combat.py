@@ -138,7 +138,17 @@ def map_event_to_sse_payload(event_type: str, data: dict):
     logger.debug(f"Mapping event {event_type} with seq={data.get('seq')}")
     # Support both legacy 'attack' and new 'unit_attack' event types
     res = None
-    if event_type in ('attack', 'unit_attack'):
+    if event_type in ('attack', 'unit_attack', 'damage'):
+        if event_type == 'damage':
+            missing = [
+                field for field in ('attacker_id', 'target_id', 'post_hp', 'post_shield', 'cause')
+                if data.get(field) is None or (field == 'cause' and not str(data.get(field)).strip())
+            ]
+            if missing:
+                raise RuntimeError(
+                    f"damage missing required canonical fields {missing} at seq={data.get('seq')} "
+                    f"payload_keys={sorted(list(data.keys()))}"
+                )
         post_shield = data.get('post_shield')
         if post_shield is None:
             # Compatibility alias is accepted only at the transport boundary.
@@ -149,7 +159,11 @@ def map_event_to_sse_payload(event_type: str, data: dict):
                 f"payload_keys={sorted(list(data.keys()))}"
             )
         res = {
-            'type': 'unit_attack',
+            # `damage` is a canonical redirected hit (currently Haxball), not
+            # a silent alias for an ordinary attack. Preserve that event type
+            # so replay, summaries, and the player-facing log can distinguish
+            # the secondary hit while sharing the authoritative hit fields.
+            'type': 'damage' if event_type == 'damage' else 'unit_attack',
             'attacker_id': data.get('attacker_id'),
             'attacker_name': data.get('attacker_name'),
             'attacker_current_mana': data.get('attacker_current_mana'),
@@ -164,6 +178,10 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'unit_name': data.get('target_name', data.get('unit_name')),
             'damage': data.get('damage'),
             'applied_damage': data.get('applied_damage', data.get('damage')),
+            'pre_hp': data.get('pre_hp'),
+            'post_hp': data.get('post_hp'),
+            'new_hp': data.get('new_hp'),
+            'unit_hp': data.get('unit_hp'),
             'shield_absorbed': data.get('shield_absorbed', 0),
             'post_shield': post_shield,
             'unit_shield': data.get('unit_shield', post_shield),
@@ -174,6 +192,9 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             # so we can surface bugs instead of hiding them.
             'target_hp': data.get('target_hp'),
             'target_max_hp': data.get('target_max_hp'),
+            'damage_type': data.get('damage_type'),
+            'side': data.get('side'),
+            'cause': data.get('cause'),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }

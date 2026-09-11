@@ -247,7 +247,7 @@ describe('useCombatSSEBuffer', () => {
   })
 
   it('deduplicates identical frames and completes only after the terminal end event', async () => {
-    const combatEvent = { type: 'unit_attack', seq: 1, event_id: 'combat:1' }
+    const combatEvent = { type: 'damage', seq: 1, event_id: 'combat:1' }
     const frame = [
       { type: 'units_init', seq: 0 },
       { type: 'start', seq: 0 },
@@ -265,7 +265,7 @@ describe('useCombatSSEBuffer', () => {
     }
     const latest = await renderBuffer({ ok: true, body: { getReader: () => reader } }, 'test-token-complete')
 
-    expect(latest?.bufferedEvents.map(event => event.type)).toEqual(['units_init', 'start', 'unit_attack', 'victory', 'gold_income', 'end'])
+    expect(latest?.bufferedEvents.map(event => event.type)).toEqual(['units_init', 'start', 'damage', 'victory', 'gold_income', 'end'])
     expect(latest?.isBufferedComplete).toBe(true)
     expect(latest?.combatError).toBeNull()
   })

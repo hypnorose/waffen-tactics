@@ -13,7 +13,7 @@ def test_combat_event_contract_covers_all_layers_and_invariants():
     result = verify_contract()
 
     assert result["contract_id"] == "WFT-198"
-    assert result["event_count"] == 30
+    assert result["event_count"] == 31
     assert result["control_event_count"] == 6
     assert result["status"] == "pass"
 

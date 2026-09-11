@@ -115,6 +115,36 @@ describe('applyCombatEvent - Effect Handling', () => {
     }
   })
 
+  it('applies redirected damage from canonical post-state and preserves its log type', () => {
+    const event: CombatEvent = {
+      type: 'damage',
+      attacker_id: 'player_0',
+      attacker_name: 'TestPlayer',
+      target_id: 'opp_0',
+      target_name: 'TestOpponent',
+      unit_id: 'opp_0',
+      unit_name: 'TestOpponent',
+      damage: 40,
+      applied_damage: 40,
+      pre_hp: 600,
+      post_hp: 560,
+      target_hp: 560,
+      post_shield: 0,
+      shield_absorbed: 0,
+      cause: 'set2_haxball_redirect',
+      event_id: 'combat:damage:1',
+      seq: 1,
+      timestamp: 0.5,
+    }
+
+    const next = applyCombatEvent(state, event, { simTime: 0 })
+
+    expect(next.opponentUnits[0].hp).toBe(560)
+    expect(next.opponentUnits[0].shield).toBe(0)
+    expect(next.combatLog).toContain('[REDIRECT] TestPlayer -> TestOpponent za 40 (powód: set2_haxball_redirect)')
+    expect(next.combatSummary?.totalDamageByUnit.player_0).toEqual({ unit_name: 'TestPlayer', damage: 40 })
+  })
+
   it('replays damage_dodged without changing HP and deduplicates reconnect delivery', () => {
     const event: CombatEvent = {
       type: 'damage_dodged',

@@ -54,6 +54,8 @@ describe('combatPresentation', () => {
       attacker_name: 'Unit A',
       target_id: 'unit_b',
       target_name: 'Unit B',
+      unit_id: 'unit_b',
+      unit_name: 'Unit B',
       damage: 40,
       applied_damage: 40,
       bonus_attack: true,
@@ -98,6 +100,30 @@ describe('combatPresentation', () => {
     const summary = updateCombatSummary(createCombatSummary(), event)
     expect(summary.totalDamageByUnit).toEqual({})
     expect(summary.lastAction?.type).toBe('damage_dodged')
+  })
+
+  it('presents redirected damage distinctly and includes it in combat totals', () => {
+    const event: CombatEvent = {
+      type: 'damage',
+      attacker_id: 'unit_a',
+      attacker_name: 'Unit A',
+      target_id: 'unit_b',
+      target_name: 'Unit B',
+      unit_id: 'unit_b',
+      unit_name: 'Unit B',
+      damage: 40,
+      applied_damage: 40,
+      cause: 'set2_haxball_redirect',
+      seq: 85,
+      timestamp: 4.3,
+    }
+
+    expect(formatCombatLogEntry(event)).toBe('[REDIRECT] Unit A -> Unit B za 40 (powód: set2_haxball_redirect)')
+    const summary = updateCombatSummary(createCombatSummary(), event)
+    expect(summary.totalDamageByUnit.unit_a).toEqual({ unit_name: 'Unit A', damage: 40 })
+    expect(summary.unitStatsByUnit.unit_a.damage_dealt).toBe(40)
+    expect(summary.unitStatsByUnit.unit_b.damage_received).toBe(40)
+    expect(summary.lastAction?.type).toBe('damage')
   })
 
   it('presents shield removal as a distinct SHIELD BREAK outcome', () => {

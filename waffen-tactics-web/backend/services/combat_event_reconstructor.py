@@ -98,6 +98,10 @@ class CombatEventReconstructor:
 
         if event_type in ['attack', 'unit_attack']:
             self._process_damage_event(event_data)
+        elif event_type == 'damage':
+            # Redirected damage has the same authoritative HP/shield mutation
+            # contract as a hit, but remains explicit for replay diagnostics.
+            self._process_damage_event(event_data)
         elif event_type == 'damage_dodged':
             self._process_damage_dodged_event(event_data)
         elif event_type == 'unit_died':

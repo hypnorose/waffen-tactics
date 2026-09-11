@@ -169,7 +169,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
   // Death is authoritative. Ignore late replay/SSE events for dead units.
   const stateChangingTypes = new Set([
-    'attack', 'unit_attack', 'mana_update', 'stat_buff', 'shield_applied',
+    'attack', 'unit_attack', 'damage', 'mana_update', 'stat_buff', 'shield_applied',
     'shield_broken', 'unit_stunned', 'damage_over_time_applied',
     'damage_over_time_tick', 'damage_over_time_expired', 'effect_applied', 'effect_expired',
     'unit_heal', 'heal', 'hp_regen', 'regen_gain', 'formation_changed'
@@ -309,6 +309,43 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
         }
 
         updateKnownUnitById(newState, event, event.target_id, updateFn)
+      }
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
+      break
+
+    case 'damage':
+      // Haxball/redirected damage is a distinct canonical event. Apply the
+      // same authoritative post-state fields as a hit, but keep its type
+      // separate so presentation and replay diagnostics never collapse it
+      // into an ordinary unit_attack.
+      if (event.attacker_id) requireKnownUnit(newState, event, event.attacker_id)
+      if (event.target_id) requireKnownUnit(newState, event, event.target_id)
+      if (event.target_id && (event.target_hp === undefined || event.target_hp === null)) {
+        console.error(`⚠️ damage event ${event.seq} missing required field: target_hp`)
+        shouldUpdateSummary = false
+        break
+      }
+      if (event.target_id && (event.post_hp === undefined || event.post_hp === null)) {
+        console.error(`⚠️ damage event ${event.seq} missing required field: post_hp`)
+        shouldUpdateSummary = false
+        break
+      }
+      if (event.post_shield === undefined || event.post_shield === null) {
+        console.error(`⚠️ damage event ${event.seq} missing required field: post_shield`)
+        shouldUpdateSummary = false
+        break
+      }
+      if (typeof event.post_shield !== 'number' || !Number.isFinite(event.post_shield)) {
+        console.error(`⚠️ damage event ${event.seq} has invalid canonical post_shield`)
+        shouldUpdateSummary = false
+        break
+      }
+      if (event.target_id) {
+        updateKnownUnitById(newState, event, event.target_id, u => ({
+          ...u,
+          hp: event.post_hp!,
+          shield: event.post_shield!,
+        }))
       }
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
