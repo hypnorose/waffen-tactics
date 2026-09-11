@@ -20,6 +20,7 @@ log_success() {
 PROJECT_ROOT="/home/ubuntu/waffen-tactics-game"
 WEB_DIR="$PROJECT_ROOT/waffen-tactics-web"
 BACKEND_DIR="$WEB_DIR/backend"
+CADDY_SERVICE="${CADDY_SERVICE:-waffentactics-caddy.service}"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/runtime_process_scope.sh"
 
@@ -51,13 +52,17 @@ done
 
 # Zatrzymaj Caddy - tylko jeśli uruchomiony z Caddyfile tego projektu
 log_info "Zatrzymywanie Caddy..."
+if command -v systemctl >/dev/null 2>&1 && sudo -n systemctl cat "$CADDY_SERVICE" >/dev/null 2>&1 && sudo -n systemctl is-active --quiet "$CADDY_SERVICE"; then
+    sudo -n systemctl stop "$CADDY_SERVICE" 2>/dev/null || true
+    log_success "Zatrzymano managed Caddy service=$CADDY_SERVICE"
+fi
 if [ -n "$(project_caddy_pids "$WEB_DIR" "Caddyfile")" ]; then
     for pid in $(project_caddy_pids "$WEB_DIR" "Caddyfile"); do
-        sudo kill "$pid" 2>/dev/null || true
+        sudo -n kill "$pid" 2>/dev/null || true
     done
-    log_success "Caddy zatrzymany"
+    log_success "Zatrzymano pozostały proces Caddy projektu"
 else
-    log_info "Caddy nie był uruchomiony przez ten projekt"
+    log_info "Brak pozostałego procesu Caddy projektu"
 fi
 
 sleep 2

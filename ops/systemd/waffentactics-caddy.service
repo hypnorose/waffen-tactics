@@ -1,0 +1,19 @@
+[Unit]
+Description=Waffen Tactics public Caddy proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/ubuntu/waffen-tactics-game/waffen-tactics-web
+Environment=HOME=/root
+ExecStart=/usr/local/bin/caddy run --config /home/ubuntu/waffen-tactics-game/waffen-tactics-web/Caddyfile --adapter caddyfile
+ExecReload=/bin/kill -USR1 $MAINPID
+Restart=on-failure
+RestartSec=5s
+KillSignal=SIGINT
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=multi-user.target

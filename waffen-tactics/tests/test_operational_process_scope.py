@@ -40,6 +40,9 @@ def test_start_uses_shared_caddy_discovery_and_refuses_duplicate_restart():
     assert 'sudo pgrep caddy' not in start
     assert 'pgrep -a caddy' not in start
     assert 'refusing to start a duplicate' in start
+    assert 'waffentactics-caddy.service' in start
+    assert 'sudo -n systemctl restart "$CADDY_SERVICE"' in start
+    assert 'sudo nohup caddy run' not in start
     assert 'caddy_config_matches_project' in scope
     assert ' --config $config_name ' in scope
     assert ' --config $absolute_config ' in scope
@@ -71,3 +74,14 @@ def test_caddy_config_matcher_covers_relative_absolute_and_unrelated_processes()
     )
     result = subprocess.run([bash, '-c', command], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+def test_versioned_caddy_service_owns_the_production_proxy():
+    unit = (REPO_ROOT / 'ops' / 'systemd' / 'waffentactics-caddy.service').read_text(encoding='utf-8')
+    readme = (REPO_ROOT / 'ops' / 'systemd' / 'README.md').read_text(encoding='utf-8')
+
+    assert 'Type=simple' in unit
+    assert 'ExecStart=/usr/local/bin/caddy run --config /home/ubuntu/waffen-tactics-game/waffen-tactics-web/Caddyfile' in unit
+    assert 'Restart=on-failure' in unit
+    assert 'WantedBy=multi-user.target' in unit
+    assert 'sudo nohup caddy run' in readme

@@ -14,6 +14,7 @@ NC='\033[0m'
 PROJECT_ROOT="/home/ubuntu/waffen-tactics-game"
 WEB_DIR="$PROJECT_ROOT/waffen-tactics-web"
 BACKEND_DIR="$WEB_DIR/backend"
+CADDY_SERVICE="${CADDY_SERVICE:-waffentactics-caddy.service}"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/runtime_process_scope.sh"
 
@@ -27,6 +28,10 @@ echo -e "${CYAN}🔍 Procesy:${NC}"
 BACKEND_RUNNING=$(project_pids_for_cwd "python.*api.py" "$BACKEND_DIR")
 FRONTEND_RUNNING=$(project_pids_for_cwd "vite" "$WEB_DIR")
 CADDY_RUNNING=$(project_caddy_pids "$WEB_DIR" "Caddyfile")
+CADDY_SERVICE_ACTIVE=0
+if command -v systemctl >/dev/null 2>&1 && sudo -n systemctl is-active --quiet "$CADDY_SERVICE"; then
+    CADDY_SERVICE_ACTIVE=1
+fi
 
 if [ ! -z "$BACKEND_RUNNING" ]; then
     echo -e "   ${GREEN}✅ Backend API:${NC} uruchomiony (PID: $BACKEND_RUNNING)"
@@ -40,8 +45,10 @@ else
     echo -e "   ${RED}❌ Frontend:${NC} zatrzymany"
 fi
 
-if [ ! -z "$CADDY_RUNNING" ]; then
-    echo -e "   ${GREEN}✅ Caddy:${NC} uruchomiony (PID: $CADDY_RUNNING)"
+if [ "$CADDY_SERVICE_ACTIVE" -eq 1 ]; then
+    echo -e "   ${GREEN}✅ Caddy:${NC} aktywny pod managed service ($CADDY_SERVICE)"
+elif [ ! -z "$CADDY_RUNNING" ]; then
+    echo -e "   ${RED}⚠️  Caddy:${NC} działa poza managed service (PID: $CADDY_RUNNING)"
 else
     echo -e "   ${RED}❌ Caddy:${NC} zatrzymany"
 fi

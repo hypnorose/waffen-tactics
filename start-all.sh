@@ -53,8 +53,21 @@ load_nvm() {
 PROJECT_ROOT="/home/ubuntu/waffen-tactics-game"
 WEB_DIR="$PROJECT_ROOT/waffen-tactics-web"
 BACKEND_DIR="$WEB_DIR/backend"
+CADDY_SERVICE="${CADDY_SERVICE:-waffentactics-caddy.service}"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/runtime_process_scope.sh"
+
+require_caddy_service() {
+    if ! command -v systemctl >/dev/null 2>&1; then
+        log_error "systemctl is required; refusing to start unmanaged Caddy"
+        return 1
+    fi
+    if ! sudo -n systemctl cat "$CADDY_SERVICE" >/dev/null 2>&1; then
+        log_error "Missing managed Caddy service: $CADDY_SERVICE"
+        log_error "Install ops/systemd/waffentactics-caddy.service before starting production"
+        return 1
+    fi
+}
 
 echo "=============================================="
 echo " Waffen Tactics - start"
@@ -62,6 +75,10 @@ echo "=============================================="
 
 if [ ! -d "$PROJECT_ROOT" ]; then
     log_error "Project directory does not exist: $PROJECT_ROOT"
+    exit 1
+fi
+
+if ! require_caddy_service; then
     exit 1
 fi
 
@@ -75,8 +92,13 @@ while IFS= read -r pid; do
     log_info "Stopped frontend pid=$pid"
 done < <(project_pids_for_cwd "vite" "$WEB_DIR")
 
+if sudo -n systemctl is-active --quiet "$CADDY_SERVICE"; then
+    sudo -n systemctl stop "$CADDY_SERVICE"
+    log_info "Stopped managed Caddy service=$CADDY_SERVICE"
+fi
+
 while IFS= read -r pid; do
-    sudo kill "$pid" 2>/dev/null || true
+    sudo -n kill "$pid" 2>/dev/null || true
     log_info "Stopped project Caddy pid=$pid"
 done < <(project_caddy_pids "$WEB_DIR" "Caddyfile")
 
@@ -157,18 +179,16 @@ else
     exit 1
 fi
 
-log_info "Starting Caddy"
-cd "$WEB_DIR"
-if ! command -v caddy >/dev/null 2>&1; then
-    log_warning "Caddy is not installed"
+log_info "Starting managed Caddy service=$CADDY_SERVICE"
+if ! sudo -n systemctl restart "$CADDY_SERVICE"; then
+    log_error "Managed Caddy service failed to start"
+    exit 1
+fi
+if sudo -n systemctl is-active --quiet "$CADDY_SERVICE"; then
+    log_success "Caddy started under systemd"
 else
-    sudo nohup caddy run --config Caddyfile > caddy.log 2>&1 &
-    sleep 3
-    if [ -n "$(project_caddy_pids "$WEB_DIR" "Caddyfile")" ]; then
-        log_success "Caddy started"
-    else
-        log_warning "Caddy did not start"
-    fi
+    log_error "Managed Caddy service is not active"
+    exit 1
 fi
 
 echo ""
