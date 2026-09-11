@@ -136,7 +136,20 @@ class CombatEventReconstructor:
             pass
         elif event_type == 'formation_changed':
             self._process_formation_changed_event(event_data)
-        elif event_type in ('animation_start', 'gold_reward'):
+        elif event_type in (
+            'animation_start',
+            'gold_reward',
+            # These are transport/control frames.  They do not mutate the
+            # reconstructed combat roster, but they are still part of the
+            # canonical stream and must be explicit here so the verifier can
+            # fail closed when a new control event is introduced.
+            'units_init',
+            'start',
+            'victory',
+            'defeat',
+            'gold_income',
+            'end',
+        ):
             # These events are intentionally non-state replay metadata. Keep
             # them explicit so a newly introduced event cannot be swallowed by
             # the default branch below.

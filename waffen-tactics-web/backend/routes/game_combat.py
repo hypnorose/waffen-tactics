@@ -226,6 +226,11 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'type': 'unit_died',
             'unit_id': data['unit_id'],
             'unit_name': data['unit_name'],
+            # Death is a state transition, so the transport contract carries
+            # the canonical post-state explicitly instead of forcing replay
+            # consumers to infer it from the event name.
+            'post_hp': 0,
+            'unit_hp': 0,
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
@@ -868,7 +873,7 @@ def start_combat():
             # Prepare player units
             success, message, player_data = prepare_player_units_for_combat(str(user_id))
             if not success:
-                yield f"data: {json.dumps({'type': 'error', 'message': message})}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'code': 'combat_request_failed', 'message': message, 'retriable': True})}\n\n"
                 return
 
             player_units, player_unit_info, synergies_data = player_data
@@ -886,12 +891,12 @@ def start_combat():
             except RuntimeError as e:
                 # No DB opponent available — send a friendly SSE error and stop the stream
                 logger.warning('start_combat: no DB opponent for player %s: %s', user_id, str(e))
-                yield f"data: {json.dumps({'type': 'error', 'message': 'No opponent available — please try again later'})}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'code': 'opponent_unavailable', 'message': 'No opponent available — please try again later', 'retriable': True})}\n\n"
                 return
             except Exception as e:
                 # Unexpected error — log and inform client
                 logger.exception('start_combat: unexpected error preparing opponent for player %s', user_id)
-                yield f"data: {json.dumps({'type': 'error', 'message': 'Internal server error preparing opponent'})}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'code': 'combat_request_failed', 'message': 'Internal server error preparing opponent', 'retriable': True})}\n\n"
                 return
 
             if not player_units or not opponent_units:

@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "contract_id": "WFT-198",
+  "automated_evidence_only": true,
+  "stream_rules": {
+    "every_frame_requires": ["type", "seq"],
+    "every_non_control_frame_requires": ["event_id"],
+    "control_frames": ["units_init", "start", "victory", "defeat", "gold_income", "end"],
+    "replay_unknown_event_policy": "fail_closed",
+    "transport_error_frame": "error",
+    "source_guards": {
+      "route": ["payload['event_id']", "Unmapped combat event type", "res['seq']"],
+      "reconstructor": ["Unsupported replay event type"],
+      "frontend": ["CombatReplayValidationError"],
+      "sse_buffer": ["combat_sequence_gap", "combat_missing_event_id", "Conflicting duplicate", "combat_event_after_end"]
+    }
+  },
+  "layers": {
+    "core": [
+      "waffen-tactics/src/waffen_tactics/services/event_canonicalizer.py",
+      "waffen-tactics/src/waffen_tactics/services/combat_attack_processor.py",
+      "waffen-tactics/src/waffen_tactics/services/combat_simulator.py",
+      "waffen-tactics/src/waffen_tactics/services/item_runtime.py",
+      "waffen-tactics/src/waffen_tactics/services/passive_processor.py",
+      "waffen-tactics/src/waffen_tactics/services/effects/damage_over_time.py"
+    ],
+    "route": "waffen-tactics-web/backend/routes/game_combat.py",
+    "mapper": "waffen-tactics-web/backend/routes/game_combat.py",
+    "reconstructor": "waffen-tactics-web/backend/services/combat_event_reconstructor.py",
+    "frontend": "waffen-tactics-web/src/hooks/combat/applyEvent.ts",
+    "sse_buffer": "waffen-tactics-web/src/hooks/combat/useCombatSSEBuffer.ts"
+  },
+  "events": [
+    {"type": "start", "origin": "route_control", "mapper": "route_passthrough", "reconstructor": "explicit_noop", "frontend": "control", "required_fields": ["type", "seq"], "post_state": "none", "ordering": "control", "dedupe": "type_seq", "presentation": "control"},
+    {"type": "units_init", "origin": "route_control", "mapper": "route_passthrough", "reconstructor": "explicit_noop", "frontend": "control", "required_fields": ["type", "seq", "player_units", "opponent_units"], "post_state": "snapshot_initialization", "ordering": "control", "dedupe": "type_seq", "presentation": "control"},
+    {"type": "victory", "origin": "route_control", "mapper": "route_passthrough", "reconstructor": "explicit_noop", "frontend": "case", "required_fields": ["type", "seq"], "post_state": "none", "ordering": "control", "dedupe": "type_seq", "presentation": "control"},
+    {"type": "defeat", "origin": "route_control", "mapper": "route_passthrough", "reconstructor": "explicit_noop", "frontend": "case", "required_fields": ["type", "seq"], "post_state": "none", "ordering": "control", "dedupe": "type_seq", "presentation": "control"},
+    {"type": "gold_income", "origin": "route_control", "mapper": "route_passthrough", "reconstructor": "explicit_noop", "frontend": "case", "required_fields": ["type", "seq"], "post_state": "none", "ordering": "control", "dedupe": "type_seq", "presentation": "control"},
+    {"type": "end", "origin": "route_control", "mapper": "route_passthrough", "reconstructor": "explicit_noop", "frontend": "control", "required_fields": ["type", "seq"], "post_state": "snapshot_final", "ordering": "control", "dedupe": "type_seq", "presentation": "control"},
+    {"type": "state_snapshot", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "player_units", "opponent_units"], "post_state": "snapshot_validation_only", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "metadata"},
+    {"type": "animation_start", "origin": "core", "mapper": "map_branch", "reconstructor": "explicit_noop", "frontend": "case", "required_fields": ["type", "seq", "event_id"], "post_state": "none", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "animation"},
+    {"type": "attack", "origin": "core_compatibility_alias", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "attacker_id", "target_id", "target_hp"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "unit_attack", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "attacker_id", "target_id", "target_hp"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "damage_dodged", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "attacker_id", "target_id", "post_hp", "dodged"], "post_state": "unchanged_authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "unit_died", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "post_hp"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "mana_update", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "current_mana"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "heal", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "post_hp"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "unit_heal", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "post_hp"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "shield_applied", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "amount", "post_shield"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "shield_broken", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "amount", "post_shield"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "damage_over_time_applied", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "effect_id", "damage", "expires_at"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "damage_over_time_tick", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "post_hp"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "damage_over_time_expired", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "effect_id", "post_hp"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "effect_applied", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "effect"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "effect_expired", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "effect_id"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "unit_stunned", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "effect_id"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "stat_buff", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "stat", "applied_delta"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "hp_regen", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "post_hp"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "regen_gain", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "post_hp_regen_per_sec"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "skill_cast", "origin": "core", "mapper": "map_branch", "reconstructor": "explicit_noop", "frontend": "case", "required_fields": ["type", "seq", "event_id"], "post_state": "none", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "passive_triggered", "origin": "core", "mapper": "map_branch", "reconstructor": "explicit_noop", "frontend": "case", "required_fields": ["type", "seq", "event_id"], "post_state": "none", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "formation_changed", "origin": "core", "mapper": "map_branch", "reconstructor": "state", "frontend": "case", "required_fields": ["type", "seq", "event_id", "unit_id", "previous_position", "new_position"], "post_state": "authoritative", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"},
+    {"type": "gold_reward", "origin": "core", "mapper": "map_branch", "reconstructor": "explicit_noop", "frontend": "case", "required_fields": ["type", "seq", "event_id"], "post_state": "none", "ordering": "strict_seq", "dedupe": "event_id", "presentation": "combat_log"}
+  ],
+  "transport_error_contract": {
+    "type": "error",
+    "required_fields": ["type", "code", "message", "retriable"],
+    "not_replayed_as_combat_event": true,
+    "test_reference": "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx"
+  }
+}
