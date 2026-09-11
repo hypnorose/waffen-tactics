@@ -1,5 +1,7 @@
 import os
 import json
+import asyncio
+import warnings
 from typing import Any
 
 try:
@@ -9,6 +11,27 @@ except Exception:
 
 # Path for JSONL dump. Can be overridden with env var WT_EVENT_DUMP
 DUMP_PATH = os.environ.get('WT_EVENT_DUMP', 'pytest_events_dump.jsonl')
+
+
+def pytest_sessionstart(session):
+    """Prevent pytest-asyncio from preserving an implicit Windows event loop.
+
+    On Python 3.11's Proactor policy, ``get_event_loop()`` can create a loop
+    while pytest-asyncio is saving the previous policy state.  The plugin then
+    restores that loop after its Runner closes, leaving its internal socketpair
+    to be reported later as an unraisable ResourceWarning.  Start the test
+    session with an explicit ``None`` current loop so the runner owns the only
+    loop it creates and can close it deterministically.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', DeprecationWarning)
+        try:
+            current_loop = asyncio.get_event_loop()
+        except RuntimeError:
+            current_loop = None
+    if current_loop is not None and not current_loop.is_closed():
+        current_loop.close()
+    asyncio.set_event_loop(None)
 
 
 def pytest_configure(config):
