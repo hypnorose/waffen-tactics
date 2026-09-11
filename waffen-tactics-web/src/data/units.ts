@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { API_BASE_URL } from '../services/apiBaseUrl'
 
 export interface UnitPassive {
   name?: string
@@ -43,8 +44,7 @@ export async function loadUnits(): Promise<void> {
   if (UNITS_LOADED) return
   
   try {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-    const response = await axios.get(`${API_URL}/game/units`)
+    const response = await axios.get(`${API_BASE_URL}/game/units`)
     const unitsArray: Unit[] = response.data
     if (!Array.isArray(unitsArray)) {
       throw new Error('Canonical units API returned a non-array payload')

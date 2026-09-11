@@ -57,6 +57,9 @@ export interface CombatTransportError {
   code: string
   message: string
   retriable: boolean
+  seq?: number | null
+  event_id?: string
+  frame_index?: number
 }
 
 export interface CombatEvent {

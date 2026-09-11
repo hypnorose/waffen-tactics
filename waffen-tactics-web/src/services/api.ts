@@ -1,12 +1,9 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
-
-const API_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:8000' 
-  : (import.meta.env.VITE_API_URL || 'https://waffentactics.pl')
+import { API_BASE_URL } from './apiBaseUrl'
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
