@@ -98,6 +98,8 @@ class CombatEventReconstructor:
 
         if event_type in ['attack', 'unit_attack']:
             self._process_damage_event(event_data)
+        elif event_type == 'damage_dodged':
+            self._process_damage_dodged_event(event_data)
         elif event_type == 'unit_died':
             self._process_unit_death_event(event_data)
         elif event_type == 'mana_update':
@@ -208,6 +210,43 @@ class CombatEventReconstructor:
             raise ValueError(
                 f"Damage event with shield absorption lacks authoritative post shield at seq={event_data.get('seq')}: {event_data}"
             )
+
+    def _process_damage_dodged_event(self, event_data: Dict[str, Any]):
+        """Validate an explicit dodge without applying ordinary hit damage."""
+        target_id = event_data.get('target_id') or event_data.get('unit_id')
+        attacker_id = event_data.get('attacker_id')
+        if not target_id:
+            raise ValueError(f"damage_dodged event missing target_id: {event_data}")
+        if not attacker_id:
+            raise ValueError(f"damage_dodged event missing attacker_id: {event_data}")
+        if self._get_unit_dict(target_id) is None:
+            raise ValueError(f"damage_dodged references unknown target_id={target_id}")
+        if self._get_unit_dict(attacker_id) is None:
+            raise ValueError(f"damage_dodged references unknown attacker_id={attacker_id}")
+
+        for field in ('damage', 'applied_damage', 'shield_absorbed'):
+            value = event_data.get(field)
+            if value is not None and value != 0:
+                raise ValueError(
+                    f"damage_dodged must be a zero-damage outcome for field={field}: {event_data}"
+                )
+
+        # A canonical emitter may include the unchanged post-state. Validate
+        # it when present, while keeping the historical seq=84 payload valid
+        # even though that production payload had no HP fields.
+        target = self._get_unit_dict(target_id)
+        for field in ('target_hp', 'post_hp', 'unit_hp'):
+            value = event_data.get(field)
+            if value is not None and value != target.get('hp'):
+                raise ValueError(
+                    f"damage_dodged changed target HP in field={field}: {event_data}"
+                )
+        for field in ('post_shield', 'unit_shield'):
+            value = event_data.get(field)
+            if value is not None and value != target.get('shield', 0):
+                raise ValueError(
+                    f"damage_dodged changed target shield in field={field}: {event_data}"
+                )
 
     def _process_unit_death_event(self, event_data: Dict[str, Any]):
         """Process unit_died event."""

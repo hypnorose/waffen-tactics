@@ -115,6 +115,54 @@ describe('applyCombatEvent - Effect Handling', () => {
     }
   })
 
+  it('replays damage_dodged without changing HP and deduplicates reconnect delivery', () => {
+    const event: CombatEvent = {
+      type: 'damage_dodged',
+      attacker_id: 'player_0',
+      attacker_name: 'TestPlayer',
+      unit_id: 'opp_0',
+      unit_name: 'TestOpponent',
+      target_id: 'opp_0',
+      target_name: 'TestOpponent',
+      damage: 0,
+      applied_damage: 0,
+      shield_absorbed: 0,
+      post_hp: 600,
+      target_hp: 600,
+      post_shield: 0,
+      seq: 84,
+      event_id: 'combat:84',
+      timestamp: 8.4,
+    }
+
+    const next = applyCombatEvent(state, event, { simTime: 0 })
+    const duplicate = applyCombatEvent(next, event, { simTime: 8.4 })
+
+    expect(next.opponentUnits[0].hp).toBe(600)
+    expect(next.opponentUnits[0].shield).toBe(0)
+    expect(next.combatLog).toEqual(['[DODGE] TestOpponent unika obrażeń od TestPlayer'])
+    expect(duplicate).toBe(next)
+  })
+
+  it('rejects damage_dodged with an unknown attacker or non-zero damage', () => {
+    expect(() => applyCombatEvent(state, {
+      type: 'damage_dodged',
+      attacker_id: 'ghost-attacker',
+      unit_id: 'opp_0',
+      target_id: 'opp_0',
+      seq: 84,
+    }, { simTime: 0 })).toThrow('[REPLAY_VALIDATION] damage_dodged event seq=84 references unknown unit_id=ghost-attacker')
+
+    expect(() => applyCombatEvent(state, {
+      type: 'damage_dodged',
+      attacker_id: 'player_0',
+      unit_id: 'opp_0',
+      target_id: 'opp_0',
+      applied_damage: 1,
+      seq: 85,
+    }, { simTime: 0 })).toThrow('[REPLAY_VALIDATION] damage_dodged event seq=85 must be a zero-damage outcome for applied_damage')
+  })
+
   describe('unit identity validation', () => {
     const unitTargetedTypes = ['unit_died', 'heal', 'unit_heal', 'hp_regen', 'damage_over_time_applied'] as const
 

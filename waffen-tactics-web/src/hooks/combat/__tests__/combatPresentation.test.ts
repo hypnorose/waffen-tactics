@@ -78,6 +78,28 @@ describe('combatPresentation', () => {
     })
   })
 
+  it('presents a dodge as a distinct no-damage outcome', () => {
+    const event: CombatEvent = {
+      type: 'damage_dodged',
+      attacker_id: 'unit_a',
+      attacker_name: 'Unit A',
+      target_id: 'unit_b',
+      target_name: 'Unit B',
+      unit_id: 'unit_b',
+      unit_name: 'Unit B',
+      damage: 0,
+      applied_damage: 0,
+      cause: 'set2_dodge',
+      seq: 84,
+      timestamp: 4.2,
+    }
+
+    expect(formatCombatLogEntry(event)).toBe('[DODGE] Unit B unika obrażeń od Unit A (powód: set2_dodge)')
+    const summary = updateCombatSummary(createCombatSummary(), event)
+    expect(summary.totalDamageByUnit).toEqual({})
+    expect(summary.lastAction?.type).toBe('damage_dodged')
+  })
+
   it('formats skill casts with the canonical caster, target, and damage', () => {
     expect(formatCombatLogEntry({
       type: 'skill_cast',

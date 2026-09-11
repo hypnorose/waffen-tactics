@@ -130,6 +130,13 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     }
   }
 
+  if (event.type === 'damage_dodged') {
+    const duplicateKey = event.event_id || (event.seq !== undefined ? `seq:${event.seq}` : undefined)
+    if (duplicateKey && state.appliedDamageDodgedEvents?.[duplicateKey]) {
+      return state
+    }
+  }
+
   let newState = { ...state }
   const logLine = formatCombatLogEntry(event)
   let shouldUpdateSummary = true
@@ -284,6 +291,51 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       }
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
+
+    case 'damage_dodged': {
+      const targetId = event.target_id || event.unit_id
+      requireKnownUnit(newState, event, targetId)
+      requireKnownUnit(newState, event, event.attacker_id)
+
+      for (const [field, value] of [
+        ['damage', event.damage],
+        ['applied_damage', event.applied_damage],
+        ['shield_absorbed', event.shield_absorbed],
+      ] as const) {
+        if (value !== undefined && value !== null && value !== 0) {
+          throw new CombatReplayValidationError(event, `must be a zero-damage outcome for ${field}`, targetId)
+        }
+      }
+
+      const target = requireKnownUnit(newState, event, targetId)
+      for (const [field, value] of [
+        ['target_hp', event.target_hp],
+        ['post_hp', event.post_hp],
+        ['unit_hp', event.unit_hp],
+      ] as const) {
+        if (value !== undefined && value !== null && value !== target.hp) {
+          throw new CombatReplayValidationError(event, `changed target HP in ${field}`, targetId)
+        }
+      }
+      for (const [field, value] of [
+        ['post_shield', event.post_shield],
+        ['unit_shield', event.unit_shield],
+      ] as const) {
+        if (value !== undefined && value !== null && value !== (target.shield ?? 0)) {
+          throw new CombatReplayValidationError(event, `changed target shield in ${field}`, targetId)
+        }
+      }
+
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
+      const duplicateKey = event.event_id || (event.seq !== undefined ? `seq:${event.seq}` : undefined)
+      if (duplicateKey) {
+        newState.appliedDamageDodgedEvents = {
+          ...(newState.appliedDamageDodgedEvents || {}),
+          [duplicateKey]: true,
+        }
+      }
+      break
+    }
 
     case 'unit_died':
       updateKnownUnitById(newState, event, event.unit_id, u => ({ ...u, hp: 0 }))

@@ -177,6 +177,50 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
+    if event_type == 'damage_dodged':
+        target_id = data.get('target_id') or data.get('unit_id')
+        target_name = data.get('target_name') or data.get('unit_name')
+        if not target_id:
+            raise RuntimeError(
+                f"damage_dodged missing required target/unit_id at seq={data.get('seq')} "
+                f"payload_keys={sorted(list(data.keys()))}"
+            )
+        if not data.get('attacker_id'):
+            raise RuntimeError(
+                f"damage_dodged missing required attacker_id at seq={data.get('seq')} "
+                f"payload_keys={sorted(list(data.keys()))}"
+            )
+        # A dodge is an explicit no-op outcome. Keep it a distinct event and
+        # preserve canonical state fields when the core emitter provides them.
+        res = {
+            'type': 'damage_dodged',
+            'attacker_id': data.get('attacker_id'),
+            'attacker_name': data.get('attacker_name'),
+            'attacker_current_mana': data.get('attacker_current_mana'),
+            'attacker_max_mana': data.get('attacker_max_mana'),
+            'unit_id': target_id,
+            'unit_name': target_name,
+            'target_id': target_id,
+            'target_name': target_name,
+            'pre_hp': data.get('pre_hp'),
+            'post_hp': data.get('post_hp'),
+            'target_hp': data.get('target_hp'),
+            'new_hp': data.get('new_hp'),
+            'unit_hp': data.get('unit_hp'),
+            'target_max_hp': data.get('target_max_hp'),
+            'damage': 0,
+            'applied_damage': 0,
+            'shield_absorbed': data.get('shield_absorbed', 0),
+            'unit_shield': data.get('unit_shield'),
+            'post_shield': data.get('post_shield'),
+            'damage_type': data.get('damage_type'),
+            'bonus_attack': data.get('bonus_attack', False),
+            'dodged': True,
+            'side': data.get('side'),
+            'cause': data.get('cause'),
+            'timestamp': data.get('timestamp', time.time()),
+            'seq': data.get('seq'),
+        }
     if event_type == 'unit_died':
         res = {
             'type': 'unit_died',

@@ -348,13 +348,11 @@ class CombatAttackProcessor:
                                     'item_effect': item_context.get('item_effect'),
                                 })
 
-                            append_result('damage_dodged', {
-                                'unit_id': getattr(target_obj, 'id', None),
-                                'unit_name': getattr(target_obj, 'name', None),
-                                'attacker_id': getattr(attacker, 'id', None),
-                                'side': side_val,
-                                'timestamp': deliver_ts,
-                            })
+                            # Preserve the canonical no-op state and attacker/
+                            # target context. The dodge must never be emitted
+                            # as an ordinary unit_attack below.
+                            dmg_payload['dodged'] = True
+                            append_result('damage_dodged', dmg_payload)
                         else:
                             action_damage = int(damage_plan.get('primary_damage', action_damage))
 
@@ -557,25 +555,26 @@ class CombatAttackProcessor:
                                     bonus_attack=bonus_attack,
                                 )
 
-                        ua = self._build_unit_attack_payload(
-                            attacker,
-                            target_obj,
-                            action_damage,
-                            side_val,
-                            deliver_ts,
-                            old_hp_val,
-                            new_hp_val,
-                            bonus_attack=bonus_attack,
-                            dmg_payload=dmg_payload,
-                        )
-                        if isinstance(action_plan.get('item_context'), dict):
-                            item_context = action_plan['item_context']
-                            ua.update({
-                                'item_id': item_context.get('item_id'),
-                                'item_effect_id': item_context.get('item_effect_id'),
-                                'item_effect': item_context.get('item_effect'),
-                            })
-                        append_result('unit_attack', ua)
+                        if not damage_plan.get('dodged'):
+                            ua = self._build_unit_attack_payload(
+                                attacker,
+                                target_obj,
+                                action_damage,
+                                side_val,
+                                deliver_ts,
+                                old_hp_val,
+                                new_hp_val,
+                                bonus_attack=bonus_attack,
+                                dmg_payload=dmg_payload,
+                            )
+                            if isinstance(action_plan.get('item_context'), dict):
+                                item_context = action_plan['item_context']
+                                ua.update({
+                                    'item_id': item_context.get('item_id'),
+                                    'item_effect_id': item_context.get('item_effect_id'),
+                                    'item_effect': item_context.get('item_effect'),
+                                })
+                            append_result('unit_attack', ua)
 
                         if mana_payload:
                             append_result('mana_update', mana_payload)

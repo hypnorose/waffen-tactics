@@ -76,6 +76,7 @@ export interface CombatEvent {
   target_id?: string
   damage?: number
   applied_damage?: number
+  dodged?: boolean
   bonus_attack?: boolean
   unit_hp?: number
   target_hp?: number
@@ -116,6 +117,7 @@ export interface CombatEvent {
   buff_type?: string
   duration?: number
   shield_absorbed?: number
+  unit_shield?: number
   cause?: string
   ticks?: number
   interval?: number
@@ -287,4 +289,6 @@ export interface CombatState {
     previousPosition: 'front' | 'back'
     newPosition: 'front' | 'back'
   }>
+  // Reconnect/replay duplicates of a no-op dodge must not duplicate its log.
+  appliedDamageDodgedEvents?: Record<string, true>
 }

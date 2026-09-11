@@ -172,6 +172,11 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
         : ''
       return tag(prefix, `${attacker} -> ${target} za ${damage}${mana}`)
     }
+    case 'damage_dodged': {
+      const attacker = event.attacker_name || event.attacker_id || 'Unknown'
+      const target = event.target_name || event.unit_name || event.target_id || event.unit_id || 'Unknown'
+      return tag('DODGE', `${target} unika obrażeń od ${attacker}${formatEventContext(event)}`)
+    }
     case 'skill_cast': {
       const caster = event.caster_name || event.caster_id || event.unit_name || 'Unit'
       const skill = event.skill_name || 'umiejętność'
