@@ -10,6 +10,7 @@ interface Props {
   onRestart: () => void
   onTogglePlay: () => void
   onSeek: (index: number) => void
+  visible?: boolean
 }
 
 export default function ReplayControls({
@@ -22,6 +23,7 @@ export default function ReplayControls({
   onRestart,
   onTogglePlay,
   onSeek,
+  visible = true,
 }: Props) {
   const hasEvents = eventCount > 0
   const controlsDisabled = disabled || !hasEvents
@@ -37,13 +39,14 @@ export default function ReplayControls({
   return (
     <div
       aria-label="Sterowanie replayem walki"
+      aria-hidden={!visible}
       style={{
         position: 'absolute',
         left: 12,
         right: 12,
         bottom: 12,
         zIndex: 80,
-        display: 'grid',
+        display: visible ? 'grid' : 'none',
         gridTemplateColumns: 'auto auto minmax(120px, 1fr)',
         alignItems: 'center',
         gap: 8,

@@ -17,14 +17,18 @@ import { CombatOverlayProps } from './CombatOverlayTypes'
 import { UnitAnchorsProvider } from '../hooks/useUnitAnchors'
 import { ProjectileProvider } from '../hooks/useProjectileSystem'
 import ProjectileLayer from './ProjectileLayer'
-import { combatOverlayBoardStyle, combatOverlayPanelStyle, combatOverlaySidebarStyle } from './combatOverlayLayout'
+import { combatOverlayBoardStyle, combatOverlayPanelStyle, combatOverlaySidebarStyle, shouldStartCombatPanelCollapsed } from './combatOverlayLayout'
 
-function CombatOverlayContent({ onClose }: CombatOverlayProps) {
+export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
   const logEndRef = useRef<HTMLDivElement>(null)
   const [showVictoryOverlay, setShowVictoryOverlay] = useState(false)
   const [rouletteIndex, setRouletteIndex] = useState(0)
   const [matchmakingPhase, setMatchmakingPhase] = useState<'searching' | 'final' | 'done'>('searching')
   const [replayGateOpen, setReplayGateOpen] = useState(false)
+  const [combatPanelExpanded, setCombatPanelExpanded] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return !shouldStartCombatPanelCollapsed(window.innerWidth)
+  })
 
   const {
     playerUnits,
@@ -121,7 +125,11 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
       {!showMatchmakingOverlay && (
         <>
           <div style={combatOverlayPanelStyle}>
-            <div style={combatOverlaySidebarStyle}>
+            <div
+              id="combat-control-panel"
+              aria-hidden={!combatPanelExpanded}
+              style={{ ...combatOverlaySidebarStyle, display: combatPanelExpanded ? 'flex' : 'none' }}
+            >
               <div>
                 <CombatHeader opponentInfo={opponentInfo} />
                 <CombatSummaryPanel summary={combatSummary} synergies={synergies} />
@@ -161,17 +169,29 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
                 <PlayerUnits units={playerUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} />
               </div>
 
-              <button onClick={() => setShowLog(!showLog)} style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
-                {showLog ? 'Ukryj log walki' : 'Pokaż log walki'}
+              <button
+                type="button"
+                className="combat-panel-toggle"
+                aria-controls="combat-control-panel"
+                aria-expanded={combatPanelExpanded}
+                aria-label={combatPanelExpanded ? 'Zwiń panel walki' : 'Rozwiń panel walki'}
+                onClick={() => setCombatPanelExpanded((expanded) => !expanded)}
+                style={{ position: 'absolute', top: 16, left: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.55)', borderRadius: 6, padding: '6px 12px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+              >
+                {combatPanelExpanded ? 'Zwiń panel' : 'Rozwiń panel'}
+              </button>
+
+              <button type="button" onClick={() => setShowLog(!showLog)} style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                {showLog && combatPanelExpanded ? 'Ukryj log walki' : 'Pokaż log walki'}
               </button>
 
               {import.meta.env.DEV && (
-                <button onClick={() => setShowDesyncInspector((s) => !s)} style={{ position: 'absolute', top: 56, right: 16, zIndex: 100, background: '#1f2937', color: '#7dd3fc', border: 'none', borderRadius: 6, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                <button type="button" onClick={() => setShowDesyncInspector((s) => !s)} style={{ position: 'absolute', top: 56, right: 16, zIndex: 100, background: '#1f2937', color: '#7dd3fc', border: 'none', borderRadius: 6, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
                   {showDesyncInspector ? 'Ukryj Desync Inspector' : 'Pokaż Desync Inspector'}
                 </button>
               )}
 
-              <CombatLogModal showLog={showLog} setShowLog={setShowLog} combatLog={combatLog} logEndRef={logEndRef} />
+              <CombatLogModal showLog={showLog} visible={combatPanelExpanded} setShowLog={setShowLog} combatLog={combatLog} logEndRef={logEndRef} />
               <ReplayControls
                 eventCount={replayEvents.length}
                 currentIndex={replayEventIndex}
@@ -182,6 +202,7 @@ function CombatOverlayContent({ onClose }: CombatOverlayProps) {
                 onRestart={restartReplay}
                 onTogglePlay={toggleReplay}
                 onSeek={seekReplay}
+                visible={combatPanelExpanded}
               />
             </div>
           </div>

@@ -11,6 +11,7 @@ export const combatOverlayPanelStyle = {
   border: '3px solid #475569',
   boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
   overflow: 'hidden',
+  position: 'relative',
 } as const
 
 export const combatOverlaySidebarStyle = {
@@ -37,3 +38,9 @@ export const combatOverlayBoardStyle = {
   position: 'relative',
   overflow: 'hidden',
 } as const
+
+/** Keep the full combat panel available on desktop while giving narrow views
+ * the board-first layout they need on first render. */
+export function shouldStartCombatPanelCollapsed(viewportWidth: number): boolean {
+  return viewportWidth < 900
+}

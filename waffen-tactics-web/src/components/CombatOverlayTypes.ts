@@ -70,6 +70,7 @@ export interface CombatSpeedSliderProps {
 
 export interface CombatLogModalProps {
   showLog: boolean
+  visible?: boolean
   setShowLog: (show: boolean) => void
   combatLog: string[]
   logEndRef: React.RefObject<HTMLDivElement>

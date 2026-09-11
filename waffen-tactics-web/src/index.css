@@ -80,6 +80,11 @@ body {
   min-height: 0;
 }
 
+.combat-panel-toggle:focus-visible {
+  outline: 3px solid #fde68a;
+  outline-offset: 3px;
+}
+
 @media (max-height: 760px) {
   .combat-overlay-board {
     padding: 0.5rem !important;

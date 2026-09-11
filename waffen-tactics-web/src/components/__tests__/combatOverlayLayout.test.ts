@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { combatUnitCardOpponentSizingStyle, combatUnitCardSizingStyle } from '../combatUnitCardLayout'
-import { combatOverlayBoardStyle, combatOverlayPanelStyle, combatOverlaySidebarStyle } from '../combatOverlayLayout'
+import { combatOverlayBoardStyle, combatOverlayPanelStyle, combatOverlaySidebarStyle, shouldStartCombatPanelCollapsed } from '../combatOverlayLayout'
 
 describe('combat overlay layout contract', () => {
   it('clamps the combat panel to the viewport instead of using an overflowing fixed frame', () => {
@@ -17,6 +17,12 @@ describe('combat overlay layout contract', () => {
     expect(combatOverlaySidebarStyle.minHeight).toBe(0)
     expect(combatOverlayBoardStyle.minWidth).toBe(0)
     expect(combatOverlayBoardStyle.minHeight).toBe(0)
+  })
+
+  it('starts expanded at supported desktop widths and collapsed on narrow screens', () => {
+    expect(shouldStartCombatPanelCollapsed(1280)).toBe(false)
+    expect(shouldStartCombatPanelCollapsed(1920)).toBe(false)
+    expect(shouldStartCombatPanelCollapsed(899)).toBe(true)
   })
 
   it('uses CSS sizing variables so short viewports can compact combat cards only', () => {
