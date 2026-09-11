@@ -49,8 +49,8 @@ Verified on 2026-09-11 against the local Plane project:
   checks pass, but runtime effect execution and deployment/Game View evidence remain open.
 - WFT-23 is `In Progress`; it owns the current Set 2 roster/content boundary and must
   not be changed by this map update.
-- WFT-16 is `In Review`; WFT-160 tracks the separate expired public HTTPS certificate
-  and is a release-gate blocker.
+- WFT-16 is `In Review`; WFT-160 tracks the separate expired public HTTPS certificate,
+  while WFT-161 tracks the public roster/revision mismatch. Both are release-gate blockers.
 
 ## Legacy runtime boundary
 
