@@ -1,0 +1,3235 @@
+{
+  "schema_version": 1,
+  "issue": "WFT-199",
+  "title": "Pełna macierz testów walk, itemów, merge i replayu Set 2",
+  "generated_date": "2026-09-11",
+  "generated_by": "tools/wft199_qa_matrix.py",
+  "automated_evidence_only": true,
+  "overall_status": "in_review_needs_manual_test",
+  "source_of_truth": [
+    "waffen-tactics/item_recipe_matrix_wft139.json",
+    "docs/SEEDED_SCENARIO_MATRIX_2026-09-09.json",
+    "waffen-tactics/src/waffen_tactics/services/item_runtime.py",
+    "Plane: Waffen Tactics / WFT-199"
+  ],
+  "deterministic_seeds": {
+    "item_contract": "wft139-approved-2026-09-10",
+    "item_runtime": "wft139-approved-2026-09-10",
+    "recipe_probe_namespace": "wft199-recipe-01..21",
+    "combine_probe_namespace": "wft199-combine-01..36",
+    "merge_probe_namespace": "wft199-merge-01..21",
+    "scenario_matrix": "158001..158012"
+  },
+  "coverage_summary": {
+    "base_items": 6,
+    "combined_items": 21,
+    "legal_ordered_combine_pairs": 36,
+    "recipe_effect_families": 17,
+    "fight_scenarios": 12,
+    "merge_cases": 21,
+    "transport_cases": 8
+  },
+  "catalog_cases": [
+    {
+      "case_id": "base:spices",
+      "seed": "wft199-base-01",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#base_items[0]",
+      "input": {
+        "item_id": "spices",
+        "kind": "base"
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "item_id": "spices",
+        "kind": "base",
+        "stats": {
+          "attack": 8
+        },
+        "effect": null
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_catalog_matrix_is_complete",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "base:orangeade",
+      "seed": "wft199-base-02",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#base_items[1]",
+      "input": {
+        "item_id": "orangeade",
+        "kind": "base"
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "item_id": "orangeade",
+        "kind": "base",
+        "stats": {
+          "mana_regen": 3
+        },
+        "effect": null
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_catalog_matrix_is_complete",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "base:coat",
+      "seed": "wft199-base-03",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#base_items[2]",
+      "input": {
+        "item_id": "coat",
+        "kind": "base"
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "item_id": "coat",
+        "kind": "base",
+        "stats": {
+          "hp": 100
+        },
+        "effect": null
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_catalog_matrix_is_complete",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "base:safe",
+      "seed": "wft199-base-04",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#base_items[3]",
+      "input": {
+        "item_id": "safe",
+        "kind": "base"
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "item_id": "safe",
+        "kind": "base",
+        "stats": {
+          "defense": 12
+        },
+        "effect": null
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_catalog_matrix_is_complete",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "base:socks",
+      "seed": "wft199-base-05",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#base_items[4]",
+      "input": {
+        "item_id": "socks",
+        "kind": "base"
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "item_id": "socks",
+        "kind": "base",
+        "stats": {
+          "attack_speed": 0.12
+        },
+        "effect": null
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_catalog_matrix_is_complete",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "base:notebook",
+      "seed": "wft199-base-06",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#base_items[5]",
+      "input": {
+        "item_id": "notebook",
+        "kind": "base"
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "item_id": "notebook",
+        "kind": "base",
+        "stats": {
+          "hp_regen_per_sec": 2
+        },
+        "effect": null
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_catalog_matrix_is_complete",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:etf_przyprawowy",
+      "seed": "wft199-recipe-01",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[0]",
+      "input": {
+        "components": [
+          "spices",
+          "spices"
+        ],
+        "item_id": "etf_przyprawowy",
+        "family": "stat_only"
+      },
+      "expected_event_sequence": [
+        "stat_buff"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "etf_przyprawowy",
+        "kind": "combined",
+        "stats": {
+          "attack": 30
+        },
+        "effect_family": "stat_only",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[etf_przyprawowy]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:helena_o_smaku_kurkumy",
+      "seed": "wft199-recipe-02",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[1]",
+      "input": {
+        "components": [
+          "spices",
+          "orangeade"
+        ],
+        "item_id": "helena_o_smaku_kurkumy",
+        "family": "bonus_attack_mana"
+      },
+      "expected_event_sequence": [
+        "mana_update"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "helena_o_smaku_kurkumy",
+        "kind": "combined",
+        "stats": {
+          "attack": 10,
+          "mana_regen": 3
+        },
+        "effect_family": "bonus_attack_mana",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[helena_o_smaku_kurkumy]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:plaszcz_ze_100_bawelny",
+      "seed": "wft199-recipe-03",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[2]",
+      "input": {
+        "components": [
+          "spices",
+          "coat"
+        ],
+        "item_id": "plaszcz_ze_100_bawelny",
+        "family": "startowy_shield"
+      },
+      "expected_event_sequence": [
+        "shield_applied"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "plaszcz_ze_100_bawelny",
+        "kind": "combined",
+        "stats": {
+          "hp": 200,
+          "attack": 10
+        },
+        "effect_family": "startowy_shield",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[plaszcz_ze_100_bawelny]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:skrytka_na_oregano",
+      "seed": "wft199-recipe-04",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[3]",
+      "input": {
+        "components": [
+          "spices",
+          "safe"
+        ],
+        "item_id": "skrytka_na_oregano",
+        "family": "debuff"
+      },
+      "expected_event_sequence": [
+        "stat_buff",
+        "effect_expired"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "skrytka_na_oregano",
+        "kind": "combined",
+        "stats": {
+          "attack": 12,
+          "defense": 15
+        },
+        "effect_family": "debuff",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[skrytka_na_oregano]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:ponetne_stopki",
+      "seed": "wft199-recipe-05",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[4]",
+      "input": {
+        "components": [
+          "spices",
+          "socks"
+        ],
+        "item_id": "ponetne_stopki",
+        "family": "bonus_attack"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "ponetne_stopki",
+        "kind": "combined",
+        "stats": {
+          "attack": 15,
+          "attack_speed": 0.2
+        },
+        "effect_family": "bonus_attack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[ponetne_stopki]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:pikante_slowka",
+      "seed": "wft199-recipe-06",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[5]",
+      "input": {
+        "components": [
+          "spices",
+          "notebook"
+        ],
+        "item_id": "pikante_slowka",
+        "family": "lifesteal"
+      },
+      "expected_event_sequence": [
+        "heal"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "pikante_slowka",
+        "kind": "combined",
+        "stats": {
+          "attack": 15,
+          "hp_regen_per_sec": 4,
+          "lifesteal_percent": 10
+        },
+        "effect_family": "lifesteal",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[pikante_slowka]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:mandarynkowy_sodastream",
+      "seed": "wft199-recipe-07",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[6]",
+      "input": {
+        "components": [
+          "orangeade",
+          "orangeade"
+        ],
+        "item_id": "mandarynkowy_sodastream",
+        "family": "bonus_attack_mana"
+      },
+      "expected_event_sequence": [
+        "mana_update"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "mandarynkowy_sodastream",
+        "kind": "combined",
+        "stats": {
+          "mana_regen": 12
+        },
+        "effect_family": "bonus_attack_mana",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[mandarynkowy_sodastream]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:bluza_z_bytom",
+      "seed": "wft199-recipe-08",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[7]",
+      "input": {
+        "components": [
+          "orangeade",
+          "coat"
+        ],
+        "item_id": "bluza_z_bytom",
+        "family": "periodic_heal"
+      },
+      "expected_event_sequence": [
+        "heal"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "bluza_z_bytom",
+        "kind": "combined",
+        "stats": {
+          "hp": 150,
+          "mana_regen": 4
+        },
+        "effect_family": "periodic_heal",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[bluza_z_bytom]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:kolekcja_syropow",
+      "seed": "wft199-recipe-09",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[8]",
+      "input": {
+        "components": [
+          "orangeade",
+          "safe"
+        ],
+        "item_id": "kolekcja_syropow",
+        "family": "threshold"
+      },
+      "expected_event_sequence": [
+        "mana_update",
+        "shield_applied",
+        "effect_applied",
+        "effect_expired"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "kolekcja_syropow",
+        "kind": "combined",
+        "stats": {
+          "defense": 15,
+          "mana_regen": 3
+        },
+        "effect_family": "threshold",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[kolekcja_syropow]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:kremik_owocowy",
+      "seed": "wft199-recipe-10",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[9]",
+      "input": {
+        "components": [
+          "orangeade",
+          "socks"
+        ],
+        "item_id": "kremik_owocowy",
+        "family": "per_n_attack"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "kremik_owocowy",
+        "kind": "combined",
+        "stats": {
+          "mana_regen": 4,
+          "attack_speed": 0.18
+        },
+        "effect_family": "per_n_attack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[kremik_owocowy]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:telewizor_4k_50_cali",
+      "seed": "wft199-recipe-11",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[10]",
+      "input": {
+        "components": [
+          "orangeade",
+          "notebook"
+        ],
+        "item_id": "telewizor_4k_50_cali",
+        "family": "mana_to_heal"
+      },
+      "expected_event_sequence": [
+        "mana_update",
+        "heal"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "telewizor_4k_50_cali",
+        "kind": "combined",
+        "stats": {
+          "mana_regen": 4,
+          "hp_regen_per_sec": 4
+        },
+        "effect_family": "mana_to_heal",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[telewizor_4k_50_cali]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:plaszcz_200_welny",
+      "seed": "wft199-recipe-12",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[11]",
+      "input": {
+        "components": [
+          "coat",
+          "coat"
+        ],
+        "item_id": "plaszcz_200_welny",
+        "family": "stat_only"
+      },
+      "expected_event_sequence": [
+        "stat_buff"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "plaszcz_200_welny",
+        "kind": "combined",
+        "stats": {
+          "hp": 600
+        },
+        "effect_family": "stat_only",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[plaszcz_200_welny]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:forteca_z_ksiazek",
+      "seed": "wft199-recipe-13",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[12]",
+      "input": {
+        "components": [
+          "coat",
+          "safe"
+        ],
+        "item_id": "forteca_z_ksiazek",
+        "family": "max_hp_damage"
+      },
+      "expected_event_sequence": [
+        "damage_over_time_tick"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "forteca_z_ksiazek",
+        "kind": "combined",
+        "stats": {
+          "hp": 200,
+          "defense": 20
+        },
+        "effect_family": "max_hp_damage",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[forteca_z_ksiazek]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:fartuszek_femboya",
+      "seed": "wft199-recipe-14",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[13]",
+      "input": {
+        "components": [
+          "coat",
+          "socks"
+        ],
+        "item_id": "fartuszek_femboya",
+        "family": "bonus_attack"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "fartuszek_femboya",
+        "kind": "combined",
+        "stats": {
+          "hp": 150,
+          "attack_speed": 0.15
+        },
+        "effect_family": "bonus_attack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[fartuszek_femboya]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:full_plate_cum_armor",
+      "seed": "wft199-recipe-15",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[14]",
+      "input": {
+        "components": [
+          "coat",
+          "notebook"
+        ],
+        "item_id": "full_plate_cum_armor",
+        "family": "periodic_heal"
+      },
+      "expected_event_sequence": [
+        "heal"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "full_plate_cum_armor",
+        "kind": "combined",
+        "stats": {
+          "hp": 200,
+          "hp_regen_per_sec": 6
+        },
+        "effect_family": "periodic_heal",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[full_plate_cum_armor]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:skruszony_zab",
+      "seed": "wft199-recipe-16",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[15]",
+      "input": {
+        "components": [
+          "safe",
+          "safe"
+        ],
+        "item_id": "skruszony_zab",
+        "family": "reflect"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "skruszony_zab",
+        "kind": "combined",
+        "stats": {
+          "defense": 30
+        },
+        "effect_family": "reflect",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[skruszony_zab]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:zestaw_do_makijazu_po_edycie",
+      "seed": "wft199-recipe-17",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[16]",
+      "input": {
+        "components": [
+          "safe",
+          "socks"
+        ],
+        "item_id": "zestaw_do_makijazu_po_edycie",
+        "family": "per_attack_stack"
+      },
+      "expected_event_sequence": [
+        "stat_buff"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "zestaw_do_makijazu_po_edycie",
+        "kind": "combined",
+        "stats": {
+          "defense": 15,
+          "attack_speed": 0.15
+        },
+        "effect_family": "per_attack_stack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[zestaw_do_makijazu_po_edycie]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:fap_folder",
+      "seed": "wft199-recipe-18",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[17]",
+      "input": {
+        "components": [
+          "safe",
+          "notebook"
+        ],
+        "item_id": "fap_folder",
+        "family": "per_hit_received_stack"
+      },
+      "expected_event_sequence": [
+        "stat_buff"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "fap_folder",
+        "kind": "combined",
+        "stats": {
+          "defense": 18,
+          "hp_regen_per_sec": 4
+        },
+        "effect_family": "per_hit_received_stack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[fap_folder]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:stopki_rozmiar_44",
+      "seed": "wft199-recipe-19",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[18]",
+      "input": {
+        "components": [
+          "socks",
+          "socks"
+        ],
+        "item_id": "stopki_rozmiar_44",
+        "family": "multi_target_bonus_attack"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "stopki_rozmiar_44",
+        "kind": "combined",
+        "stats": {
+          "attack_speed": 0.35
+        },
+        "effect_family": "multi_target_bonus_attack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[stopki_rozmiar_44]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:idealny_traf",
+      "seed": "wft199-recipe-20",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[19]",
+      "input": {
+        "components": [
+          "socks",
+          "notebook"
+        ],
+        "item_id": "idealny_traf",
+        "family": "per_attack_damage"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "idealny_traf",
+        "kind": "combined",
+        "stats": {
+          "attack_speed": 0.18,
+          "hp_regen_per_sec": 3
+        },
+        "effect_family": "per_attack_damage",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[idealny_traf]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:encyklopedia_seksu",
+      "seed": "wft199-recipe-21",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[20]",
+      "input": {
+        "components": [
+          "notebook",
+          "notebook"
+        ],
+        "item_id": "encyklopedia_seksu",
+        "family": "shared_regen"
+      },
+      "expected_event_sequence": [
+        "stat_buff",
+        "unit_died",
+        "effect_applied"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "encyklopedia_seksu",
+        "kind": "combined",
+        "stats": {
+          "hp_regen_per_sec": 12
+        },
+        "effect_family": "shared_regen",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[encyklopedia_seksu]",
+      "status": "automated_pass"
+    }
+  ],
+  "combine_cases": [
+    {
+      "case_id": "combine:spices+spices",
+      "seed": "wft199-combine-01",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[0]",
+      "input": {
+        "first": "spices",
+        "second": "spices"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "etf_przyprawowy"
+        ],
+        "consumed_components": [
+          "spices",
+          "spices"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[spices-spices]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:spices+orangeade",
+      "seed": "wft199-combine-02",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[1]",
+      "input": {
+        "first": "spices",
+        "second": "orangeade"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "helena_o_smaku_kurkumy"
+        ],
+        "consumed_components": [
+          "spices",
+          "orangeade"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[spices-orangeade]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:orangeade+spices",
+      "seed": "wft199-combine-03",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[1]",
+      "input": {
+        "first": "orangeade",
+        "second": "spices"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "helena_o_smaku_kurkumy"
+        ],
+        "consumed_components": [
+          "orangeade",
+          "spices"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[orangeade-spices]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:spices+coat",
+      "seed": "wft199-combine-04",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[2]",
+      "input": {
+        "first": "spices",
+        "second": "coat"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "plaszcz_ze_100_bawelny"
+        ],
+        "consumed_components": [
+          "spices",
+          "coat"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[spices-coat]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:coat+spices",
+      "seed": "wft199-combine-05",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[2]",
+      "input": {
+        "first": "coat",
+        "second": "spices"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "plaszcz_ze_100_bawelny"
+        ],
+        "consumed_components": [
+          "coat",
+          "spices"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[coat-spices]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:spices+safe",
+      "seed": "wft199-combine-06",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[3]",
+      "input": {
+        "first": "spices",
+        "second": "safe"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "skrytka_na_oregano"
+        ],
+        "consumed_components": [
+          "spices",
+          "safe"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[spices-safe]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:safe+spices",
+      "seed": "wft199-combine-07",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[3]",
+      "input": {
+        "first": "safe",
+        "second": "spices"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "skrytka_na_oregano"
+        ],
+        "consumed_components": [
+          "safe",
+          "spices"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[safe-spices]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:spices+socks",
+      "seed": "wft199-combine-08",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[4]",
+      "input": {
+        "first": "spices",
+        "second": "socks"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "ponetne_stopki"
+        ],
+        "consumed_components": [
+          "spices",
+          "socks"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[spices-socks]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:socks+spices",
+      "seed": "wft199-combine-09",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[4]",
+      "input": {
+        "first": "socks",
+        "second": "spices"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "ponetne_stopki"
+        ],
+        "consumed_components": [
+          "socks",
+          "spices"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[socks-spices]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:spices+notebook",
+      "seed": "wft199-combine-10",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[5]",
+      "input": {
+        "first": "spices",
+        "second": "notebook"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "pikante_slowka"
+        ],
+        "consumed_components": [
+          "spices",
+          "notebook"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[spices-notebook]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:notebook+spices",
+      "seed": "wft199-combine-11",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[5]",
+      "input": {
+        "first": "notebook",
+        "second": "spices"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "pikante_slowka"
+        ],
+        "consumed_components": [
+          "notebook",
+          "spices"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[notebook-spices]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:orangeade+orangeade",
+      "seed": "wft199-combine-12",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[6]",
+      "input": {
+        "first": "orangeade",
+        "second": "orangeade"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "mandarynkowy_sodastream"
+        ],
+        "consumed_components": [
+          "orangeade",
+          "orangeade"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[orangeade-orangeade]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:orangeade+coat",
+      "seed": "wft199-combine-13",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[7]",
+      "input": {
+        "first": "orangeade",
+        "second": "coat"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "bluza_z_bytom"
+        ],
+        "consumed_components": [
+          "orangeade",
+          "coat"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[orangeade-coat]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:coat+orangeade",
+      "seed": "wft199-combine-14",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[7]",
+      "input": {
+        "first": "coat",
+        "second": "orangeade"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "bluza_z_bytom"
+        ],
+        "consumed_components": [
+          "coat",
+          "orangeade"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[coat-orangeade]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:orangeade+safe",
+      "seed": "wft199-combine-15",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[8]",
+      "input": {
+        "first": "orangeade",
+        "second": "safe"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "kolekcja_syropow"
+        ],
+        "consumed_components": [
+          "orangeade",
+          "safe"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[orangeade-safe]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:safe+orangeade",
+      "seed": "wft199-combine-16",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[8]",
+      "input": {
+        "first": "safe",
+        "second": "orangeade"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "kolekcja_syropow"
+        ],
+        "consumed_components": [
+          "safe",
+          "orangeade"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[safe-orangeade]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:orangeade+socks",
+      "seed": "wft199-combine-17",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[9]",
+      "input": {
+        "first": "orangeade",
+        "second": "socks"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "kremik_owocowy"
+        ],
+        "consumed_components": [
+          "orangeade",
+          "socks"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[orangeade-socks]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:socks+orangeade",
+      "seed": "wft199-combine-18",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[9]",
+      "input": {
+        "first": "socks",
+        "second": "orangeade"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "kremik_owocowy"
+        ],
+        "consumed_components": [
+          "socks",
+          "orangeade"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[socks-orangeade]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:orangeade+notebook",
+      "seed": "wft199-combine-19",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[10]",
+      "input": {
+        "first": "orangeade",
+        "second": "notebook"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "telewizor_4k_50_cali"
+        ],
+        "consumed_components": [
+          "orangeade",
+          "notebook"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[orangeade-notebook]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:notebook+orangeade",
+      "seed": "wft199-combine-20",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[10]",
+      "input": {
+        "first": "notebook",
+        "second": "orangeade"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "telewizor_4k_50_cali"
+        ],
+        "consumed_components": [
+          "notebook",
+          "orangeade"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[notebook-orangeade]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:coat+coat",
+      "seed": "wft199-combine-21",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[11]",
+      "input": {
+        "first": "coat",
+        "second": "coat"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "plaszcz_200_welny"
+        ],
+        "consumed_components": [
+          "coat",
+          "coat"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[coat-coat]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:coat+safe",
+      "seed": "wft199-combine-22",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[12]",
+      "input": {
+        "first": "coat",
+        "second": "safe"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "forteca_z_ksiazek"
+        ],
+        "consumed_components": [
+          "coat",
+          "safe"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[coat-safe]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:safe+coat",
+      "seed": "wft199-combine-23",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[12]",
+      "input": {
+        "first": "safe",
+        "second": "coat"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "forteca_z_ksiazek"
+        ],
+        "consumed_components": [
+          "safe",
+          "coat"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[safe-coat]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:coat+socks",
+      "seed": "wft199-combine-24",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[13]",
+      "input": {
+        "first": "coat",
+        "second": "socks"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "fartuszek_femboya"
+        ],
+        "consumed_components": [
+          "coat",
+          "socks"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[coat-socks]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:socks+coat",
+      "seed": "wft199-combine-25",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[13]",
+      "input": {
+        "first": "socks",
+        "second": "coat"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "fartuszek_femboya"
+        ],
+        "consumed_components": [
+          "socks",
+          "coat"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[socks-coat]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:coat+notebook",
+      "seed": "wft199-combine-26",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[14]",
+      "input": {
+        "first": "coat",
+        "second": "notebook"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "full_plate_cum_armor"
+        ],
+        "consumed_components": [
+          "coat",
+          "notebook"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[coat-notebook]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:notebook+coat",
+      "seed": "wft199-combine-27",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[14]",
+      "input": {
+        "first": "notebook",
+        "second": "coat"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "full_plate_cum_armor"
+        ],
+        "consumed_components": [
+          "notebook",
+          "coat"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[notebook-coat]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:safe+safe",
+      "seed": "wft199-combine-28",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[15]",
+      "input": {
+        "first": "safe",
+        "second": "safe"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "skruszony_zab"
+        ],
+        "consumed_components": [
+          "safe",
+          "safe"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[safe-safe]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:safe+socks",
+      "seed": "wft199-combine-29",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[16]",
+      "input": {
+        "first": "safe",
+        "second": "socks"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "zestaw_do_makijazu_po_edycie"
+        ],
+        "consumed_components": [
+          "safe",
+          "socks"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[safe-socks]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:socks+safe",
+      "seed": "wft199-combine-30",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[16]",
+      "input": {
+        "first": "socks",
+        "second": "safe"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "zestaw_do_makijazu_po_edycie"
+        ],
+        "consumed_components": [
+          "socks",
+          "safe"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[socks-safe]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:safe+notebook",
+      "seed": "wft199-combine-31",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[17]",
+      "input": {
+        "first": "safe",
+        "second": "notebook"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "fap_folder"
+        ],
+        "consumed_components": [
+          "safe",
+          "notebook"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[safe-notebook]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:notebook+safe",
+      "seed": "wft199-combine-32",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[17]",
+      "input": {
+        "first": "notebook",
+        "second": "safe"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "fap_folder"
+        ],
+        "consumed_components": [
+          "notebook",
+          "safe"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[notebook-safe]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:socks+socks",
+      "seed": "wft199-combine-33",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[18]",
+      "input": {
+        "first": "socks",
+        "second": "socks"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "stopki_rozmiar_44"
+        ],
+        "consumed_components": [
+          "socks",
+          "socks"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[socks-socks]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:socks+notebook",
+      "seed": "wft199-combine-34",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[19]",
+      "input": {
+        "first": "socks",
+        "second": "notebook"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "idealny_traf"
+        ],
+        "consumed_components": [
+          "socks",
+          "notebook"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[socks-notebook]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:notebook+socks",
+      "seed": "wft199-combine-35",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[19]",
+      "input": {
+        "first": "notebook",
+        "second": "socks"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "idealny_traf"
+        ],
+        "consumed_components": [
+          "notebook",
+          "socks"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[notebook-socks]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "combine:notebook+notebook",
+      "seed": "wft199-combine-36",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[20]",
+      "input": {
+        "first": "notebook",
+        "second": "notebook"
+      },
+      "expected_event_sequence": [
+        "item_combined"
+      ],
+      "expected_final_snapshot": {
+        "item_inventory": [
+          "encyklopedia_seksu"
+        ],
+        "consumed_components": [
+          "notebook",
+          "notebook"
+        ]
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction[notebook-notebook]",
+      "status": "automated_pass"
+    }
+  ],
+  "recipe_cases": [
+    {
+      "case_id": "recipe:etf_przyprawowy",
+      "seed": "wft199-recipe-01",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[0]",
+      "input": {
+        "components": [
+          "spices",
+          "spices"
+        ],
+        "item_id": "etf_przyprawowy",
+        "family": "stat_only"
+      },
+      "expected_event_sequence": [
+        "stat_buff"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "etf_przyprawowy",
+        "kind": "combined",
+        "stats": {
+          "attack": 30
+        },
+        "effect_family": "stat_only",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[etf_przyprawowy]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:helena_o_smaku_kurkumy",
+      "seed": "wft199-recipe-02",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[1]",
+      "input": {
+        "components": [
+          "spices",
+          "orangeade"
+        ],
+        "item_id": "helena_o_smaku_kurkumy",
+        "family": "bonus_attack_mana"
+      },
+      "expected_event_sequence": [
+        "mana_update"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "helena_o_smaku_kurkumy",
+        "kind": "combined",
+        "stats": {
+          "attack": 10,
+          "mana_regen": 3
+        },
+        "effect_family": "bonus_attack_mana",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[helena_o_smaku_kurkumy]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:plaszcz_ze_100_bawelny",
+      "seed": "wft199-recipe-03",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[2]",
+      "input": {
+        "components": [
+          "spices",
+          "coat"
+        ],
+        "item_id": "plaszcz_ze_100_bawelny",
+        "family": "startowy_shield"
+      },
+      "expected_event_sequence": [
+        "shield_applied"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "plaszcz_ze_100_bawelny",
+        "kind": "combined",
+        "stats": {
+          "hp": 200,
+          "attack": 10
+        },
+        "effect_family": "startowy_shield",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[plaszcz_ze_100_bawelny]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:skrytka_na_oregano",
+      "seed": "wft199-recipe-04",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[3]",
+      "input": {
+        "components": [
+          "spices",
+          "safe"
+        ],
+        "item_id": "skrytka_na_oregano",
+        "family": "debuff"
+      },
+      "expected_event_sequence": [
+        "stat_buff",
+        "effect_expired"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "skrytka_na_oregano",
+        "kind": "combined",
+        "stats": {
+          "attack": 12,
+          "defense": 15
+        },
+        "effect_family": "debuff",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[skrytka_na_oregano]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:ponetne_stopki",
+      "seed": "wft199-recipe-05",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[4]",
+      "input": {
+        "components": [
+          "spices",
+          "socks"
+        ],
+        "item_id": "ponetne_stopki",
+        "family": "bonus_attack"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "ponetne_stopki",
+        "kind": "combined",
+        "stats": {
+          "attack": 15,
+          "attack_speed": 0.2
+        },
+        "effect_family": "bonus_attack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[ponetne_stopki]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:pikante_slowka",
+      "seed": "wft199-recipe-06",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[5]",
+      "input": {
+        "components": [
+          "spices",
+          "notebook"
+        ],
+        "item_id": "pikante_slowka",
+        "family": "lifesteal"
+      },
+      "expected_event_sequence": [
+        "heal"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "pikante_slowka",
+        "kind": "combined",
+        "stats": {
+          "attack": 15,
+          "hp_regen_per_sec": 4,
+          "lifesteal_percent": 10
+        },
+        "effect_family": "lifesteal",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[pikante_slowka]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:mandarynkowy_sodastream",
+      "seed": "wft199-recipe-07",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[6]",
+      "input": {
+        "components": [
+          "orangeade",
+          "orangeade"
+        ],
+        "item_id": "mandarynkowy_sodastream",
+        "family": "bonus_attack_mana"
+      },
+      "expected_event_sequence": [
+        "mana_update"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "mandarynkowy_sodastream",
+        "kind": "combined",
+        "stats": {
+          "mana_regen": 12
+        },
+        "effect_family": "bonus_attack_mana",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[mandarynkowy_sodastream]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:bluza_z_bytom",
+      "seed": "wft199-recipe-08",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[7]",
+      "input": {
+        "components": [
+          "orangeade",
+          "coat"
+        ],
+        "item_id": "bluza_z_bytom",
+        "family": "periodic_heal"
+      },
+      "expected_event_sequence": [
+        "heal"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "bluza_z_bytom",
+        "kind": "combined",
+        "stats": {
+          "hp": 150,
+          "mana_regen": 4
+        },
+        "effect_family": "periodic_heal",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[bluza_z_bytom]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:kolekcja_syropow",
+      "seed": "wft199-recipe-09",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[8]",
+      "input": {
+        "components": [
+          "orangeade",
+          "safe"
+        ],
+        "item_id": "kolekcja_syropow",
+        "family": "threshold"
+      },
+      "expected_event_sequence": [
+        "mana_update",
+        "shield_applied",
+        "effect_applied",
+        "effect_expired"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "kolekcja_syropow",
+        "kind": "combined",
+        "stats": {
+          "defense": 15,
+          "mana_regen": 3
+        },
+        "effect_family": "threshold",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[kolekcja_syropow]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:kremik_owocowy",
+      "seed": "wft199-recipe-10",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[9]",
+      "input": {
+        "components": [
+          "orangeade",
+          "socks"
+        ],
+        "item_id": "kremik_owocowy",
+        "family": "per_n_attack"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "kremik_owocowy",
+        "kind": "combined",
+        "stats": {
+          "mana_regen": 4,
+          "attack_speed": 0.18
+        },
+        "effect_family": "per_n_attack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[kremik_owocowy]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:telewizor_4k_50_cali",
+      "seed": "wft199-recipe-11",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[10]",
+      "input": {
+        "components": [
+          "orangeade",
+          "notebook"
+        ],
+        "item_id": "telewizor_4k_50_cali",
+        "family": "mana_to_heal"
+      },
+      "expected_event_sequence": [
+        "mana_update",
+        "heal"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "telewizor_4k_50_cali",
+        "kind": "combined",
+        "stats": {
+          "mana_regen": 4,
+          "hp_regen_per_sec": 4
+        },
+        "effect_family": "mana_to_heal",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[telewizor_4k_50_cali]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:plaszcz_200_welny",
+      "seed": "wft199-recipe-12",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[11]",
+      "input": {
+        "components": [
+          "coat",
+          "coat"
+        ],
+        "item_id": "plaszcz_200_welny",
+        "family": "stat_only"
+      },
+      "expected_event_sequence": [
+        "stat_buff"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "plaszcz_200_welny",
+        "kind": "combined",
+        "stats": {
+          "hp": 600
+        },
+        "effect_family": "stat_only",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[plaszcz_200_welny]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:forteca_z_ksiazek",
+      "seed": "wft199-recipe-13",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[12]",
+      "input": {
+        "components": [
+          "coat",
+          "safe"
+        ],
+        "item_id": "forteca_z_ksiazek",
+        "family": "max_hp_damage"
+      },
+      "expected_event_sequence": [
+        "damage_over_time_tick"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "forteca_z_ksiazek",
+        "kind": "combined",
+        "stats": {
+          "hp": 200,
+          "defense": 20
+        },
+        "effect_family": "max_hp_damage",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[forteca_z_ksiazek]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:fartuszek_femboya",
+      "seed": "wft199-recipe-14",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[13]",
+      "input": {
+        "components": [
+          "coat",
+          "socks"
+        ],
+        "item_id": "fartuszek_femboya",
+        "family": "bonus_attack"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "fartuszek_femboya",
+        "kind": "combined",
+        "stats": {
+          "hp": 150,
+          "attack_speed": 0.15
+        },
+        "effect_family": "bonus_attack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[fartuszek_femboya]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:full_plate_cum_armor",
+      "seed": "wft199-recipe-15",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[14]",
+      "input": {
+        "components": [
+          "coat",
+          "notebook"
+        ],
+        "item_id": "full_plate_cum_armor",
+        "family": "periodic_heal"
+      },
+      "expected_event_sequence": [
+        "heal"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "full_plate_cum_armor",
+        "kind": "combined",
+        "stats": {
+          "hp": 200,
+          "hp_regen_per_sec": 6
+        },
+        "effect_family": "periodic_heal",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[full_plate_cum_armor]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:skruszony_zab",
+      "seed": "wft199-recipe-16",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[15]",
+      "input": {
+        "components": [
+          "safe",
+          "safe"
+        ],
+        "item_id": "skruszony_zab",
+        "family": "reflect"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "skruszony_zab",
+        "kind": "combined",
+        "stats": {
+          "defense": 30
+        },
+        "effect_family": "reflect",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[skruszony_zab]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:zestaw_do_makijazu_po_edycie",
+      "seed": "wft199-recipe-17",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[16]",
+      "input": {
+        "components": [
+          "safe",
+          "socks"
+        ],
+        "item_id": "zestaw_do_makijazu_po_edycie",
+        "family": "per_attack_stack"
+      },
+      "expected_event_sequence": [
+        "stat_buff"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "zestaw_do_makijazu_po_edycie",
+        "kind": "combined",
+        "stats": {
+          "defense": 15,
+          "attack_speed": 0.15
+        },
+        "effect_family": "per_attack_stack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[zestaw_do_makijazu_po_edycie]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:fap_folder",
+      "seed": "wft199-recipe-18",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[17]",
+      "input": {
+        "components": [
+          "safe",
+          "notebook"
+        ],
+        "item_id": "fap_folder",
+        "family": "per_hit_received_stack"
+      },
+      "expected_event_sequence": [
+        "stat_buff"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "fap_folder",
+        "kind": "combined",
+        "stats": {
+          "defense": 18,
+          "hp_regen_per_sec": 4
+        },
+        "effect_family": "per_hit_received_stack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[fap_folder]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:stopki_rozmiar_44",
+      "seed": "wft199-recipe-19",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[18]",
+      "input": {
+        "components": [
+          "socks",
+          "socks"
+        ],
+        "item_id": "stopki_rozmiar_44",
+        "family": "multi_target_bonus_attack"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "stopki_rozmiar_44",
+        "kind": "combined",
+        "stats": {
+          "attack_speed": 0.35
+        },
+        "effect_family": "multi_target_bonus_attack",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[stopki_rozmiar_44]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:idealny_traf",
+      "seed": "wft199-recipe-20",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[19]",
+      "input": {
+        "components": [
+          "socks",
+          "notebook"
+        ],
+        "item_id": "idealny_traf",
+        "family": "per_attack_damage"
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "idealny_traf",
+        "kind": "combined",
+        "stats": {
+          "attack_speed": 0.18,
+          "hp_regen_per_sec": 3
+        },
+        "effect_family": "per_attack_damage",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[idealny_traf]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "recipe:encyklopedia_seksu",
+      "seed": "wft199-recipe-21",
+      "fixture": "waffen-tactics/item_recipe_matrix_wft139.json#recipes[20]",
+      "input": {
+        "components": [
+          "notebook",
+          "notebook"
+        ],
+        "item_id": "encyklopedia_seksu",
+        "family": "shared_regen"
+      },
+      "expected_event_sequence": [
+        "stat_buff",
+        "unit_died",
+        "effect_applied"
+      ],
+      "expected_final_snapshot": {
+        "item_id": "encyklopedia_seksu",
+        "kind": "combined",
+        "stats": {
+          "hp_regen_per_sec": 12
+        },
+        "effect_family": "shared_regen",
+        "reset_between_fights": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix[encyklopedia_seksu]",
+      "status": "automated_pass"
+    }
+  ],
+  "fight_cases": [
+    {
+      "case_id": "fight:frontline_then_backline",
+      "seed": 158001,
+      "fixture": "waffen-tactics/tests/test_approved_combat_rules.py::test_default_targeting_uses_frontline_then_reaches_backline",
+      "input": {
+        "team_a": [
+          "synthetic_attacker"
+        ],
+        "team_b": [
+          "synthetic_front",
+          "synthetic_back"
+        ],
+        "formation": {
+          "team_a": [
+            "front"
+          ],
+          "team_b": [
+            "front",
+            "back"
+          ]
+        }
+      },
+      "expected_event_sequence": [
+        "unit_attack",
+        "unit_died"
+      ],
+      "expected_final_snapshot": {
+        "assertions": {
+          "target_order": [
+            "synthetic_front",
+            "synthetic_back"
+          ],
+          "event_types": [
+            "unit_attack",
+            "unit_died"
+          ]
+        },
+        "acceptance": "Default targeting selects the live frontline and reaches the backline only after frontline death."
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_default_targeting_uses_frontline_then_reaches_backline",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:no_legal_target_noop",
+      "seed": 158002,
+      "fixture": "waffen-tactics/tests/test_approved_combat_rules.py::test_no_legal_target_is_a_noop_and_clears_stale_focus",
+      "input": {
+        "team_a": [
+          "synthetic_attacker"
+        ],
+        "team_b": [
+          "synthetic_dead_target"
+        ],
+        "formation": {
+          "team_a": [
+            "front"
+          ],
+          "team_b": [
+            "front"
+          ]
+        }
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "assertions": {
+          "target_order": [],
+          "event_types": [],
+          "stale_focus": "cleared"
+        },
+        "acceptance": "A dead-only opposing team produces no attack event and clears stale focus."
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_no_legal_target_is_a_noop_and_clears_stale_focus",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:team_a_before_team_b_same_tick",
+      "seed": 158003,
+      "fixture": "waffen-tactics/tests/test_approved_combat_rules.py::test_attack_phase_is_team_a_before_team_b_at_same_tick",
+      "input": {
+        "team_a": [
+          "synthetic_fast_a"
+        ],
+        "team_b": [
+          "synthetic_fast_b"
+        ],
+        "formation": {
+          "team_a": [
+            "front"
+          ],
+          "team_b": [
+            "front"
+          ]
+        }
+      },
+      "expected_event_sequence": [
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "assertions": {
+          "same_tick_attack_order": [
+            "synthetic_fast_a",
+            "synthetic_fast_b"
+          ],
+          "event_types": [
+            "unit_attack"
+          ]
+        },
+        "acceptance": "At the same simulation tick, Team A attack events are emitted before Team B attack events."
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_attack_phase_is_team_a_before_team_b_at_same_tick",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:full_tempo_bonus_attack",
+      "seed": 158004,
+      "fixture": "waffen-tactics/tests/test_approved_combat_rules.py::test_full_mana_produces_one_bonus_basic_attack_without_skill_event",
+      "input": {
+        "team_a": [
+          "synthetic_full_mana_attacker"
+        ],
+        "team_b": [
+          "synthetic_target"
+        ],
+        "formation": {
+          "team_a": [
+            "front"
+          ],
+          "team_b": [
+            "front"
+          ]
+        }
+      },
+      "expected_event_sequence": [
+        "unit_attack",
+        "mana_update"
+      ],
+      "expected_final_snapshot": {
+        "assertions": {
+          "bonus_attack_count": 1,
+          "skill_cast_count": 0,
+          "event_types": [
+            "unit_attack",
+            "mana_update"
+          ]
+        },
+        "acceptance": "Full mana creates one bonus basic attack and does not emit a skill cast."
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_approved_combat_rules.py::test_full_mana_produces_one_bonus_basic_attack_without_skill_event",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:enemy_death_trigger",
+      "seed": 158005,
+      "fixture": "waffen-tactics/tests/test_combat_shared.py::test_on_enemy_death_event_callback",
+      "input": {
+        "team_a": [
+          "streamer_unit"
+        ],
+        "team_b": [
+          "weak_defender"
+        ],
+        "formation": {
+          "team_a": [
+            "front"
+          ],
+          "team_b": [
+            "front"
+          ]
+        }
+      },
+      "expected_event_sequence": [
+        "unit_died",
+        "stat_buff"
+      ],
+      "expected_final_snapshot": {
+        "assertions": {
+          "trigger": "on_enemy_death",
+          "event_types": [
+            "unit_died",
+            "stat_buff"
+          ]
+        },
+        "acceptance": "An enemy death emits the authored attack and defense reward events once per configured recipient."
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_combat_shared.py::test_on_enemy_death_event_callback",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:ally_death_trigger_once",
+      "seed": 158006,
+      "fixture": "waffen-tactics/tests/test_combat_shared.py::test_on_ally_death_trigger_once",
+      "input": {
+        "team_a": [
+          "synthetic_killer"
+        ],
+        "team_b": [
+          "weak_ally",
+          "denciak_one",
+          "denciak_two"
+        ],
+        "formation": {
+          "team_a": [
+            "front"
+          ],
+          "team_b": [
+            "front",
+            "front",
+            "back"
+          ]
+        }
+      },
+      "expected_event_sequence": [
+        "unit_died",
+        "gold_reward"
+      ],
+      "expected_final_snapshot": {
+        "assertions": {
+          "trigger": "on_ally_death",
+          "gold_reward_count": 1,
+          "event_types": [
+            "unit_died",
+            "gold_reward"
+          ]
+        },
+        "acceptance": "trigger_once limits the reward to one event for the same ally death."
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_combat_shared.py::test_on_ally_death_trigger_once",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:low_hp_threshold",
+      "seed": 158007,
+      "fixture": "waffen-tactics/tests/test_combat_effect_processor.py::TestCombatEffectProcessor::test_process_ally_hp_below_triggers",
+      "input": {
+        "team_a": [
+          "threshold_holder",
+          "ally"
+        ],
+        "team_b": [
+          "damage_dealer"
+        ],
+        "formation": {
+          "team_a": [
+            "front",
+            "back"
+          ],
+          "team_b": [
+            "front"
+          ]
+        }
+      },
+      "expected_event_sequence": [
+        "stat_buff",
+        "unit_heal"
+      ],
+      "expected_final_snapshot": {
+        "assertions": {
+          "trigger": "ally_hp_below",
+          "event_types": [
+            "stat_buff",
+            "unit_heal"
+          ]
+        },
+        "acceptance": "The low-HP trigger is evaluated against the authoritative HP threshold and marks the effect as triggered."
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_combat_effect_processor.py::TestCombatEffectProcessor::test_process_ally_hp_below_triggers",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:trait_threshold_control",
+      "seed": 158008,
+      "fixture": "tools/balance_audit.py::trait_control_audit",
+      "input": {
+        "team_a": [
+          "authored_trait_team"
+        ],
+        "team_b": [
+          "control_team"
+        ],
+        "formation": {
+          "team_a": [
+            "front"
+          ],
+          "team_b": [
+            "front"
+          ]
+        }
+      },
+      "expected_event_sequence": [
+        "trait_activated"
+      ],
+      "expected_final_snapshot": {
+        "assertions": {
+          "threshold_states": [
+            "below",
+            "exact",
+            "next"
+          ],
+          "event_types": [
+            "trait_activated"
+          ]
+        },
+        "acceptance": "Trait threshold activation is deterministic and distinguishes below-threshold, exact-threshold, and next-tier states."
+      },
+      "runtime_test_reference": "tools/balance_audit.py::trait_control_audit",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:canonical_replay_snapshot_parity",
+      "seed": 158009,
+      "fixture": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json",
+      "input": {
+        "team_a": [
+          "p_front",
+          "p_back"
+        ],
+        "team_b": [
+          "opp_front",
+          "opp_back"
+        ],
+        "formation": {
+          "team_a": [
+            "front",
+            "back"
+          ],
+          "team_b": [
+            "front",
+            "back"
+          ]
+        }
+      },
+      "expected_event_sequence": [
+        "passive_triggered",
+        "unit_attack",
+        "unit_died",
+        "mana_update",
+        "state_snapshot"
+      ],
+      "expected_final_snapshot": {
+        "assertions": {
+          "snapshot_desyncs": 0,
+          "missing_event_fails": true,
+          "dead_units": [
+            "opp_front"
+          ],
+          "event_types": [
+            "passive_triggered",
+            "unit_attack",
+            "unit_died",
+            "mana_update",
+            "state_snapshot"
+          ]
+        },
+        "acceptance": "The same golden event stream reconstructs the authoritative snapshot in core, backend, and frontend without desync."
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:canonical_passive_seeded_matrix",
+      "seed": 158010,
+      "fixture": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_matrix_replays_every_canonical_definition_deterministically",
+      "input": {
+        "team_a": [
+          "all_canonical_passive_definitions"
+        ],
+        "team_b": [
+          "matrix_target"
+        ],
+        "formation": {
+          "team_a": [
+            "front"
+          ],
+          "team_b": [
+            "front"
+          ]
+        }
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "assertions": {
+          "passive_definitions": 32,
+          "deterministic": true,
+          "unknown_id_fails_closed": true
+        },
+        "acceptance": "Every loaded canonical passive definition runs through a seeded shared-core smoke scenario twice with the same event signature; an unknown passive ID has no fallback definition."
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_matrix_replays_every_canonical_definition_deterministically",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:canonical_trait_threshold_matrix",
+      "seed": 158011,
+      "fixture": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_trait_threshold_matrix_covers_below_exact_and_next_boundary",
+      "input": {
+        "team_a": [
+          "canonical_trait_threshold_units"
+        ],
+        "team_b": [
+          "control_team"
+        ],
+        "formation": {
+          "team_a": [
+            "front"
+          ],
+          "team_b": [
+            "front"
+          ]
+        }
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "assertions": {
+          "trait_count": 12,
+          "deterministic": true,
+          "boundary_states": [
+            "below",
+            "exact",
+            "next"
+          ]
+        },
+        "acceptance": "Every loaded canonical trait tier distinguishes below-threshold, exact-threshold and next-tier activation deterministically."
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_trait_threshold_matrix_covers_below_exact_and_next_boundary",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "fight:canonical_passive_trigger_family_matrix",
+      "seed": 158012,
+      "fixture": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_trigger_family_matrix_has_positive_and_negative_path",
+      "input": {
+        "team_a": [
+          "canonical_passive_family_representatives"
+        ],
+        "team_b": [
+          "matrix_target"
+        ],
+        "formation": {
+          "team_a": [
+            "front"
+          ],
+          "team_b": [
+            "front"
+          ]
+        }
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "assertions": {
+          "trigger_families": [
+            "set2_unit"
+          ],
+          "positive_and_negative_paths": true
+        },
+        "acceptance": "Every canonical passive trigger family has an executable positive scenario and a boundary or negative scenario, including start-passive idempotence and trigger isolation."
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_trigger_family_matrix_has_positive_and_negative_path",
+      "status": "automated_pass"
+    }
+  ],
+  "merge_cases": [
+    {
+      "case_id": "merge:bench:0",
+      "seed": "wft199-merge-01",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "bench",
+        "item_count": 0
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 0,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[bench-0]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:bench:1",
+      "seed": "wft199-merge-02",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "bench",
+        "item_count": 1
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 1,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[bench-1]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:bench:2",
+      "seed": "wft199-merge-03",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "bench",
+        "item_count": 2
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 2,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[bench-2]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:bench:3",
+      "seed": "wft199-merge-04",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "bench",
+        "item_count": 3
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[bench-3]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:bench:4",
+      "seed": "wft199-merge-05",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "bench",
+        "item_count": 4
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 1,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[bench-4]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:bench:5",
+      "seed": "wft199-merge-06",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "bench",
+        "item_count": 5
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 2,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[bench-5]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:bench:6",
+      "seed": "wft199-merge-07",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "bench",
+        "item_count": 6
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 3,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[bench-6]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:board:0",
+      "seed": "wft199-merge-08",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "board",
+        "item_count": 0
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 0,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[board-0]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:board:1",
+      "seed": "wft199-merge-09",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "board",
+        "item_count": 1
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 1,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[board-1]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:board:2",
+      "seed": "wft199-merge-10",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "board",
+        "item_count": 2
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 2,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[board-2]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:board:3",
+      "seed": "wft199-merge-11",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "board",
+        "item_count": 3
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[board-3]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:board:4",
+      "seed": "wft199-merge-12",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "board",
+        "item_count": 4
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 1,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[board-4]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:board:5",
+      "seed": "wft199-merge-13",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "board",
+        "item_count": 5
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 2,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[board-5]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:board:6",
+      "seed": "wft199-merge-14",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "board",
+        "item_count": 6
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 3,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[board-6]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:mixed:0",
+      "seed": "wft199-merge-15",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "mixed",
+        "item_count": 0
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 0,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[mixed-0]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:mixed:1",
+      "seed": "wft199-merge-16",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "mixed",
+        "item_count": 1
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 1,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[mixed-1]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:mixed:2",
+      "seed": "wft199-merge-17",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "mixed",
+        "item_count": 2
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 2,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[mixed-2]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:mixed:3",
+      "seed": "wft199-merge-18",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "mixed",
+        "item_count": 3
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 0,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[mixed-3]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:mixed:4",
+      "seed": "wft199-merge-19",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "mixed",
+        "item_count": 4
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 1,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[mixed-4]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:mixed:5",
+      "seed": "wft199-merge-20",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "mixed",
+        "item_count": 5
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 2,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[mixed-5]",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "merge:mixed:6",
+      "seed": "wft199-merge-21",
+      "fixture": "waffen-tactics/tests/test_wft199_merge_matrix.py::merge_fixture",
+      "input": {
+        "source_location": "mixed",
+        "item_count": 6
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "merged_star_level": 2,
+        "equipped_item_count": 3,
+        "overflow_item_count": 3,
+        "item_multiset_preserved": true
+      },
+      "runtime_test_reference": "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination[mixed-6]",
+      "status": "automated_pass"
+    }
+  ],
+  "transport_cases": [
+    {
+      "case_id": "transport:canonical_replay",
+      "seed": "wft199-transport-01",
+      "fixture": "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json",
+      "input": {
+        "mode": "canonical_replay"
+      },
+      "expected_event_sequence": [
+        "units_init",
+        "start",
+        "unit_attack",
+        "end"
+      ],
+      "expected_final_snapshot": {
+        "terminal_end_required": true,
+        "error_code": null
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_golden_replay_contract.py::test_shared_golden_fixture_reconstructs_to_its_authoritative_snapshot",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "transport:identical_duplicate",
+      "seed": "wft199-transport-02",
+      "fixture": "inline:sse-frame-sequence",
+      "input": {
+        "mode": "identical_duplicate"
+      },
+      "expected_event_sequence": [
+        "units_init",
+        "start",
+        "unit_attack",
+        "victory",
+        "gold_income",
+        "end"
+      ],
+      "expected_final_snapshot": {
+        "terminal_end_required": true,
+        "error_code": null
+      },
+      "runtime_test_reference": "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::deduplicates identical frames and completes only after the terminal end event",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "transport:sequence_gap",
+      "seed": "wft199-transport-03",
+      "fixture": "inline:sse-frame-sequence",
+      "input": {
+        "mode": "sequence_gap"
+      },
+      "expected_event_sequence": [
+        "units_init",
+        "start"
+      ],
+      "expected_final_snapshot": {
+        "terminal_end_required": false,
+        "error_code": "combat_sequence_gap"
+      },
+      "runtime_test_reference": "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::rejects sequence gaps and conflicting duplicate event identities",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "transport:conflicting_duplicate",
+      "seed": "wft199-transport-04",
+      "fixture": "inline:sse-frame-sequence",
+      "input": {
+        "mode": "conflicting_duplicate"
+      },
+      "expected_event_sequence": [
+        "units_init",
+        "unit_attack"
+      ],
+      "expected_final_snapshot": {
+        "terminal_end_required": false,
+        "error_code": "combat_conflicting_duplicate"
+      },
+      "runtime_test_reference": "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::rejects sequence gaps and conflicting duplicate event identities",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "transport:malformed_json",
+      "seed": "wft199-transport-05",
+      "fixture": "inline:sse-frame-sequence",
+      "input": {
+        "mode": "malformed_json"
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "terminal_end_required": false,
+        "error_code": "combat_malformed_frame"
+      },
+      "runtime_test_reference": "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::fails closed on malformed JSON and invalid frame objects",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "transport:premature_eof",
+      "seed": "wft199-transport-06",
+      "fixture": "inline:sse-frame-sequence",
+      "input": {
+        "mode": "premature_eof"
+      },
+      "expected_event_sequence": [
+        "units_init"
+      ],
+      "expected_final_snapshot": {
+        "terminal_end_required": false,
+        "error_code": "combat_stream_eof"
+      },
+      "runtime_test_reference": "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::fails on premature EOF without a terminal end frame",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "transport:reader_error",
+      "seed": "wft199-transport-07",
+      "fixture": "inline:sse-frame-sequence",
+      "input": {
+        "mode": "reader_error"
+      },
+      "expected_event_sequence": [
+        "units_init"
+      ],
+      "expected_final_snapshot": {
+        "terminal_end_required": false,
+        "error_code": "combat_stream_failed"
+      },
+      "runtime_test_reference": "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::surfaces reader errors while preserving already received frames and never marks the stream complete",
+      "status": "automated_pass"
+    },
+    {
+      "case_id": "transport:unsupported_event",
+      "seed": "wft199-transport-08",
+      "fixture": "inline:backend-event",
+      "input": {
+        "mode": "unsupported_event"
+      },
+      "expected_event_sequence": [],
+      "expected_final_snapshot": {
+        "terminal_end_required": false,
+        "error_code": "unsupported_replay_event"
+      },
+      "runtime_test_reference": "waffen-tactics-web/backend/tests/test_reconstructor_contract.py::test_unsupported_replay_event_type_fails_closed",
+      "status": "automated_pass"
+    }
+  ],
+  "workstreams": [
+    {
+      "id": "catalog_and_recipe_identity",
+      "status": "automated_pass",
+      "evidence": [
+        "waffen-tactics/tests/test_wft199_qa_matrix.py::test_catalog_matrix_is_complete",
+        "waffen-tactics/tests/test_wft139_recipe_matrix.py"
+      ]
+    },
+    {
+      "id": "recipe_effect_runtime",
+      "status": "automated_pass",
+      "evidence": [
+        "waffen-tactics/tests/test_wft199_qa_matrix.py::test_recipe_runtime_matrix"
+      ]
+    },
+    {
+      "id": "combine_equip_slots_preview_overflow",
+      "status": "automated_pass",
+      "evidence": [
+        "waffen-tactics-web/backend/tests/test_wft199_item_matrix.py::test_combine_item_matrix_covers_every_legal_direction",
+        "waffen-tactics-web/backend/tests/test_item_auto_combine.py",
+        "waffen-tactics-web/src/components/__tests__/UnitCard.items.test.tsx"
+      ]
+    },
+    {
+      "id": "fight_classes_and_outcomes",
+      "status": "partial_automated_with_manual_follow_up",
+      "evidence": [
+        "waffen-tactics/tests/test_approved_combat_rules.py::test_default_targeting_uses_frontline_then_reaches_backline",
+        "waffen-tactics/tests/test_approved_combat_rules.py::test_no_legal_target_is_a_noop_and_clears_stale_focus",
+        "waffen-tactics/tests/test_approved_combat_rules.py::test_attack_phase_is_team_a_before_team_b_at_same_tick",
+        "waffen-tactics/tests/test_approved_combat_rules.py::test_full_mana_produces_one_bonus_basic_attack_without_skill_event",
+        "waffen-tactics/tests/test_combat_shared.py::test_on_enemy_death_event_callback",
+        "waffen-tactics/tests/test_combat_shared.py::test_on_ally_death_trigger_once",
+        "waffen-tactics/tests/test_combat_effect_processor.py::TestCombatEffectProcessor::test_process_ally_hp_below_triggers",
+        "tools/balance_audit.py::trait_control_audit",
+        "waffen-tactics-web/backend/test_fixtures/approved_replay_golden.json",
+        "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_matrix_replays_every_canonical_definition_deterministically",
+        "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_trait_threshold_matrix_covers_below_exact_and_next_boundary",
+        "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_trigger_family_matrix_has_positive_and_negative_path"
+      ],
+      "remaining": [
+        "explicit no-traits/no-items production fight",
+        "authenticated manual win/loss/fast/long smoke",
+        "full mixed Set 2 + item team matrix"
+      ]
+    },
+    {
+      "id": "merge_item_ownership",
+      "status": "automated_pass",
+      "evidence": [
+        "waffen-tactics/tests/test_wft199_merge_matrix.py::test_merge_matrix_preserves_items_and_destination",
+        "waffen-tactics-web/backend/tests/test_wft188_item_merge.py"
+      ]
+    },
+    {
+      "id": "replay_sse_transport",
+      "status": "automated_pass",
+      "evidence": [
+        "waffen-tactics-web/backend/tests/test_golden_replay_contract.py::test_shared_golden_fixture_reconstructs_to_its_authoritative_snapshot",
+        "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::deduplicates identical frames and completes only after the terminal end event",
+        "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::rejects sequence gaps and conflicting duplicate event identities",
+        "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::rejects sequence gaps and conflicting duplicate event identities",
+        "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::fails closed on malformed JSON and invalid frame objects",
+        "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::fails on premature EOF without a terminal end frame",
+        "waffen-tactics-web/src/hooks/combat/__tests__/useCombatSSEBuffer.test.tsx::surfaces reader errors while preserving already received frames and never marks the stream complete",
+        "waffen-tactics-web/backend/tests/test_reconstructor_contract.py::test_unsupported_replay_event_type_fails_closed"
+      ]
+    },
+    {
+      "id": "manual_production_runtime",
+      "status": "needs_manual_test",
+      "evidence": [],
+      "setup": "Authenticated production Game View at 1280x720 and 1920x1080.",
+      "steps": [
+        "Run one live combat with items and Set 2 traits.",
+        "Run one replay after reconnect and inspect event order, item effects, and final snapshot.",
+        "Repeat at both resolutions and capture browser console plus server request/log evidence."
+      ],
+      "expected": "Readable board, no desync or item loss, terminal end event, stable final snapshot.",
+      "failure_evidence": "URL, viewport, authenticated user, seed, timestamp, screenshot/video, console and server log excerpt."
+    }
+  ]
+}
