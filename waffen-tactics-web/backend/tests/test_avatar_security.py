@@ -145,21 +145,25 @@ def test_valid_image_is_written_inside_avatar_directory(client, monkeypatch, tmp
     assert destination.parent.resolve() == tmp_path.resolve()
 
 
-def test_upstream_non_200_is_reported_as_avatar_unavailable_with_status(client, monkeypatch, tmp_path, caplog):
+@pytest.mark.parametrize("upstream_status", [404, 429])
+def test_upstream_non_200_is_reported_as_avatar_unavailable_with_status(
+    client, monkeypatch, tmp_path, caplog, upstream_status
+):
     _allow_public_avatar_host(monkeypatch)
     monkeypatch.setattr(game_routes, 'AVATAR_DIRECTORY', tmp_path)
     monkeypatch.setattr(
         game_routes.requests,
         'get',
-        lambda *args, **kwargs: _Response(status_code=404),
+        lambda *args, **kwargs: _Response(status_code=upstream_status),
     )
     token = jwt.encode({'user_id': '42', 'exp': 4102444800}, JWT_SECRET, algorithm='HS256')
+    request_id = f'avatar-upstream-{upstream_status}'
 
     with caplog.at_level(logging.WARNING):
         result = client.post(
             '/game/player-avatar',
             json={'avatarUrl': 'https://cdn.discordapp.com/avatar.png'},
-            headers={'Authorization': f'Bearer {token}', 'X-Request-ID': 'avatar-upstream-404'},
+            headers={'Authorization': f'Bearer {token}', 'X-Request-ID': request_id},
         )
 
     assert result.status_code == 502
@@ -167,12 +171,13 @@ def test_upstream_non_200_is_reported_as_avatar_unavailable_with_status(client, 
         'error': 'Avatar unavailable',
         'code': 'avatar_unavailable',
         'reason': 'upstream_status',
-        'upstream_status': 404,
-        'request_id': 'avatar-upstream-404',
+        'upstream_status': upstream_status,
+        'request_id': request_id,
     }
-    assert 'request_id=avatar-upstream-404' in caplog.text
+    assert result.headers['X-Request-ID'] == request_id
+    assert f'request_id={request_id}' in caplog.text
     assert 'reason=upstream_status' in caplog.text
-    assert 'upstream_status=404' in caplog.text
+    assert f'upstream_status={upstream_status}' in caplog.text
     assert list(tmp_path.iterdir()) == []
 
 
