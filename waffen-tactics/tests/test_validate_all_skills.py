@@ -45,5 +45,5 @@ def test_authoritative_dataset_passes_skill_presence_and_schema_validation():
         (REPO_ROOT / "waffen-tactics" / "units.json").read_text(encoding="utf-8")
     )
 
-    assert len(dataset["units"]) == 52
+    assert len(dataset["units"]) == 32
     assert validator.validate_units(dataset["units"]) == []

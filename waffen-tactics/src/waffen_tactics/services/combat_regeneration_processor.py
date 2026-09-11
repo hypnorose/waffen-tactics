@@ -27,7 +27,14 @@ class CombatRegenerationProcessor:
         mutation and verification succeed. This keeps retry behavior correct
         when a recipient rejects the write or event delivery fails.
         """
-        if getattr(unit, 'hp_regen_per_sec', 0.0) <= 0:
+        set2_regen = sum(
+            float(effect.get('amount_per_sec', 0.0))
+            for effect in getattr(unit, 'effects', [])
+            if effect.get('type') == 'set2_regen_over_time'
+            and time < float(effect.get('expires_at', time))
+        )
+        total_hp_regen = float(getattr(unit, 'hp_regen_per_sec', 0.0)) + set2_regen
+        if total_hp_regen <= 0:
             return
 
         if not hasattr(unit, '_hp_regen_accumulator'):
@@ -38,7 +45,7 @@ class CombatRegenerationProcessor:
 
         previous_accumulator = float(unit._hp_regen_accumulator)
         pending_regeneration = previous_accumulator + (
-            float(unit.hp_regen_per_sec) * dt
+            total_hp_regen * dt
         )
         integral_heal = int(pending_regeneration)
         if integral_heal <= 0:
@@ -105,7 +112,11 @@ class CombatRegenerationProcessor:
             for effect in getattr(unit, 'effects', [])
             if effect.get('type') == 'mana_regen'
         )
-        total_mana_regen = base_mana_regen + effect_bonus
+        multiplier = 1.0
+        multiplier_expires_at = getattr(unit, '_set2_mana_regen_expires_at', None)
+        if multiplier_expires_at is None or time <= float(multiplier_expires_at):
+            multiplier = float(getattr(unit, '_set2_mana_regen_multiplier', 1.0) or 1.0)
+        total_mana_regen = (base_mana_regen + effect_bonus) * multiplier
         if total_mana_regen <= 0:
             return
 

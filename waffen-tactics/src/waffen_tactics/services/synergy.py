@@ -7,6 +7,13 @@ import copy
 class SynergyEngine:
     _DEATH_TRIGGERS = {'on_enemy_death', 'on_ally_death'}
     _RUNTIME_TRIGGERS = _DEATH_TRIGGERS | {
+        'passive',
+        'on_start',
+        'on_attack',
+        'on_bonus_attack',
+        'on_damage_dealt',
+        'on_damage_received',
+        'on_kill',
         'per_second',
         'per_round',
         'on_ally_hp_below',
@@ -460,7 +467,16 @@ class SynergyEngine:
 
                     # Each combat unit owns independent condition state for
                     # once/max/round semantics; never share the dataset dict.
-                    effects.append(copy.deepcopy(effect))
+                    runtime_effect = copy.deepcopy(effect)
+                    if trait_name in {
+                        'Konfident', 'Wierny widz', 'Nowociota', 'Figlarz',
+                        'Weeb', 'Starociota', 'Inwestor', 'Femboy',
+                        'Szachista', 'Twórca', 'Muzyk', 'Haxball',
+                    }:
+                        runtime_effect['set2_trait'] = trait_name
+                        runtime_effect['set2_tier'] = tier
+                        runtime_effect['set2_trait_owner'] = trait_name in unit.factions or trait_name in unit.classes
+                    effects.append(runtime_effect)
                 continue
 
             # Preserve support for the legacy one-effect-per-tier shape while

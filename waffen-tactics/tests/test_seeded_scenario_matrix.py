@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from waffen_tactics.services.passive_definitions import PASSIVE_DEFINITIONS
+from waffen_tactics.services.data_loader import load_game_data
 
 
 MATRIX = Path(__file__).resolve().parents[2] / "docs" / "SEEDED_SCENARIO_MATRIX_2026-09-09.json"
@@ -45,7 +45,7 @@ def test_seeded_scenario_matrix_is_complete_and_reproducible_by_reference():
 
     passive_matrix = next(item for item in scenarios if item["id"] == "canonical_passive_seeded_matrix")
     assert passive_matrix["expected"]["deterministic"] is True
-    assert passive_matrix["expected"]["passive_definitions"] == len(PASSIVE_DEFINITIONS)
+    assert passive_matrix["expected"]["passive_definitions"] == len(load_game_data().units)
 
     trait_matrix = next(item for item in scenarios if item["id"] == "canonical_trait_threshold_matrix")
     assert trait_matrix["expected"]["deterministic"] is True
@@ -54,6 +54,6 @@ def test_seeded_scenario_matrix_is_complete_and_reproducible_by_reference():
     assert trait_matrix["expected"]["trait_count"] == len(canonical_traits)
 
     family_matrix = next(item for item in scenarios if item["id"] == "canonical_passive_trigger_family_matrix")
-    canonical_families = sorted({definition["kind"] for definition in PASSIVE_DEFINITIONS.values()})
+    canonical_families = sorted({unit.passive["kind"] for unit in load_game_data().units})
     assert family_matrix["expected"]["trigger_families"] == canonical_families
     assert family_matrix["expected"]["positive_and_negative_paths"] is True

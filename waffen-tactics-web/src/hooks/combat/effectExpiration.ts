@@ -69,7 +69,7 @@
  * 2. Reverted stat changes (hp += revertedHp, attack -= revertedAttack, etc.)
  * 3. Conflicted with canonical lifecycle events from the backend
  *
- * See: BUG_FIX_EFFECT_EXPIRATION.md for detailed analysis.
+ * See: docs/EVENT_REPLAY_TESTING.md for the canonical replay and expiration contract.
  */
 
 export const EFFECT_EXPIRATION_POLICY = {

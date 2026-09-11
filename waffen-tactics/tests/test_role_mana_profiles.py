@@ -11,7 +11,7 @@ def test_role_mana_profiles_are_consistent_for_all_units():
 
     units = load_game_data().units
 
-    assert len(units) == 52
+    assert len(units) == 32
     for unit in units:
         max_mana, mana_on_attack, mana_regen = expected[unit.role]
         assert (unit.stats.max_mana, unit.stats.mana_on_attack, unit.stats.mana_regen) == (

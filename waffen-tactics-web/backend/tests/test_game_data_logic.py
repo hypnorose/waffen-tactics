@@ -14,7 +14,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'waffen-t
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from routes.game_data import get_leaderboard_data, get_units_data, get_traits_data
-from waffen_tactics.services.passive_definitions import PASSIVE_DEFINITIONS
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -33,7 +32,6 @@ class TestCanonicalPlayerFacingData:
         units_by_id = {unit['id']: unit for unit in units}
 
         assert set(units_by_id) == canonical_ids
-        assert set(PASSIVE_DEFINITIONS) == canonical_ids
 
         for unit_id in sorted(canonical_ids):
             unit = units_by_id[unit_id]

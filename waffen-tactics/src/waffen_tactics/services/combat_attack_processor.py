@@ -288,8 +288,150 @@ class CombatAttackProcessor:
                             ignore_defense_pct=action_plan.get('ignore_defense_pct', 0.0),
                         ) if bonus_attack else dmg
 
-                        # Apply canonical damage mutation without emitting the builtin 'attack' event
-                        dmg_payload = emit_damage(None, attacker, target_obj, raw_damage=action_damage, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='attack', emit_event=False, hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side, bonus_attack=bonus_attack)
+                        damage_plan = {}
+                        if getattr(self, 'passive_processor', None):
+                            damage_plan = self.passive_processor.damage_plan(
+                                attacker,
+                                target_obj,
+                                int(action_damage),
+                                self.team_a if side_val == 'team_a' else self.team_b,
+                                self.team_b if side_val == 'team_a' else self.team_a,
+                                side_val,
+                                deliver_ts,
+                                local_collector,
+                            ) or {}
+
+                        if damage_plan.get('dodged'):
+                            action_damage = 0
+                            dmg_payload = emit_damage(
+                                None,
+                                attacker,
+                                target_obj,
+                                raw_damage=0,
+                                shield_absorbed=0,
+                                damage_type=getattr(attacker, 'damage_type', 'physical'),
+                                side=side_val,
+                                timestamp=deliver_ts,
+                                cause='set2_dodge',
+                                emit_event=False,
+                                hp_arrays=hp_arrays,
+                                unit_index=unit_index,
+                                unit_side=unit_side,
+                                bonus_attack=bonus_attack,
+                            )
+                            append_result('damage_dodged', {
+                                'unit_id': getattr(target_obj, 'id', None),
+                                'unit_name': getattr(target_obj, 'name', None),
+                                'attacker_id': getattr(attacker, 'id', None),
+                                'side': side_val,
+                                'timestamp': deliver_ts,
+                            })
+                        else:
+                            action_damage = int(damage_plan.get('primary_damage', action_damage))
+
+                            # Apply canonical damage mutation without emitting
+                            # the builtin attack event. Redirected Haxball
+                            # damage is emitted as canonical `damage` payloads
+                            # with its own authoritative snapshot.
+                            dmg_payload = emit_damage(
+                                None,
+                                attacker,
+                                target_obj,
+                                raw_damage=action_damage,
+                                shield_absorbed=0,
+                                damage_type=getattr(attacker, 'damage_type', 'physical'),
+                                side=side_val,
+                                timestamp=deliver_ts,
+                                cause='attack',
+                                emit_event=False,
+                                hp_arrays=hp_arrays,
+                                unit_index=unit_index,
+                                unit_side=unit_side,
+                                bonus_attack=bonus_attack,
+                            )
+
+                            for redirected_target, redirected_amount in damage_plan.get('redirects', []):
+                                if redirected_amount <= 0 or getattr(redirected_target, '_dead', False):
+                                    continue
+                                redirected_index = next((idx for idx, unit in enumerate(self.team_b if side_val == 'team_a' else self.team_a) if unit is redirected_target), None)
+                                redirected_side = 'team_b' if side_val == 'team_a' else 'team_a'
+                                redirected_payload = emit_damage(
+                                    None,
+                                    attacker,
+                                    redirected_target,
+                                    raw_damage=redirected_amount,
+                                    shield_absorbed=0,
+                                    damage_type=getattr(attacker, 'damage_type', 'physical'),
+                                    side=side_val,
+                                    timestamp=deliver_ts,
+                                    cause='set2_haxball_redirect',
+                                    emit_event=False,
+                                    hp_arrays=hp_arrays,
+                                    unit_index=redirected_index,
+                                    unit_side=redirected_side,
+                                )
+                                append_result('damage', redirected_payload)
+
+                                # A redirected hit is still authoritative
+                                # combat damage.  Resolve its terminal death
+                                # through the same canonical lifecycle as the
+                                # primary target; otherwise Haxball could
+                                # leave a unit at 0 HP without a unit_died
+                                # transition or death passives.
+                                if (
+                                    isinstance(redirected_payload, dict)
+                                    and redirected_payload.get('post_hp') == 0
+                                    and not getattr(redirected_target, '_dead', False)
+                                ):
+                                    redirected_died = emit_unit_died(
+                                        None,
+                                        redirected_target,
+                                        side=redirected_side,
+                                        timestamp=deliver_ts,
+                                        unit_hp=redirected_payload.get('pre_hp'),
+                                        hp_arrays=hp_arrays,
+                                        unit_index=redirected_index,
+                                        unit_side=redirected_side,
+                                    )
+                                    if redirected_died:
+                                        results.append(('unit_died', redirected_died))
+                                    if getattr(self, 'passive_processor', None):
+                                        self.passive_processor.on_kill(
+                                            attacker,
+                                            self.team_a if side_val == 'team_a' else self.team_b,
+                                            self.team_b if side_val == 'team_a' else self.team_a,
+                                            results.append,
+                                            side_val,
+                                            deliver_ts,
+                                        )
+                                        self.passive_processor.on_unit_death(
+                                            redirected_target,
+                                            self.team_a if side_val == 'team_a' else self.team_b,
+                                            self.team_b if side_val == 'team_a' else self.team_a,
+                                            results.append,
+                                            side_val,
+                                            deliver_ts,
+                                        )
+
+                            # Revive is resolved after lethal damage but before
+                            # the terminal unit_died transition.
+                            if isinstance(dmg_payload, dict) and dmg_payload.get('post_hp') == 0 and getattr(self, 'passive_processor', None):
+                                revived = self.passive_processor.try_revive(
+                                    target_obj,
+                                    local_collector,
+                                    side_val,
+                                    deliver_ts,
+                                    unit_index,
+                                    unit_side,
+                                )
+                                if revived:
+                                    dmg_payload['post_hp'] = int(getattr(target_obj, 'hp', 0))
+
+                        if getattr(self, 'passive_processor', None) and action_damage > 0:
+                            attacker_team = self.team_a if side_val == 'team_a' else self.team_b
+                            self.passive_processor.after_attack_damage(attacker, action_damage, local_collector, side_val, deliver_ts)
+                            if bonus_attack:
+                                self.passive_processor.after_bonus_damage(attacker, action_damage, attacker_team, local_collector, side_val, deliver_ts)
 
                         # Apply mana gain at delivery time before building unit_attack payload.
                         # This keeps server snapshot state and unit_attack payload coherent.
@@ -326,6 +468,17 @@ class CombatAttackProcessor:
                                 unit_side=atk_side,
                             )
 
+                            if getattr(self, 'passive_processor', None):
+                                self.passive_processor.after_attack_mana(
+                                    attacker,
+                                    self.team_a if side_val == 'team_a' else self.team_b,
+                                    int(mana_payload.get('amount', 0)) if grant_mana and mana_payload else 0,
+                                    local_collector,
+                                    side_val,
+                                    deliver_ts,
+                                    bonus_attack=bonus_attack,
+                                )
+
                         ua = self._build_unit_attack_payload(
                             attacker,
                             target_obj,
@@ -361,6 +514,28 @@ class CombatAttackProcessor:
                                 if mana_payload:
                                     append_result('mana_update', mana_payload)
 
+                        # Muzyk is a trait-level bonus-attack effect.  Keep it
+                        # on the same canonical mana path as every other
+                        # resource mutation and explicitly exclude the owner.
+                        if action_plan.get('set2_musician_mana'):
+                            ally_team = self.team_a if side_val == 'team_a' else self.team_b
+                            combat_state = getattr(self, '_combat_state', None)
+                            for ally_index, ally in enumerate(ally_team):
+                                if ally is attacker or getattr(ally, '_dead', False):
+                                    continue
+                                mana_payload = emit_mana_change(
+                                    None,
+                                    ally,
+                                    action_plan['set2_musician_mana'],
+                                    side=side_val,
+                                    timestamp=deliver_ts,
+                                    mana_arrays=combat_state.mana_arrays if combat_state else None,
+                                    unit_index=ally_index,
+                                    unit_side=side_val,
+                                )
+                                if mana_payload:
+                                    append_result('mana_update', mana_payload)
+
                         # Bonus/attack-count control and secondary pressure.
                         if action_plan.get('stun'):
                             stun_payload = emit_unit_stunned(None, target_obj, duration=action_plan['stun'], source=attacker, side=side_val, timestamp=deliver_ts)
@@ -379,7 +554,10 @@ class CombatAttackProcessor:
                             for secondary in candidates:
                                 secondary_side = 'team_b' if side_val == 'team_a' else 'team_a'
                                 secondary_index = next((idx for idx, u in enumerate(target_team) if u is secondary), None)
-                                secondary_damage = self._calculate_damage(attacker, secondary, damage_multiplier=action_plan.get('secondary_multiplier', 0.0))
+                                if action_plan.get('secondary_raw_multiplier') is not None:
+                                    secondary_damage = int(getattr(attacker, 'attack', 0) * float(action_plan['secondary_raw_multiplier']))
+                                else:
+                                    secondary_damage = self._calculate_damage(attacker, secondary, damage_multiplier=action_plan.get('secondary_multiplier', 0.0))
                                 secondary_payload = emit_damage(None, attacker, secondary, raw_damage=secondary_damage, shield_absorbed=0, damage_type=getattr(attacker, 'damage_type', 'physical'), side=side_val, timestamp=deliver_ts, cause='passive_secondary', emit_event=False, hp_arrays=hp_arrays, unit_index=secondary_index, unit_side=secondary_side, bonus_attack=bonus_attack)
                                 secondary_attack = self._build_unit_attack_payload(attacker, secondary, secondary_damage, side_val, deliver_ts, secondary_payload.get('pre_hp', secondary.hp), secondary_payload.get('post_hp', secondary.hp), bonus_attack=bonus_attack, dmg_payload=secondary_payload)
                                 secondary_attack['cause'] = 'passive_secondary'
@@ -438,7 +616,7 @@ class CombatAttackProcessor:
                         # payload and process on-death effects via the modular effect
                         # processor into the local results list so they are emitted
                         # in-order by the simulator sink.
-                        if isinstance(dmg_payload, dict) and dmg_payload.get('post_hp') == 0:
+                        if isinstance(dmg_payload, dict) and dmg_payload.get('post_hp') == 0 and not getattr(target_obj, '_dead', False):
                             # Mark unit as dead and get canonical died payload.
                             # Any mutation or death-trigger failure must abort
                             # the scheduled action; returning a partial event
@@ -450,6 +628,7 @@ class CombatAttackProcessor:
                             passive_collector = lambda ev_type, ev_payload: results.append((ev_type, ev_payload))
                             if getattr(self, 'passive_processor', None):
                                 self.passive_processor.on_kill(attacker, attacking_team, defending_team, passive_collector, side_val, deliver_ts)
+                                self.passive_processor.on_unit_death(target_obj, attacking_team, defending_team, passive_collector, side_val, deliver_ts)
 
                             # Preserve the existing legacy death-trigger path
                             # after the passive kill hook has been recorded.
@@ -654,8 +833,16 @@ class CombatAttackProcessor:
             return None
 
         # Find alive targets and split by line
-        front_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'front']
-        back_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'back']
+        def _targetable(candidate):
+            return not any(
+                isinstance(effect, dict)
+                and effect.get('type') == 'untargetable'
+                and (effect.get('expires_at') is None or getattr(self, '_current_time', 0.0) < float(effect.get('expires_at')))
+                for effect in (getattr(candidate, 'effects', []) or [])
+            )
+
+        front_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'front' and _targetable(defending_team[j])]
+        back_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'back' and _targetable(defending_team[j])]
 
         # Default ordering: front line first then back line
         targets = front_targets + back_targets

@@ -2,7 +2,7 @@
 
 Date: 2026-09-09
 
-Linear source of truth: `DEF-165`, `DEF-173`, and `DEF-233` in project `Waffen Tactics — Content, Runtime & Production`.
+Plane project: `Waffen Tactics` (`WFT`). Current status and contract decisions are authoritative in Plane; the `DEF-*` identifiers below are historical imported references.
 
 ## Production owner
 
@@ -36,7 +36,7 @@ web path.
   runtime code.
 * Do not change the prototype formula to tune live gameplay.
 * Do not migrate or delete the compatibility surfaces until the approved
-  damage/core-extraction contract is recorded in Linear.
+  damage/core-extraction contract is recorded in Plane.
 * Do not change content, balance values, or the legacy archive as part of
   boundary enforcement.
 

@@ -267,6 +267,6 @@ All three desync bugs have been:
 - ✅ **Fixed** with proper implementations
 - ✅ **Tested** with comprehensive test suites
 - ✅ **Validated** with real skill scenarios (Miki's stun)
-- ✅ **Documented** in [ALL_DESYNC_FIXES_COMPLETE.md](ALL_DESYNC_FIXES_COMPLETE.md)
+- ✅ **Documented** in [EVENT_REPLAY_TESTING.md](../docs/EVENT_REPLAY_TESTING.md)
 
 The fixes are production-ready and should eliminate all three categories of desync warnings that have been occurring.

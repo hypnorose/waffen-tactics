@@ -69,9 +69,9 @@ Error: Effects mismatch for player unit 8d6d21ac at seq 137 (seed 42):
 
 See the root directory for complete guides:
 
-- **[DESYNC_QUICK_REFERENCE.md](../../DESYNC_QUICK_REFERENCE.md)** - Quick reference card
-- **[DESYNC_DEBUGGING_GUIDE.md](../../DESYNC_DEBUGGING_GUIDE.md)** - Comprehensive guide
-- **[DESYNC_DEBUGGING_SUMMARY.md](../../DESYNC_DEBUGGING_SUMMARY.md)** - Tool summary
+- **[EVENT_REPLAY_TESTING.md](../../docs/EVENT_REPLAY_TESTING.md)** - Canonical replay and desync-testing guide
+- **[COMBAT_RUNTIME_BOUNDARY.md](../../docs/COMBAT_RUNTIME_BOUNDARY.md)** - Runtime ownership boundary
+- **[RELEASE_VALIDATION_GATE.md](../../docs/RELEASE_VALIDATION_GATE.md)** - Release validation contract
 
 ## Frontend Tools
 

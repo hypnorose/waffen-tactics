@@ -590,48 +590,48 @@ class TestCombatService(unittest.TestCase):
             return next(u for u in game_data.units if u.id == unit_id)
 
         # Define opponent team
-        hyodo_unit = get_unit('hyodo888')
         alysonstark_unit = get_unit('alyson_stark')
-        adrianski_unit = get_unit('adrianski')
+        aus_sher_unit = get_unit('aus_sher')
         szachowymentor_unit = get_unit('szachowymentor')
-        olsak_unit = get_unit('olsak')
-        pepe_unit = get_unit('pepe')
-        frajdzia_unit = get_unit('frajdzia')
+        marcel_galadotka_unit = get_unit('marcel_galadotka')
+        sofronow_unit = get_unit('sofronow')
+        fiko_unit = get_unit('fiko')
+        vitas_unit = get_unit('vitas')
 
         opponent_back = [
-            CombatUnit(id=hyodo_unit.id, name=hyodo_unit.name, hp=hyodo_unit.stats.hp, attack=hyodo_unit.stats.attack, defense=hyodo_unit.stats.defense, attack_speed=hyodo_unit.stats.attack_speed, position='back', stats=hyodo_unit.stats, skill=hyodo_unit.skill, max_mana=hyodo_unit.stats.max_mana),
             CombatUnit(id=alysonstark_unit.id, name=alysonstark_unit.name, hp=alysonstark_unit.stats.hp, attack=alysonstark_unit.stats.attack, defense=alysonstark_unit.stats.defense, attack_speed=alysonstark_unit.stats.attack_speed, position='back', stats=alysonstark_unit.stats, skill=alysonstark_unit.skill, max_mana=alysonstark_unit.stats.max_mana),
-            CombatUnit(id=adrianski_unit.id, name=adrianski_unit.name, hp=adrianski_unit.stats.hp, attack=adrianski_unit.stats.attack, defense=adrianski_unit.stats.defense, attack_speed=adrianski_unit.stats.attack_speed, position='back', stats=adrianski_unit.stats, skill=adrianski_unit.skill, max_mana=adrianski_unit.stats.max_mana),
+            CombatUnit(id=aus_sher_unit.id, name=aus_sher_unit.name, hp=aus_sher_unit.stats.hp, attack=aus_sher_unit.stats.attack, defense=aus_sher_unit.stats.defense, attack_speed=aus_sher_unit.stats.attack_speed, position='back', stats=aus_sher_unit.stats, skill=aus_sher_unit.skill, max_mana=aus_sher_unit.stats.max_mana),
             CombatUnit(id=szachowymentor_unit.id, name=szachowymentor_unit.name, hp=szachowymentor_unit.stats.hp, attack=szachowymentor_unit.stats.attack, defense=szachowymentor_unit.stats.defense, attack_speed=szachowymentor_unit.stats.attack_speed, position='back', stats=szachowymentor_unit.stats, skill=szachowymentor_unit.skill, max_mana=szachowymentor_unit.stats.max_mana),
+            CombatUnit(id=marcel_galadotka_unit.id, name=marcel_galadotka_unit.name, hp=marcel_galadotka_unit.stats.hp, attack=marcel_galadotka_unit.stats.attack, defense=marcel_galadotka_unit.stats.defense, attack_speed=marcel_galadotka_unit.stats.attack_speed, position='back', stats=marcel_galadotka_unit.stats, skill=marcel_galadotka_unit.skill, max_mana=marcel_galadotka_unit.stats.max_mana),
         ]
         opponent_front = [
-            CombatUnit(id=olsak_unit.id, name=olsak_unit.name, hp=olsak_unit.stats.hp, attack=olsak_unit.stats.attack, defense=olsak_unit.stats.defense, attack_speed=olsak_unit.stats.attack_speed, position='front', stats=olsak_unit.stats, skill=olsak_unit.skill, max_mana=olsak_unit.stats.max_mana),
-            CombatUnit(id=pepe_unit.id, name=pepe_unit.name, hp=pepe_unit.stats.hp, attack=pepe_unit.stats.attack, defense=pepe_unit.stats.defense, attack_speed=pepe_unit.stats.attack_speed, position='front', stats=pepe_unit.stats, skill=pepe_unit.skill, max_mana=pepe_unit.stats.max_mana),
-            CombatUnit(id=frajdzia_unit.id, name=frajdzia_unit.name, hp=frajdzia_unit.stats.hp, attack=frajdzia_unit.stats.attack, defense=frajdzia_unit.stats.defense, attack_speed=frajdzia_unit.stats.attack_speed, position='front', stats=frajdzia_unit.stats, skill=frajdzia_unit.skill, max_mana=frajdzia_unit.stats.max_mana),
+            CombatUnit(id=sofronow_unit.id, name=sofronow_unit.name, hp=sofronow_unit.stats.hp, attack=sofronow_unit.stats.attack, defense=sofronow_unit.stats.defense, attack_speed=sofronow_unit.stats.attack_speed, position='front', stats=sofronow_unit.stats, skill=sofronow_unit.skill, max_mana=sofronow_unit.stats.max_mana),
+            CombatUnit(id=fiko_unit.id, name=fiko_unit.name, hp=fiko_unit.stats.hp, attack=fiko_unit.stats.attack, defense=fiko_unit.stats.defense, attack_speed=fiko_unit.stats.attack_speed, position='front', stats=fiko_unit.stats, skill=fiko_unit.skill, max_mana=fiko_unit.stats.max_mana),
+            CombatUnit(id=vitas_unit.id, name=vitas_unit.name, hp=vitas_unit.stats.hp, attack=vitas_unit.stats.attack, defense=vitas_unit.stats.defense, attack_speed=vitas_unit.stats.attack_speed, position='front', stats=vitas_unit.stats, skill=vitas_unit.skill, max_mana=vitas_unit.stats.max_mana),
         ]
         opponent_units = opponent_back + opponent_front
 
         # Define player team
-        turboglowica_unit = get_unit('turboglovica')
-        maxas12_unit = get_unit('maxas12')
-        dumb_unit = get_unit('dumb')
-        puszmen12_unit = get_unit('puszmen12')
-        fiko_unit = get_unit('fiko')
-        wodazlodowca_unit = get_unit('wodazlodowca')
-        vitas_unit = get_unit('vitas')
-        mrozu_unit = get_unit('mrozu')
+        chessowy_mentos_unit = get_unit('chessowy_mentos')
+        optimusprime_unit = get_unit('optimusprime')
+        galanonim_unit = get_unit('galanonim')
+        nicosc_unit = get_unit('nicosc')
+        uhla_unit = get_unit('uhla')
+        yossarian_unit = get_unit('yossarian')
+        kaktusek_unit = get_unit('kaktusek')
+        wojtaz9_unit = get_unit('9wojtaz9')
 
         player_back = [
-            CombatUnit(id=turboglowica_unit.id, name=turboglowica_unit.name, hp=turboglowica_unit.stats.hp, attack=turboglowica_unit.stats.attack, defense=turboglowica_unit.stats.defense, attack_speed=turboglowica_unit.stats.attack_speed, position='back', stats=turboglowica_unit.stats, skill=turboglowica_unit.skill, max_mana=turboglowica_unit.stats.max_mana),
-            CombatUnit(id=maxas12_unit.id, name=maxas12_unit.name, hp=maxas12_unit.stats.hp, attack=maxas12_unit.stats.attack, defense=maxas12_unit.stats.defense, attack_speed=maxas12_unit.stats.attack_speed, position='back', stats=maxas12_unit.stats, skill=maxas12_unit.skill, max_mana=maxas12_unit.stats.max_mana),
-            CombatUnit(id=dumb_unit.id, name=dumb_unit.name, hp=dumb_unit.stats.hp, attack=dumb_unit.stats.attack, defense=dumb_unit.stats.defense, attack_speed=dumb_unit.stats.attack_speed, position='back', stats=dumb_unit.stats, skill=dumb_unit.skill, max_mana=dumb_unit.stats.max_mana),
-            CombatUnit(id=puszmen12_unit.id, name=puszmen12_unit.name, hp=puszmen12_unit.stats.hp, attack=puszmen12_unit.stats.attack, defense=puszmen12_unit.stats.defense, attack_speed=puszmen12_unit.stats.attack_speed, position='back', stats=puszmen12_unit.stats, skill=puszmen12_unit.skill, max_mana=puszmen12_unit.stats.max_mana),
+            CombatUnit(id=chessowy_mentos_unit.id, name=chessowy_mentos_unit.name, hp=chessowy_mentos_unit.stats.hp, attack=chessowy_mentos_unit.stats.attack, defense=chessowy_mentos_unit.stats.defense, attack_speed=chessowy_mentos_unit.stats.attack_speed, position='back', stats=chessowy_mentos_unit.stats, skill=chessowy_mentos_unit.skill, max_mana=chessowy_mentos_unit.stats.max_mana),
+            CombatUnit(id=optimusprime_unit.id, name=optimusprime_unit.name, hp=optimusprime_unit.stats.hp, attack=optimusprime_unit.stats.attack, defense=optimusprime_unit.stats.defense, attack_speed=optimusprime_unit.stats.attack_speed, position='back', stats=optimusprime_unit.stats, skill=optimusprime_unit.skill, max_mana=optimusprime_unit.stats.max_mana),
+            CombatUnit(id=galanonim_unit.id, name=galanonim_unit.name, hp=galanonim_unit.stats.hp, attack=galanonim_unit.stats.attack, defense=galanonim_unit.stats.defense, attack_speed=galanonim_unit.stats.attack_speed, position='back', stats=galanonim_unit.stats, skill=galanonim_unit.skill, max_mana=galanonim_unit.stats.max_mana),
+            CombatUnit(id=nicosc_unit.id, name=nicosc_unit.name, hp=nicosc_unit.stats.hp, attack=nicosc_unit.stats.attack, defense=nicosc_unit.stats.defense, attack_speed=nicosc_unit.stats.attack_speed, position='back', stats=nicosc_unit.stats, skill=nicosc_unit.skill, max_mana=nicosc_unit.stats.max_mana),
         ]
         player_front = [
-            CombatUnit(id=fiko_unit.id, name=fiko_unit.name, hp=fiko_unit.stats.hp, attack=fiko_unit.stats.attack, defense=fiko_unit.stats.defense, attack_speed=fiko_unit.stats.attack_speed, position='front', stats=fiko_unit.stats, skill=fiko_unit.skill, max_mana=fiko_unit.stats.max_mana),
-            CombatUnit(id=wodazlodowca_unit.id, name=wodazlodowca_unit.name, hp=wodazlodowca_unit.stats.hp, attack=wodazlodowca_unit.stats.attack, defense=wodazlodowca_unit.stats.defense, attack_speed=wodazlodowca_unit.stats.attack_speed, position='front', stats=wodazlodowca_unit.stats, skill=wodazlodowca_unit.skill, max_mana=wodazlodowca_unit.stats.max_mana),
-            CombatUnit(id=vitas_unit.id, name=vitas_unit.name, hp=vitas_unit.stats.hp, attack=vitas_unit.stats.attack, defense=vitas_unit.stats.defense, attack_speed=vitas_unit.stats.attack_speed, position='front', stats=vitas_unit.stats, skill=vitas_unit.skill, max_mana=vitas_unit.stats.max_mana),
-            CombatUnit(id=mrozu_unit.id, name=mrozu_unit.name, hp=mrozu_unit.stats.hp, attack=mrozu_unit.stats.attack, defense=mrozu_unit.stats.defense, attack_speed=mrozu_unit.stats.attack_speed, position='front', stats=mrozu_unit.stats, skill=mrozu_unit.skill, max_mana=mrozu_unit.stats.max_mana),
+            CombatUnit(id=uhla_unit.id, name=uhla_unit.name, hp=uhla_unit.stats.hp, attack=uhla_unit.stats.attack, defense=uhla_unit.stats.defense, attack_speed=uhla_unit.stats.attack_speed, position='front', stats=uhla_unit.stats, skill=uhla_unit.skill, max_mana=uhla_unit.stats.max_mana),
+            CombatUnit(id=yossarian_unit.id, name=yossarian_unit.name, hp=yossarian_unit.stats.hp, attack=yossarian_unit.stats.attack, defense=yossarian_unit.stats.defense, attack_speed=yossarian_unit.stats.attack_speed, position='front', stats=yossarian_unit.stats, skill=yossarian_unit.skill, max_mana=yossarian_unit.stats.max_mana),
+            CombatUnit(id=kaktusek_unit.id, name=kaktusek_unit.name, hp=kaktusek_unit.stats.hp, attack=kaktusek_unit.stats.attack, defense=kaktusek_unit.stats.defense, attack_speed=kaktusek_unit.stats.attack_speed, position='front', stats=kaktusek_unit.stats, skill=kaktusek_unit.skill, max_mana=kaktusek_unit.stats.max_mana),
+            CombatUnit(id=wojtaz9_unit.id, name=wojtaz9_unit.name, hp=wojtaz9_unit.stats.hp, attack=wojtaz9_unit.stats.attack, defense=wojtaz9_unit.stats.defense, attack_speed=wojtaz9_unit.stats.attack_speed, position='front', stats=wojtaz9_unit.stats, skill=wojtaz9_unit.skill, max_mana=wojtaz9_unit.stats.max_mana),
         ]
         player_units = player_back + player_front
 

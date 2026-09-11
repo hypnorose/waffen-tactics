@@ -19,6 +19,7 @@ from .event_canonicalizer import (
     emit_stat_buff,
     emit_unit_stunned,
 )
+from .set2_runtime import Set2Runtime
 
 
 EventCallback = Optional[Callable[[str, Dict[str, Any]], None]]
@@ -26,6 +27,9 @@ EventCallback = Optional[Callable[[str, Dict[str, Any]], None]]
 
 class PassiveProcessor:
     """Apply canonical passive triggers against the current combat state."""
+
+    def __init__(self) -> None:
+        self.set2 = Set2Runtime()
 
     def _definition(self, unit: Any) -> Optional[Dict[str, Any]]:
         value = getattr(unit, "passive", None)
@@ -159,6 +163,15 @@ class PassiveProcessor:
                     branch = definition.get("front" if getattr(owner, "position", "front") == "front" else "back")
                     self._apply_start_effect(owner, branch, owners, enemies, callback, side, timestamp)
 
+        hp_arrays = getattr(self, "_hp_arrays", None)
+        self.set2.initialize(team_a, team_b, callback, timestamp, hp_arrays=hp_arrays)
+
+    def bind_mana_arrays(self, mana_arrays: Optional[Dict[str, List[int]]]) -> None:
+        self.set2.bind_mana_arrays(mana_arrays)
+
+    def bind_hp_arrays(self, hp_arrays: Optional[Dict[str, List[int]]]) -> None:
+        self._hp_arrays = hp_arrays
+
     def _set_target_preference(self, unit: Any, preference: Optional[str], callback: EventCallback, side: str, timestamp: float, bonus_only: bool = False) -> None:
         self._append_effect(unit, {"type": "targeting_preference_bonus" if bonus_only else "targeting_preference", "preference": preference, "source": getattr(unit, "id", None), "passive_effect": "targeting_preference"}, callback, side, timestamp)
         self._emit(callback, unit, "on_start", "targeting_preference", side, timestamp, preference=preference)
@@ -166,10 +179,8 @@ class PassiveProcessor:
     def before_attack(self, unit: Any, target: Any, team: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float) -> Dict[str, Any]:
         """Run attack counters and return modifiers for the current basic hit."""
         definition = self._definition(unit)
-        if not definition:
-            return {}
         state = self._state(unit)
-        kind = definition.get("kind")
+        kind = definition.get("kind") if definition else None
         plan: Dict[str, Any] = {}
         if kind == "attack_count":
             state["attack_count"] = int(state.get("attack_count", 0)) + 1
@@ -190,6 +201,10 @@ class PassiveProcessor:
             if target and target.hp > 0 and target.hp / max(1, target.max_hp) * 100 < float(definition.get("threshold", 0)):
                 plan["damage_multiplier"] = 1 + float(self._scaled_value(unit, definition.get("value", 0))) / 100.0
                 self._emit(callback, unit, "on_attack", definition.get("effect", "conditional_damage"), side, timestamp, target_id=target.id)
+        set2_plan = self.set2.before_attack(unit, target, team, enemies, callback, side, timestamp)
+        if set2_plan.get("damage_multiplier") is not None:
+            plan["damage_multiplier"] = plan.get("damage_multiplier", 1.0) * set2_plan["damage_multiplier"]
+        plan.update({key: value for key, value in set2_plan.items() if key != "damage_multiplier"})
         return plan
 
     def _apply_attack_effect(self, unit: Any, target: Any, definition: Dict[str, Any], team: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float, plan: Dict[str, Any]) -> None:
@@ -219,11 +234,9 @@ class PassiveProcessor:
 
     def bonus_attack_plan(self, unit: Any, target: Any, team: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float) -> Dict[str, Any]:
         definition = self._definition(unit)
-        if not definition:
-            return {}
         plan: Dict[str, Any] = {}
-        effect = definition.get("effect")
-        value = self._scaled_value(unit, definition.get("value", 0))
+        effect = definition.get("effect") if definition else None
+        value = self._scaled_value(unit, definition.get("value", 0)) if definition else 0
         if effect == "heal_self_percent":
             amount = int(unit.max_hp * float(value) / 100.0)
             emit_heal(callback, unit, amount, source=unit, side=side, timestamp=timestamp, cause="passive_bonus_attack")
@@ -258,6 +271,10 @@ class PassiveProcessor:
             ticks = definition.get("ticks", 3)
             interval = definition.get("interval", 1)
             self._append_effect(target, {"type": "damage_over_time", "damage": value, "damage_type": "physical", "ticks_remaining": ticks, "total_ticks": ticks, "interval": interval, "next_tick_time": timestamp + interval, "expires_at": timestamp + ticks * interval, "source": unit.id, "passive_effect": "dot"}, callback, side, timestamp)
+        set2_plan = self.set2.bonus_attack_plan(unit, target, team, enemies, callback, side, timestamp)
+        if set2_plan.get("damage_multiplier") is not None:
+            plan["damage_multiplier"] = plan.get("damage_multiplier", 1.0) * set2_plan["damage_multiplier"]
+        plan.update({key: value for key, value in set2_plan.items() if key != "damage_multiplier"})
         self._emit(callback, unit, "on_bonus_attack", effect or "bonus_attack", side, timestamp, target_id=getattr(target, "id", None))
         return plan
 
@@ -298,11 +315,11 @@ class PassiveProcessor:
                         emit_regen_gain(callback, unit, unit.max_hp * self._scaled_value(owner, definition["value"]) / 100 / max(1, definition.get("duration", 5)), duration=definition.get("duration", 5), side=side, timestamp=timestamp)
                     self._emit(callback, owner, "on_ally_hp_below", effect, side, timestamp, target_id=unit.id)
 
+        self.set2.after_damage(unit, old_hp, new_hp, team, enemies, callback, side, timestamp)
+
     def on_kill(self, killer: Any, team: List[Any], enemies: List[Any], callback: EventCallback, side: str, timestamp: float) -> None:
         definition = self._definition(killer)
-        if not definition or definition.get("kind") != "kill":
-            return
-        effect = definition.get("effect")
+        effect = definition.get("effect") if definition else None
         if effect == "team_rally":
             for ally in team:
                 self._emit_stat_effect(killer, ally, "attack", self._scaled_value(killer, definition["attack"]), callback, side, timestamp, duration=definition.get("duration"))
@@ -313,4 +330,31 @@ class PassiveProcessor:
             if stacks > state.get("kill_stacks", 0):
                 state["kill_stacks"] = stacks
                 self._emit_stat_effect(killer, killer, "attack", self._scaled_value(killer, definition["value"]), callback, side, timestamp, permanent=True)
-        self._emit(callback, killer, "on_kill", effect, side, timestamp)
+        if definition and effect:
+            self._emit(callback, killer, "on_kill", effect, side, timestamp)
+
+    def on_unit_death(self, dead: Any, surviving_team: List[Any], enemy_team: List[Any], callback: EventCallback, side: str, timestamp: float) -> None:
+        self.set2.on_unit_death(dead, surviving_team, enemy_team, callback, side, timestamp, hp_arrays=getattr(self, "_hp_arrays", None))
+
+    def damage_plan(self, attacker: Any, target: Any, raw_damage: int, team: List[Any], enemies: List[Any], side: str, timestamp: float, callback: EventCallback) -> Dict[str, Any]:
+        return self.set2.damage_plan(attacker, target, raw_damage, team, enemies, side, timestamp, callback)
+
+    def try_revive(self, target: Any, callback: EventCallback, side: str, timestamp: float, unit_index: Optional[int], unit_side: Optional[str]) -> bool:
+        return self.set2.try_revive(target, callback, side, timestamp, getattr(self, "_hp_arrays", None), unit_index, unit_side)
+
+    def after_attack_mana(self, unit: Any, team: List[Any], amount: int, callback: EventCallback, side: str, timestamp: float, *, bonus_attack: bool = False) -> None:
+        self.set2.after_attack_mana(unit, team, amount, callback, side, timestamp, bonus_attack=bonus_attack)
+
+    def after_attack_damage(self, unit: Any, damage: int, callback: EventCallback, side: str, timestamp: float) -> None:
+        self.set2.after_attack_damage(unit, damage, callback, side, timestamp)
+
+    def after_bonus_damage(self, unit: Any, damage: int, team: List[Any], callback: EventCallback, side: str, timestamp: float) -> None:
+        self.set2.after_bonus_damage(unit, damage, team, callback, side, timestamp)
+
+    def per_second(self, team: List[Any], enemies: List[Any], side: str, timestamp: float, callback: EventCallback) -> None:
+        hp_mirror = None
+        if side == "team_a":
+            hp_mirror = getattr(self, "_hp_arrays", {}).get("team_a") if getattr(self, "_hp_arrays", None) else None
+        elif getattr(self, "_hp_arrays", None):
+            hp_mirror = self._hp_arrays.get("team_b")
+        self.set2.per_second(team, enemies, side, timestamp, callback, hp_mirror=hp_mirror)

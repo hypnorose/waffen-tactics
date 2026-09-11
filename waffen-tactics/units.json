@@ -1,1750 +1,1613 @@
 {
   "units": [
     {
-      "id": "rafcikd",
-      "name": "RafcikD",
+      "id": "anamol04",
+      "name": "Anamol04",
       "factions": [
-        "Denciak"
-      ],
-      "classes": [
-        "Normik"
-      ],
-      "cost": 1,
-      "role": "defender",
-      "max_mana": 40,
-      "avatar": "/avatars/rafcikd.png",
-      "skill": {
-        "name": "Postawa Defensywna",
-        "description": "Otrzymuje tarczę i buff do DEF. Wiecej poniżej progu HP",
-        "effects": [
-          {
-            "type": "conditional",
-            "condition": {
-              "type": "health_percentage",
-              "threshold": 60
-            },
-            "effects": [
-              {
-                "type": "shield",
-                "target": "self",
-                "amount": 60,
-                "duration": 3
-              },
-              {
-                "type": "buff",
-                "target": "self",
-                "stat": "defense",
-                "value": 15,
-                "value_type": "flat",
-                "duration": 3
-              }
-            ],
-            "else_effects": [
-              {
-                "type": "shield",
-                "target": "self",
-                "amount": 100,
-                "duration": 3
-              },
-              {
-                "type": "buff",
-                "target": "self",
-                "stat": "defense",
-                "value": 30,
-                "value_type": "flat",
-                "duration": 2
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": "falconbalkon",
-      "name": "FalconBalkon",
-      "factions": [
-        "Denciak"
-      ],
-      "classes": [
-        "Gamer"
-      ],
-      "cost": 2,
-      "role": "fighter",
-      "max_mana": 50,
-      "avatar": "/avatars/falconbalkon.png",
-      "skill": {
-        "name": "Combo",
-        "description": "Dwa szybkie uderzenia",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 60
-          },
-          {
-            "type": "delay",
-            "duration": 0.3
-          },
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 60
-          }
-        ]
-      }
-    },
-    {
-      "id": "piwniczak",
-      "name": "Piwniczak",
-      "factions": [
-        "Denciak"
-      ],
-      "classes": [
-        "Haker"
-      ],
-      "cost": 2,
-      "role": "mage",
-      "max_mana": 60,
-      "avatar": "/avatars/piwniczak.png",
-      "skill": {
-        "name": "Hakowanie bani",
-        "description": "Ogłusz przeciwnika i zadaj mu obrażenia w czasie",
-        "effects": [
-          {
-            "type": "stun",
-            "target": "single_enemy_persistent",
-            "duration": 1.5
-          },
-          {
-            "type": "damage_over_time",
-            "target": "single_enemy_persistent",
-            "damage": 20,
-            "duration": 6,
-            "interval": 2,
-            "damage_type": "hacking"
-          }
-        ]
-      }
-    },
-    {
-      "id": "capybara",
-      "name": "Capybara",
-      "factions": [
-        "Denciak"
-      ],
-      "classes": [
-        "Femboy"
-      ],
-      "cost": 3,
-      "role": "duelist",
-      "max_mana": 120,
-      "avatar": "/avatars/capybara.png",
-      "skill": {
-        "name": "Capybara Splash",
-        "description": "Zalewa wrogów falą, zadając obrażenia wszystkim przeciwnikom i leczy siebie.",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "enemy_team",
-            "amount": 60,
-            "damage_type": "physical"
-          },
-          {
-            "type": "heal",
-            "target": "self",
-            "amount": 40
-          }
-        ]
-      }
-    },
-    {
-      "id": "kubica",
-      "name": "Kubica",
-      "factions": [
-        "Denciak"
+        "Szachista"
       ],
       "classes": [
         "Konfident"
       ],
-      "cost": 4,
-      "role": "duelist",
-      "max_mana": 120,
-      "avatar": "/avatars/kubica.png",
+      "traits": [
+        "Szachista",
+        "Konfident"
+      ],
+      "cost": 2,
+      "role": "fighter",
+      "max_mana": 60,
+      "avatar": "/avatars/set2/anamol04.png",
       "skill": {
-        "name": "Wyścigowy Manewr",
-        "description": "Szybki atak na jednego wroga i zwiększenie własnej szybkości.",
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 60,
         "effects": [
           {
             "type": "damage",
             "target": "single_enemy",
-            "amount": 90,
-            "damage_type": "physical"
-          },
-          {
-            "type": "buff",
-            "target": "self",
-            "stat": "attack_speed",
-            "value": 20,
-            "value_type": "percentage",
-            "duration": 2
+            "amount": 100
           }
         ]
+      },
+      "passive": {
+        "id": "set2.passive.anamol04",
+        "name": "Anamol04",
+        "description": "Bonusowy atak leczy 8% maks. HP i daje +15% szybkości ataku na 2 s.",
+        "trigger": "on_bonus_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "heal_and_attack_speed"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "heal_and_attack_speed",
+          "heal_percent": 8,
+          "attack_speed_percent": 15
+        }
       }
     },
     {
-      "id": "denvii",
-      "name": "Denvii",
+      "id": "fiko",
+      "name": "Fiko",
       "factions": [
-        "Denciak"
+        "Figlarz"
       ],
       "classes": [
-        "Spell"
+        "Starociota"
+      ],
+      "traits": [
+        "Figlarz",
+        "Starociota"
       ],
       "cost": 5,
-      "role": "mage",
-      "max_mana": 150,
-      "avatar": "/avatars/denvii.png",
+      "role": "duelist",
+      "max_mana": 90,
+      "avatar": "/avatars/set2/fiko.png",
       "skill": {
-        "name": "Magiczny Impuls",
-        "description": "Zadaje obrażenia magiczne wszystkim wrogom i nakłada krótki debuff na obronę.",
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 90,
         "effects": [
           {
             "type": "damage",
-            "target": "enemy_team",
-            "amount": 110,
-            "damage_type": "magical"
-          },
-          {
-            "type": "debuff",
-            "target": "enemy_team",
-            "stat": "defense",
-            "value": 15,
-            "value_type": "percentage",
-            "duration": 4
+            "target": "single_enemy",
+            "amount": 100
           }
         ]
+      },
+      "passive": {
+        "id": "set2.passive.fiko",
+        "name": "Fiko",
+        "description": "Bonusowy atak ogłusza na 1,5 s i zadaje dodatkowe 100% obrażeń.",
+        "trigger": "on_bonus_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "stun_and_double_damage"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "stun_and_double_damage"
+        }
       }
     },
     {
-      "id": "miki",
-      "name": "Miki",
+      "id": "uhla",
+      "name": "Uhla",
       "factions": [
-        "Hitman"
+        "Konfident"
       ],
-      "classes": [],
+      "classes": [
+        "Konfident"
+      ],
+      "traits": [
+        "Konfident",
+        "Konfident"
+      ],
       "cost": 3,
-      "role": "duelist",
-      "max_mana": 120,
-      "avatar": "/avatars/miki.png",
+      "role": "fighter",
+      "max_mana": 70,
+      "avatar": "/avatars/set2/uhla.png",
       "skill": {
-        "name": "Cichy Eliminator",
-        "description": "Wykonuje cichy atak na jednego wroga, zadając duże obrażenia i chwilowo go ogłuszając.",
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 70,
         "effects": [
           {
             "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 120,
-            "damage_type": "physical"
-          },
-          {
-            "type": "stun",
-            "target": "single_enemy_persistent",
-            "duration": 1.5
+            "target": "single_enemy",
+            "amount": 100
           }
         ]
+      },
+      "passive": {
+        "id": "set2.passive.uhla",
+        "name": "Uhla",
+        "description": "40% many zdobytej za atak przekazuje innemu Konfidentowi, maks. 5 many na zdarzenie.",
+        "trigger": "on_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "mana_transfer"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "mana_transfer",
+          "percent": 40,
+          "cap": 5
+        }
+      }
+    },
+    {
+      "id": "szanowny_kantor",
+      "name": "Szanowny Kantor",
+      "factions": [
+        "Twórca"
+      ],
+      "classes": [
+        "Femboy"
+      ],
+      "traits": [
+        "Twórca",
+        "Femboy"
+      ],
+      "cost": 4,
+      "role": "defender",
+      "max_mana": 80,
+      "avatar": "/avatars/set2/kantor.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 80,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.szanowny_kantor",
+        "name": "Szanowny Kantor",
+        "description": "Na starcie losowy sojusznik z pierwszej linii otrzymuje tarczę 150 na 4 s.",
+        "trigger": "on_start",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "frontline_ally_shield"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "frontline_ally_shield",
+          "amount": 150
+        }
+      }
+    },
+    {
+      "id": "chessowy_mentos",
+      "name": "Chessowy Mentos",
+      "factions": [
+        "Twórca"
+      ],
+      "classes": [
+        "Muzyk"
+      ],
+      "traits": [
+        "Twórca",
+        "Muzyk"
+      ],
+      "cost": 2,
+      "role": "mage",
+      "max_mana": 60,
+      "avatar": "/avatars/set2/chessowymentos.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 60,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.chessowy_mentos",
+        "name": "Chessowy Mentos",
+        "description": "Generuje o 100% więcej many przez pierwsze 4,4 s.",
+        "trigger": "on_start",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "start_mana_generation"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "start_mana_generation"
+        }
       }
     },
     {
       "id": "yossarian",
       "name": "Yossarian",
       "factions": [
-        "XN Waffen"
+        "Figlarz"
       ],
       "classes": [
-        "Spell",
-        "Haker"
+        "Starociota"
+      ],
+      "traits": [
+        "Figlarz",
+        "Starociota"
+      ],
+      "cost": 3,
+      "role": "duelist",
+      "max_mana": 70,
+      "avatar": "/avatars/set2/yossarian.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 70,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.yossarian",
+        "name": "Yossarian",
+        "description": "Bonusowy atak zamienia linię jednego losowego wroga.",
+        "trigger": "on_bonus_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "swap_enemy_line"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "swap_enemy_line"
+        }
+      }
+    },
+    {
+      "id": "galanonim",
+      "name": "GalAnonim",
+      "factions": [
+        "Muzyk"
+      ],
+      "classes": [
+        "Femboy"
+      ],
+      "traits": [
+        "Muzyk",
+        "Femboy"
       ],
       "cost": 5,
+      "role": "fighter",
+      "max_mana": 90,
+      "avatar": "/avatars/set2/galanonimpl-avatar-1024.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 90,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.galanonim",
+        "name": "GalAnonim",
+        "description": "Bonusowy atak leczy sojusznika z najmniejszym HP za wartość bonusowych obrażeń, maks. 120.",
+        "trigger": "on_bonus_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "heal_lowest_bonus_damage"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "heal_lowest_bonus_damage",
+          "cap": 120
+        }
+      }
+    },
+    {
+      "id": "pytl",
+      "name": "Pytl",
+      "factions": [
+        "Konfident"
+      ],
+      "classes": [
+        "Inwestor"
+      ],
+      "traits": [
+        "Konfident",
+        "Inwestor"
+      ],
+      "cost": 4,
       "role": "mage",
       "max_mana": 80,
-      "avatar": "/avatars/yossarian.png",
+      "avatar": "/avatars/set2/_pytl-avatar-1024.png",
       "skill": {
-        "name": "Kodowy Wir",
-        "description": "Zadaje obrażenia magiczne wszystkim wrogom i nakłada losowy debuff.",
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 80,
         "effects": [
           {
             "type": "damage",
-            "target": "enemy_team",
-            "amount": 100,
-            "damage_type": "magical"
-          },
-          {
-            "type": "debuff",
-            "target": "enemy_team",
-            "stat": "random",
-            "value": 15,
-            "value_type": "percentage",
-            "duration": 4
-          }
-        ]
-      }
-    },
-    {
-      "id": "olsak",
-      "name": "Olsak",
-      "factions": [
-        "Srebrna Gwardia"
-      ],
-      "classes": [
-        "Prostaczka"
-      ],
-      "cost": 1,
-      "role": "defender",
-      "max_mana": 35,
-      "avatar": "/avatars/olsak.png",
-      "skill": {
-        "name": "Tarcza Wiary",
-        "description": "Osłania się tarczą",
-        "effects": [
-          {
-            "type": "shield",
-            "target": "self",
-            "amount": 40,
-            "duration": 4
-          }
-        ]
-      }
-    },
-    {
-      "id": "pepe",
-      "name": "Pepe",
-      "factions": [
-        "Srebrna Gwardia"
-      ],
-      "classes": [
-        "Haker"
-      ],
-      "cost": 1,
-      "role": "mage",
-      "max_mana": 40,
-      "avatar": "/avatars/pepe.png",
-      "skill": {
-        "name": "Viral Infection",
-        "description": "Debuff enemy attack and heal self",
-        "effects": [
-          {
-            "type": "debuff",
             "target": "single_enemy",
-            "stat": "attack",
-            "value": -15,
-            "duration": 4
-          },
-          {
-            "type": "heal",
-            "target": "self",
-            "amount": 30
+            "amount": 100
           }
         ]
+      },
+      "passive": {
+        "id": "set2.passive.pytl",
+        "name": "Pytl",
+        "description": "Wrogowie z mniejszym HP atakują o 15% wolniej.",
+        "trigger": "on_start",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "start_enemy_attack_debuff"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "start_enemy_attack_debuff"
+        }
       }
     },
     {
-      "id": "hyodo888",
-      "name": "Hyodo888",
+      "id": "sofronow",
+      "name": "Sofronow",
       "factions": [
-        "Srebrna Gwardia"
+        "Szachista"
       ],
       "classes": [
-        "Normik"
+        "Starociota"
       ],
-      "cost": 2,
+      "traits": [
+        "Szachista",
+        "Starociota"
+      ],
+      "cost": 1,
       "role": "defender",
       "max_mana": 50,
-      "avatar": "/avatars/hyodo888.png",
+      "avatar": "/avatars/set2/sofronow960-avatar-1024.png",
       "skill": {
-        "name": "Precision Strike",
-        "description": "Buff attack and deal damage",
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 50,
         "effects": [
-          {
-            "type": "buff",
-            "target": "self",
-            "stat": "attack",
-            "value": 20,
-            "duration": 3
-          },
           {
             "type": "damage",
             "target": "single_enemy",
-            "amount": 45,
-            "damage_type": "physical"
+            "amount": 100
           }
         ]
+      },
+      "passive": {
+        "id": "set2.passive.sofronow",
+        "name": "Sofronow",
+        "description": "Na starcie zadaje najsłabszemu wrogowi obrażenia równe 15% jego maks. HP.",
+        "trigger": "on_start",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "start_enemy_damage_lowest"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "start_enemy_damage_lowest"
+        }
       }
     },
     {
-      "id": "grzalcia",
-      "name": "Grzałcia",
+      "id": "alyson_stark",
+      "name": "AlysonStark",
       "factions": [
-        "Srebrna Gwardia"
+        "Weeb"
       ],
       "classes": [
-        "Prostaczka"
+        "Starociota"
+      ],
+      "traits": [
+        "Weeb",
+        "Starociota"
+      ],
+      "cost": 4,
+      "role": "duelist",
+      "max_mana": 80,
+      "avatar": "/avatars/set2/alyson.jpg",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 80,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.alyson_stark",
+        "name": "AlysonStark",
+        "description": "Sojusznicy z mniejszym atakiem otrzymują +30% szybkości ataku.",
+        "trigger": "on_start",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "start_attack_speed_if_lower"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "start_attack_speed_if_lower"
+        }
+      }
+    },
+    {
+      "id": "skibidi_kubus",
+      "name": "SkibidiKubuś",
+      "factions": [
+        "Nowociota"
+      ],
+      "classes": [],
+      "traits": [
+        "Nowociota"
+      ],
+      "cost": 1,
+      "role": "duelist",
+      "max_mana": 50,
+      "avatar": "/avatars/set2/skibidi.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 50,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.skibidi_kubus",
+        "name": "SkibidiKubuś",
+        "description": "Ma 10/20/30% szansy na unik.",
+        "trigger": "on_damage_received",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "dodge"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "dodge",
+          "chance_percent": 10
+        }
+      },
+      "trait_exception": "SkibidiKubuś ma jeden trait zgodnie z kontraktem Plane."
+    },
+    {
+      "id": "aus_sher",
+      "name": "auSSher",
+      "factions": [
+        "Weeb"
+      ],
+      "classes": [
+        "Nowociota"
+      ],
+      "traits": [
+        "Weeb",
+        "Nowociota"
       ],
       "cost": 3,
       "role": "mage",
       "max_mana": 70,
-      "avatar": "/avatars/grzalcia.png",
+      "avatar": "/avatars/set2/ausher.png",
       "skill": {
-        "name": "Healing Aura",
-        "description": "Heal all allies and buff their defense",
-        "effects": [
-          {
-            "type": "heal",
-            "target": "ally_team",
-            "amount": 40
-          },
-          {
-            "type": "buff",
-            "target": "ally_team",
-            "stat": "defense",
-            "value": 15,
-            "duration": 4
-          }
-        ]
-      }
-    },
-    {
-      "id": "adrianski",
-      "name": "Adrianski",
-      "factions": [
-        "Srebrna Gwardia"
-      ],
-      "classes": [
-        "Spell"
-      ],
-      "cost": 4,
-      "role": "fighter",
-      "max_mana": 60,
-      "avatar": "/avatars/adrianski.png",
-      "skill": {
-        "name": "Thunder Strike",
-        "description": "Deal damage and stun enemy",
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 70,
         "effects": [
           {
             "type": "damage",
             "target": "single_enemy",
-            "amount": 60,
-            "damage_type": "magical"
-          },
-          {
-            "type": "stun",
-            "target": "single_enemy",
-            "duration": 2
+            "amount": 100
           }
         ]
+      },
+      "passive": {
+        "id": "set2.passive.aus_sher",
+        "name": "auSSher",
+        "description": "Bonusowy atak leczy sojusznika z największym atakiem za 10% jego maks. HP.",
+        "trigger": "on_bonus_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "heal_highest_attack"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "heal_highest_attack",
+          "heal_percent": 10
+        }
       }
     },
     {
-      "id": "laylo",
-      "name": "Laylo",
+      "id": "szalwia",
+      "name": "szalwia",
       "factions": [
-        "Srebrna Gwardia"
+        "Figlarz"
       ],
       "classes": [
-        "Konfident",
         "Femboy"
       ],
-      "cost": 5,
+      "traits": [
+        "Figlarz",
+        "Femboy"
+      ],
+      "cost": 3,
       "role": "mage",
-      "max_mana": 80,
-      "avatar": "/avatars/laylo.png",
+      "max_mana": 70,
+      "avatar": "/avatars/set2/szalwia.png",
       "skill": {
-        "name": "Finishing Touch",
-        "description": "Deal massive damage if enemy is below 30% health",
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 70,
         "effects": [
           {
-            "type": "conditional",
-            "condition": {
-              "type": "health_percentage",
-              "target": "single_enemy",
-              "operator": "less_than",
-              "value": 30
-            },
-            "effects": [
-              {
-                "type": "damage",
-                "target": "single_enemy",
-                "amount": 120,
-                "damage_type": "magical"
-              }
-            ]
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
           }
         ]
+      },
+      "passive": {
+        "id": "set2.passive.szalwia",
+        "name": "szalwia",
+        "description": "Na starcie osłabia najsilniejszego wroga o 15% ataku na 3 s i ogłusza innego na 0,75 s.",
+        "trigger": "on_start",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "start_enemy_attack_debuff"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "start_enemy_attack_debuff"
+        }
+      }
+    },
+    {
+      "id": "mr0czeq1",
+      "name": "mr0czeq1",
+      "factions": [
+        "Nowociota"
+      ],
+      "classes": [
+        "Femboy"
+      ],
+      "traits": [
+        "Nowociota",
+        "Femboy"
+      ],
+      "cost": 2,
+      "role": "mage",
+      "max_mana": 60,
+      "avatar": "/avatars/set2/mroczeq.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 60,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.mr0czeq1",
+        "name": "mr0czeq1",
+        "description": "Na starcie daje sobie i losowemu sojusznikowi +1 many/s.",
+        "trigger": "on_start",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "start_random_mana_regen"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "start_random_mana_regen"
+        }
+      }
+    },
+    {
+      "id": "optimusprime",
+      "name": "OptimusPrime",
+      "factions": [
+        "Haxball"
+      ],
+      "classes": [
+        "Muzyk"
+      ],
+      "traits": [
+        "Haxball",
+        "Muzyk"
+      ],
+      "cost": 3,
+      "role": "fighter",
+      "max_mana": 70,
+      "avatar": "/avatars/set2/optimusprime67676767-avatar-1024.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 70,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.optimusprime",
+        "name": "OptimusPrime",
+        "description": "Bonusowy atak usuwa 40% aktualnej many celu, maks. 10.",
+        "trigger": "on_bonus_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "mana_burn"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "mana_burn",
+          "percent": 40,
+          "cap": 10
+        }
+      }
+    },
+    {
+      "id": "kotmarcek",
+      "name": "KotMarcek",
+      "factions": [
+        "Femboy"
+      ],
+      "classes": [
+        "Haxball"
+      ],
+      "traits": [
+        "Femboy",
+        "Haxball"
+      ],
+      "cost": 2,
+      "role": "duelist",
+      "max_mana": 60,
+      "avatar": "/avatars/set2/marcek_heban-avatar-1024.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 60,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.kotmarcek",
+        "name": "KotMarcek",
+        "description": "Na starcie +15% szybkości ataku; bonusowy atak przekazuje ten bonus losowemu sojusznikowi.",
+        "trigger": "on_start",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "start_attack_speed"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "start_attack_speed"
+        }
+      }
+    },
+    {
+      "id": "bbobel",
+      "name": "bbobel",
+      "factions": [
+        "Nowociota"
+      ],
+      "classes": [
+        "Konfident"
+      ],
+      "traits": [
+        "Nowociota",
+        "Konfident"
+      ],
+      "cost": 1,
+      "role": "defender",
+      "max_mana": 50,
+      "avatar": "/avatars/set2/bbobel.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 50,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.bbobel",
+        "name": "bbobel",
+        "description": "Przy 50% HP leczy 20% maks. HP przez 3 s, raz na walkę.",
+        "trigger": "on_damage_received",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "half_hp_regen"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "half_hp_regen",
+          "heal_percent": 20,
+          "duration": 3
+        }
+      }
+    },
+    {
+      "id": "fallensmokk",
+      "name": "FallenSmokk",
+      "factions": [
+        "Nowociota"
+      ],
+      "classes": [
+        "Weeb"
+      ],
+      "traits": [
+        "Nowociota",
+        "Weeb"
+      ],
+      "cost": 2,
+      "role": "fighter",
+      "max_mana": 60,
+      "avatar": "/avatars/set2/fallensmok.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 60,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.fallensmokk",
+        "name": "FallenSmokk",
+        "description": "Śmierć sojusznika daje +15% ataku i obrony na 3 s, maks. 2 stosy.",
+        "trigger": "on_ally_death",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "ally_death_buff"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "ally_death_buff"
+        }
+      }
+    },
+    {
+      "id": "jaeger",
+      "name": "Jaeger",
+      "factions": [
+        "Nowociota"
+      ],
+      "classes": [
+        "Figlarz"
+      ],
+      "traits": [
+        "Nowociota",
+        "Figlarz"
+      ],
+      "cost": 1,
+      "role": "defender",
+      "max_mana": 50,
+      "avatar": "/avatars/set2/jaeger.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 50,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.jaeger",
+        "name": "Jaeger",
+        "description": "Bonusowy atak daje tarczę równą 10% maks. HP na 3 s.",
+        "trigger": "on_bonus_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "bonus_shield"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "bonus_shield",
+          "percent": 10
+        }
+      }
+    },
+    {
+      "id": "kaktusek",
+      "name": "Kaktusek",
+      "factions": [
+        "Wierny widz"
+      ],
+      "classes": [
+        "Weeb"
+      ],
+      "traits": [
+        "Wierny widz",
+        "Weeb"
+      ],
+      "cost": 2,
+      "role": "fighter",
+      "max_mana": 60,
+      "avatar": "/avatars/set2/kaktusekmatusek-avatar-1024.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 60,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.kaktusek",
+        "name": "Kaktusek",
+        "description": "Po śmierci trzy razy uderza ten sam losowy cel za 100% ataku, raz na walkę.",
+        "trigger": "on_death",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "death_strike"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "death_strike"
+        }
+      }
+    },
+    {
+      "id": "empty_melancholy",
+      "name": "EmptyMelancholy",
+      "factions": [
+        "Wierny widz"
+      ],
+      "classes": [
+        "Weeb"
+      ],
+      "traits": [
+        "Wierny widz",
+        "Weeb"
+      ],
+      "cost": 3,
+      "role": "defender",
+      "max_mana": 70,
+      "avatar": "/avatars/set2/melancholykillsme-avatar-1024.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 70,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.empty_melancholy",
+        "name": "EmptyMelancholy",
+        "description": "Po otrzymaniu trafienia zyskuje +8 obrony na 1 s, efekt się odświeża bez kumulacji.",
+        "trigger": "on_damage_received",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "defense_on_hit"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "defense_on_hit"
+        }
+      }
+    },
+    {
+      "id": "4tune",
+      "name": "4Tune",
+      "factions": [
+        "Figlarz"
+      ],
+      "classes": [
+        "Inwestor"
+      ],
+      "traits": [
+        "Figlarz",
+        "Inwestor"
+      ],
+      "cost": 4,
+      "role": "duelist",
+      "max_mana": 80,
+      "avatar": "/avatars/set2/4tune.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 80,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.4tune",
+        "name": "4Tune",
+        "description": "Śmierć sojusznika daje +100% do następnego bonusowego ataku, maks. 2 stosy.",
+        "trigger": "on_ally_death",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "set2_4tune"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "set2_4tune"
+        }
+      }
+    },
+    {
+      "id": "jadlainwestycji",
+      "name": "JaDlaInwestycji",
+      "factions": [
+        "Wierny widz"
+      ],
+      "classes": [
+        "Inwestor"
+      ],
+      "traits": [
+        "Wierny widz",
+        "Inwestor"
+      ],
+      "cost": 3,
+      "role": "duelist",
+      "max_mana": 70,
+      "avatar": "/avatars/set2/xkuba.h-avatar-1024.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 70,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.jadlainwestycji",
+        "name": "JaDlaInwestycji",
+        "description": "+15% obrażeń przeciwko jednostkom 4g i +30% przeciwko 5g.",
+        "trigger": "on_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "damage_vs_cost"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "damage_vs_cost"
+        }
+      }
+    },
+    {
+      "id": "boczek",
+      "name": "boczek",
+      "factions": [
+        "Wierny widz"
+      ],
+      "classes": [
+        "Konfident"
+      ],
+      "traits": [
+        "Wierny widz",
+        "Konfident"
+      ],
+      "cost": 1,
+      "role": "defender",
+      "max_mana": 50,
+      "avatar": "/avatars/set2/vmwu-avatar-1024.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 50,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.boczek",
+        "name": "boczek",
+        "description": "Na starcie +4 HP/s do końca walki.",
+        "trigger": "on_start",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "start_hp_regen"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "start_hp_regen",
+          "amount": 4
+        }
+      }
+    },
+    {
+      "id": "merex",
+      "name": "merex",
+      "factions": [
+        "Femboy"
+      ],
+      "classes": [
+        "Starociota"
+      ],
+      "traits": [
+        "Femboy",
+        "Starociota"
+      ],
+      "cost": 5,
+      "role": "duelist",
+      "max_mana": 90,
+      "avatar": "/avatars/set2/nos.gov-avatar-1024.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 90,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.merex",
+        "name": "merex",
+        "description": "Po zadaniu obrażeń zyskuje +4% szybkości ataku, maks. +40%, odnowienie 0,5 s.",
+        "trigger": "on_damage_dealt",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "attack_speed_after_damage"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "attack_speed_after_damage"
+        }
+      }
+    },
+    {
+      "id": "marcel_galadotka",
+      "name": "Marcel Galadotka",
+      "factions": [
+        "Wierny widz"
+      ],
+      "classes": [
+        "Nowociota"
+      ],
+      "traits": [
+        "Wierny widz",
+        "Nowociota"
+      ],
+      "cost": 2,
+      "role": "mage",
+      "max_mana": 60,
+      "avatar": "/avatars/set2/marcelgaladotka-avatar-1024.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 60,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.marcel_galadotka",
+        "name": "Marcel Galadotka",
+        "description": "Za każdy normalny atak otrzymuje dodatkowe 2 many; bonusowy atak nie daje tej premii.",
+        "trigger": "on_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "normal_attack_mana"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "normal_attack_mana",
+          "amount": 2
+        }
+      }
+    },
+    {
+      "id": "klemens_zydoslawski",
+      "name": "Klemens Żydosławski",
+      "factions": [
+        "Figlarz"
+      ],
+      "classes": [
+        "Twórca"
+      ],
+      "traits": [
+        "Figlarz",
+        "Twórca"
+      ],
+      "cost": 4,
+      "role": "mage",
+      "max_mana": 80,
+      "avatar": "/avatars/set2/klemens.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 80,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.klemens_zydoslawski",
+        "name": "Klemens Żydosławski",
+        "description": "Bonusowy atak trafia każdego wroga z pierwszej linii za 15% własnego ataku.",
+        "trigger": "on_bonus_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "bonus_frontline_damage"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "bonus_frontline_damage",
+          "percent": 15
+        }
+      }
+    },
+    {
+      "id": "nicosc",
+      "name": "Nicość",
+      "factions": [
+        "Konfident"
+      ],
+      "classes": [
+        "Wierny widz"
+      ],
+      "traits": [
+        "Konfident",
+        "Wierny widz"
+      ],
+      "cost": 4,
+      "role": "defender",
+      "max_mana": 80,
+      "avatar": "/avatars/set2/niko_official-avatar-1024.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 80,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.nicosc",
+        "name": "Nicość",
+        "description": "Raz na walkę odradza się z 50% maks. HP i jest nieobieralna przez 0,75 s.",
+        "trigger": "on_death",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "revive"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "revive"
+        }
+      }
+    },
+    {
+      "id": "knauff",
+      "name": "Knauff",
+      "factions": [
+        "Haxball"
+      ],
+      "classes": [
+        "Inwestor"
+      ],
+      "traits": [
+        "Haxball",
+        "Inwestor"
+      ],
+      "cost": 3,
+      "role": "duelist",
+      "max_mana": 70,
+      "avatar": "/avatars/set2/knauff.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 70,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.knauff",
+        "name": "Knauff",
+        "description": "Poniżej 50% HP otrzymuje +30% szybkości ataku.",
+        "trigger": "on_damage_received",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "low_hp_attack_speed"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "low_hp_attack_speed"
+        }
+      }
+    },
+    {
+      "id": "vitas",
+      "name": "Vitas",
+      "factions": [
+        "Figlarz"
+      ],
+      "classes": [
+        "Starociota"
+      ],
+      "traits": [
+        "Figlarz",
+        "Starociota"
+      ],
+      "cost": 5,
+      "role": "duelist",
+      "max_mana": 90,
+      "avatar": "/avatars/set2/vitas.png",
+      "skill": {
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 90,
+        "effects": [
+          {
+            "type": "damage",
+            "target": "single_enemy",
+            "amount": 100
+          }
+        ]
+      },
+      "passive": {
+        "id": "set2.passive.vitas",
+        "name": "Vitas",
+        "description": "Bonusowy atak ogłusza tylną linię wroga na 1 s.",
+        "trigger": "on_bonus_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "bonus_stun_backline"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "bonus_stun_backline"
+        }
       }
     },
     {
       "id": "szachowymentor",
       "name": "SzachowyMentor",
       "factions": [
-        "Srebrna Gwardia"
+        "Weeb"
       ],
       "classes": [
-        "Konfident",
-        "Normik"
+        "Szachista"
+      ],
+      "traits": [
+        "Weeb",
+        "Szachista"
       ],
       "cost": 5,
       "role": "mage",
       "max_mana": 90,
-      "avatar": "/avatars/szachowymentor.png",
+      "avatar": "/avatars/set2/szachowymentor.1996-avatar-1024.png",
       "skill": {
-        "name": "Szachowa Intryga",
-        "description": "Zadaje obrażenia wszystkim wrogom i nakłada debuff na atak.",
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 90,
         "effects": [
           {
             "type": "damage",
-            "target": "enemy_team",
-            "amount": 90,
-            "damage_type": "magical"
-          },
-          {
-            "type": "debuff",
-            "target": "enemy_team",
-            "stat": "attack",
-            "value": 18,
-            "value_type": "percentage",
-            "duration": 5
-          }
-        ]
-      }
-    },
-    {
-      "id": "mrvlook",
-      "name": "Mrvlook",
-      "factions": [
-        "Starokurwy"
-      ],
-      "classes": [
-        "Haker"
-      ],
-      "cost": 1,
-      "role": "defender",
-      "max_mana": 30,
-      "avatar": "/avatars/mrvlook.png",
-      "skill": {
-        "name": "Wirtualna Bariera",
-        "description": "Tworzy cyfrową barierę, zwiększając obronę",
-        "effects": [
-          {
-            "type": "buff",
-            "target": "self",
-            "stat": "defense",
-            "value": 20,
-            "value_type": "percentage",
-            "duration": 3
-          }
-        ]
-      }
-    },
-    {
-      "id": "wodazlodowca",
-      "name": "Woda z lodowca",
-      "factions": [
-        "Starokurwy"
-      ],
-      "classes": [
-        "Normik"
-      ],
-      "cost": 2,
-      "role": "defender",
-      "max_mana": 120,
-      "skill": {
-        "name": "Lodowa Bariera",
-        "description": "Tworzy tarczę i zwiększa obronę sojuszników.",
-        "effects": [
-          {
-            "type": "shield",
-            "target": "self",
-            "amount": 120,
-            "duration": 6
-          },
-          {
-            "type": "buff",
-            "target": "self",
-            "stat": "defense",
-            "value": 15,
-            "value_type": "percentage",
-            "duration": 3
+            "target": "single_enemy",
+            "amount": 100
           }
         ]
       },
-      "avatar": "/avatars/wodazlodowca.png"
+      "passive": {
+        "id": "set2.passive.szachowymentor",
+        "name": "SzachowyMentor",
+        "description": "Za każdego sojusznika z tyłu +1 many/s, maks. 3; co 5 s tarcza 40 za każdego sojusznika z przodu, maks. 120/tick i 240 łącznie.",
+        "trigger": "per_second",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "mentor_shield"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "mentor_shield"
+        }
+      }
     },
     {
-      "id": "turboglovica",
-      "name": "Turbogłowica",
+      "id": "9wojtaz9",
+      "name": "9wojtaz9",
       "factions": [
-        "Starokurwy"
+        "Wierny widz"
       ],
       "classes": [
         "Konfident"
       ],
-      "cost": 3,
-      "role": "mage",
-      "max_mana": 150,
-      "skill": {
-        "name": "Turbofala",
-        "description": "Wysyła falę magicznej energii, zadając obrażenia wszystkim wrogom i spowalniając ich.",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "enemy_front",
-            "amount": 50,
-            "damage_type": "magical"
-          },
-          {
-            "type": "debuff",
-            "target": "enemy_team",
-            "stat": "attack_speed",
-            "value": 10,
-            "value_type": "percentage",
-            "duration": 3
-          }
-        ]
-      },
-      "avatar": "/avatars/turboglovica.png"
-    },
-    {
-      "id": "operatorkosiarki",
-      "name": "OperatorKosiarki",
-      "factions": [
-        "Starokurwy"
-      ],
-      "classes": [
-        "Haker"
-      ],
-      "cost": 4,
-      "role": "duelist",
-      "max_mana": 150,
-      "skill": {
-        "name": "Przeprogramowanie",
-        "description": "Zakłóca systemy wroga: obniża obronę przedniej linii i zadaje obrażenia.",
-        "effects": [
-          {
-            "type": "debuff",
-            "target": "enemy_front",
-            "stat": "defense",
-            "value": 30,
-            "value_type": "percentage",
-            "duration": 8
-          },
-          {
-            "type": "damage",
-            "target": "enemy_front",
-            "amount": 110,
-            "damage_type": "magical"
-          }
-        ]
-      },
-      "avatar": "/avatars/operatorkosiarki.png"
-    },
-    {
-      "id": "beligol",
-      "name": "Beligol",
-      "factions": [
-        "Starokurwy"
-      ],
-      "classes": [
-        "Szachista"
-      ],
-      "cost": 5,
-      "role": "mage",
-      "max_mana": 150,
-      "skill": {
-        "name": "Arcymagia Beligola",
-        "description": "Skupiona potęga magiczna: potężny cios w jednego przeciwnika i krótkie oszołomienie.",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 280,
-            "damage_type": "magical"
-          },
-          {
-            "type": "stun",
-            "target": "single_enemy_persistent",
-            "duration": 1
-          }
-        ]
-      },
-      "avatar": "/avatars/beligol.png"
-    },
-    {
-      "id": "xntentacion",
-      "name": "xntentacion",
-      "factions": [
-        "Streamer"
-      ],
-      "classes": [
-        "Spell"
-      ],
-      "cost": 1,
-      "role": "defender",
-      "max_mana": 40,
-      "avatar": "/avatars/xntentacion.png",
-      "skill": {
-        "name": "Melodia Ochrony",
-        "description": "Śpiewa magiczną melodię, lecząc rany",
-        "effects": [
-          {
-            "type": "heal",
-            "target": "self",
-            "amount": 50
-          }
-        ]
-      }
-    },
-    {
-      "id": "dawid_czerw",
-      "name": "Dawid Czerw",
-      "factions": [
-        "Streamer"
-      ],
-      "classes": [
-        "Szachista"
-      ],
-      "cost": 2,
-      "role": "defender",
-      "max_mana": 80,
-      "avatar": "/avatars/dawid_czerw.png",
-      "skill": {
-        "name": "Gra pozycyjna",
-        "description": "Umacnia pozycję — tarcza i wzrost obrony dla siebie",
-        "effects": [
-          {
-            "type": "shield",
-            "target": "self",
-            "amount": 50,
-            "duration": 4
-          },
-          {
-            "type": "buff",
-            "target": "self",
-            "stat": "defense",
-            "value": 15,
-            "value_type": "flat",
-            "duration": 3
-          }
-        ]
-      }
-    },
-    {
-      "id": "jaskol95",
-      "name": "Jaskół95",
-      "factions": [
-        "Streamer"
-      ],
-      "classes": [
-        "Gamer"
-      ],
-      "cost": 2,
-      "role": "duelist",
-      "max_mana": 120,
-      "skill": {
-        "name": "Miniaturka",
-        "description": "Szybki atak na jednego wroga z krótkim ogłuszeniem",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 90,
-            "damage_type": "physical"
-          },
-          {
-            "type": "stun",
-            "target": "single_enemy_persistent",
-            "duration": 1.5
-          }
-        ]
-      },
-      "avatar": "/avatars/jaskol95.png"
-    },
-    {
-      "id": "igor_janik",
-      "name": "Igor Janik",
-      "factions": [
-        "Streamer"
-      ],
-      "classes": [
-        "Szachista"
-      ],
-      "cost": 3,
-      "role": "fighter",
-      "max_mana": 150,
-      "skill": {
-        "name": "Wykalkulowana wymiana",
-        "description": "Osłabia obronę wroga, a następnie zadaje precyzyjne obrażenia",
-        "effects": [
-          {
-            "type": "debuff",
-            "target": "single_enemy_persistent",
-            "stat": "defense",
-            "value": 30,
-            "value_type": "percentage",
-            "duration": 8
-          },
-          {
-            "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 130,
-            "damage_type": "magical"
-          }
-        ]
-      },
-      "avatar": "/avatars/igor_janik.png"
-    },
-    {
-      "id": "olaczka",
-      "name": "Olaczka",
-      "factions": [
-        "Streamer"
-      ],
-      "classes": [
-        "Prostaczka"
-      ],
-      "cost": 5,
-      "role": "fighter",
-      "max_mana": 100,
-      "skill": {
-        "name": "Totalna Napierdalanka",
-        "description": "Niszczy przednią linię i ogłusza wrogów",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "enemy_front",
-            "amount": 200,
-            "damage_type": "physical"
-          },
-          {
-            "type": "stun",
-            "target": "enemy_front",
-            "duration": 3
-          }
-        ]
-      },
-      "avatar": "/avatars/olaczka.png"
-    },
-    {
-      "id": "merex",
-      "name": "Merex",
-      "factions": [
-        "Wygnaniec"
-      ],
-      "classes": [
-        "Femboy"
-      ],
-      "cost": 4,
-      "role": "defender",
-      "max_mana": 90,
-      "skill": {
-        "name": "Wytrzymałość Wygnanego",
-        "description": "Tworzy tarczę i kontratakuje przednią linię wroga",
-        "effects": [
-          {
-            "type": "shield",
-            "target": "self",
-            "amount": 300,
-            "duration": 10
-          },
-          {
-            "type": "damage",
-            "target": "enemy_front",
-            "amount": 140,
-            "damage_type": "magical"
-          }
-        ]
-      },
-      "avatar": "/avatars/merex.png"
-    },
-    {
-      "id": "socjopata",
-      "name": "Socjopata",
-      "factions": [
-        "XN Cwel"
-      ],
-      "classes": [
-        "Spell"
-      ],
-      "cost": 2,
-      "role": "duelist",
-      "max_mana": 120,
-      "skill": {
-        "name": "Psychiczny Wstrząs",
-        "description": "Zadaje obrażenia magiczne i ma szansę na ogłuszenie wroga",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 110,
-            "damage_type": "magical"
-          },
-          {
-            "type": "conditional",
-            "target": "self",
-            "condition": {
-              "type": "random",
-              "chance": 40
-            },
-            "effects": [
-              {
-                "type": "stun",
-                "target": "single_enemy_persistent",
-                "duration": 2
-              }
-            ]
-          }
-        ]
-      },
-      "avatar": "/avatars/socjopata.png"
-    },
-    {
-      "id": "neko",
-      "name": "Neko",
-      "factions": [
-        "XN HomoKomando"
-      ],
-      "classes": [
-        "Szachista"
-      ],
-      "cost": 4,
-      "role": "defender",
-      "max_mana": 80,
-      "skill": {
-        "name": "Kocia Furia",
-        "description": "Wzmacnia wytrzymałość: tarcza i duży buff do obrony.",
-        "effects": [
-          {
-            "type": "shield",
-            "target": "self",
-            "amount": 150,
-            "duration": 6
-          },
-          {
-            "type": "buff",
-            "target": "self",
-            "stat": "defense",
-            "value": 35,
-            "value_type": "percentage",
-            "duration": 6
-          }
-        ]
-      },
-      "avatar": "/avatars/neko.png"
-    },
-    {
-      "id": "noname",
-      "name": "Noname",
-      "factions": [
-        "XN Jugend"
-      ],
-      "classes": [
-        "Haker"
-      ],
-      "cost": 3,
-      "role": "fighter",
-      "max_mana": 100,
-      "skill": {
-        "name": "Forteca Strategii",
-        "description": "Wzmacnia obronę sojuszników i osłabia atak wrogów",
-        "effects": [
-          {
-            "type": "buff",
-            "target": "ally_front",
-            "stat": "defense",
-            "value": 40,
-            "value_type": "percentage",
-            "duration": 12
-          },
-          {
-            "type": "debuff",
-            "target": "enemy_front",
-            "stat": "attack",
-            "value": 25,
-            "value_type": "percentage",
-            "duration": 10
-          }
-        ]
-      },
-      "avatar": "/avatars/noname.png"
-    },
-    {
-      "id": "dumb",
-      "name": "Dumb",
-      "factions": [
-        "XN KGB"
-      ],
-      "classes": [
-        "Gamer"
-      ],
-      "cost": 1,
-      "role": "duelist",
-      "max_mana": 30,
-      "avatar": "/avatars/dumb.png",
-      "skill": {
-        "name": "Szybki Cios",
-        "description": "Szybki, prosty cios na jednego przeciwnika",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 35
-          }
-        ]
-      }
-    },
-    {
-      "id": "maxas12",
-      "name": "maxas12",
-      "factions": [
-        "XN KGB"
-      ],
-      "classes": [
-        "Gamer"
-      ],
-      "cost": 1,
-      "role": "fighter",
-      "max_mana": 40,
-      "avatar": "/avatars/maxas12.png",
-      "skill": {
-        "name": "Młot Szczęścia",
-        "description": "Silny cios skupiony na jednym celu",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 60
-          }
-        ]
-      }
-    },
-    {
-      "id": "mrozu",
-      "name": "Mrozu",
-      "factions": [
-        "XN KGB"
-      ],
-      "classes": [
-        "Normik"
-      ],
-      "cost": 1,
-      "role": "fighter",
-      "max_mana": 120,
-      "avatar": "/avatars/mrozu.png",
-      "skill": {
-        "name": "Błyskawiczny Cios",
-        "description": "Szybki atak, który zadaje lekkie obrażenia i przyspiesza atak na krótko",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 30
-          },
-          {
-            "type": "buff",
-            "target": "self",
-            "stat": "attack_speed",
-            "value": 20,
-            "value_type": "percentage",
-            "duration": 3
-          }
-        ]
-      }
-    },
-    {
-      "id": "v7",
-      "name": "V7",
-      "factions": [
-        "XN KGB"
-      ],
-      "classes": [
-        "Haker"
-      ],
-      "cost": 1,
-      "role": "fighter",
-      "max_mana": 150,
-      "avatar": "/avatars/v7.png",
-      "skill": {
-        "name": "Bajtowy Atak",
-        "description": "Zadaje obrażenia i aplikuje efekt osłabienia na przeciwnika",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 25
-          },
-          {
-            "type": "debuff",
-            "target": "single_enemy",
-            "stat": "attack",
-            "value": 15,
-            "value_type": "percentage",
-            "duration": 4
-          }
-        ]
-      }
-    },
-    {
-      "id": "wu_hao",
-      "name": "Wu_hao",
-      "factions": [
-        "XN KGB"
-      ],
-      "classes": [
-        "Femboy"
-      ],
-      "cost": 2,
-      "role": "fighter",
-      "max_mana": 100,
-      "skill": {
-        "name": "Wirujący Ostrz",
-        "description": "Szybki obrotowy atak zadający obrażenia kilku celom.",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "enemy_team",
-            "amount": 75,
-            "damage_type": "physical"
-          }
-        ]
-      },
-      "avatar": "/avatars/wu_hao.png"
-    },
-    {
-      "id": "frajdzia",
-      "name": "Frajdzia",
-      "factions": [
-        "XN KGB"
-      ],
-      "classes": [
-        "Prostaczka"
-      ],
-      "cost": 3,
-      "role": "duelist",
-      "max_mana": 100,
-      "skill": {
-        "name": "Bezpośrednie Starcie",
-        "description": "Mocne uderzenie i chwilowe ogłuszenie przeciwnika",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 150,
-            "damage_type": "physical"
-          },
-          {
-            "type": "stun",
-            "target": "single_enemy_persistent",
-            "duration": 0.3
-          }
-        ]
-      },
-      "avatar": "/avatars/frajdzia.png"
-    },
-    {
-      "id": "wrzechu",
-      "name": "Wrzechu",
-      "factions": [
-        "XN KGB"
-      ],
-      "classes": [
-        "Spell"
-      ],
-      "cost": 4,
-      "role": "duelist",
-      "max_mana": 150,
-      "skill": {
-        "name": "Czystka Ideologiczna",
-        "description": "Nakłada klątwę i eksploduje magicznymi obrażeniami",
-        "effects": [
-          {
-            "type": "damage_over_time",
-            "target": "single_enemy_persistent",
-            "damage": 35,
-            "duration": 6,
-            "interval": 1.5,
-            "damage_type": "magical"
-          },
-          {
-            "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 140,
-            "damage_type": "magical"
-          }
-        ]
-      },
-      "avatar": "/avatars/wrzechu.png"
-    },
-    {
-      "id": "galanonim",
-      "name": "GalAnonim",
-      "factions": [
-        "XN KGB"
-      ],
-      "classes": [
+      "traits": [
+        "Wierny widz",
         "Konfident"
       ],
-      "cost": 5,
-      "role": "fighter",
-      "max_mana": 100,
-      "skill": {
-        "name": "Donos Systemowy",
-        "description": "Osłabia atak i obronę wrogiej drużyny, a następnie uderza",
-        "effects": [
-          {
-            "type": "debuff",
-            "target": "enemy_team",
-            "stat": "attack",
-            "value": 15,
-            "value_type": "percentage",
-            "duration": 10
-          },
-          {
-            "type": "debuff",
-            "target": "enemy_team",
-            "stat": "defense",
-            "value": 15,
-            "value_type": "percentage",
-            "duration": 10
-          },
-          {
-            "type": "damage",
-            "target": "enemy_front",
-            "amount": 100,
-            "damage_type": "physical"
-          }
-        ]
-      },
-      "avatar": "/avatars/galanonim.png"
-    },
-    {
-      "id": "stalin",
-      "name": "Stalin",
-      "factions": [
-        "XN KGB"
-      ],
-      "classes": [
-        "Femboy"
-      ],
-      "cost": 5,
-      "role": "duelist",
-      "max_mana": 150,
-      "skill": {
-        "name": "Czerwona Determinacja",
-        "description": "Wyzwala potężny cios na przednią linię oraz wzmacnia atak sojuszników.",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "enemy_front",
-            "amount": 120,
-            "damage_type": "physical"
-          },
-          {
-            "type": "buff",
-            "target": "ally_front",
-            "stat": "attack",
-            "value": 10,
-            "value_type": "percentage",
-            "duration": 6
-          }
-        ]
-      },
-      "avatar": "/avatars/stalin.png"
-    },
-    {
-      "id": "krasu",
-      "name": "Krasu",
-      "factions": [
-        "XN Mod"
-      ],
-      "classes": [
-        "Gamer"
-      ],
-      "cost": 5,
-      "role": "duelist",
-      "max_mana": 120,
-      "skill": {
-        "name": "Krasowy Strumień",
-        "description": "Potężny magiczny atak na wszystkich wrogów oraz osłabienie ich obrony.",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "enemy_team",
-            "amount": 130,
-            "damage_type": "magical"
-          },
-          {
-            "type": "debuff",
-            "target": "enemy_team",
-            "stat": "defense",
-            "value": 20,
-            "value_type": "percentage",
-            "duration": 8
-          }
-        ]
-      },
-      "avatar": "/avatars/krasu.png"
-    },
-    {
-      "id": "atomowy_coggers",
-      "name": "Atomowy coggers",
-      "factions": [
-        "XN Monter"
-      ],
-      "classes": [],
-      "cost": 4,
-      "role": "fighter",
-      "max_mana": 150,
-      "skill": {
-        "name": "Koggersowy Wybuch",
-        "description": "Eksploduje, zadając duże obrażenia przedniej linii i pozostawiając obszarowe uszkodzenia.",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "enemy_front",
-            "amount": 180,
-            "damage_type": "physical"
-          },
-          {
-            "type": "damage_over_time",
-            "target": "enemy_front",
-            "damage": 30,
-            "duration": 6,
-            "interval": 1.5,
-            "damage_type": "physical"
-          }
-        ]
-      },
-      "avatar": "/avatars/atomowy_coggers.png"
-    },
-    {
-      "id": "szalwia",
-      "name": "Szałwia",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Konfident"
-      ],
-      "cost": 5,
-      "role": "fighter",
-      "max_mana": 150,
-      "skill": {
-        "name": "Ziołowa Zasłona",
-        "description": "Tworzy pole, które leczy sojuszników i zwiększa ich odporność.",
-        "effects": [
-          {
-            "type": "heal",
-            "target": "ally_front",
-            "amount": 80
-          },
-          {
-            "type": "buff",
-            "target": "ally_front",
-            "stat": "defense",
-            "value": 20,
-            "value_type": "percentage",
-            "duration": 6
-          }
-        ]
-      },
-      "avatar": "/avatars/szalwia.png"
-    },
-    {
-      "id": "bosman",
-      "name": "Bosman",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Femboy"
-      ],
       "cost": 1,
-      "role": "fighter",
-      "max_mana": 150,
-      "avatar": "/avatars/bosman.png",
-      "skill": {
-        "name": "Falowy Cios",
-        "description": "Silny cios falowy, zadający obrażenia jednemu przeciwnikowi i rozchodzący się lekko",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 45
-          }
-        ]
-      }
-    },
-    {
-      "id": "un4given",
-      "name": "Un4given",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Gamer"
-      ],
-      "cost": 1,
-      "role": "defender",
-      "max_mana": 80,
-      "avatar": "/avatars/un4given.png",
-      "skill": {
-        "name": "Taktyczna Osłona",
-        "description": "Przyjmuje pozycję obronną, zwiększając swoją obronę",
-        "effects": [
-          {
-            "type": "buff",
-            "target": "self",
-            "stat": "defense",
-            "value": 25,
-            "value_type": "flat",
-            "duration": 4
-          }
-        ]
-      }
-    },
-    {
-      "id": "beudzik",
-      "name": "Beudzik",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Gamer"
-      ],
-      "cost": 2,
-      "role": "fighter",
-      "max_mana": 150,
-      "avatar": "/avatars/beudzik.png",
-      "skill": {
-        "name": "Szybki Kombos",
-        "description": "Seria szybkich uderzeń — dwa ataki pod rząd",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 45
-          },
-          {
-            "type": "delay",
-            "target": "self",
-            "duration": 0.25
-          },
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 30
-          }
-        ]
-      }
-    },
-    {
-      "id": "buba",
-      "name": "Buba",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Spell"
-      ],
-      "cost": 2,
-      "role": "fighter",
-      "max_mana": 100,
-      "avatar": "/avatars/buba.png",
-      "skill": {
-        "name": "Iskrzące Uderzenie",
-        "description": "Skierowane uderzenie, które leczy w użytkowniku część zadanych obrażeń",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 30
-          },
-          {
-            "type": "heal",
-            "target": "self",
-            "amount": 20
-          }
-        ]
-      }
-    },
-    {
-      "id": "hikki",
-      "name": "Hikki",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Spell"
-      ],
-      "cost": 2,
-      "role": "fighter",
-      "max_mana": 150,
-      "avatar": "/avatars/hikki.png",
-      "skill": {
-        "name": "Grom z Płyt",
-        "description": "Wysyła elektryczny impuls, zadając obrażenia i lekko ogłuszając cel",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy",
-            "amount": 40,
-            "damage_type": "magical"
-          },
-          {
-            "type": "stun",
-            "target": "single_enemy",
-            "duration": 0.3
-          }
-        ]
-      }
-    },
-    {
-      "id": "alyson_stark",
-      "name": "Alyson Stark",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Prostaczka"
-      ],
-      "cost": 3,
-      "role": "fighter",
-      "max_mana": 150,
-      "skill": {
-        "name": "Przemówienie Lidera",
-        "description": "Podnosi morale: leczy przednią linię i zwiększa ich atak.",
-        "effects": [
-          {
-            "type": "heal",
-            "target": "ally_front",
-            "amount": 70
-          },
-          {
-            "type": "buff",
-            "target": "ally_front",
-            "stat": "attack",
-            "value": 18,
-            "value_type": "percentage",
-            "duration": 6
-          }
-        ]
-      },
-      "avatar": "/avatars/alyson_stark.png"
-    },
-    {
-      "id": "flaminga",
-      "name": "Flaminga",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Gamer"
-      ],
-      "cost": 3,
-      "role": "fighter",
-      "max_mana": 150,
-      "skill": {
-        "name": "Płomienny Wybuch",
-        "description": "Wybuchający ogień rani wszystkich wrogów i zostawia palące się miejsce.",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "enemy_team",
-            "amount": 120,
-            "damage_type": "magical"
-          },
-          {
-            "type": "damage_over_time",
-            "target": "enemy_team",
-            "damage": 25,
-            "duration": 6,
-            "interval": 1.5,
-            "damage_type": "magical"
-          }
-        ]
-      },
-      "avatar": "/avatars/flaminga.png"
-    },
-    {
-      "id": "vitas",
-      "name": "Vitas",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Normik"
-      ],
-      "cost": 3,
-      "role": "fighter",
-      "max_mana": 100,
-      "skill": {
-        "name": "Głęboki Ton",
-        "description": "Skupiony atak obniżający obronę celu i zadający silne obrażenia.",
-        "effects": [
-          {
-            "type": "debuff",
-            "target": "single_enemy_persistent",
-            "stat": "defense",
-            "value": 25,
-            "value_type": "percentage",
-            "duration": 8
-          },
-          {
-            "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 140,
-            "damage_type": "physical"
-          }
-        ]
-      },
-      "avatar": "/avatars/vitas.png"
-    },
-    {
-      "id": "fiko",
-      "name": "Fiko",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Gamer"
-      ],
-      "cost": 4,
-      "role": "defender",
-      "max_mana": 80,
-      "skill": {
-        "name": "Kamienna Zbroja",
-        "description": "Otacza się kamienną zbroją: duża tarcza i odporność na obrażenia.",
-        "effects": [
-          {
-            "type": "shield",
-            "target": "self",
-            "amount": 200,
-            "duration": 8
-          },
-          {
-            "type": "buff",
-            "target": "self",
-            "stat": "defense",
-            "value": 15,
-            "value_type": "percentage",
-            "duration": 6
-          }
-        ]
-      },
-      "avatar": "/avatars/fiko.png"
-    },
-    {
-      "id": "puszmen12",
-      "name": "Puszmen12",
-      "factions": [
-        "XN Waffen"
-      ],
-      "classes": [
-        "Konfident"
-      ],
-      "cost": 4,
       "role": "duelist",
-      "max_mana": 120,
+      "max_mana": 50,
+      "avatar": "/avatars/set2/9wojtaz9.png",
       "skill": {
-        "name": "Zabójczy Kombos",
-        "description": "Seria precyzyjnych ataków na jednego wroga, kończąca mocnym ciosem.",
+        "name": "Atak podstawowy",
+        "description": "Zadaje podstawowe obrażenia wybranemu celowi.",
+        "mana_cost": 50,
         "effects": [
           {
             "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 40
-          },
-          {
-            "type": "delay",
-            "duration": 0.2
-          },
-          {
-            "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 55
-          },
-          {
-            "type": "delay",
-            "duration": 0.2
-          },
-          {
-            "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 80
+            "target": "single_enemy",
+            "amount": 100
           }
         ]
       },
-      "avatar": "/avatars/puszmen12.png"
-    },
-    {
-      "id": "pan_yakuza",
-      "name": "Pan Yakuza",
-      "factions": [
-        "XN Yakuza"
-      ],
-      "classes": [
-        "Haker"
-      ],
-      "cost": 5,
-      "role": "fighter",
-      "max_mana": 100,
-      "skill": {
-        "name": "Yakuza Strike",
-        "description": "Precyzyjny atak na jednego wroga, zadający duże obrażenia i osłabiający jego atak.",
-        "effects": [
-          {
-            "type": "damage",
-            "target": "single_enemy_persistent",
-            "amount": 160,
-            "damage_type": "physical"
-          },
-          {
-            "type": "debuff",
-            "target": "single_enemy_persistent",
-            "stat": "attack",
-            "value": 20,
-            "value_type": "percentage",
-            "duration": 6
-          }
-        ]
-      },
-      "avatar": "/avatars/pan_yakuza.png"
+      "passive": {
+        "id": "set2.passive.9wojtaz9",
+        "name": "9wojtaz9",
+        "description": "Bonusowy atak ogłusza jeden cel na 0,25 s.",
+        "trigger": "on_bonus_attack",
+        "target": "self",
+        "conditions": {},
+        "effect": {
+          "type": "set2_unit",
+          "runtime": "bonus_stun"
+        },
+        "limit": {
+          "stacking": "none"
+        },
+        "kind": "set2_unit",
+        "runtime": {
+          "type": "bonus_stun",
+          "duration": 0.25
+        }
+      }
     }
   ],
   "factions": [
-    "Denciak",
-    "Hitman",
-    "Randomized",
-    "Srebrna Gwardia",
-    "Starokurwy",
-    "Streamer",
-    "Wygnaniec",
-    "XN Cwel",
-    "XN HomoKomando",
-    "XN Jugend",
-    "XN KGB",
-    "XN Mod",
-    "XN Monter",
-    "XN Waffen",
-    "XN Yakuza"
+    "Femboy",
+    "Figlarz",
+    "Haxball",
+    "Konfident",
+    "Muzyk",
+    "Nowociota",
+    "Szachista",
+    "Twórca",
+    "Weeb",
+    "Wierny widz"
   ],
   "classes": [
-    "Normik",
-    "Gamer",
-    "Haker",
     "Femboy",
+    "Figlarz",
+    "Haxball",
+    "Inwestor",
     "Konfident",
-    "Spell",
-    "Prostaczka",
+    "Muzyk",
+    "Nowociota",
+    "Starociota",
     "Szachista",
-    "Randomized"
+    "Twórca",
+    "Weeb",
+    "Wierny widz"
   ]
 }

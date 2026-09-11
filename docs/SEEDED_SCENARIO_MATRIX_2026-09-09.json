@@ -124,7 +124,7 @@
       "team_a": ["all_canonical_passive_definitions"],
       "team_b": ["matrix_target"],
       "formation": {"team_a": ["front"], "team_b": ["front"]},
-      "expected": {"passive_definitions": 52, "deterministic": true, "unknown_id_fails_closed": true},
+      "expected": {"passive_definitions": 32, "deterministic": true, "unknown_id_fails_closed": true},
       "acceptance": "Every loaded canonical passive definition runs through a seeded shared-core smoke scenario twice with the same event signature; an unknown passive ID has no fallback definition.",
       "coverage": {"positive": "every canonical passive definition", "negative": "unknown passive ID"},
       "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_matrix_replays_every_canonical_definition_deterministically"
@@ -135,7 +135,7 @@
       "team_a": ["canonical_trait_threshold_units"],
       "team_b": ["control_team"],
       "formation": {"team_a": ["front"], "team_b": ["front"]},
-      "expected": {"trait_count": 21, "deterministic": true, "boundary_states": ["below", "exact", "next"]},
+      "expected": {"trait_count": 12, "deterministic": true, "boundary_states": ["below", "exact", "next"]},
       "acceptance": "Every loaded canonical trait tier distinguishes below-threshold, exact-threshold and next-tier activation deterministically.",
       "coverage": {"positive": "exact and next threshold for every canonical trait", "boundary": "below threshold for every canonical trait tier"},
       "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_trait_threshold_matrix_covers_below_exact_and_next_boundary"
@@ -148,22 +148,7 @@
       "formation": {"team_a": ["front"], "team_b": ["front"]},
       "expected": {
         "trigger_families": [
-          "ally_threshold",
-          "attack_count",
-          "attack_count_same_target",
-          "bonus_attack",
-          "conditional_attack",
-          "kill",
-          "position_scope_start",
-          "position_start",
-          "start_effect",
-          "start_enemy_debuff",
-          "start_enemy_highest_attack",
-          "start_scope_stat",
-          "start_stat",
-          "start_target",
-          "start_target_bonus",
-          "threshold"
+          "set2_unit"
         ],
         "positive_and_negative_paths": true
       },

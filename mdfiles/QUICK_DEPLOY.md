@@ -65,4 +65,4 @@ Desyncs: 0  ✅
 
 ---
 
-See `FINAL_STATUS.md` for complete details.
+See `docs/RELEASE_VALIDATION_GATE.md` for the canonical release checklist.

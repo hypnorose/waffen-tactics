@@ -5,7 +5,6 @@ from typing import Dict, Any, List
 from waffen_tactics.models.unit import Unit, Stats, Skill
 from waffen_tactics.models.skill import Skill as NewSkill, Effect, TargetType, EffectType
 from waffen_tactics.services.skill_parser import skill_parser, SkillParseError
-from waffen_tactics.services.passive_definitions import get_passive_definition
 
 DATA_FILE = Path(__file__).resolve().parents[3] / "units.json"
 TRAITS_FILE = Path(__file__).resolve().parents[3] / "traits.json"
@@ -116,9 +115,13 @@ def load_game_data() -> GameData:
         # No mana_cost on skill definitions anymore — mana is always unit max_mana
 
         unit = Unit.from_json(u, stats, skill, role_color)
-        # Passives are a separate runtime contract; legacy skill data remains
-        # available only for old fixtures and non-combat compatibility paths.
-        unit.passive = get_passive_definition(u.get("id"))
+        # Set 2 passives are embedded in the canonical active dataset.  Do not
+        # silently reconstruct them from the removed legacy registry: missing
+        # active content must fail closed at load time.
+        passive = u.get("passive")
+        if not isinstance(passive, dict):
+            raise ValueError(f"Missing canonical Set 2 passive for unit {unit_id}")
+        unit.passive = passive
         units.append(unit)
     
     traits = traits_data.get("traits", [])

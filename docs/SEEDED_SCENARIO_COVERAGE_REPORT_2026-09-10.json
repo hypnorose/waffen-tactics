@@ -3,22 +3,22 @@
   "source_of_truth": [
     "waffen-tactics/units.json",
     "waffen-tactics/traits.json",
-    "waffen-tactics/src/waffen_tactics/services/passive_definitions.py",
+    "Plane: Waffen Tactics / WFT-23 approved Set 2 contract",
     "docs/SEEDED_SCENARIO_MATRIX_2026-09-09.json"
   ],
   "generated_by": "tools/seeded_coverage_report.py",
   "automated_evidence_only": true,
   "canonical_counts": {
-    "units": 52,
-    "passive_definitions": 52,
-    "traits": 21,
-    "trigger_families": 16,
+    "units": 32,
+    "passive_definitions": 32,
+    "traits": 12,
+    "trigger_families": 1,
     "matrix_scenarios": 12
   },
   "failure_domains": {
     "data": {
       "status": "automated_contract",
-      "reference": "waffen-tactics/units.json + traits.json + passive_definitions.py",
+      "reference": "Plane WFT-23 + active Set 2 dataset/runtime",
       "scope": "canonical IDs, counts, descriptions, and unit/passive alignment"
     },
     "runtime": {
@@ -45,8 +45,8 @@
   "coverage": {
     "unit": {
       "status": "automated_evidence",
-      "canonical_count": 52,
-      "covered_count": 52,
+      "canonical_count": 32,
+      "covered_count": 32,
       "uncovered_ids": [],
       "passive_ids_without_unit": [],
       "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_matrix_replays_every_canonical_definition_deterministically",
@@ -54,30 +54,21 @@
     },
     "trait": {
       "status": "automated_evidence",
-      "canonical_count": 21,
-      "covered_count": 21,
+      "canonical_count": 12,
+      "covered_count": 12,
       "trait_names": [
-        "Denciak",
         "Femboy",
-        "Gamer",
-        "Haker",
-        "Hitman",
+        "Figlarz",
+        "Haxball",
+        "Inwestor",
         "Konfident",
-        "Normik",
-        "Prostaczka",
-        "Spell",
-        "Srebrna Gwardia",
-        "Starokurwy",
-        "Streamer",
+        "Muzyk",
+        "Nowociota",
+        "Starociota",
         "Szachista",
-        "Wygnaniec",
-        "XN HomoKomando",
-        "XN Jugend",
-        "XN KGB",
-        "XN Mod",
-        "XN Monter",
-        "XN Waffen",
-        "XN Yakuza"
+        "Twórca",
+        "Weeb",
+        "Wierny widz"
       ],
       "boundary_states": [
         "below",
@@ -89,25 +80,10 @@
     },
     "trigger_family": {
       "status": "automated_evidence",
-      "canonical_count": 16,
-      "covered_count": 16,
+      "canonical_count": 1,
+      "covered_count": 1,
       "families": [
-        "ally_threshold",
-        "attack_count",
-        "attack_count_same_target",
-        "bonus_attack",
-        "conditional_attack",
-        "kill",
-        "position_scope_start",
-        "position_start",
-        "start_effect",
-        "start_enemy_debuff",
-        "start_enemy_highest_attack",
-        "start_scope_stat",
-        "start_stat",
-        "start_target",
-        "start_target_bonus",
-        "threshold"
+        "set2_unit"
       ],
       "positive_and_negative_paths": true,
       "test_reference": "waffen-tactics/tests/test_canonical_seeded_matrix.py::test_passive_trigger_family_matrix_has_positive_and_negative_path",

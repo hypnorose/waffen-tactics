@@ -161,7 +161,7 @@ POST /game/combat
 - `compareCombatStates()` (frontend): Compares local state with snapshot `game_state`
 - `DesyncInspector` component: Shows detected differences for debugging
 
-See `docs/DESYNC_IMPROVEMENTS.md` for detailed mitigation strategies.
+See `docs/EVENT_REPLAY_TESTING.md` for the canonical replay and desync-testing workflow.
 
 ### Database Schema
 
@@ -299,7 +299,7 @@ python -m pytest tests/ -v
 2. Review backend logs for `CombatEventReconstructor` diffs
 3. Capture event stream: Combat overlay saves events to browser console
 4. Replay locally: Save events to `*.jsonl` and test with reconstructor
-5. See `docs/DESYNC_IMPROVEMENTS.md` for systematic debugging
+5. See `docs/EVENT_REPLAY_TESTING.md` for systematic replay debugging
 
 ### Update Frontend Combat Animation
 
@@ -356,8 +356,8 @@ waffen-tactics-game/
 │   └── package.json
 │
 ├── docs/
-│   ├── DESYNC_IMPROVEMENTS.md           # Desync mitigation guide
-│   └── DESYNC_MITIGATION_PLAN.md
+│   ├── EVENT_REPLAY_TESTING.md          # Canonical replay/desync test guide
+│   └── COMBAT_RUNTIME_BOUNDARY.md       # Runtime ownership boundary
 │
 └── scripts/                             # Utility scripts
 ```

@@ -11,11 +11,11 @@ the exact local revision intended for deployment.
   `/home/ubuntu/waffen-tactics-game`.
 - **Release owner:** the person authorizing deployment owns the final go/no-go
   decision and any explicit waiver.
-- **Feature owner:** the Linear issue owner resolves code or content failures;
+- **Feature owner:** the Plane work item owner resolves code or content failures;
   the release owner resolves deployment and runtime failures.
 
-Do not close the gate when a blocking Linear issue is unresolved. A blocking
-item may be waived only by an explicit user decision recorded in Linear.
+Do not close the gate when a blocking Plane work item is unresolved. A blocking
+item may be waived only by an explicit user decision recorded in Plane.
 
 ## 2. Local automated gate
 
@@ -41,7 +41,7 @@ Expected evidence:
 - core and backend tests pass, with skips recorded rather than hidden;
 - frontend typecheck, tests, and production build pass;
 - `git diff --check` reports no whitespace errors;
-- the final revision and working-tree state are recorded in the Linear issue.
+- the final revision and working-tree state are recorded in the Plane work item.
 
 For balance-sensitive changes, also run the scoped audit and attach its output
 or summary, including seed, unit/trait counts, errors, timeouts, and whether
@@ -125,7 +125,7 @@ These checks cannot be replaced by unit tests, builds, or Console output:
 - repeat the critical UI checks at 1280x720 and 1920x1080;
 - verify the public HTTPS app and `/api` path work through Caddy while direct
   access to ports 3000 and 8000 from outside the VPS is unavailable;
-- record browser/console errors, screenshots, seed, and timestamp in Linear.
+- record browser/console errors, screenshots, seed, and timestamp in Plane.
 
 Mark the issue `Needs Manual Test` until this evidence exists. Do not claim
 player-runtime acceptance from local tests alone.
@@ -133,10 +133,10 @@ player-runtime acceptance from local tests alone.
 ## 7. Go/no-go and rollback
 
 The gate is **GO** only when sections 2–6 have evidence and every blocking
-Linear issue is `Done` or has an explicit user waiver. Otherwise it is **NO-GO**.
+Plane work item is `Done` or has an explicit user waiver. Otherwise it is **NO-GO**.
 
 If deployment fails, the release owner stops further rollout, preserves the
 local revision and VPS status/log evidence, and opens or updates the owning
-Linear issue. Rollback uses the documented deployment procedure and an
+Plane work item. Rollback uses the documented deployment procedure and an
 approved known-good revision; never use an unreviewed manual VPS edit as the
 new source of truth.

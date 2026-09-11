@@ -217,8 +217,8 @@ The runtime currently scales HP by ×1.6 and attack by ×1.4 per star step; defe
 
 ## Artifacts
 
-- Raw machine-readable results: `docs/BALANCE_AUDIT_2026-09-01.json`.
-- Re-run command: `python tools/balance_audit.py`.
+- Raw machine-readable results: `docs/BALANCE_AUDIT_2026-09-09.json`.
+- Re-run command: `python tools/balance_audit.py --generated-date 2026-09-09 --output-json docs/BALANCE_AUDIT_2026-09-09.json --output-md docs/BALANCE_AUDIT_2026-09-09.md`.
 
 ## Data vs interpretation
 

@@ -495,10 +495,38 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
 
         # create combat state snapshot helper
         self._combat_state = CombatState(self.team_a, self.team_b)
+        self.passive_processor.bind_hp_arrays({'team_a': self.a_hp, 'team_b': self.b_hp})
+        self.passive_processor.bind_mana_arrays(self._combat_state.mana_arrays)
 
         # Passive initialization is the only start-of-combat effect path. It
         # runs before the first attack and never invokes the skill executor.
         self.passive_processor.initialize(self.team_a, self.team_b, proc_cb, timestamp=0.0)
+
+        # Start passives may legally be lethal.  Finalize those deaths through
+        # the same centralized death path before the first snapshot/round hook.
+        for dead_team, dead_hp, killer_team, killer_hp, dead_side in (
+            (self.team_a, self.a_hp, self.team_b, self.b_hp, 'team_a'),
+            (self.team_b, self.b_hp, self.team_a, self.a_hp, 'team_b'),
+        ):
+            for dead_index, dead_unit in enumerate(dead_team):
+                if dead_hp[dead_index] > 0 or getattr(dead_unit, '_dead', False):
+                    continue
+                killer = getattr(dead_unit, '_set2_start_killer', None)
+                if killer is None:
+                    killer = next((unit for unit, hp in zip(killer_team, killer_hp) if hp > 0), None)
+                if killer is not None:
+                    self._process_unit_death(
+                        killer,
+                        dead_team,
+                        dead_hp,
+                        killer_team,
+                        killer_hp,
+                        dead_index,
+                        0.0,
+                        log,
+                        proc_cb,
+                        'team_b' if dead_side == 'team_a' else 'team_a',
+                    )
 
         # Canonical modular per-round records are dispatched at the same
         # start-of-combat lifecycle point as legacy per-round records, before
@@ -573,6 +601,8 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                     time,
                     proc_cb,
                 )
+                self.passive_processor.per_second(self.team_a, self.team_b, 'team_a', time, proc_cb)
+                self.passive_processor.per_second(self.team_b, self.team_a, 'team_b', time, proc_cb)
                 self._process_per_second_buffs(self.team_a, self.team_b, self.a_hp, self.b_hp, time, log, proc_cb)
             self._process_regeneration(self.team_a, self.team_b, self.a_hp, self.b_hp, time, log, self.dt, proc_cb)
 

@@ -1,143 +1,93 @@
 {
   "traits": [
     {
-      "name": "Srebrna Gwardia",
-      "type": "faction",
-      "description": "Zespół zyskuje obronę co sekundę walki",
-      "target": "team",
+      "id": "set2.trait.konfident",
+      "name": "Konfident",
+      "type": "trait",
+      "description": "Mana zdobyta z ataku jest przekazywana jednemu innemu żyjącemu Konfidentowi; bez samoprzepływu i rekurencji.",
+      "target": "trait",
       "thresholds": [
         3,
         5,
         7
       ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "per_second",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 3
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "per_second",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 4
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "per_second",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 6
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "Streamer",
-      "type": "faction",
-      "description": "Za każdego pokonanego wroga zespół zyskuje atak i obronę",
-      "target": "team",
-      "thresholds": [
-        2,
-        3,
-        4,
-        5
-      ],
       "threshold_descriptions": [
-        "+<rewards.value[0]> ataku i +<rewards.value[1]> obrony po pokaniu wroga  ",
-        "+<rewards.value[0]> ataku i +<rewards.value[1]> obrony po pokaniu wroga  ",
-        "+<rewards.value[0]> ataku i +<rewards.value[1]> obrony po pokaniu wroga  ",
-        "+<rewards.value[0]> ataku i +<rewards.value[1]> obrony po pokaniu wroga  "
+        "Mana zdobyta z ataku jest przekazywana jednemu innemu żyjącemu Konfidentowi; bez samoprzepływu i rekurencji.",
+        "Mana zdobyta z ataku jest przekazywana jednemu innemu żyjącemu Konfidentowi; bez samoprzepływu i rekurencji.",
+        "Mana zdobyta z ataku jest przekazywana jednemu innemu żyjącemu Konfidentowi; bez samoprzepływu i rekurencji."
       ],
       "modular_effects": [
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "on_attack",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Konfident",
+              "tier": 1,
+              "value": 15
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 3
-              },
-              {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 3
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Konfident",
+                "tier": 1,
+                "value": 15
               }
             ]
           }
         ],
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "on_attack",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Konfident",
+              "tier": 2,
+              "value": 25
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 5
-              },
-              {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 5
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Konfident",
+                "tier": 2,
+                "value": 25
               }
             ]
           }
         ],
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "on_attack",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Konfident",
+              "tier": 3,
+              "value": 35
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 7
-              },
-              {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 7
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 12
-              },
-              {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 12
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Konfident",
+                "tier": 3,
+                "value": 35
               }
             ]
           }
@@ -145,75 +95,93 @@
       ]
     },
     {
-      "name": "XN Waffen",
-      "type": "faction",
-      "description": "Zwiększona prędkość ataku dla całego zespołu",
-      "target": "team",
+      "id": "set2.trait.wierny_widz",
+      "name": "Wierny widz",
+      "type": "trait",
+      "description": "Po 5 s: +10/15/20% ataku i obrony oraz tarcza 5/8/10% maks. HP; raz na walkę.",
+      "target": "trait",
       "thresholds": [
         3,
         5,
-        7,
-        10
+        6
       ],
       "threshold_descriptions": [
-        "+<rewards.value>% prędkości ataku",
-        "+<rewards.value>% prędkości ataku",
-        "+<rewards.value>% prędkości ataku",
-        "+<rewards.value>% prędkości ataku"
+        "Po 5 s: +10/15/20% ataku i obrony oraz tarcza 5/8/10% maks. HP; raz na walkę.",
+        "Po 5 s: +10/15/20% ataku i obrony oraz tarcza 5/8/10% maks. HP; raz na walkę.",
+        "Po 5 s: +10/15/20% ataku i obrony oraz tarcza 5/8/10% maks. HP; raz na walkę."
       ],
       "modular_effects": [
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "per_second",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Wierny widz",
+              "tier": 1,
+              "value": 10
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "attack_speed",
-                "value": 25,
-                "value_type": "percentage_of_max"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Wierny widz",
+                "tier": 1,
+                "value": 10
               }
             ]
           }
         ],
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "per_second",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Wierny widz",
+              "tier": 2,
+              "value": 15
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "attack_speed",
-                "value": 35,
-                "value_type": "percentage_of_max"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Wierny widz",
+                "tier": 2,
+                "value": 15
               }
             ]
           }
         ],
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "per_second",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Wierny widz",
+              "tier": 3,
+              "value": 20
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "attack_speed",
-                "value": 50,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "attack_speed",
-                "value": 75,
-                "value_type": "percentage_of_max"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Wierny widz",
+                "tier": 3,
+                "value": 20
               }
             ]
           }
@@ -221,75 +189,93 @@
       ]
     },
     {
-      "name": "XN KGB",
-      "type": "faction",
-      "description": "Bonus do ataku dla całego zespołu",
-      "target": "team",
+      "id": "set2.trait.nowociota",
+      "name": "Nowociota",
+      "type": "trait",
+      "description": "Przez pierwsze 2 s +40/60/80% szybkości ataku; odświeżane po zabiciu, bez kumulacji.",
+      "target": "trait",
       "thresholds": [
         3,
         5,
-        7,
-        9
+        7
       ],
       "threshold_descriptions": [
-        "+<rewards.value>% ataku",
-        "+<rewards.value>% ataku",
-        "+<rewards.value>% ataku",
-        "+<rewards.value>% ataku"
+        "Przez pierwsze 2 s +40/60/80% szybkości ataku; odświeżane po zabiciu, bez kumulacji.",
+        "Przez pierwsze 2 s +40/60/80% szybkości ataku; odświeżane po zabiciu, bez kumulacji.",
+        "Przez pierwsze 2 s +40/60/80% szybkości ataku; odświeżane po zabiciu, bez kumulacji."
       ],
       "modular_effects": [
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "passive",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Nowociota",
+              "tier": 1,
+              "value": 40
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 30,
-                "value_type": "percentage_of_max"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Nowociota",
+                "tier": 1,
+                "value": 40
               }
             ]
           }
         ],
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "passive",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Nowociota",
+              "tier": 2,
+              "value": 60
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 40,
-                "value_type": "percentage_of_max"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Nowociota",
+                "tier": 2,
+                "value": 60
               }
             ]
           }
         ],
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "passive",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Nowociota",
+              "tier": 3,
+              "value": 80
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 50,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 70,
-                "value_type": "percentage_of_max"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Nowociota",
+                "tier": 3,
+                "value": 80
               }
             ]
           }
@@ -297,9 +283,10 @@
       ]
     },
     {
-      "name": "Denciak",
-      "type": "faction",
-      "description": "Kiedy sojusznik umiera, zyskujesz złoto",
+      "id": "set2.trait.figlarz",
+      "name": "Figlarz",
+      "type": "trait",
+      "description": "Na starcie ogłusza wszystkich wrogów na 1 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
       "target": "team",
       "thresholds": [
         2,
@@ -307,52 +294,82 @@
         6
       ],
       "threshold_descriptions": [
-        "+<rewards.value> <rewards.resource> za śmierć sojusznika",
-        "+<rewards.value> <rewards.resource> za śmierć sojusznika",
-        "<rewards.value> <rewards.resource> za śmierć sojusznika"
+        "Na starcie ogłusza wszystkich wrogów na 1 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
+        "Na starcie ogłusza wszystkich wrogów na 1 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
+        "Na starcie ogłusza wszystkich wrogów na 1 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci."
       ],
       "modular_effects": [
         [
           {
-            "trigger": "on_ally_death",
-            "conditions": {
-              "trigger_once": true
+            "trigger": "passive",
+            "conditions": {},
+            "target": "team",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Figlarz",
+              "tier": 1,
+              "value": 1
+            },
+            "limit": {
+              "stacking": "none"
             },
             "rewards": [
               {
-                "type": "resource",
-                "value": 1,
-                "resource": "gold"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Figlarz",
+                "tier": 1,
+                "value": 1
               }
             ]
           }
         ],
         [
           {
-            "trigger": "on_ally_death",
-            "conditions": {
-              "trigger_once": true
+            "trigger": "passive",
+            "conditions": {},
+            "target": "team",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Figlarz",
+              "tier": 2,
+              "value": 1
+            },
+            "limit": {
+              "stacking": "none"
             },
             "rewards": [
               {
-                "type": "resource",
-                "value": 2,
-                "resource": "gold"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Figlarz",
+                "tier": 2,
+                "value": 1
               }
             ]
           }
         ],
         [
           {
-            "trigger": "on_ally_death",
-            "conditions": {
-              "trigger_once": true
+            "trigger": "passive",
+            "conditions": {},
+            "target": "team",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Figlarz",
+              "tier": 3,
+              "value": 1
+            },
+            "limit": {
+              "stacking": "none"
             },
             "rewards": [
               {
-                "type": "resource",
-                "value": 2,
-                "resource": "gold"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Figlarz",
+                "tier": 3,
+                "value": 1
               }
             ]
           }
@@ -360,75 +377,187 @@
       ]
     },
     {
-      "name": "Starokurwy",
-      "type": "faction",
-      "description": "Z każdą rundę starokurwy stają się silniejsze - bonus HP co rundę",
+      "id": "set2.trait.weeb",
+      "name": "Weeb",
+      "type": "trait",
+      "description": "Najsilniejsza jednostka z tylnej linii otrzymuje +15/25/35% szybkości ataku; remisy rozstrzyga stabilne ID.",
+      "target": "trait",
+      "thresholds": [
+        2,
+        4,
+        6
+      ],
+      "threshold_descriptions": [
+        "Najsilniejsza jednostka z tylnej linii otrzymuje +15/25/35% szybkości ataku; remisy rozstrzyga stabilne ID.",
+        "Najsilniejsza jednostka z tylnej linii otrzymuje +15/25/35% szybkości ataku; remisy rozstrzyga stabilne ID.",
+        "Najsilniejsza jednostka z tylnej linii otrzymuje +15/25/35% szybkości ataku; remisy rozstrzyga stabilne ID."
+      ],
+      "modular_effects": [
+        [
+          {
+            "trigger": "passive",
+            "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Weeb",
+              "tier": 1,
+              "value": 15
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Weeb",
+                "tier": 1,
+                "value": 15
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "passive",
+            "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Weeb",
+              "tier": 2,
+              "value": 25
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Weeb",
+                "tier": 2,
+                "value": 25
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "passive",
+            "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Weeb",
+              "tier": 3,
+              "value": 35
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Weeb",
+                "tier": 3,
+                "value": 35
+              }
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "id": "set2.trait.starociota",
+      "name": "Starociota",
+      "type": "trait",
+      "description": "+10/20/30 obrony i +2/4/6 HP/s; po śmierci Starocioty efekt odświeża się bez kumulacji.",
       "target": "trait",
       "thresholds": [
         2,
         3,
-        4,
         5
       ],
       "threshold_descriptions": [
-        "+<rewards.value>% HP co rundę",
-        "+<rewards.value>% HP co rundę",
-        "+<rewards.value>% HP co rundę",
-        "+<rewards.value>% HP co rundę"
+        "+10/20/30 obrony i +2/4/6 HP/s; po śmierci Starocioty efekt odświeża się bez kumulacji.",
+        "+10/20/30 obrony i +2/4/6 HP/s; po śmierci Starocioty efekt odświeża się bez kumulacji.",
+        "+10/20/30 obrony i +2/4/6 HP/s; po śmierci Starocioty efekt odświeża się bez kumulacji."
       ],
       "modular_effects": [
         [
           {
-            "trigger": "per_round",
+            "trigger": "passive",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Starociota",
+              "tier": 1,
+              "value": 10
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "hp",
-                "value": 3,
-                "value_type": "percentage_of_max"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Starociota",
+                "tier": 1,
+                "value": 10
               }
             ]
           }
         ],
         [
           {
-            "trigger": "per_round",
+            "trigger": "passive",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Starociota",
+              "tier": 2,
+              "value": 20
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "hp",
-                "value": 4,
-                "value_type": "percentage_of_max"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Starociota",
+                "tier": 2,
+                "value": 20
               }
             ]
           }
         ],
         [
           {
-            "trigger": "per_round",
+            "trigger": "passive",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Starociota",
+              "tier": 3,
+              "value": 30
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "hp",
-                "value": 5,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "per_round",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "hp",
-                "value": 7,
-                "value_type": "percentage_of_max"
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Starociota",
+                "tier": 3,
+                "value": 30
               }
             ]
           }
@@ -436,243 +565,42 @@
       ]
     },
     {
-      "name": "Prostaczka",
-      "type": "class",
-      "description": "Osłabiają przeciwników - zmniejszają ich atak",
-      "target": null,
-      "thresholds": [
-        2,
-        4,
-        5
-      ],
-      "threshold_descriptions": [
-        "-<rewards.value> ataku przeciwnikom",
-        "-<rewards.value> ataku przeciwnikom",
-        "-<rewards.value> ataku przeciwnikom"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "enemy_debuff",
-                "stat": "attack",
-                "value": -4
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "enemy_debuff",
-                "stat": "attack",
-                "value": -15
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "enemy_debuff",
-                "stat": "attack",
-                "value": -30
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "Femboy",
-      "type": "class",
-      "description": "Po zabiciu wroga zespół regeneruje HP przez 5 sekund",
-      "target": null,
-      "thresholds": [
-        2,
-        3,
-        4,
-        5
-      ],
-      "threshold_descriptions": [
-        "regeneracja <rewards.value> max HP przez 5 sekund po zabiciu",
-        "regeneracja <rewards.value> max HP przez 5 sekund po zabiciu",
-        "regeneracja <rewards.value> max HP przez 5 sekund po zabiciu",
-        "regeneracja <rewards.value> max HP przez 5 sekund po zabiciu"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "special",
-                "value": 5
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "special",
-                "value": 8
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "special",
-                "value": 12
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "special",
-                "value": 16
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "Szachista",
-      "type": "class",
-      "description": "Bonus do ataku i HP za każdą aktywną synergię",
-      "target": "trait",
+      "id": "set2.trait.inwestor",
+      "name": "Inwestor",
+      "type": "trait",
+      "description": "Bonus do wszystkich statystyk wynosi 5/10/15% wartości sprzedaży jednostek na planszy, maks. 30%.",
+      "target": "team",
       "thresholds": [
         2,
         3,
         4
       ],
       "threshold_descriptions": [
-        "+<rewards.value> ataku i HP za każdą synergię",
-        "+<rewards.value> ataku i HP za każdą synergię",
-        "+<rewards.value> ataku i HP za każdą synergię"
+        "Bonus do wszystkich statystyk wynosi 5/10/15% wartości sprzedaży jednostek na planszy, maks. 30%.",
+        "Bonus do wszystkich statystyk wynosi 5/10/15% wartości sprzedaży jednostek na planszy, maks. 30%.",
+        "Bonus do wszystkich statystyk wynosi 5/10/15% wartości sprzedaży jednostek na planszy, maks. 30%."
       ],
       "modular_effects": [
         [
           {
-            "trigger": "per_trait",
+            "trigger": "passive",
             "conditions": {},
+            "target": "team",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Inwestor",
+              "tier": 1,
+              "value": 5
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 4,
-                "value_type": "per_active_trait"
-              },
-              {
-                "type": "stat_buff",
-                "stat": "hp",
-                "value": 4,
-                "value_type": "per_active_trait"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "per_trait",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 6,
-                "value_type": "per_active_trait"
-              },
-              {
-                "type": "stat_buff",
-                "stat": "hp",
-                "value": 6,
-                "value_type": "per_active_trait"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "per_trait",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 10,
-                "value_type": "per_active_trait"
-              },
-              {
-                "type": "stat_buff",
-                "stat": "hp",
-                "value": 10,
-                "value_type": "per_active_trait"
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "Spell",
-      "type": "class",
-      "description": "Szybciej ładują manę do umiejętności",
-      "target": "trait",
-      "thresholds": [
-        3,
-        5,
-        7
-      ],
-      "threshold_descriptions": [
-        "+<rewards.value> many na sekundę",
-        "+<rewards.value> many na sekundę",
-        "+<rewards.value> many na sekundę"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "mana_regen",
-                "value": 3
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "mana_regen",
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Inwestor",
+                "tier": 1,
                 "value": 5
               }
             ]
@@ -680,12 +608,50 @@
         ],
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "passive",
             "conditions": {},
+            "target": "team",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Inwestor",
+              "tier": 2,
+              "value": 10
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "mana_regen",
-                "value": 9
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Inwestor",
+                "tier": 2,
+                "value": 10
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "passive",
+            "conditions": {},
+            "target": "team",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Inwestor",
+              "tier": 3,
+              "value": 15
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Inwestor",
+                "tier": 3,
+                "value": 15
               }
             ]
           }
@@ -693,29 +659,67 @@
       ]
     },
     {
-      "name": "Konfident",
-      "type": "class",
-      "description": "Konfidenci zyskują dodatkową obronę",
-      "target": null,
+      "id": "set2.trait.femboy",
+      "name": "Femboy",
+      "type": "trait",
+      "description": "Bonusowy atak leczy wszystkich sojuszników za 10/15/20% ataku Femboya; bez overhealu.",
+      "target": "trait",
       "thresholds": [
         2,
-        4,
-        6
+        3,
+        5
       ],
       "threshold_descriptions": [
-        "+<rewards.value> obrony",
-        "+<rewards.value> obrony",
-        "+<rewards.value> obrony"
+        "Bonusowy atak leczy wszystkich sojuszników za 10/15/20% ataku Femboya; bez overhealu.",
+        "Bonusowy atak leczy wszystkich sojuszników za 10/15/20% ataku Femboya; bez overhealu.",
+        "Bonusowy atak leczy wszystkich sojuszników za 10/15/20% ataku Femboya; bez overhealu."
       ],
       "modular_effects": [
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "on_bonus_attack",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Femboy",
+              "tier": 1,
+              "value": 10
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "defense",
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Femboy",
+                "tier": 1,
+                "value": 10
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_bonus_attack",
+            "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Femboy",
+              "tier": 2,
+              "value": 15
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Femboy",
+                "tier": 2,
                 "value": 15
               }
             ]
@@ -723,442 +727,293 @@
         ],
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "on_bonus_attack",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Femboy",
+              "tier": 3,
+              "value": 20
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 30
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Femboy",
+                "tier": 3,
+                "value": 20
+              }
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "id": "set2.trait.szachista",
+      "name": "Szachista",
+      "type": "trait",
+      "description": "Pierwsza linia zaczyna z tarczą 10/20% maks. HP, tylna zadaje +25/50% obrażeń bonusowego ataku.",
+      "target": "trait",
+      "thresholds": [
+        2,
+        3
+      ],
+      "threshold_descriptions": [
+        "Pierwsza linia zaczyna z tarczą 10/20% maks. HP, tylna zadaje +25/50% obrażeń bonusowego ataku.",
+        "Pierwsza linia zaczyna z tarczą 10/20% maks. HP, tylna zadaje +25/50% obrażeń bonusowego ataku."
+      ],
+      "modular_effects": [
+        [
+          {
+            "trigger": "passive",
+            "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Szachista",
+              "tier": 1,
+              "value": 10
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Szachista",
+                "tier": 1,
+                "value": 10
               }
             ]
           }
         ],
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "passive",
             "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Szachista",
+              "tier": 2,
+              "value": 20
+            },
+            "limit": {
+              "stacking": "none"
+            },
             "rewards": [
               {
-                "type": "stat_buff",
-                "stat": "defense",
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Szachista",
+                "tier": 2,
+                "value": 20
+              }
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "id": "set2.trait.tworca",
+      "name": "Twórca",
+      "type": "trait",
+      "description": "Cała drużyna regeneruje 2/4 many na sekundę.",
+      "target": "team",
+      "thresholds": [
+        2,
+        3
+      ],
+      "threshold_descriptions": [
+        "Cała drużyna regeneruje 2/4 many na sekundę.",
+        "Cała drużyna regeneruje 2/4 many na sekundę."
+      ],
+      "modular_effects": [
+        [
+          {
+            "trigger": "per_second",
+            "conditions": {},
+            "target": "team",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Twórca",
+              "tier": 1,
+              "value": 2
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Twórca",
+                "tier": 1,
+                "value": 2
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "per_second",
+            "conditions": {},
+            "target": "team",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Twórca",
+              "tier": 2,
+              "value": 4
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Twórca",
+                "tier": 2,
+                "value": 4
+              }
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "id": "set2.trait.muzyk",
+      "name": "Muzyk",
+      "type": "trait",
+      "description": "Bonusowy atak daje 5/10 many każdemu innemu żyjącemu sojusznikowi; Muzyk jest wykluczony.",
+      "target": "trait",
+      "thresholds": [
+        1,
+        2
+      ],
+      "threshold_descriptions": [
+        "Bonusowy atak daje 5/10 many każdemu innemu żyjącemu sojusznikowi; Muzyk jest wykluczony.",
+        "Bonusowy atak daje 5/10 many każdemu innemu żyjącemu sojusznikowi; Muzyk jest wykluczony."
+      ],
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_bonus_attack",
+            "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Muzyk",
+              "tier": 1,
+              "value": 5
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Muzyk",
+                "tier": 1,
+                "value": 5
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "trigger": "on_bonus_attack",
+            "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Muzyk",
+              "tier": 2,
+              "value": 10
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Muzyk",
+                "tier": 2,
+                "value": 10
+              }
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "id": "set2.trait.haxball",
+      "name": "Haxball",
+      "type": "trait",
+      "description": "50% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania.",
+      "target": "trait",
+      "thresholds": [
+        2,
+        3
+      ],
+      "threshold_descriptions": [
+        "50% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania.",
+        "50% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania."
+      ],
+      "modular_effects": [
+        [
+          {
+            "trigger": "on_damage_received",
+            "conditions": {},
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Haxball",
+              "tier": 1,
+              "value": 50
+            },
+            "limit": {
+              "stacking": "none"
+            },
+            "rewards": [
+              {
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Haxball",
+                "tier": 1,
                 "value": 50
               }
             ]
           }
-        ]
-      ]
-    },
-    {
-      "name": "Haker",
-      "type": "class",
-      "description": "Po zabiciu wroga permanentnie zyskują obronę",
-      "target": "trait",
-      "thresholds": [
-        3,
-        5,
-        7
-      ],
-      "threshold_descriptions": [
-        "+<rewards.value>% obrony zabitego wroga permanentnie",
-        "+<rewards.value>% obrony zabitego wroga permanentnie",
-        "+<rewards.value>% obrony zabitego wroga permanentnie"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 10,
-                "value_type": "percentage_of_collected",
-                "collect_stat": "defense"
-              }
-            ]
-          }
         ],
         [
           {
-            "trigger": "on_enemy_death",
+            "trigger": "on_damage_received",
             "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 20,
-                "value_type": "percentage_of_collected",
-                "collect_stat": "defense"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "defense",
-                "value": 40,
-                "value_type": "percentage_of_collected",
-                "collect_stat": "defense"
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "Gamer",
-      "type": "class",
-      "description": "Bonus do ataku i prędkości ataku",
-      "target": "trait",
-      "thresholds": [
-        3,
-        5,
-        7,
-        9
-      ],
-      "threshold_descriptions": [
-        "+<rewards.value>% ataku i prędkości ataku",
-        "+<rewards.value>% ataku i prędkości ataku",
-        "+<rewards.value>% ataku i prędkości ataku",
-        "+<rewards.value>% ataku i prędkości ataku"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 20,
-                "value_type": "percentage_of_max"
-              },
-              {
-                "type": "stat_buff",
-                "stat": "attack_speed",
-                "value": 20,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 25,
-                "value_type": "percentage_of_max"
-              },
-              {
-                "type": "stat_buff",
-                "stat": "attack_speed",
-                "value": 25,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 30,
-                "value_type": "percentage_of_max"
-              },
-              {
-                "type": "stat_buff",
-                "stat": "attack_speed",
-                "value": 30,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "attack",
-                "value": 45,
-                "value_type": "percentage_of_max"
-              },
-              {
-                "type": "stat_buff",
-                "stat": "attack_speed",
-                "value": 45,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "Normik",
-      "type": "class",
-      "description": "Zwykli ludzie z dodatkowym HP",
-      "target": "trait",
-      "thresholds": [
-        2,
-        4,
-        5
-      ],
-      "threshold_descriptions": [
-        "+<rewards.value>% HP",
-        "+<rewards.value>% HP",
-        "+<rewards.value>% HP"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "hp",
-                "value": 30,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "hp",
-                "value": 50,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "hp",
-                "value": 70,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "Hitman",
-      "type": "class",
-      "description": "Priorytetyzuje linię tylną",
-      "target": "self",
-      "thresholds": [
-        1
-      ],
-      "threshold_descriptions": [
-        "Priorytetyzuje linię tylną"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "on_enemy_death",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "targeting_preference",
-                "value": 0,
-                "target_preference": "backline"
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "Wygnaniec",
-      "type": "class",
-      "description": "Leczy pierwszego sojusznika, który spadnie poniżej progu HP",
-      "target": null,
-      "thresholds": [
-        1
-      ],
-      "threshold_descriptions": [
-        "Leczy pierwszego sojusznika poniżej <conditions.threshold_percent>% HP o <rewards.value>% jego max HP"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "on_ally_hp_below",
-            "conditions": {
-              "trigger_once": true,
-              "threshold_percent": 30
+            "target": "trait",
+            "effect": {
+              "type": "set2_trait",
+              "trait": "Haxball",
+              "tier": 2,
+              "value": 50
+            },
+            "limit": {
+              "stacking": "none"
             },
             "rewards": [
               {
-                "type": "healing",
-                "value": 50,
-                "value_type": "percentage_of_max"
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "XN Jugend",
-      "type": "class",
-      "description": "Wzmacnia wszystkie buffy na tej jednostce (x2)",
-      "target": null,
-      "thresholds": [
-        1
-      ],
-      "threshold_descriptions": [
-        "Podwaja (<rewards.multiplier>x) wszystkie buffy na tej jednostce"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "passive",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "buff_amplifier",
-                "multiplier": 2.0
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "XN Mod",
-      "type": "class",
-      "description": "30% szans na darmowy reroll gdy aktywne",
-      "target": null,
-      "thresholds": [
-        1
-      ],
-      "threshold_descriptions": [
-        "<rewards.chance_percent>% szans na darmowy reroll"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "passive",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "reroll_free_chance",
-                "chance_percent": 30
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "XN Monter",
-      "type": "class",
-      "description": "Daje procentowy bonus do HP za każdą przegraną rundę",
-      "target": null,
-      "thresholds": [
-        1
-      ],
-      "threshold_descriptions": [
-        "Daje <rewards.percent_per_loss>% bonusu do HP za każdą przegraną rundę"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "on_loss",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "dynamic_scaling",
-                "value": 0,
-                "percent_per_loss": 5
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "XN HomoKomando",
-      "type": "class",
-      "description": "XN HomoKomando dostaje lifesteal",
-      "target": null,
-      "thresholds": [
-        1
-      ],
-      "threshold_descriptions": [
-        "Dostaje <rewards.value>% lifesteala"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "passive",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "stat_buff",
-                "stat": "lifesteal",
-                "value": 15
-              }
-            ]
-          }
-        ]
-      ]
-    },
-    {
-      "name": "XN Yakuza",
-      "type": "class",
-      "description": "Za każdą wygraną rundę zyskujesz stałe i procentowe bonusy",
-      "target": "self",
-      "thresholds": [
-        1
-      ],
-      "threshold_descriptions": [
-        "Za każdą wygraną rundę +<rewards.atk_per_win> ataku, +<rewards.def_per_win> obrony, +<rewards.hp_percent_per_win>% HP, +<rewards.as_per_win> prędkości ataku"
-      ],
-      "modular_effects": [
-        [
-          {
-            "trigger": "on_win",
-            "conditions": {},
-            "rewards": [
-              {
-                "type": "dynamic_scaling",
-                "value": 0,
-                "atk_per_win": 1,
-                "def_per_win": 1,
-                "hp_percent_per_win": 1,
-                "as_per_win": 0.01
+                "type": "special",
+                "effect": "set2_trait",
+                "trait": "Haxball",
+                "tier": 2,
+                "value": 50
               }
             ]
           }

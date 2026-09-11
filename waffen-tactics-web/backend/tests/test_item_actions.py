@@ -108,6 +108,15 @@ def test_items_endpoint_exposes_the_same_canonical_six_plus_21_catalog(client):
         item['id'] for item in payload
     }
     assert all(item['description'] == item['effect']['description'] for item in payload if item['kind'] == 'combined')
+    assert all(item['effect'] is None for item in payload if item['kind'] == 'base')
+    required_effect_fields = {
+        'family', 'trigger', 'target', 'scope', 'order', 'duration', 'stacking',
+        'cap', 'reset_between_fights', 'rng', 'replay',
+    }
+    for item in payload:
+        if item['kind'] == 'combined':
+            assert required_effect_fields <= set(item['effect'])
+            assert item['effect']['replay']['mode'] == 'canonical_event'
 
 
 def test_combine_item_is_idempotent_at_the_persistent_action_boundary(tmp_path):

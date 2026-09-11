@@ -2,9 +2,9 @@
 
 Date: 2026-09-10
 
-Linear project: `Waffen Tactics — Content, Runtime & Production`
+Plane project: `Waffen Tactics` (`WFT`)
 
-Linear is the source of truth for issue status, ownership, dependencies, milestones, and user decisions. This file is a repository handoff snapshot; it does not replace the Linear workflow.
+Plane is the source of truth for issue status, ownership, dependencies, milestones, and user decisions. Imported `DEF-*` identifiers below are historical provenance only; verify current state in Plane. This file is a repository handoff snapshot and does not replace the Plane workflow.
 
 ## 2026-09-10 release-gate refresh
 
@@ -80,7 +80,7 @@ DEF-279 now makes the legacy CLI demo consume the shared simulator's canonical `
 - `DEF-164` is `In Review` with `Needs Manual Test`; all 43 current `blockedBy` relations are `Done`, including `DEF-268`. The remaining gate is authenticated Game View/runtime evidence and final release-owner rollback evidence, not an unresolved structural dependency.
 - Historical `DEF-268` deployment evidence remains recorded: the shared discovery reads root-owned Caddy `/proc` metadata through `sudo -n`, fail-closed and scoped by exact cwd/config; the authorized deployment corrected the documented production CORS allowlist, verified restart idempotency, loopback-only application listeners, and public HTTP 200 responses. The latest read-only VPS check found the tracked tree clean but preserved unrelated untracked drift.
 - `DEF-192` is `Done`: the current local working-tree `waffen-tactics-web/backend/events_test_fresh.json` is the explicitly approved source of truth. Its frozen SHA-256, byte size, event count, sequence range, scenario, and event-type coverage are recorded in `events_test_fresh.provenance.json`; no historical VPS or `HEAD` fixture was restored.
-- Release acceptance has user-supplied authenticated Game View evidence at `1280x720` and `1920x1080` and live/replay readability evidence; WFT-155 remains open for the responsive overlay recheck, followed by final approved-revision rollback evidence. Deployment, revision alignment, VPS status/logs, and the failed-start failure owner are recorded in Linear.
+- Release acceptance has user-supplied authenticated Game View evidence at `1280x720` and `1920x1080` and live/replay readability evidence; WFT-155 remains open for the responsive overlay recheck, followed by final approved-revision rollback evidence. Deployment, revision alignment, VPS status/logs, and the failed-start failure owner are recorded in Plane.
 - Last authorized deployment evidence on 2026-09-10 covered local/origin/VPS revision `509a63473246dad173051b8da0ceb43086aee9b8`; subsequent implementation and documentation commits on `main` have not been deployed. The previously checked VPS services and public `/` plus `/api/game/traits` were healthy, direct public application ports were unavailable, and the documented approved-revision rollback path remains part of the final release gate.
 - `DEF-226` is `Done`: production backend binding is committed and deployed in `7fd85e8291673451771f03918d42aae8aa561134`; local focused/full backend verification and VPS listener/proxy checks passed.
 - `DEF-227` is `Done`: production Vite binding is committed and deployed in `7fd85e8291673451771f03918d42aae8aa561134`; local focused/full frontend verification and VPS listener/proxy checks passed.
@@ -133,7 +133,7 @@ DEF-279 now makes the legacy CLI demo consume the shared simulator's canonical `
 - `DEF-277` is `Done`: the frontend real replay suite no longer relies on a vacuous fresh-dump effect-ID assertion; it now replays deterministic application, tick, and expiration events for stat buffs, shields, generic effects, stuns, and DoT identities, while real-dump initialization failures are hard errors. Focused replay tests, frontend typecheck, lint, 162 Vitest tests, and production build pass. The approved DEF-192 fixture remains unchanged.
 - `DEF-235` is `Backlog + Needs User`: `skip_per_round_buffs` currently gates per-second processing while the start-of-combat per-round block remains unconditional. No runtime change was made; the intended round/trait timing contract must be chosen before splitting or renaming the controls.
 - `DEF-278` is `Done`: canonical `emit_effect_applied` now distinguishes an omitted ID (generated UUID) from an explicitly supplied ID (validated non-empty string), failing closed before state mutation or event delivery for malformed identities. Focused/full core and backend verification passed; no content, fixture, legacy-archive, or deployment state changed.
-- `DEF-279` is `Done`: the legacy CLI demo now maps shared `team_a/team_b` results to its player win/loss progression path, with focused, full shared-core, backend, and CLI smoke verification recorded in Linear. No canonical unit, trait, combat formula, web route, or legacy archive files changed.
+- `DEF-279` is `Done`: the legacy CLI demo now maps shared `team_a/team_b` results to its player win/loss progression path, with focused, full shared-core, backend, and CLI smoke verification recorded in Plane. No canonical unit, trait, combat formula, web route, or legacy archive files changed.
 - `DEF-269` is `Backlog + Needs User`: the shared stat-buff runtime has duplicated recipient/application paths and silently maps unsupported targets to `self`; canonicalization awaits the explicit unknown-target contract decision recorded in the issue.
 - `WFT-139` is author-approved: the 6-base/21-recipe matrix, including all 6 A+A pairs, is preserved in [`docs/ITEM_RECIPE_MATRIX_WFT139.md`](ITEM_RECIPE_MATRIX_WFT139.md) and the WFT-139 Plane comment. It is the recipe source of truth; this does not activate runtime data or finalize balance.
 - `WFT-140` is `Done`: the technical item-matrix boundary and the accepted prototype runtime contract cover explicit effect fields, deterministic resolution order, refresh/replace defaults, reset rules, RNG/replay behavior and explicit caps for the two stackable recipes. The contract does not activate legacy runtime data.
@@ -145,7 +145,7 @@ DEF-279 now makes the legacy CLI demo consume the shared simulator's canonical `
 
 1. Recheck WFT-155 in a fresh authenticated Game View at 1280x720 and 1920x1080, then complete the remaining release-owner rollback/sign-off evidence for `DEF-164`, without treating green automated tests or HTTP checks as visual runtime proof.
 2. Record the approved-revision rollback path and failure owner alongside the authenticated runtime evidence before changing the release decision.
-3. Continue with the next unblocked runtime/data-contract issue after confirming its current Linear state; keep new-set authoring gated behind approval.
+3. Continue with the next unblocked runtime/data-contract issue after confirming its current Plane state; keep new-set authoring gated behind approval.
 
 ## Legacy boundary
 

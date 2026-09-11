@@ -42,6 +42,7 @@ class Unit:
     role_color: str = "#6b7280"
     avatar: str = ""
     last_attack_time: float = 0.0
+    traits: List[str] = field(default_factory=list)
 
     @staticmethod
     def from_json(d: Dict[str, Any], default_stats: Stats, default_skill: Skill, role_color: str = "#6b7280") -> "Unit":
@@ -58,6 +59,7 @@ class Unit:
             role_color=role_color,
             avatar=d.get("avatar", ""),
             last_attack_time=0.0,
+            traits=list(d.get("traits", list(d.get("factions", [])) + list(d.get("classes", [])))),
         )
 
 

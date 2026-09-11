@@ -153,7 +153,7 @@ def validate_traits_json():
     errors = []
     warnings = []
 
-    valid_trait_types = {"faction", "class"}
+    valid_trait_types = {"faction", "class", "trait"}
 
     for i, trait in enumerate(traits):
         trait_name = trait.get("name", f"trait_{i}") if isinstance(trait, dict) else f"trait_{i}"

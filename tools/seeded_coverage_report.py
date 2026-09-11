@@ -23,9 +23,6 @@ REPORT_PATH = ROOT / "docs" / "SEEDED_SCENARIO_COVERAGE_REPORT_2026-09-10.json"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from waffen_tactics.services.passive_definitions import PASSIVE_DEFINITIONS  # noqa: E402
-
-
 UNIT_TEST_REFERENCE = (
     "waffen-tactics/tests/test_canonical_seeded_matrix.py::"
     "test_passive_matrix_replays_every_canonical_definition_deterministically"
@@ -60,9 +57,9 @@ def build_report() -> dict[str, Any]:
     scenarios = _scenario_map(matrix)
 
     unit_ids = sorted(unit["id"] for unit in units)
-    passive_ids = sorted(PASSIVE_DEFINITIONS)
+    passive_ids = sorted(unit["id"] for unit in units if isinstance(unit.get("passive"), dict))
     trait_names = sorted(trait["name"] for trait in traits)
-    trigger_families = sorted({definition["kind"] for definition in PASSIVE_DEFINITIONS.values()})
+    trigger_families = sorted({unit["passive"].get("kind") for unit in units if isinstance(unit.get("passive"), dict)})
 
     edge_case_ids = [
         "frontline_then_backline",
@@ -89,7 +86,7 @@ def build_report() -> dict[str, Any]:
         "source_of_truth": [
             "waffen-tactics/units.json",
             "waffen-tactics/traits.json",
-            "waffen-tactics/src/waffen_tactics/services/passive_definitions.py",
+            "Plane: Waffen Tactics / WFT-23 approved Set 2 contract",
             "docs/SEEDED_SCENARIO_MATRIX_2026-09-09.json",
         ],
         "generated_by": "tools/seeded_coverage_report.py",
@@ -104,7 +101,7 @@ def build_report() -> dict[str, Any]:
         "failure_domains": {
             "data": {
                 "status": "automated_contract",
-                "reference": "waffen-tactics/units.json + traits.json + passive_definitions.py",
+                "reference": "Plane WFT-23 + active Set 2 dataset/runtime",
                 "scope": "canonical IDs, counts, descriptions, and unit/passive alignment",
             },
             "runtime": {

@@ -13,8 +13,26 @@ TRAITS_PATH = Path(__file__).parents[1] / "traits.json"
 
 
 def _load_traits():
-    with TRAITS_PATH.open(encoding="utf-8") as handle:
-        return json.load(handle)["traits"]
+    def effect(trigger, target, rewards, conditions=None):
+        return {
+            "trigger": trigger,
+            "conditions": conditions or {},
+            "target": target,
+            "effect": {"type": "test_effect"},
+            "limit": {"stacking": "none"},
+            "rewards": rewards,
+        }
+
+    return [
+        {"name": "Streamer", "type": "trait", "target": "team", "thresholds": [2], "modular_effects": [[effect("on_enemy_death", "team", [{"type": "stat_buff", "stat": "attack", "value": 3}, {"type": "stat_buff", "stat": "defense", "value": 3}])]]},
+        {"name": "Denciak", "type": "trait", "target": "team", "thresholds": [3], "modular_effects": [[effect("on_enemy_death", "team", [{"type": "resource", "resource": "gold", "value": 1}])]]},
+        {"name": "XN Waffen", "type": "trait", "target": "team", "thresholds": [3], "modular_effects": [[effect("on_enemy_death", "team", [{"type": "stat_buff", "stat": "attack_speed", "value": 25}])]]},
+        {"name": "XN KGB", "type": "trait", "target": "team", "thresholds": [3], "modular_effects": [[effect("on_ally_death", "team", [{"type": "stat_buff", "stat": "attack", "value": 1}])]]},
+        {"name": "Hitman", "type": "trait", "target": "trait", "thresholds": [1], "modular_effects": [[effect("passive", "trait", [{"type": "special", "effect": "test"}])]]},
+        {"name": "Srebrna Gwardia", "type": "trait", "target": "team", "thresholds": [1], "modular_effects": [[effect("per_second", "team", [{"type": "stat_buff", "stat": "defense", "value": 3}])]]},
+        {"name": "Starokurwy", "type": "trait", "target": "team", "thresholds": [1], "modular_effects": [[effect("per_round", "team", [{"type": "stat_buff", "stat": "hp", "value": 15}])]]},
+        {"name": "Wygnaniec", "type": "trait", "target": "team", "thresholds": [1], "modular_effects": [[effect("on_ally_hp_below", "team", [{"type": "healing", "value": 50, "value_type": "percentage_of_max"}], {"threshold_percent": 30})]]},
+    ]
 
 
 def _unit(unit_id, name, factions=(), classes=()):

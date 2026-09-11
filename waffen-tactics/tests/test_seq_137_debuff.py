@@ -67,8 +67,12 @@ def _make_unit(id, name, attack=0, hp=600, max_hp=600, shield=0):
     u.id = id
     u.name = name
     u.attack = int(attack)
+    u.defense = 0
+    u.attack_speed = 1.0
     u.hp = int(hp)
     u.max_hp = int(max_hp)
+    u.mana = 0
+    u.max_mana = 100
     u.shield = int(shield)
     u.effects = []
     return u

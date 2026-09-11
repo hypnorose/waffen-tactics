@@ -93,7 +93,7 @@ def test_all_authoritative_units_load_with_their_canonical_skill_names():
     canonical_units = json.loads(data_loader.DATA_FILE.read_text(encoding="utf-8"))["units"]
     canonical_names = {unit["id"]: unit["skill"]["name"] for unit in canonical_units}
 
-    assert len(data.units) == 52
+    assert len(data.units) == 32
     assert {
         unit.id: unit.skill.effect["skill"].name for unit in data.units
     } == canonical_names

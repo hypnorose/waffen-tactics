@@ -127,7 +127,7 @@ def test_dot_expiration_removes_only_expired_effect_and_emits_event():
 
 def test_every_loaded_unit_has_one_passive_definition():
     units = load_game_data().units
-    assert len(units) == 52
+    assert len(units) == 32
     assert all(unit.passive and unit.passive.get("description") for unit in units)
 
 

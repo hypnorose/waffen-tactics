@@ -309,4 +309,4 @@ Usually means `units_init` event has wrong data:
 - [`src/hooks/combat/applyEvent.ts`](../waffen-tactics-web/src/hooks/combat/applyEvent.ts) - Production event handler
 - [`src/hooks/combat/desync.ts`](../waffen-tactics-web/src/hooks/combat/desync.ts) - Desync detection
 - [`backend/services/combat_event_reconstructor.py`](../waffen-tactics-web/backend/services/combat_event_reconstructor.py) - Python validator
-- [`docs/DESYNC_IMPROVEMENTS.md`](./DESYNC_IMPROVEMENTS.md) - Desync mitigation strategies
+- [`docs/COMBAT_RUNTIME_BOUNDARY.md`](./COMBAT_RUNTIME_BOUNDARY.md) - Canonical combat ownership and replay boundary
