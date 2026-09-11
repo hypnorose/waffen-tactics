@@ -204,7 +204,11 @@ def test_try_auto_upgrade_logs_item_ownership_and_overflow(gm, caplog):
         gm.try_auto_upgrade(player, unit_id, 1)
 
     assert 'overflow_items' in caplog.text
+    assert "all_item_ids=['spices', 'safe', 'coat', 'socks']" in caplog.text
     assert "['socks']" in caplog.text
+    assert 'state_before=' in caplog.text
+    assert 'state_after=' in caplog.text
+    assert 'overflow_destination=item_inventory' in caplog.text
 
 
 def test_reroll_shop_insufficient_gold(gm):

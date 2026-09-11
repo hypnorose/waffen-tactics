@@ -358,6 +358,17 @@ class UnitManager:
                 ]
                 equipped_items = source_items[:3]
                 overflow_items = source_items[3:]
+                state_before = {
+                    'bench_units': [
+                        (unit.instance_id, unit.star_level, list(getattr(unit, 'items', []) or []))
+                        for unit in player.bench
+                    ],
+                    'board_units': [
+                        (unit.instance_id, unit.star_level, list(getattr(unit, 'items', []) or []))
+                        for unit in player.board
+                    ],
+                    'item_inventory': list(player.item_inventory),
+                }
 
                 # Remove by identity rather than dataclass equality: two
                 # malformed/legacy instances with equal fields must still be
@@ -392,16 +403,33 @@ class UnitManager:
                 if overflow_items:
                     player.item_inventory.extend(overflow_items)
 
+                state_after = {
+                    'bench_units': [
+                        (unit.instance_id, unit.star_level, list(getattr(unit, 'items', []) or []))
+                        for unit in player.bench
+                    ],
+                    'board_units': [
+                        (unit.instance_id, unit.star_level, list(getattr(unit, 'items', []) or []))
+                        for unit in player.board
+                    ],
+                    'item_inventory': list(player.item_inventory),
+                }
+
                 bot_logger.info(
                     '[GM_AUTO_UPGRADE] Merged %s star %s -> %s; source_units=%s; '
-                    'equipped_items=%s; overflow_items=%s; destination=%s',
+                    'all_item_ids=%s; equipped_items=%s; overflow_items=%s; '
+                    'overflow_destination=%s; destination=%s; state_before=%s; state_after=%s',
                     unit_id,
                     current_star_level,
                     current_star_level + 1,
                     [unit.instance_id for unit in units_to_merge],
+                    source_items,
                     equipped_items,
                     overflow_items,
+                    'item_inventory' if overflow_items else None,
                     destination,
+                    state_before,
+                    state_after,
                 )
 
                 highest_upgrade = current_star_level + 1
