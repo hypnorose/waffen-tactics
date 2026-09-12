@@ -7,6 +7,18 @@ if TYPE_CHECKING:
     from .combat_unit import CombatUnit
 
 
+class RecipientResolutionError(ValueError):
+    """Base error for an invalid or incomplete stat-buff recipient request."""
+
+
+class UnsupportedRecipientTargetError(RecipientResolutionError):
+    """Raised when a stat-buff target is outside the shared runtime contract."""
+
+
+class IncompleteRecipientContextError(RecipientResolutionError):
+    """Raised when a legal target is missing authoritative team context."""
+
+
 class RecipientResolver:
     """Handles finding buff recipients based on effect target configuration"""
 
@@ -33,28 +45,41 @@ class RecipientResolver:
         Returns:
             List of recipient units
         """
-        recipients = []
-
         if target == 'self':
             recipients = [source_unit]
         elif target == 'team':
-            # Choose team based on side
-            if side == 'team_a' and attacking_team:
+            if side == 'team_a':
+                if attacking_team is None:
+                    raise IncompleteRecipientContextError(
+                        "team target requires attacking_team for side team_a"
+                    )
                 recipients = [u for u in attacking_team if getattr(u, 'hp', 0) > 0]
-            elif side == 'team_b' and defending_team:
+            elif side == 'team_b':
+                if defending_team is None:
+                    raise IncompleteRecipientContextError(
+                        "team target requires defending_team for side team_b"
+                    )
                 recipients = [u for u in defending_team if getattr(u, 'hp', 0) > 0]
+            else:
+                raise IncompleteRecipientContextError(
+                    f"team target requires side team_a or team_b, got {side!r}"
+                )
         elif target == 'board':
-            # All units on the board
-            if attacking_team:
-                recipients.extend([u for u in attacking_team if getattr(u, 'hp', 0) > 0])
-            if defending_team:
-                recipients.extend([u for u in defending_team if getattr(u, 'hp', 0) > 0])
-            # If no teams provided, fallback to self
-            if not attacking_team and not defending_team:
-                recipients = [source_unit]
+            if attacking_team is None or defending_team is None:
+                raise IncompleteRecipientContextError(
+                    "board target requires both attacking_team and defending_team"
+                )
+            # Preserve the authoritative simulator order: attacking side first,
+            # then defending side. Explicit empty lists are valid no-recipient
+            # contexts and must not silently become a self-target.
+            recipients = [
+                *[u for u in attacking_team if getattr(u, 'hp', 0) > 0],
+                *[u for u in defending_team if getattr(u, 'hp', 0) > 0],
+            ]
         else:
-            # Unknown target, fallback to self
-            recipients = [source_unit]
+            raise UnsupportedRecipientTargetError(
+                f"Unsupported stat-buff recipient target: {target!r}"
+            )
 
         # Filter by same trait if requested
         if only_same_trait:
@@ -111,4 +136,3 @@ class RecipientResolver:
         if team and unit in team:
             return team.index(unit)
         return -1
-

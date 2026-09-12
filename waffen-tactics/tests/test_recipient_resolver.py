@@ -3,7 +3,11 @@ Tests for RecipientResolver utility class
 """
 import unittest
 from unittest.mock import Mock
-from waffen_tactics.services.recipient_resolver import RecipientResolver
+from waffen_tactics.services.recipient_resolver import (
+    RecipientResolver,
+    IncompleteRecipientContextError,
+    UnsupportedRecipientTargetError,
+)
 
 
 class TestRecipientResolver(unittest.TestCase):
@@ -97,16 +101,15 @@ class TestRecipientResolver(unittest.TestCase):
         self.assertIn(self.unit_b1, recipients)
         self.assertIn(self.unit_b2, recipients)
         self.assertNotIn(self.unit_a3, recipients)  # Dead unit excluded
+        self.assertEqual(recipients, [self.unit_a1, self.unit_a2, self.unit_b1, self.unit_b2])
 
     def test_find_recipients_unknown_target(self):
-        """Test finding recipients with unknown target (fallback to self)"""
-        recipients = self.resolver.find_recipients(
-            self.source_unit, 'unknown', False,
-            self.attacking_team, self.defending_team, 'team_a'
-        )
-
-        self.assertEqual(len(recipients), 1)
-        self.assertEqual(recipients[0], self.source_unit)
+        """Unknown targets fail closed instead of silently self-targeting."""
+        with self.assertRaises(UnsupportedRecipientTargetError):
+            self.resolver.find_recipients(
+                self.source_unit, 'unknown', False,
+                self.attacking_team, self.defending_team, 'team_a'
+            )
 
     def test_find_recipients_only_same_trait_team(self):
         """Test filtering recipients by same trait on team target"""
@@ -192,15 +195,35 @@ class TestRecipientResolver(unittest.TestCase):
         self.assertEqual(index, -1)
 
     def test_find_recipients_empty_teams(self):
-        """Test finding recipients when teams are None"""
-        recipients = self.resolver.find_recipients(
-            self.source_unit, 'board', False,
-            None, None, 'team_a'
+        """Missing board context fails, while explicit empty board is valid."""
+        with self.assertRaises(IncompleteRecipientContextError):
+            self.resolver.find_recipients(
+                self.source_unit, 'board', False,
+                None, None, 'team_a'
+            )
+
+        self.assertEqual(
+            self.resolver.find_recipients(
+                self.source_unit, 'board', False,
+                [], [], 'team_a'
+            ),
+            [],
         )
 
-        # Should fallback to self when no teams
-        self.assertEqual(len(recipients), 1)
-        self.assertEqual(recipients[0], self.source_unit)
+    def test_find_recipients_team_missing_context_fails_closed(self):
+        with self.assertRaises(IncompleteRecipientContextError):
+            self.resolver.find_recipients(
+                self.source_unit, 'team', False,
+                None, self.defending_team, 'team_a'
+            )
+
+        self.assertEqual(
+            self.resolver.find_recipients(
+                self.source_unit, 'team', False,
+                [], self.defending_team, 'team_a'
+            ),
+            [],
+        )
 
     def test_find_recipients_dead_units_excluded(self):
         """Test that dead units (hp <= 0) are excluded from recipients"""

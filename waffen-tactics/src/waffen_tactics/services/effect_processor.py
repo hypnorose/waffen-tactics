@@ -3,7 +3,17 @@ Effect Processor - Coordinates effect processing using utility classes
 """
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from .stat_calculator import StatCalculator
-from .stat_buff_handlers import StatBuffHandler, AttackBuffHandler, DefenseBuffHandler, HpBuffHandler, AttackSpeedBuffHandler, ManaRegenBuffHandler
+from .stat_buff_handlers import (
+    StatBuffHandler,
+    AttackBuffHandler,
+    DefenseBuffHandler,
+    HpBuffHandler,
+    AttackSpeedBuffHandler,
+    ManaRegenBuffHandler,
+    LifestealBuffHandler,
+    DamageReductionBuffHandler,
+    HpRegenPerSecBuffHandler,
+)
 from .recipient_resolver import RecipientResolver
 
 if TYPE_CHECKING:
@@ -21,7 +31,10 @@ class EffectProcessor:
             'defense': DefenseBuffHandler(),
             'hp': HpBuffHandler(),
             'attack_speed': AttackSpeedBuffHandler(),
-            'mana_regen': ManaRegenBuffHandler()
+            'mana_regen': ManaRegenBuffHandler(),
+            'lifesteal': LifestealBuffHandler(),
+            'damage_reduction': DamageReductionBuffHandler(),
+            'hp_regen_per_sec': HpRegenPerSecBuffHandler(),
         }
 
     def process_effect(

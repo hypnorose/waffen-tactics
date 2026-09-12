@@ -33,6 +33,30 @@ HP/mana regeneration is a separate subsystem and is not controlled by either
   skip per-round effects while allowing per-second effects, so they share the
   same intentional timing contract.
 
+## Stat-buff recipient boundary
+
+`CombatEffectProcessor._apply_stat_buff` has one authoritative path for
+recipient resolution and stat application. The accepted targets in this
+legacy action path are:
+
+* `self`: the source unit;
+* `team`: living units from the explicit team matching `side`;
+* `board`: living units from both explicit teams, in attacking-team then
+  defending-team order.
+
+An explicit empty team or board is a valid no-recipient result. Missing team
+context, an invalid side for `team`, and unsupported targets fail closed with
+an explicit runtime error; they never fall back to `self`. The modular runtime
+continues to own its separate `trait` target vocabulary.
+
+All registered stat buffs, including `lifesteal`, `damage_reduction`, and
+`hp_regen_per_sec`, use the same handler registry. Stat validation occurs
+before recipient mutation, and percentage values are converted to one
+absolute increment before the handler runs, preventing double application.
+HP-list mirrors are selected by the actual recipient team, including board
+effects that reach the opposing team. No dataset or 32-unit content contract
+is changed by this boundary.
+
 ## Quarantined compatibility surfaces
 
 `waffen_tactics.core.combat_core` and

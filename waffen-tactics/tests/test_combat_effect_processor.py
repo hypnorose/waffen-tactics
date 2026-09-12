@@ -4,6 +4,8 @@ from waffen_tactics.services.combat_effect_processor import CombatEffectProcesso
 from waffen_tactics.services.modular_effect_processor import ModularEffectProcessor, TriggerType
 from waffen_tactics.services.effect_processor import EffectProcessor
 from waffen_tactics.services.combat_shared import CombatUnit
+from waffen_tactics.models.unit import Stats
+from waffen_tactics.services.recipient_resolver import UnsupportedRecipientTargetError
 
 
 @pytest.fixture
@@ -377,6 +379,82 @@ class TestCombatEffectProcessor:
 
             # Verify handler was called
             mock_handler.apply_buff.assert_called_once()
+
+    def test_stat_buff_rejects_unknown_stat_before_mutation(self, effect_processor):
+        unit = CombatUnit(
+            id='invalid-stat', name='Invalid Stat', hp=100, attack=10, defense=5,
+            attack_speed=1.0, max_mana=100
+        )
+
+        with pytest.raises(ValueError, match='Unsupported stat-buff stat type'):
+            effect_processor._apply_actions(
+                unit,
+                [{
+                    'type': 'stat_buff',
+                    'stats': ['attack', 'not_a_runtime_stat'],
+                    'value': 20,
+                    'target': 'self',
+                }],
+                [100], 0, 1.0, [], None, 'team_a', [unit], [100]
+            )
+
+        assert unit.attack == 10
+
+    def test_stat_buff_unknown_target_never_self_targets(self, effect_processor):
+        unit = CombatUnit(
+            id='invalid-target', name='Invalid Target', hp=100, attack=10, defense=5,
+            attack_speed=1.0, max_mana=100
+        )
+
+        with pytest.raises(UnsupportedRecipientTargetError):
+            effect_processor._apply_actions(
+                unit,
+                [{
+                    'type': 'stat_buff',
+                    'stats': ['attack'],
+                    'value': 20,
+                    'target': 'typo_target',
+                }],
+                [100], 0, 1.0, [], None, 'team_a', [unit], [100]
+            )
+
+        assert unit.attack == 10
+
+    def test_board_hp_buff_updates_each_authoritative_hp_mirror_once(self, effect_processor):
+        authored_stats = Stats(
+            attack=10, hp=100, defense=5, max_mana=100, attack_speed=1.0
+        )
+        source = CombatUnit(
+            id='board-source', name='Board Source', hp=80, attack=10, defense=5,
+            attack_speed=1.0, max_mana=100, stats=authored_stats
+        )
+        opponent = CombatUnit(
+            id='board-opponent', name='Board Opponent', hp=50, attack=10, defense=5,
+            attack_speed=1.0, max_mana=100, stats=authored_stats
+        )
+        attacking_hp = [80]
+        defending_hp = [50]
+        events = []
+
+        effect_processor._apply_actions(
+            source,
+            [{
+                'type': 'stat_buff',
+                'stats': ['hp'],
+                'value': 10,
+                'target': 'board',
+            }],
+            attacking_hp, 0, 1.0, [],
+            lambda event_type, payload: events.append((event_type, payload)),
+            'team_a', [source], attacking_hp, [opponent], defending_hp
+        )
+
+        assert source.hp == 90
+        assert opponent.hp == 60
+        assert attacking_hp == [90]
+        assert defending_hp == [60]
+        stat_events = [payload for event_type, payload in events if event_type == 'stat_buff']
+        assert [payload['unit_id'] for payload in stat_events] == ['board-source', 'board-opponent']
 
     @patch('waffen_tactics.services.combat_effect_processor.emit_heal')
     def test_process_ally_hp_below_triggers(self, mock_emit_heal, effect_processor, mock_combat_unit, mock_event_callback):
