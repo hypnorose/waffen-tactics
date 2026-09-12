@@ -77,6 +77,7 @@ export interface CombatEvent {
   attacker_current_mana?: number
   attacker_max_mana?: number
   target_id?: string
+  target_ids?: string[]
   damage?: number
   applied_damage?: number
   dodged?: boolean

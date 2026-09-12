@@ -1,5 +1,6 @@
 import time as _time
 import uuid
+import math
 from typing import Optional, Dict, Any, Callable, List
 
 
@@ -15,6 +16,120 @@ def _deliver_canonical_event(
     """Deliver a canonical event without hiding downstream failures."""
     if event_callback is not None:
         event_callback(event_type, payload)
+
+
+def validate_animation_start_payload(
+    payload: Dict[str, Any],
+    *,
+    require_transport_identity: bool = False,
+    available_units: Optional[Any] = None,
+) -> None:
+    """Validate the canonical presentation contract for ``animation_start``.
+
+    A single-target attack must carry its own actor and target.  Presentation
+    consumers must never recover either id from a previous event or a current
+    selection.  ``EventDispatcher`` supplies the transport identity and the
+    runtime roster; the SSE mapper repeats the shape checks at the external
+    boundary.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("animation_start payload must be an object")
+
+    seq = payload.get('seq', 'n/a')
+    event_id = payload.get('event_id', 'n/a')
+    context = f"animation_start seq={seq} event_id={event_id}"
+
+    def require_id(field: str) -> str:
+        value = payload.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{context} requires non-empty {field}")
+        return value
+
+    attacker_id = require_id('attacker_id')
+    target_ids = payload.get('target_ids')
+    if target_ids is not None:
+        if (
+            not isinstance(target_ids, list)
+            or not target_ids
+            or any(not isinstance(value, str) or not value.strip() for value in target_ids)
+        ):
+            raise ValueError(f"{context} target_ids must be a non-empty string list")
+        if payload.get('target_id') is not None:
+            raise ValueError(f"{context} must not mix target_id with target_ids")
+        resolved_target_ids = target_ids
+    else:
+        resolved_target_ids = [require_id('target_id')]
+
+    animation_id = require_id('animation_id')
+    timestamp = payload.get('timestamp')
+    if not isinstance(timestamp, (int, float)) or isinstance(timestamp, bool) or not math.isfinite(timestamp):
+        raise ValueError(f"{context} requires a finite numeric timestamp")
+
+    duration = payload.get('duration')
+    if not isinstance(duration, (int, float)) or isinstance(duration, bool) or not math.isfinite(duration) or duration <= 0:
+        raise ValueError(f"{context} requires a positive finite duration")
+
+    if require_transport_identity:
+        if not isinstance(payload.get('seq'), int) or isinstance(payload.get('seq'), bool) or payload['seq'] <= 0:
+            raise ValueError(f"{context} requires a positive integer seq")
+        if not isinstance(payload.get('event_id'), str) or not payload['event_id'].strip():
+            raise ValueError(f"animation_start seq={seq} requires non-empty event_id")
+
+    if available_units is not None:
+        if isinstance(available_units, dict):
+            unit_by_id = available_units
+        else:
+            unit_by_id = {
+                getattr(unit, 'id', None): unit
+                for unit in available_units
+                if getattr(unit, 'id', None) is not None
+            }
+        all_ids = set(unit_by_id)
+        unknown = [unit_id for unit_id in [attacker_id, *resolved_target_ids] if unit_id not in all_ids]
+        if unknown:
+            raise ValueError(f"{context} references unknown unit id(s): {unknown}")
+        def is_dead(unit: Any) -> bool:
+            if isinstance(unit, dict):
+                if unit.get('_dead') is True or unit.get('dead') is True:
+                    return True
+                hp = unit.get('hp')
+                return isinstance(hp, (int, float)) and not isinstance(hp, bool) and hp <= 0
+            return bool(getattr(unit, '_dead', False))
+
+        dead = [
+            unit_id
+            for unit_id in [attacker_id, *resolved_target_ids]
+            if is_dead(unit_by_id[unit_id])
+        ]
+        if dead:
+            raise ValueError(f"{context} references dead unit id(s): {dead}")
+
+
+def emit_animation_start(
+    event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    attacker: Any,
+    target: Any,
+    *,
+    animation_id: str = 'basic_attack',
+    duration: float = 0.2,
+    timestamp: float,
+    bonus_attack: bool = False,
+) -> Dict[str, Any]:
+    """Emit one fully identified single-target presentation event."""
+    payload = {
+        'type': 'animation_start',
+        'animation_id': animation_id,
+        'attacker_id': getattr(attacker, 'id', None),
+        'attacker_name': getattr(attacker, 'name', None),
+        'target_id': getattr(target, 'id', None),
+        'target_name': getattr(target, 'name', None),
+        'duration': duration,
+        'timestamp': timestamp,
+        'bonus_attack': bonus_attack,
+    }
+    validate_animation_start_payload(payload)
+    _deliver_canonical_event(event_callback, 'animation_start', payload)
+    return payload
 
 
 def emit_formation_changed(

@@ -35,7 +35,16 @@ def make_game_state(hp_list):
 def test_animation_start_game_state_is_snapshot():
     # Create initial game_state and map an animation_start payload
     gs = make_game_state([100, 100, 100])
-    data = {'animation_id': 'basic_attack', 'attacker_id': 'p0', 'target_id': 'o1', 'duration': 0.2, 'seq': 10, 'game_state': gs}
+    data = {
+        'animation_id': 'basic_attack',
+        'attacker_id': 'p0',
+        'target_id': 'o1',
+        'duration': 0.2,
+        'timestamp': 1.0,
+        'seq': 10,
+        'event_id': 'combat:10',
+        'game_state': gs,
+    }
 
     # Map animation_start (this should deepcopy game_state)
     mapped = map_event_to_sse_payload('animation_start', data)

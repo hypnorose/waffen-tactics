@@ -4,7 +4,7 @@ Combat attack processor - handles attack logic and damage calculation
 import random
 import os
 from typing import List, Dict, Any, Callable, Optional
-from .event_canonicalizer import emit_mana_change, emit_unit_stunned
+from .event_canonicalizer import emit_animation_start, emit_mana_change, emit_unit_stunned
 
 
 class CombatAttackProcessor:
@@ -265,18 +265,15 @@ class CombatAttackProcessor:
                 msg = f"[{time:.2f}s] {side.upper()[0]}:{unit.name} hits {'A' if side == 'team_b' else 'B'}:{defending_team[target_idx].name} for {damage}, hp={defending_hp[target_idx]}"
                 log.append(msg)
 
-                # Emit animation_start immediately so UI can play animation
-                if event_callback:
-                    event_callback('animation_start', {
-                        'type': 'animation_start',
-                        'animation_id': 'basic_attack',
-                        'attacker_id': unit.id,
-                        'attacker_name': unit.name,
-                        'target_id': defending_team[target_idx].id,
-                        'target_name': defending_team[target_idx].name,
-                        'duration': 0.2,
-                        'timestamp': time
-                    })
+                # Emit the identified presentation event before its delayed
+                # authoritative impact. The canonical emitter rejects a
+                # missing actor/target instead of allowing the UI to guess.
+                emit_animation_start(
+                    event_callback,
+                    unit,
+                    defending_team[target_idx],
+                    timestamp=time,
+                )
 
                 # Schedule unit_attack and mana_update with a UI delay (0.2s)
                 attack_ts = round(time + 0.2, 10)

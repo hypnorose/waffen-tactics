@@ -92,7 +92,7 @@ describe('presentationTimeline', () => {
 
   it('rebuilds only through the requested replay index and exposes active tracks', () => {
     const events = [
-      event({ type: 'animation_start', event_id: 'combat:10', attacker_id: 'player_0', target_id: 'opp_0', timestamp: 1 }),
+      event({ type: 'animation_start', event_id: 'combat:10', animation_id: 'basic_attack', attacker_id: 'player_0', target_id: 'opp_0', timestamp: 1 }),
       event({ type: 'unit_died', event_id: 'combat:11', unit_id: 'opp_0', timestamp: 2 }),
     ]
 

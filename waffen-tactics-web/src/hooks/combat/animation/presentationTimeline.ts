@@ -25,7 +25,7 @@ export interface PresentationTrack {
 }
 
 export interface PresentationDiagnostic {
-  code: 'missing_actor' | 'missing_target' | 'unknown_presentation_event'
+  code: 'missing_actor' | 'missing_target' | 'invalid_animation' | 'unknown_presentation_event'
   message: string
   eventType: string
   eventId?: string
@@ -131,7 +131,24 @@ function unitRequiredDiagnostic(
   return addDiagnostic(state, event, {
     code,
     unitId,
-    message: `Presentation event ${event.type} seq=${event.seq ?? 'n/a'} is missing its ${role} id.`,
+    message: `Presentation event ${event.type} seq=${event.seq ?? 'n/a'} event_id=${event.event_id ?? 'n/a'} is missing its ${role} id.`,
+  })
+}
+
+function animationContractDiagnostic(
+  state: PresentationTimelineState,
+  event: CombatEvent,
+): PresentationTimelineState {
+  const missing: string[] = []
+  if (typeof event.animation_id !== 'string' || !event.animation_id.trim()) missing.push('animation_id')
+  if (typeof event.event_id !== 'string' || !event.event_id.trim()) missing.push('event_id')
+  if (!Number.isInteger(event.seq) || (event.seq || 0) <= 0) missing.push('seq')
+  if (typeof event.timestamp !== 'number' || !Number.isFinite(event.timestamp)) missing.push('timestamp')
+  if (missing.length === 0) return state
+
+  return addDiagnostic(state, event, {
+    code: 'invalid_animation',
+    message: `Presentation event ${event.type} seq=${event.seq ?? 'n/a'} event_id=${event.event_id ?? 'n/a'} is missing or has invalid canonical field(s): ${missing.join(', ')}.`,
   })
 }
 
@@ -158,6 +175,8 @@ export function reducePresentationTimeline(
       next = unitRequiredDiagnostic(next, event, event.attacker_id, 'attacker')
       next = unitRequiredDiagnostic(next, event, event.target_id, 'target')
       if (!event.attacker_id || !event.target_id) return next
+      const withContractDiagnostics = animationContractDiagnostic(next, event)
+      if (withContractDiagnostics !== next) return withContractDiagnostics
 
       return addTrack(next, event, isRangedAnimation(event) ? 'ranged_projectile' : 'melee_lunge', {
         unitId: event.attacker_id,

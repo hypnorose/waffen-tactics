@@ -21,6 +21,7 @@ from services.combat_service import (
     resolve_persisted_team_units,
 )
 from services.combat_snapshot_contract import validate_combat_snapshot
+from waffen_tactics.services.event_canonicalizer import validate_animation_start_payload
 from waffen_tactics.services.combat_errors import (
     CombatError,
     CombatExecutionError,
@@ -759,13 +760,35 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'animation_start':
+        available_units = None
+        game_state = data.get('game_state')
+        if isinstance(game_state, dict):
+            available_units = {
+                unit.get('id'): unit
+                for side in ('player_units', 'opponent_units')
+                for unit in (game_state.get(side) or [])
+                if isinstance(unit, dict) and unit.get('id')
+            }
+        try:
+            validate_animation_start_payload(
+                data,
+                require_transport_identity=True,
+                available_units=available_units,
+            )
+        except ValueError as exc:
+            raise RuntimeError(str(exc)) from exc
         res = {
             'type': 'animation_start',
             'animation_id': data.get('animation_id'),
             'attacker_id': data.get('attacker_id'),
+            'attacker_name': data.get('attacker_name'),
             'target_id': data.get('target_id'),
+            'target_name': data.get('target_name'),
+            'target_ids': data.get('target_ids'),
+            'skill_name': data.get('skill_name'),
+            'bonus_attack': data.get('bonus_attack', False),
             'duration': data.get('duration'),
-            'timestamp': data.get('timestamp', time.time()),
+            'timestamp': data.get('timestamp'),
             'seq': data.get('seq')
         }
 

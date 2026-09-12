@@ -3,6 +3,7 @@ EventDispatcher - handles event callback wrapping, sequencing, and payload norma
 """
 from typing import List, Dict, Any, Callable, Optional
 import uuid
+from ..services.event_canonicalizer import validate_animation_start_payload
 
 
 class EventDispatcher:
@@ -96,6 +97,12 @@ class EventDispatcher:
                         # CRITICAL: If current_mana differs, DO emit even with amount=0
                         # This ensures authoritative mana values reach the UI
 
+                if event_type == 'animation_start':
+                    validate_animation_start_payload(
+                        payload,
+                        require_transport_identity=True,
+                        available_units=self.team_a + self.team_b,
+                    )
                 original_callback(event_type, payload)
                 
                 # CRITICAL: Update _last_mana after successful emit

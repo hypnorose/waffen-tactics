@@ -160,3 +160,80 @@ def test_same_timestamp_lethal_attacks_have_one_canonical_outcome_each():
         if event_type == 'damage_dodged'
     ]
     assert mapped and mapped[0]['cause'] == 'attacker_dead_before_impact'
+
+
+def _animation_payload(**overrides):
+    payload = {
+        'type': 'animation_start',
+        'animation_id': 'basic_attack',
+        'attacker_id': 'player',
+        'attacker_name': 'Player',
+        'target_id': 'opponent',
+        'target_name': 'Opponent',
+        'duration': 0.2,
+        'timestamp': 1.0,
+        'seq': 15,
+        'event_id': 'combat:15',
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_simulation_emits_only_identified_animation_starts():
+    player = make_unit('player', 'Player', hp=200)
+    opponent = make_unit('opponent', 'Opponent', hp=200)
+
+    result = run_combat_simulation(
+        [player],
+        [opponent],
+        skip_per_round_buffs=True,
+        skip_per_second_buffs=True,
+    )
+    animations = [payload for event_type, payload in result['events'] if event_type == 'animation_start']
+
+    assert animations
+    assert result['events'][0][0] != 'animation_start'
+    assert all(
+        all(payload.get(field) not in (None, '') for field in ('attacker_id', 'target_id', 'animation_id', 'event_id'))
+        and isinstance(payload.get('seq'), int)
+        and isinstance(payload.get('timestamp'), (int, float))
+        for payload in animations
+    )
+
+
+def test_animation_start_transport_rejects_missing_target_with_diagnostic_context():
+    with pytest.raises(RuntimeError, match=r'animation_start seq=15 event_id=combat:15.*target_id'):
+        gc.map_event_to_sse_payload('animation_start', _animation_payload(target_id=None))
+
+
+def test_animation_start_transport_rejects_unknown_or_dead_target_from_snapshot():
+    snapshot = {
+        'player_units': [{'id': 'player', 'hp': 100, 'max_hp': 100}],
+        'opponent_units': [{'id': 'opponent', 'hp': 0, 'max_hp': 100}],
+    }
+    with pytest.raises(RuntimeError, match=r'animation_start seq=15 event_id=combat:15.*dead unit'):
+        gc.map_event_to_sse_payload('animation_start', _animation_payload(game_state=snapshot))
+
+    with pytest.raises(RuntimeError, match=r'unknown unit id'):
+        gc.map_event_to_sse_payload(
+            'animation_start',
+            _animation_payload(
+                target_id='missing',
+                game_state={
+                    'player_units': [{'id': 'player', 'hp': 100, 'max_hp': 100}],
+                    'opponent_units': [{'id': 'opponent', 'hp': 100, 'max_hp': 100}],
+                },
+            ),
+        )
+
+
+def test_animation_start_transport_preserves_explicit_multi_target_contract():
+    payload = gc.map_event_to_sse_payload(
+        'animation_start',
+        _animation_payload(
+            target_id=None,
+            target_ids=['opponent', 'opponent-2'],
+        ),
+    )
+    assert payload['target_ids'] == ['opponent', 'opponent-2']
+    assert payload.get('target_id') is None

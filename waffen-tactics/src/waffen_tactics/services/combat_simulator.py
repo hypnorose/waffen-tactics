@@ -598,9 +598,6 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                 log,
             )
 
-        # emit animation start
-        proc_cb('animation_start', {'timestamp': 0.0})
-
         winner = None
         # Main loop
         while time < self.timeout:
