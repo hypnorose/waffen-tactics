@@ -11,10 +11,16 @@ from services.combat_event_reconstructor import CombatEventReconstructor
 def _snapshot():
     return {
         "player_units": [
-            {"id": "attacker", "name": "Attacker", "hp": 100, "shield": 0, "effects": []},
+            {
+                "id": "attacker", "name": "Attacker", "hp": 100, "max_hp": 100,
+                "current_mana": 0, "max_mana": 100, "shield": 0, "effects": [],
+            },
         ],
         "opponent_units": [
-            {"id": "redirected", "name": "Redirected", "hp": 8, "shield": 0, "effects": []},
+            {
+                "id": "redirected", "name": "Redirected", "hp": 8, "max_hp": 100,
+                "current_mana": 0, "max_mana": 100, "shield": 0, "effects": [],
+            },
         ],
     }
 
@@ -44,7 +50,10 @@ def _event():
         "event_id": "combat:7",
         "game_state": {
             "player_units": _snapshot()["player_units"],
-            "opponent_units": [{"id": "redirected", "name": "Redirected", "hp": 0, "shield": 0, "effects": []}],
+            "opponent_units": [{
+                "id": "redirected", "name": "Redirected", "hp": 0, "max_hp": 100,
+                "current_mana": 0, "max_mana": 100, "shield": 0, "effects": [],
+            }],
         },
     }
 

@@ -210,7 +210,7 @@ class DesyncDebugger:
                             recent = [(et, ed) for et, ed in self.events[max(0, i-20):i]
                                      if ed.get('unit_id') == unit_part or ed.get('target_id') == unit_part]
                             for et, ed in recent[-10:]:
-                                print(f"  seq={ed.get('seq')} type={et} data={json.dumps(ed, default=str)[:200]}")
+                                print(f"  seq={ed.get('seq')} type={et} data={json.dumps(ed, allow_nan=False)[:200]}")
                         except:
                             pass
 
@@ -229,7 +229,7 @@ class DesyncDebugger:
 
                 # Show the problematic event
                 print(f"\nEvent {i} details:")
-                print(json.dumps(event_data, indent=2, default=str))
+                print(json.dumps(event_data, indent=2, allow_nan=False))
 
                 print(f"\nTo debug further, check events around seq={seq}")
                 print(f"{'='*80}\n")
@@ -254,7 +254,7 @@ class DesyncDebugger:
             # Save desync log
             log_file = 'desync_debug_log.json'
             with open(log_file, 'w') as f:
-                json.dump(self.desync_log, f, indent=2, default=str)
+                json.dump(self.desync_log, f, indent=2, allow_nan=False)
             print(f"\nDesync log saved to {log_file}")
 
     def analyze_missing_events(self):
@@ -300,7 +300,7 @@ class DesyncDebugger:
                         if not found_application:
                             print(f"\n⚠️  Missing unit_stunned event for {unit_id} (effect_id={effect_id})")
                             print(f"    Snapshot seq={seq}, timestamp={timestamp}")
-                            print(f"    Effect details: {json.dumps(effect, default=str)}")
+                            print(f"    Effect details: {json.dumps(effect, allow_nan=False)}")
 
                     elif effect_type in ('buff', 'debuff'):
                         # Look for stat_buff event
@@ -314,7 +314,7 @@ class DesyncDebugger:
                         if not found_application:
                             print(f"\n⚠️  Missing stat_buff event for {unit_id} (effect_id={effect_id})")
                             print(f"    Snapshot seq={seq}, timestamp={timestamp}")
-                            print(f"    Effect details: {json.dumps(effect, default=str)}")
+                            print(f"    Effect details: {json.dumps(effect, allow_nan=False)}")
 
                     elif effect_type == 'shield':
                         # Look for shield_applied event
@@ -328,7 +328,7 @@ class DesyncDebugger:
                         if not found_application:
                             print(f"\n⚠️  Missing shield_applied event for {unit_id} (effect_id={effect_id})")
                             print(f"    Snapshot seq={seq}, timestamp={timestamp}")
-                            print(f"    Effect details: {json.dumps(effect, default=str)}")
+                            print(f"    Effect details: {json.dumps(effect, allow_nan=False)}")
 
                     elif effect_type == 'damage_over_time':
                         # Look for damage_over_time_applied event
@@ -342,7 +342,7 @@ class DesyncDebugger:
                         if not found_application:
                             print(f"\n⚠️  Missing damage_over_time_applied event for {unit_id} (effect_id={effect_id})")
                             print(f"    Snapshot seq={seq}, timestamp={timestamp}")
-                            print(f"    Effect details: {json.dumps(effect, default=str)}")
+                            print(f"    Effect details: {json.dumps(effect, allow_nan=False)}")
 
 
 def main():

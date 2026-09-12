@@ -1,4 +1,5 @@
 import { Unit, DesyncEntry, CombatEvent, CombatState } from './types'
+import { validateCombatSnapshot } from './snapshotContract'
 
 // These effects are authoritative server-side mechanics. They are not
 // reconstructed by the replay because their visible consequences arrive as
@@ -67,6 +68,8 @@ export function compareUnits(localUnits: Unit[], serverUnits: any[], side: strin
 
 export function compareCombatStates(localState: CombatState, serverState: any, event: CombatEvent): DesyncEntry[] {
   if (!shouldCompareCombatSnapshot(event)) return []
+
+  validateCombatSnapshot(serverState, `${event.type} seq=${event.seq ?? 'unknown'} game_state`)
 
   const desyncs: DesyncEntry[] = []
 

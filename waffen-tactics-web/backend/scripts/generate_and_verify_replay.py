@@ -75,7 +75,9 @@ def main():
     out_path = Path(args.out)
     with out_path.open('w', encoding='utf-8') as f:
         for ev in collected:
-            json.dump(ev, f, default=str)
+            # Never coerce a non-JSON snapshot value to a diagnostic string.
+            # A malformed unit/effect must fail the export visibly.
+            json.dump(ev, f, allow_nan=False)
             f.write('\n')
     print(f'Wrote {len(collected)} events to {out_path}')
 

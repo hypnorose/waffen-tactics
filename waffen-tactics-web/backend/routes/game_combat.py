@@ -20,6 +20,7 @@ from services.combat_service import (
     prepare_round_buffs, run_combat_simulation, process_combat_results, resolve_defeat_hp_mutation,
     resolve_persisted_team_units,
 )
+from services.combat_snapshot_contract import validate_combat_snapshot
 from waffen_tactics.services.combat_errors import (
     CombatError,
     CombatExecutionError,
@@ -742,6 +743,14 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'seq': data.get('seq')
         }
     if event_type == 'state_snapshot':
+        validate_combat_snapshot(
+            {
+                'player_units': data.get('player_units'),
+                'opponent_units': data.get('opponent_units'),
+                'timestamp': data.get('timestamp'),
+            },
+            context=f"state_snapshot seq={data.get('seq', 'N/A')}",
+        )
         res = {
             'type': 'state_snapshot',
             'player_units': data.get('player_units'),
@@ -776,6 +785,10 @@ def map_event_to_sse_payload(event_type: str, data: dict):
         # propagate so caller can observe issues rather than silently falling back.
         if 'game_state' in data:
             import copy
+            validate_combat_snapshot(
+                data['game_state'],
+                context=f"{event_type} game_state seq={data.get('seq', 'N/A')}",
+            )
             res['game_state'] = copy.deepcopy(data['game_state'])
         logger.debug(f"Mapped {event_type} to payload with seq={res.get('seq')}")
         return res
@@ -965,8 +978,16 @@ def start_combat():
 
             # Send initial units state with synergies and trait definitions
             trait_definitions = [{'name': t['name'], 'type': t['type'], 'description': t.get('description', ''), 'thresholds': t['thresholds'], 'threshold_descriptions': t.get('threshold_descriptions', []), 'effects': t.get('modular_effects', [])} for t in game_manager.data.traits]
+            initial_game_state = {
+                'player_units': player_unit_info,
+                'opponent_units': opponent_unit_info,
+            }
+            validate_combat_snapshot(
+                initial_game_state,
+                context=f"units_init seq=0 user={user_id}",
+            )
             logger.info(f"start_combat: sending units_init for player {user_id}")
-            stream_chunks.append(f"data: {json.dumps({'type': 'units_init', 'delivery_mode': COMBAT_DELIVERY_MODE, 'player_units': player_unit_info, 'opponent_units': opponent_unit_info, 'synergies': synergies_data, 'traits': trait_definitions, 'opponent': opponent_info, 'game_state': {'player_units': player_unit_info, 'opponent_units': opponent_unit_info}, 'result_id': combat_result_id, 'seq': 0})}\n\n")
+            stream_chunks.append(f"data: {json.dumps({'type': 'units_init', 'delivery_mode': COMBAT_DELIVERY_MODE, 'player_units': player_unit_info, 'opponent_units': opponent_unit_info, 'synergies': synergies_data, 'traits': trait_definitions, 'opponent': opponent_info, 'game_state': initial_game_state, 'result_id': combat_result_id, 'seq': 0}, allow_nan=False)}\n\n")
 
             # Start combat
             logger.info(f"start_combat: sending start event for player {user_id}")
@@ -987,7 +1008,7 @@ def start_combat():
                 # Normalize simulator UUIDs to an action-scoped identity so a
                 # retry with the same idempotency key has the same event IDs.
                 payload['event_id'] = f"{combat_result_id}:{len(stream_chunks)}"
-                return [json.dumps(payload)]
+                return [json.dumps(payload, allow_nan=False)]
 
             # Collect events with timestamps
             events = []  # (event_type, data, event_time)

@@ -7,13 +7,19 @@ from services.combat_event_reconstructor import CombatEventReconstructor
 def _snapshot():
     return {
         'player_units': [
-            {'id': 'player_0', 'name': 'Attacker', 'hp': 100, 'shield': 0, 'effects': []},
+            {
+                'id': 'player_0', 'name': 'Attacker', 'hp': 100, 'max_hp': 100,
+                'current_mana': 0, 'max_mana': 100, 'shield': 0, 'effects': [],
+            },
         ],
         'opponent_units': [
             {
                 'id': 'opp_0',
                 'name': 'Target',
                 'hp': 100,
+                'max_hp': 100,
+                'current_mana': 0,
+                'max_mana': 100,
                 'shield': 25,
                 'effects': [
                     {'id': 'shield-1', 'type': 'shield', 'amount': 25, 'applied_amount': 25},

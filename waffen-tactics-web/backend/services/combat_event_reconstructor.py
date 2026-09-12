@@ -18,6 +18,7 @@ They never derive HP, stats, effects, or expiration state from snapshots.
 """
 import math
 from typing import Dict, List, Any, Tuple
+from .combat_snapshot_contract import validate_combat_snapshot
 
 
 class CombatEventReconstructor:
@@ -65,6 +66,12 @@ class CombatEventReconstructor:
 
     def initialize_from_snapshot(self, snapshot_data: Dict[str, Any]):
         """Initialize reconstruction from a state_snapshot event."""
+        validate_combat_snapshot(
+            snapshot_data,
+            context=f"snapshot seq={snapshot_data.get('seq', 'N/A')}"
+            if isinstance(snapshot_data, dict) else "snapshot",
+        )
+
         def normalize_unit(u):
             uu = dict(u)
             uu.setdefault('effects', [])
@@ -804,6 +811,11 @@ class CombatEventReconstructor:
 
     def _process_state_snapshot_event(self, event_data: Dict[str, Any]):
         # print(f"  Checking state_snapshot at seq {event_data.get('seq', 'N/A')}")
+
+        validate_combat_snapshot(
+            event_data,
+            context=f"state_snapshot seq={event_data.get('seq', 'N/A')}",
+        )
 
         current_time = event_data.get('timestamp', 0)
 

@@ -5,8 +5,30 @@ from routes.game_combat import map_event_to_sse_payload
 
 def make_game_state(hp_list):
     return {
-        'player_units': [{'id': f'p{i}', 'hp': hp} for i, hp in enumerate(hp_list)],
-        'opponent_units': [{'id': f'o{i}', 'hp': 999} for i in range(3)]
+        'player_units': [
+            {
+                'id': f'p{i}',
+                'hp': hp,
+                'max_hp': 100,
+                'current_mana': 0,
+                'max_mana': 100,
+                'shield': 0,
+                'effects': [],
+            }
+            for i, hp in enumerate(hp_list)
+        ],
+        'opponent_units': [
+            {
+                'id': f'o{i}',
+                'hp': 999,
+                'max_hp': 999,
+                'current_mana': 0,
+                'max_mana': 100,
+                'shield': 0,
+                'effects': [],
+            }
+            for i in range(3)
+        ]
     }
 
 

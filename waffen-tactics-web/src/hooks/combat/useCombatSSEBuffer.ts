@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../../services/apiBaseUrl'
 import { createIdempotencyKey } from '../../services/requestIdentity'
 import { CombatEvent, CombatTransportError } from './types'
+import { validateCombatEventSnapshot } from './snapshotContract'
 
 export type CombatSSEFrameClassification =
   | { kind: 'event', event: CombatEvent }
@@ -146,6 +147,17 @@ function protocolError(
 }
 
 function validateAndRegisterEvent(state: SharedSSEState, event: CombatEvent): boolean {
+  try {
+    validateCombatEventSnapshot(event as unknown as Record<string, unknown>)
+  } catch (error) {
+    throw protocolError(
+      state,
+      'combat_invalid_snapshot',
+      error instanceof Error ? error.message : 'Combat event contains an invalid state snapshot.',
+      event,
+    )
+  }
+
   if (!Number.isInteger(event.seq) || event.seq! < 0) {
     throw protocolError(state, 'combat_invalid_sequence', 'Combat event requires a non-negative integer seq.', event)
   }

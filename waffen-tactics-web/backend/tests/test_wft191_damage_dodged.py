@@ -4,8 +4,14 @@ from services.combat_event_reconstructor import CombatEventReconstructor
 
 def _snapshot():
     return {
-        "player_units": [{"id": "player_1", "hp": 100, "shield": 0}],
-        "opponent_units": [{"id": "opp_1", "hp": 100, "shield": 0}],
+        "player_units": [{
+            "id": "player_1", "hp": 100, "max_hp": 100,
+            "current_mana": 0, "max_mana": 100, "shield": 0, "effects": [],
+        }],
+        "opponent_units": [{
+            "id": "opp_1", "hp": 100, "max_hp": 100,
+            "current_mana": 0, "max_mana": 100, "shield": 0, "effects": [],
+        }],
     }
 
 
@@ -102,4 +108,3 @@ def test_wft191_reconstructor_accepts_dodge_without_mutating_hp_or_shield():
 
     assert reconstructor.reconstructed_opponent_units["opp_1"]["hp"] == 100
     assert reconstructor.reconstructed_opponent_units["opp_1"]["shield"] == 0
-

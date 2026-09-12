@@ -8,6 +8,24 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 type BufferState = ReturnType<typeof useCombatSSEBuffer>
 
+function unitsInitFrame() {
+  const unit = (id: string) => ({
+    id,
+    hp: 100,
+    max_hp: 100,
+    current_mana: 0,
+    max_mana: 100,
+    shield: 0,
+    effects: [],
+  })
+  return {
+    type: 'units_init',
+    player_units: [unit('player-1')],
+    opponent_units: [unit('opponent-1')],
+    seq: 0,
+  }
+}
+
 function BufferProbe({ token, onState }: { token: string, onState: (state: BufferState) => void }): ReactNode {
   const state = useCombatSSEBuffer(token)
   useEffect(() => onState(state), [onState, state])
@@ -134,7 +152,7 @@ describe('useCombatSSEBuffer', () => {
       read: vi.fn()
         .mockResolvedValueOnce({
           done: false,
-          value: new TextEncoder().encode(`data: ${JSON.stringify({ type: 'units_init', seq: 0 })}\n\n`),
+          value: new TextEncoder().encode(`data: ${JSON.stringify(unitsInitFrame())}\n\n`),
         })
         .mockRejectedValueOnce(new Error('connection reset')),
       cancel: vi.fn().mockResolvedValue(undefined),
@@ -187,7 +205,7 @@ describe('useCombatSSEBuffer', () => {
       read: vi.fn()
         .mockResolvedValueOnce({
           done: false,
-          value: new TextEncoder().encode(`data: ${JSON.stringify({ type: 'units_init', seq: 0 })}\n\n`),
+          value: new TextEncoder().encode(`data: ${JSON.stringify(unitsInitFrame())}\n\n`),
         })
         .mockResolvedValueOnce({ done: true, value: undefined }),
       cancel: vi.fn().mockResolvedValue(undefined),
@@ -207,7 +225,7 @@ describe('useCombatSSEBuffer', () => {
           read: vi.fn().mockResolvedValueOnce({
             done: false,
             value: new TextEncoder().encode([
-              `data: ${JSON.stringify({ type: 'units_init', seq: 0 })}`,
+              `data: ${JSON.stringify(unitsInitFrame())}`,
               `data: ${JSON.stringify({ type: 'start', seq: 0 })}`,
               `data: ${JSON.stringify({ type: 'unit_attack', seq: 2, event_id: 'combat:2' })}`,
               '',
@@ -232,7 +250,7 @@ describe('useCombatSSEBuffer', () => {
           read: vi.fn().mockResolvedValueOnce({
             done: false,
             value: new TextEncoder().encode([
-              `data: ${JSON.stringify({ type: 'units_init', seq: 0 })}`,
+              `data: ${JSON.stringify(unitsInitFrame())}`,
               `data: ${JSON.stringify({ type: 'unit_attack', seq: 1, event_id: 'combat:1', amount: 1 })}`,
               `data: ${JSON.stringify({ type: 'unit_attack', seq: 1, event_id: 'combat:1', amount: 2 })}`,
               '',
@@ -249,7 +267,7 @@ describe('useCombatSSEBuffer', () => {
   it('deduplicates identical frames and completes only after the terminal end event', async () => {
     const combatEvent = { type: 'damage', seq: 1, event_id: 'combat:1' }
     const frame = [
-      { type: 'units_init', seq: 0 },
+      unitsInitFrame(),
       { type: 'start', seq: 0 },
       combatEvent,
       combatEvent,

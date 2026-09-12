@@ -66,7 +66,7 @@ def test_item_context_is_retained_by_backend_reconstructor_effect_state():
         'player_units': [{
             'id': 'tank', 'name': 'Tank', 'hp': 100, 'max_hp': 100,
             'attack': 10, 'defense': 20, 'attack_speed': 1,
-            'current_mana': 0, 'max_mana': 100, 'effects': [],
+            'current_mana': 0, 'max_mana': 100, 'shield': 0, 'effects': [],
         }],
         'opponent_units': [],
     })
