@@ -228,6 +228,41 @@ input:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.combat-unit-impact-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  border: 2px solid rgba(248, 113, 113, 0.95);
+  border-radius: inherit;
+  background: rgba(239, 68, 68, 0.18);
+  box-shadow: inset 0 0 0.75rem rgba(248, 113, 113, 0.7), 0 0 1.25rem rgba(239, 68, 68, 0.6);
+  mix-blend-mode: screen;
+}
+
+.combat-unit-impact-flash::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(to bottom, rgba(254, 202, 202, 0.52), transparent 45%);
+}
+
+.combat-unit-impact-flash-from-bottom::after {
+  background: linear-gradient(to top, rgba(254, 202, 202, 0.52), transparent 45%);
+}
+
+.combat-unit-impact-flash-shield_hit {
+  border-color: rgba(125, 211, 252, 0.95);
+  background: rgba(14, 165, 233, 0.16);
+  box-shadow: inset 0 0 0.75rem rgba(125, 211, 252, 0.7), 0 0 1.25rem rgba(14, 165, 233, 0.55);
+}
+
+.combat-unit-impact-flash-dodge {
+  border-color: rgba(253, 224, 71, 0.95);
+  background: rgba(250, 204, 21, 0.12);
+  box-shadow: inset 0 0 0.75rem rgba(253, 224, 71, 0.6), 0 0 1.25rem rgba(250, 204, 21, 0.45);
+}
+
 .combat-overlay-board {
   min-width: 0;
   min-height: 0;

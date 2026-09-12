@@ -108,6 +108,34 @@ describe('combat and table unit metric ownership', () => {
     expect(container.querySelectorAll('[role="progressbar"]')).toHaveLength(2)
   })
 
+  it('renders the canonical target impact flash with directional metadata', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    act(() => {
+      root = createRoot(container)
+      root.render(createElement(CombatUnitCard as any, {
+        unit: combatUnit,
+        isOpponent: true,
+        presentationTracks: [{
+          id: 'combat:impact:target',
+          intent: 'target_recoil',
+          targetId: 'unit-1',
+          sourceEventId: 'combat:impact',
+          sourceSeq: 12,
+          startedAt: 0,
+          duration: 0.16,
+          intensity: 'medium',
+        }],
+      }))
+    })
+
+    const flash = container.querySelector('.combat-unit-impact-flash')
+    expect(flash?.getAttribute('data-impact-intent')).toBe('target_recoil')
+    expect(flash?.getAttribute('data-impact-direction')).toBe('from-bottom')
+    expect(flash?.getAttribute('aria-hidden')).toBe('true')
+  })
+
   it('keeps the same metrics available on the between-battle table card', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)

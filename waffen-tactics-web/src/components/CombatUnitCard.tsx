@@ -112,6 +112,7 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   const attackTrack = unitTracks.find((track) => track.unitId === unit.id && (track.intent === 'melee_lunge' || track.intent === 'ranged_projectile'))
   const impactTrack = unitTracks.find((track) => track.targetId === unit.id && (track.intent === 'target_recoil' || track.intent === 'shield_hit' || track.intent === 'dodge'))
   const statusTrack = unitTracks.find((track) => track.unitId === unit.id && (track.intent === 'death' || track.intent === 'buff' || track.intent === 'revive'))
+  const impactFlashDirection = isOpponent ? 'from-bottom' : 'from-top'
 
   let lungeOffset = { x: 0, y: 0 }
   if (attackTrack && attackTrack.intent === 'melee_lunge' && typeof getCenter === 'function' && rootRef.current) {
@@ -232,6 +233,20 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
           <CombatEffectBadge key={`${effect.id || effect.type}-${idx}`} effect={effect} currentTime={currentTime} index={idx} />
         ))}
       </div>
+      {impactTrack && !replayPaused && (
+        <motion.div
+          key={impactTrack.id}
+          className={`combat-unit-impact-flash combat-unit-impact-flash-${impactTrack.intent}`}
+          data-impact-intent={impactTrack.intent}
+          data-impact-direction={impactFlashDirection}
+          aria-hidden="true"
+          initial={{ opacity: reducedMotion ? 0.55 : 0, scale: reducedMotion ? 1 : 0.96 }}
+          animate={reducedMotion
+            ? { opacity: 0.55, scale: 1 }
+            : { opacity: [0, 0.9, 0], scale: [0.96, 1.04, 1] }}
+          transition={{ duration: reducedMotion ? 0.08 : Math.max(0.12, animationDuration), ease: 'easeOut' }}
+        />
+      )}
       {/* Old inline attack/skill/target visuals removed in favor of projectile VFX */}
 
       {/* Unit avatar (robust source resolution with fallback) */}
