@@ -133,6 +133,36 @@ describe('presentationTimeline', () => {
     ])
   })
 
+  it('rejects unknown actors after the canonical roster is registered', () => {
+    let state = reducePresentationTimeline(createPresentationTimeline(), event({
+      type: 'units_init',
+      event_id: 'combat:init',
+      seq: 1,
+      timestamp: 0,
+      player_units: [{ id: 'player_0' } as any],
+      opponent_units: [{ id: 'opp_0' } as any],
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'animation_start',
+      event_id: 'combat:unknown-target',
+      seq: 2,
+      timestamp: 1,
+      animation_id: 'basic_attack',
+      attacker_id: 'player_0',
+      target_id: 'ghost',
+    }))
+
+    expect(state.tracks).toEqual({})
+    expect(state.diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'missing_target',
+        eventId: 'combat:unknown-target',
+        seq: 2,
+        unitId: 'ghost',
+      }),
+    ])
+  })
+
   it('rebuilds only through the requested replay index and exposes active tracks', () => {
     const events = [
       event({ type: 'animation_start', event_id: 'combat:10', animation_id: 'basic_attack', attacker_id: 'player_0', target_id: 'opp_0', timestamp: 1 }),

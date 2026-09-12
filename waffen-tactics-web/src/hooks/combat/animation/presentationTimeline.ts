@@ -47,11 +47,14 @@ export interface PresentationDiagnostic {
 export interface PresentationTimelineState {
   tracks: Record<string, PresentationTrack>
   diagnostics: PresentationDiagnostic[]
+  /** Logical actor registry populated by the canonical units_init event. */
+  actors: Record<string, true>
 }
 
 export const createPresentationTimeline = (): PresentationTimelineState => ({
   tracks: {},
   diagnostics: [],
+  actors: {},
 })
 
 /**
@@ -82,6 +85,35 @@ export function clearPresentationTracks(
 ): PresentationTimelineState {
   if (Object.keys(state.tracks).length === 0) return state
   return { ...state, tracks: {} }
+}
+
+function registerActorsFromInit(
+  state: PresentationTimelineState,
+  event: CombatEvent,
+): PresentationTimelineState {
+  if (event.type !== 'units_init') return state
+
+  const actorIds = [
+    ...(Array.isArray(event.player_units) ? event.player_units : []),
+    ...(Array.isArray(event.opponent_units) ? event.opponent_units : []),
+  ]
+    .map((unit) => unit?.id)
+    .filter((id): id is string => typeof id === 'string' && id.trim() !== '')
+
+  if (actorIds.length === 0) return state
+  return {
+    ...state,
+    actors: actorIds.reduce<Record<string, true>>((actors, id) => {
+      actors[id] = true
+      return actors
+    }, { ...state.actors }),
+  }
+}
+
+function isKnownActor(state: PresentationTimelineState, unitId: string): boolean {
+  // Synthetic timeline tests may intentionally omit units_init. In a real
+  // canonical stream the registry is populated before visual events arrive.
+  return Object.keys(state.actors).length === 0 || state.actors[unitId] === true
 }
 
 const DEFAULT_DURATION_SECONDS = 0.18
@@ -167,12 +199,13 @@ function unitRequiredDiagnostic(
   unitId: string | undefined,
   role: 'attacker' | 'target' | 'unit',
 ): PresentationTimelineState {
-  if (unitId) return state
   const code = role === 'target' ? 'missing_target' : 'missing_actor'
+  if (unitId && isKnownActor(state, unitId)) return state
+  const reason = unitId ? `has no registered ${role} actor` : `is missing its ${role} id`
   return addDiagnostic(state, event, {
     code,
     unitId,
-    message: `Presentation event ${event.type} seq=${event.seq ?? 'n/a'} event_id=${event.event_id ?? 'n/a'} is missing its ${role} id.`,
+    message: `Presentation event ${event.type} seq=${event.seq ?? 'n/a'} event_id=${event.event_id ?? 'n/a'} ${reason}.`,
   })
 }
 
@@ -264,7 +297,9 @@ function addTargetImpact(
   intent: 'target_recoil' | 'shield_hit' | 'shield_break' | 'multi_hit' | 'dodge',
   role: string,
 ): PresentationTimelineState {
-  return addTrack(state, event, intent, {
+  const next = unitRequiredDiagnostic(state, event, targetId, 'target')
+  if (!isKnownActor(next, targetId)) return next
+  return addTrack(next, event, intent, {
     targetId,
     duration: intent === 'shield_break' ? 0.2 : 0.16,
     intensity: impactIntensity(event),
@@ -280,7 +315,7 @@ function addUnitStatus(
 ): PresentationTimelineState {
   const unitId = event.unit_id || event.caster_id
   let next = unitRequiredDiagnostic(state, event, unitId, 'unit')
-  if (!unitId) return next
+  if (!unitId || !isKnownActor(next, unitId)) return next
   return addTrack(next, event, intent, {
     unitId,
     duration,
@@ -293,13 +328,13 @@ export function reducePresentationTimeline(
   state: PresentationTimelineState,
   event: CombatEvent,
 ): PresentationTimelineState {
-  let next = state
+  let next = registerActorsFromInit(state, event)
 
   switch (event.type) {
     case 'animation_start': {
       next = unitRequiredDiagnostic(next, event, event.attacker_id, 'attacker')
       next = unitRequiredDiagnostic(next, event, event.target_id, 'target')
-      if (!event.attacker_id || !event.target_id) return next
+      if (!event.attacker_id || !event.target_id || !isKnownActor(next, event.attacker_id) || !isKnownActor(next, event.target_id)) return next
       const withContractDiagnostics = animationContractDiagnostic(next, event)
       if (withContractDiagnostics !== next) return withContractDiagnostics
 
@@ -354,7 +389,7 @@ export function reducePresentationTimeline(
 
     case 'unit_died': {
       next = unitRequiredDiagnostic(next, event, event.unit_id, 'unit')
-      if (!event.unit_id) return next
+      if (!event.unit_id || !isKnownActor(next, event.unit_id)) return next
       return addTrack(next, event, 'death', {
         unitId: event.unit_id,
         duration: 0.28,
@@ -366,7 +401,7 @@ export function reducePresentationTimeline(
     case 'unit_revived':
     case 'revive': {
       next = unitRequiredDiagnostic(next, event, event.unit_id, 'unit')
-      if (!event.unit_id) return next
+      if (!event.unit_id || !isKnownActor(next, event.unit_id)) return next
       return addTrack(next, event, 'revive', {
         unitId: event.unit_id,
         duration: 0.32,
@@ -378,7 +413,7 @@ export function reducePresentationTimeline(
     case 'shield_broken': {
       next = unitRequiredDiagnostic(next, event, event.unit_id || event.target_id, 'unit')
       const unitId = event.unit_id || event.target_id
-      if (!unitId) return next
+      if (!unitId || !isKnownActor(next, unitId)) return next
       return addTrack(next, event, 'shield_break', {
         unitId,
         targetId: event.target_id || unitId,
@@ -408,14 +443,14 @@ export function reducePresentationTimeline(
       return addUnitStatus(next, event, 'damage_over_time')
     case 'damage_over_time_tick': {
       next = unitRequiredDiagnostic(next, event, event.unit_id, 'target')
-      if (!event.unit_id) return next
+      if (!event.unit_id || !isKnownActor(next, event.unit_id)) return next
       return addTargetImpact(next, event, event.unit_id, Number(event.shield_absorbed || 0) > 0 ? 'shield_hit' : 'target_recoil', 'dot-tick')
     }
     case 'effect_expired':
       return addUnitStatus(next, event, hasItemContext(event) ? 'item' : 'effect')
     case 'formation_changed': {
       next = unitRequiredDiagnostic(next, event, event.unit_id, 'unit')
-      if (!event.unit_id) return next
+      if (!event.unit_id || !isKnownActor(next, event.unit_id)) return next
       return addTrack(next, event, 'formation_change', {
         unitId: event.unit_id,
         duration: 0.28,
