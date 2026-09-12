@@ -1,6 +1,6 @@
 # Waffen Tactics — Current Status
 
-Date: 2026-09-10
+Date: 2026-09-12
 
 Plane project: `Waffen Tactics` (`WFT`)
 
@@ -70,7 +70,7 @@ DEF-279 now makes the legacy CLI demo consume the shared simulator's canonical `
 
 ## Audits and artifacts
 
-- `docs/BALANCE_AUDIT_2026-09-10.md` and `.json` contain the current seeded balance/economy audit. It records the approved DEF-199 economy contract and does not authorize autonomous unit or trait tuning.
+- `docs/BALANCE_AUDIT_2026-09-12.md` and `.json` contain the current seeded balance/economy audit; the 2026-09-10 and 2026-09-11 reports remain historical comparisons. The current report records the approved economy contract and does not authorize autonomous unit or trait tuning.
 - `docs/OPPONENT_VARIETY_AUDIT_2026-09-09.md` and `.json` contain the current seeded opponent-behavior classification.
 - `docs/SEEDED_SCENARIO_MATRIX_2026-09-09.md` and `.json` contain the deterministic scenario evidence.
 - `docs/RELEASE_VALIDATION_GATE.md` is the release checklist and distinguishes automated evidence from runtime/manual acceptance.
