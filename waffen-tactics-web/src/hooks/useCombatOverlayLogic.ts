@@ -3,9 +3,8 @@ import { PlayerState } from '../store/gameStore'
 import { useAuthStore } from '../store/authStore'
 import { useCombatSSEBuffer } from './combat/useCombatSSEBuffer'
 import { normalizeCombatSpeed } from './combat/replayTiming'
-import { applyCombatEvent, CombatReplayValidationError } from './combat/applyEvent'
 import { createEmptyCombatState, getReplaySchedule, reconstructCombatState } from './combat/replayController'
-import { compareCombatStates } from './combat/desync'
+import { processReplayEvent } from './combat/replayEventProcessor'
 import { useCombatPresentation } from './combat/useCombatPresentation'
 import { CombatState, CombatEvent, CombatUnitRoundStats, DesyncEntry } from './combat/types'
 
@@ -200,163 +199,37 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     // Keep a rolling buffer of recent events for desync diagnostics
     recentEventsRef.current = [...recentEventsRef.current, event].slice(-50)
 
-    // DEBUG: Log all effect-related events
-    if (event.type === 'unit_stunned' || event.type === 'damage_over_time_applied' || event.type === 'stat_buff' || event.type === 'effect_expired') {
-      console.log(`[EFFECT EVENT] ${event.type} seq=${event.seq}:`, JSON.stringify(event, null, 2))
-    }
-
-    // Handle gold income breakdown so UI can display gold notification after replay
-    if (event.type === 'gold_income') {
-      const breakdown: any = event as any
-      setStoredGoldBreakdown({
-        base: breakdown.base || 0,
-        interest: breakdown.interest || 0,
-        milestone: breakdown.milestone || 0,
-        win_bonus: breakdown.win_bonus || 0,
-        total: breakdown.total || 0,
-        item_parts: Array.isArray(breakdown.item_parts) ? breakdown.item_parts : [],
-      })
-    }
-
-    // Apply event
     const currentState = combatStateRef.current
+    const result = processReplayEvent({
+      currentState,
+      event,
+      pendingEvents: bufferedEvents.slice(playhead + 1, playhead + 26),
+    })
 
-    // DEBUG: Log state BEFORE applying event (only if effects present)
-    if (event.type === 'mana_update' && event.unit_id) {
-      const unit = event.unit_id.startsWith('opp_')
-        ? currentState.opponentUnits.find(u => u.id === event.unit_id)
-        : currentState.playerUnits.find(u => u.id === event.unit_id)
+    if (result.goldBreakdown) setStoredGoldBreakdown(result.goldBreakdown)
+    result.desyncs.forEach(pushDesync)
 
-      if (unit?.effects && unit.effects.length > 0) {
-        console.log(`[STATE DEBUG BEFORE] ${event.type} seq=${event.seq} unit=${event.unit_id} effects:`, unit.effects)
-      }
-    }
-
-    let newState: CombatState
-    try {
-      newState = applyCombatEvent(currentState, event, { simTime: currentState.simTime })
-    } catch (err) {
-      if (!(err instanceof CombatReplayValidationError)) {
-        throw err
-      }
-
-      const unitId = err.unitId || event.unit_id || event.target_id || event.attacker_id || ''
-      pushDesync({
-        unit_id: unitId,
-        unit_name: event.unit_name || '',
-        seq: event.seq,
-        timestamp: event.timestamp,
-        diff: { replay: { ui: 'not_applied', server: err.message } },
-        pending_events: bufferedEvents.slice(playhead + 1, playhead + 26),
-        note: `replay validation failed: ${err.message}`
-      })
+    if (!result.state) {
       clearReplayTimer()
-      console.error(`🛑 Combat replay stopped at seq=${event.seq} due to validation failure`, err)
+      if (result.validationError) {
+        console.error(`🛑 Combat replay stopped at seq=${event.seq} due to validation failure`, result.validationError)
+      }
       return
     }
+
     lastAppliedPlayheadRef.current = playhead
-
-    // DEBUG: Log state AFTER applying event (only if effects present)
-    if (event.type === 'mana_update' && event.unit_id) {
-      const unit = event.unit_id.startsWith('opp_')
-        ? newState.opponentUnits.find(u => u.id === event.unit_id)
-        : newState.playerUnits.find(u => u.id === event.unit_id)
-
-      if (unit?.effects && unit.effects.length > 0) {
-        console.log(`[STATE DEBUG AFTER] ${event.type} seq=${event.seq} unit=${event.unit_id} effects:`, unit.effects)
-      }
-    }
-    
-    // GUARD: detect unexpected HP restoration (non-heal events that set HP from 0/null -> >0)
-    try {
-      const relevantId: string | undefined = (event as any).unit_id || (event as any).target_id
-      if (relevantId) {
-        const oldUnit = relevantId.startsWith('opp_')
-          ? currentState.opponentUnits.find(u => u.id === relevantId)
-          : currentState.playerUnits.find(u => u.id === relevantId)
-        const newUnit = relevantId.startsWith('opp_')
-          ? newState.opponentUnits.find(u => u.id === relevantId)
-          : newState.playerUnits.find(u => u.id === relevantId)
-
-        const oldHp = oldUnit?.hp
-        const newHp = newUnit?.hp
-
-        const healTypes = new Set(['heal', 'unit_heal', 'hp_regen', 'regen_gain'])
-        if ((oldHp === 0 || oldHp === null || oldHp === undefined) && typeof newHp === 'number' && newHp > 0 && !healTypes.has(event.type)) {
-          console.warn('[HP GUARD] Unexpected HP restoration detected:', { event: { type: event.type, seq: event.seq, id: relevantId }, oldHp, newHp })
-          // also push a desync entry for easier capture
-          pushDesync({ unit_id: relevantId, unit_name: (event as any).unit_name || '', seq: event.seq, timestamp: event.timestamp, diff: { hp: { ui: oldHp, server: newHp } }, pending_events: [], note: `hp guard: ${event.type}` })
-        }
-      }
-    } catch (err) {
-      console.error('[HP GUARD] guard errored', err)
-    }
-    
-    // Handle delayed HP updates for projectile timing
-    if (event.type === 'unit_attack' && event.target_id) {
-      // CRITICAL: Use authoritative HP from backend, NOT local calculations!
-      // The backend already sends target_hp, post_hp, unit_hp with the correct HP value
-      // after applying damage with proper defense calculations.
-
-      // Get authoritative HP from backend event (priority order: unit_hp, target_hp, post_hp, new_hp)
-      const authoritativeHp = (event as any).unit_hp ?? (event as any).target_hp ?? (event as any).post_hp ?? (event as any).new_hp
-
-      // Calculate shield change from current state
-      const targetUnit = event.target_id.startsWith('opp_')
-        ? newState.opponentUnits.find(u => u.id === event.target_id)
-        : newState.playerUnits.find(u => u.id === event.target_id)
-
-      if (targetUnit && authoritativeHp !== undefined) {
-        const shieldAbsorbed = event.shield_absorbed || 0
-        const newShield = Math.max(0, (targetUnit.shield || 0) - shieldAbsorbed)
-
-        // CRITICAL FIX: DO NOT store pending updates or override authoritative state!
-        // applyCombatEvent already set the correct HP. No need for delayed updates.
-      }
-    }
-    
-    // CRITICAL: Log effects BEFORE setState to verify mutation safety (only if effects present)
-    if (event.unit_id) {
-      const unit = event.unit_id.startsWith('opp_')
-        ? newState.opponentUnits.find(u => u.id === event.unit_id)
-        : newState.playerUnits.find(u => u.id === event.unit_id)
-
-      // Only log if unit has effects to reduce console spam
-      if (unit?.effects && unit.effects.length > 0) {
-        console.log(`[MUTATION CHECK] Before setState: unit=${event.unit_id} effects:`, JSON.parse(JSON.stringify(unit.effects)))
-      }
-    }
-
+    const newState = result.state
     setCombatState(newState)
     combatStateRef.current = newState
-
-    // CRITICAL: Log effects AFTER setState to check for mutation (only if effects present)
-    if (event.unit_id) {
-      const unit = event.unit_id.startsWith('opp_')
-        ? newState.opponentUnits.find(u => u.id === event.unit_id)
-        : newState.playerUnits.find(u => u.id === event.unit_id)
-
-      // Only log if unit has effects to reduce console spam
-      if (unit?.effects && unit.effects.length > 0) {
-        console.log(`[MUTATION CHECK] After setState: unit=${event.unit_id} effects:`, JSON.parse(JSON.stringify(unit.effects)))
-      }
-    }
 
     // Presentation is a separate, visual-only projection of the same event.
     // It never writes to the authoritative combat state or derives damage.
     recordPresentationEvent(event)
 
-    // Compare with server if game_state present
-    if (event.game_state) {
-      const stateDesyncs = compareCombatStates(newState, event.game_state, event)
-      stateDesyncs.forEach(pushDesync)
-      
-      // FAIL FAST: Stop replay if desync detected
-      if (stateDesyncs.length > 0) {
-        console.error(`🛑 Combat stopped at seq=${event.seq} due to ${stateDesyncs.length} desyncs`)
-        clearReplayTimer()
-        return  // Don't schedule next event
-      }
+    if (result.shouldStop) {
+      console.error(`🛑 Combat stopped at seq=${event.seq} due to replay validation/desync diagnostics`)
+      clearReplayTimer()
+      return
     }
 
     // Schedule next

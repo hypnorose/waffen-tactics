@@ -117,6 +117,12 @@ export interface CombatEvent {
   amount?: number
   applied_amount?: number
   item_parts?: string[]
+  // Canonical gold_income breakdown fields.
+  base?: number
+  interest?: number
+  milestone?: number
+  win_bonus?: number
+  total?: number
   stat?: string
   side?: string
   buff_type?: string
