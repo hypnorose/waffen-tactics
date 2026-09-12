@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, MutableRefObject } from 'react'
 import { PlayerState } from '../store/gameStore'
 import { useAuthStore } from '../store/authStore'
 import { useCombatSSEBuffer } from './combat/useCombatSSEBuffer'
-import { computeDelayMs, normalizeCombatSpeed } from './combat/replayTiming'
+import { normalizeCombatSpeed } from './combat/replayTiming'
 import { applyCombatEvent, CombatReplayValidationError } from './combat/applyEvent'
-import { createEmptyCombatState, reconstructCombatState } from './combat/replayController'
+import { createEmptyCombatState, getReplaySchedule, reconstructCombatState } from './combat/replayController'
 import { compareCombatStates } from './combat/desync'
 import { useCombatPresentation } from './combat/useCombatPresentation'
 import { CombatState, CombatEvent, CombatUnitRoundStats, DesyncEntry } from './combat/types'
@@ -63,28 +63,19 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     reset: resetPresentation,
   } = useCombatPresentation({ currentTime: combatState.simTime, replayPaused })
 
-  const scheduleNextEvent = (currentEvent: CombatEvent, currentPlayhead: number) => {
-    const nextEvent = bufferedEvents[currentPlayhead + 1]
-    console.log('[scheduleNextEvent] currentPlayhead:', currentPlayhead, 'nextEvent exists:', !!nextEvent, 'bufferedEvents.length:', bufferedEvents.length)
-    
-    if (!nextEvent) {
-      if (isBufferedComplete) {
-        console.log('[scheduleNextEvent] No next event but buffering complete, setting allEventsReplayed')
-        setAllEventsReplayed(true)
-      } else {
-        console.log('[scheduleNextEvent] No next event and buffering not complete yet')
-      }
+  const scheduleNextEvent = (currentPlayhead: number) => {
+    const schedule = getReplaySchedule(bufferedEvents, currentPlayhead, isBufferedComplete, combatSpeed)
+    if (schedule.kind === 'complete') {
+      setAllEventsReplayed(true)
       return
     }
+    if (schedule.kind === 'wait') return
 
     clearReplayTimer()
-    const delay = computeDelayMs(currentEvent, nextEvent, combatSpeed, 1)
-    console.log('[scheduleNextEvent] Scheduling next event with delay:', delay, 'ms')
     replayTimerRef.current = setTimeout(() => {
-      console.log('[scheduleNextEvent TIMEOUT] Advancing playhead from', currentPlayhead, 'to', currentPlayhead + 1)
       // Guard against stale timers if playhead changed elsewhere.
-      setPlayhead(prev => (prev === currentPlayhead ? prev + 1 : prev))
-    }, delay)
+      setPlayhead(prev => (prev === currentPlayhead ? schedule.nextIndex : prev))
+    }, schedule.delayMs)
   }
 
   const pushDesync = (entry: DesyncEntry) => {
@@ -200,7 +191,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     // If the effect reruns for the same event (e.g. speed slider changes),
     // do NOT reapply state mutation — only reschedule next step timing.
     if (playhead <= lastAppliedPlayheadRef.current) {
-      scheduleNextEvent(event, playhead)
+      scheduleNextEvent(playhead)
       return
     }
 
@@ -369,7 +360,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     }
 
     // Schedule next
-    scheduleNextEvent(event, playhead)
+    scheduleNextEvent(playhead)
   }, [replayEnabled, replayPaused, combatError, isBufferedComplete, bufferedEvents, playhead, combatSpeed, recordPresentationEvent])
 
   // Start replay when buffered

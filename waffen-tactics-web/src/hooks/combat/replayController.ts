@@ -1,10 +1,40 @@
 import { applyCombatEvent } from './applyEvent'
+import { computeDelayMs, normalizeCombatSpeed } from './replayTiming'
 import type { CombatEvent, CombatState } from './types'
 
 export class ReplaySeekError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'ReplaySeekError'
+  }
+}
+
+export type ReplaySchedule =
+  | { kind: 'wait' }
+  | { kind: 'complete' }
+  | { kind: 'advance'; nextIndex: number; delayMs: number }
+
+/**
+ * Decides the next playback transition without React state or timers.
+ * Incomplete buffers wait for transport instead of guessing a terminal state;
+ * completed buffers expose completion only after the final canonical event.
+ */
+export function getReplaySchedule(
+  events: CombatEvent[],
+  currentIndex: number,
+  isBufferedComplete: boolean,
+  combatSpeed: number,
+): ReplaySchedule {
+  const currentEvent = events[currentIndex]
+  if (!currentEvent) return isBufferedComplete ? { kind: 'complete' } : { kind: 'wait' }
+
+  const nextEvent = events[currentIndex + 1]
+  if (!nextEvent) return isBufferedComplete ? { kind: 'complete' } : { kind: 'wait' }
+
+  return {
+    kind: 'advance',
+    nextIndex: currentIndex + 1,
+    delayMs: computeDelayMs(currentEvent, nextEvent, normalizeCombatSpeed(combatSpeed), 1),
   }
 }
 

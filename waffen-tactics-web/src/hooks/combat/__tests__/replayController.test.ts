@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { reconstructCombatState, validateReplayIndex } from '../replayController'
+import { getReplaySchedule, reconstructCombatState, validateReplayIndex } from '../replayController'
 import type { CombatEvent } from '../../types'
 
 const unit = (id: string) => ({
@@ -82,5 +82,16 @@ describe('replayController', () => {
     expect(() => validateReplayIndex(events, 4)).toThrow('Pozycja replayu 4 jest poza zakresem')
     expect(() => reconstructCombatState(events, 4)).toThrow('Pozycja replayu 4 jest poza zakresem')
     expect(() => validateReplayIndex(events, 1.5)).toThrow('musi być liczbą całkowitą')
+  })
+
+  it('schedules only canonical next events and scales approved replay speeds', () => {
+    const atStart = getReplaySchedule(events, 0, true, 1)
+    const atFirstMana = getReplaySchedule(events, 2, true, 2)
+
+    expect(atStart).toEqual({ kind: 'advance', nextIndex: 1, delayMs: 500 })
+    expect(atFirstMana).toEqual({ kind: 'advance', nextIndex: 3, delayMs: 500 })
+    expect(getReplaySchedule(events, 3, false, 5)).toEqual({ kind: 'wait' })
+    expect(getReplaySchedule(events, 3, true, 5)).toEqual({ kind: 'complete' })
+    expect(getReplaySchedule(events, 3, true, 1.5)).toEqual({ kind: 'complete' })
   })
 })
