@@ -138,6 +138,51 @@ input:focus-visible {
   box-sizing: border-box;
 }
 
+.combat-log-modal {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
+  width: min(37.5rem, calc(100vw - 2rem));
+  height: min(37.5rem, calc(100dvh - 2rem));
+  max-height: calc(100dvh - 2rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0f172a;
+  border: 2px solid #475569;
+  border-radius: 0.75rem;
+  z-index: 200;
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.7);
+}
+
+.combat-log-modal[data-visible='false'] {
+  display: none;
+}
+
+.combat-log-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.25rem;
+  padding: 0.5rem 1rem;
+  color: #fbbf24;
+  font-size: 1.125rem;
+  font-weight: 700;
+  border-bottom: 1px solid #334155;
+}
+
+.combat-log-modal-header > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.combat-log-modal-content {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
 @layer components {
   .btn {
     @apply px-4 py-2 rounded-lg font-semibold transition-all duration-200;
@@ -715,6 +760,12 @@ input:focus-visible {
     max-height: calc(100dvh - 1rem) !important;
   }
 
+  .combat-log-modal-header {
+    min-height: 3rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+  }
+
   .combat-replay-controls {
     grid-template-columns: auto auto !important;
   }
@@ -788,6 +839,14 @@ input:focus-visible {
 
   .combat-unit-card {
     --combat-unit-card-width: 96px;
+  }
+
+  .combat-log-modal {
+    height: min(66dvh, 26rem) !important;
+  }
+
+  .combat-log-modal-content {
+    font-size: 0.875rem;
   }
 }
 
