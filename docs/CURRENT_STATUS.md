@@ -6,6 +6,13 @@ Plane project: `Waffen Tactics` (`WFT`)
 
 Plane is the source of truth for issue status, ownership, dependencies, milestones, and user decisions. Imported `DEF-*` identifiers below are historical provenance only; verify current state in Plane. This file is a repository handoff snapshot and does not replace the Plane workflow.
 
+## 2026-09-12 current-state refresh
+
+- The validated application revision is `0555b9893dfbc61ce129129accc6f26952f18681` (`fix(ui): keep mobile combat cards compact`); the current status-only handoff commit is kept separate from that deployed runtime revision.
+- Current local automated evidence at that revision: core `682 passed, 25 skipped, 22 subtests passed`; backend `513 passed, 8 skipped, 5 subtests passed`; frontend `281 passed across 31 files`, typecheck, lint, and production build pass; `git diff --check` is clean.
+- A read-only VPS check shows HEAD `0555b9893dfbc61ce129129accc6f26952f18681`, matching local/origin. Backend, frontend, and managed Caddy are running; public `/` and `/api/game/traits` return HTTP 200; direct public ports 3000/8000 are unavailable. This session did not run deployment.
+- The latest short-viewport card fix is therefore present on the checked runtime, but a fresh authenticated Game View recheck remains required at 1280x720 and 1920x1080. The follow-up is carried by `DEF-164`; creating a separate Linear issue was rejected by the workspace free-issue limit.
+
 ## 2026-09-10 release-gate refresh
 
 - The current release owner is `DEF-164`, which remains `In Review` with `Needs Manual Test`; its 43 structural blockers are `Done`.
