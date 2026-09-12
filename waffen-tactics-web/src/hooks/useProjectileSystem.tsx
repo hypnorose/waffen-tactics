@@ -13,6 +13,7 @@ export type Projectile = {
 interface ProjectileContextValue {
   projectiles: Projectile[]
   spawnProjectile: (opts: { fromId: string; toId: string; emoji?: string; duration?: number; onComplete?: () => void }) => void
+  clearProjectiles: () => void
 }
 
 const ProjectileContext = createContext<ProjectileContextValue | null>(null)
@@ -20,6 +21,12 @@ const ProjectileContext = createContext<ProjectileContextValue | null>(null)
 export function ProjectileProvider({ children }: { children: React.ReactNode }) {
   const [projectiles, setProjectiles] = useState<Projectile[]>([])
   const timers = useRef<Record<string, number>>({})
+
+  const clearProjectiles = useCallback(() => {
+    Object.values(timers.current).forEach(id => clearTimeout(id))
+    timers.current = {}
+    setProjectiles([])
+  }, [])
 
   const spawnProjectile = useCallback(({ fromId, toId, emoji = '💥', duration = 350, onComplete }: { fromId: string; toId: string; emoji?: string; duration?: number; onComplete?: () => void }) => {
     const id = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`
@@ -46,7 +53,7 @@ export function ProjectileProvider({ children }: { children: React.ReactNode }) 
   }, [])
 
   return (
-    <ProjectileContext.Provider value={{ projectiles, spawnProjectile }}>
+    <ProjectileContext.Provider value={{ projectiles, spawnProjectile, clearProjectiles }}>
       {children}
     </ProjectileContext.Provider>
   )

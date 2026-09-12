@@ -6,8 +6,7 @@ import { computeDelayMs } from './combat/replayTiming'
 import { applyCombatEvent, CombatReplayValidationError } from './combat/applyEvent'
 import { createEmptyCombatState, reconstructCombatState } from './combat/replayController'
 import { compareCombatStates } from './combat/desync'
-import { getCombatAttackProjectileEmoji } from './combat/combatPresentation'
-import { useProjectileSystem } from './useProjectileSystem'
+import { useCombatPresentation } from './combat/useCombatPresentation'
 import { CombatState, CombatEvent, CombatUnitRoundStats, DesyncEntry } from './combat/types'
 
 interface UseCombatOverlayLogicProps {
@@ -35,9 +34,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
   const [storedGoldBreakdown, setStoredGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number, item_parts: string[] } | null>(null)
   const [displayedGoldBreakdown, setDisplayedGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number, item_parts: string[] } | null>(null)
 
-  const { spawnProjectile } = useProjectileSystem()
-  const spawnProjectileRef = useRef(spawnProjectile)
-  const [pendingProjectiles, setPendingProjectiles] = useState(0)
   const [allEventsReplayed, setAllEventsReplayed] = useState(false)
   const [replayPaused, setReplayPaused] = useState(false)
   const [replaySeekError, setReplaySeekError] = useState<string | null>(null)
@@ -54,9 +50,16 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     }
   }
 
-  useEffect(() => {
-    spawnProjectileRef.current = spawnProjectile
-  }, [spawnProjectile])
+  const {
+    activeTracks: presentationTracks,
+    diagnostics: presentationDiagnostics,
+    reducedMotion,
+    pendingVisuals,
+    recordEvent: recordPresentationEvent,
+    reportDiagnostic: reportPresentationDiagnostic,
+    rebuild: rebuildPresentation,
+    reset: resetPresentation,
+  } = useCombatPresentation({ currentTime: combatState.simTime, replayPaused })
 
   const scheduleNextEvent = (currentEvent: CombatEvent, currentPlayhead: number) => {
     const nextEvent = bufferedEvents[currentPlayhead + 1]
@@ -115,6 +118,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
       setReplaySeekError(null)
       setCombatState(reconstructed)
       combatStateRef.current = reconstructed
+      rebuildPresentation(bufferedEvents, targetIndex)
       recentEventsRef.current = bufferedEvents.slice(0, targetIndex + 1).slice(-50)
       lastAppliedPlayheadRef.current = targetIndex
       setPlayhead(Math.max(0, targetIndex))
@@ -340,37 +344,9 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
       }
     }
 
-    // Trigger projectile VFX for animation_start events
-    if (event.type === 'animation_start' && event.attacker_id && event.target_id) {
-      const emoji = getCombatAttackProjectileEmoji(event)
-      setPendingProjectiles(p => p + 1)
-      spawnProjectileRef.current({ 
-        fromId: event.attacker_id, 
-        toId: event.target_id, 
-        emoji,
-        duration: (event.duration || 0.3) * 1000, // convert to ms
-        onComplete: () => {
-          setPendingProjectiles(p => p - 1)
-        }
-      })
-    }
-
-    // Bonus attacks are authoritative unit_attack events in the current
-    // stream. Their animation_start predecessor may be emitted without the
-    // optional bonus flag, so render the distinct impact marker here at the
-    // actual hit instead of deriving a persistent card state from mana.
-    if (event.type === 'unit_attack' && event.bonus_attack && event.attacker_id && event.target_id) {
-      setPendingProjectiles(p => p + 1)
-      spawnProjectileRef.current({
-        fromId: event.attacker_id,
-        toId: event.target_id,
-        emoji: getCombatAttackProjectileEmoji(event),
-        duration: 220,
-        onComplete: () => {
-          setPendingProjectiles(p => p - 1)
-        }
-      })
-    }
+    // Presentation is a separate, visual-only projection of the same event.
+    // It never writes to the authoritative combat state or derives damage.
+    recordPresentationEvent(event)
 
     // Compare with server if game_state present
     if (event.game_state) {
@@ -387,7 +363,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
     // Schedule next
     scheduleNextEvent(event, playhead)
-  }, [replayEnabled, replayPaused, combatError, isBufferedComplete, bufferedEvents, playhead, combatSpeed])
+  }, [replayEnabled, replayPaused, combatError, isBufferedComplete, bufferedEvents, playhead, combatSpeed, recordPresentationEvent])
 
   // Start replay when buffered
   useEffect(() => {
@@ -434,8 +410,9 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     setAllEventsReplayed(false)
     setReplayPaused(false)
     setReplaySeekError(null)
+    resetPresentation()
     setPlayhead(0)
-  }, [replayEnabled, bufferedEvents, combatError])
+  }, [replayEnabled, bufferedEvents, combatError, resetPresentation])
 
   useEffect(() => {
     return () => {
@@ -444,13 +421,13 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     }
   }, [])
 
-  // Set isFinished when all events replayed and projectiles done
+  // Set isFinished when all events replayed and visual tracks/projectiles done
   useEffect(() => {
-    if (allEventsReplayed && pendingProjectiles === 0) {
+    if (allEventsReplayed && pendingVisuals === 0) {
       setCombatState(prev => ({ ...prev, isFinished: true }))
       combatStateRef.current = { ...combatStateRef.current, isFinished: true }
     }
-  }, [allEventsReplayed, pendingProjectiles])
+  }, [allEventsReplayed, pendingVisuals])
 
   // Regen cleanup only
   // CRITICAL: DO NOT auto-expire effects here! Effects should ONLY be removed when
@@ -515,6 +492,11 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     defeatMessage: combatState.defeatMessage,
     combatSummary: combatState.combatSummary,
     simTime: combatState.simTime,
+    presentationTracks,
+    presentationDiagnostics,
+    reducedMotion,
+    replayPaused,
+    reportPresentationDiagnostic,
     replayEvents: bufferedEvents,
     replayEventIndex: bufferedEvents.length > 0 ? Math.min(playhead, bufferedEvents.length - 1) : 0,
     replayPlaying: replayEnabled && !combatError && !replayPaused && bufferedEvents.length > 0,

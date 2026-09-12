@@ -57,6 +57,11 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     activeAttackerId,
     activeTargetId,
     simTime,
+    presentationTracks = [],
+    presentationDiagnostics = [],
+    reducedMotion = false,
+    replayPaused = false,
+    reportPresentationDiagnostic = () => {},
     replayEvents,
     replayEventIndex,
     replayPlaying,
@@ -163,10 +168,10 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
 
             <div className="combat-overlay-board" style={combatOverlayBoardStyle}>
               <div className="combat-opponent-slot" style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
-                <OpponentUnits units={opponentUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} />
+                <OpponentUnits units={opponentUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} replayPaused={replayPaused} reducedMotion={reducedMotion} />
               </div>
               <div className="combat-player-slot" style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-                <PlayerUnits units={playerUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} />
+                <PlayerUnits units={playerUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} replayPaused={replayPaused} reducedMotion={reducedMotion} />
               </div>
 
               <button
@@ -207,7 +212,17 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
             </div>
           </div>
 
-          <ProjectileLayer />
+          <ProjectileLayer onDiagnostic={reportPresentationDiagnostic} />
+          {presentationDiagnostics.length > 0 && (
+            <div
+              role="status"
+              aria-live="polite"
+              data-presentation-diagnostics
+              style={{ position: 'fixed', left: 16, bottom: 16, zIndex: 220, maxWidth: 'min(92vw, 560px)', padding: '8px 12px', border: '1px solid rgba(248,113,113,0.75)', borderRadius: 8, background: 'rgba(69,10,10,0.94)', color: '#fecaca', fontSize: 12, lineHeight: 1.35, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}
+            >
+              Prezentacja: {presentationDiagnostics[presentationDiagnostics.length - 1].message}
+            </div>
+          )}
           <GoldNotification breakdown={displayedGoldBreakdown} onDismiss={handleGoldDismiss} />
           {import.meta.env.DEV && showDesyncInspector && <DesyncInspector desyncLogs={(desyncLogs as any) || []} onClear={(clearDesyncLogs as any) || (() => {})} onExport={(exportDesyncJSON as any) || (() => '[]')} />}
         </>

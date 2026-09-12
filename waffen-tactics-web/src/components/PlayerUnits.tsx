@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { motion } from 'framer-motion'
 import CombatUnitCard from './CombatUnitCard'
+import type { PresentationTrack } from '../hooks/combat/animation/presentationTimeline'
 
 interface Props {
   units: any[]
@@ -8,9 +9,12 @@ interface Props {
   activeAttackerId?: string | null
   activeTargetId?: string | null
   currentTime?: number
+  presentationTracks?: PresentationTrack[]
+  replayPaused?: boolean
+  reducedMotion?: boolean
 }
 
-const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerId, activeTargetId, currentTime }: Props) {
+const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerId, activeTargetId, currentTime, presentationTracks = [], replayPaused = false, reducedMotion = false }: Props) {
   const frontUnits = units.filter(u => u.position === 'front')
   const backUnits = units.filter(u => u.position === 'back')
   return (
@@ -32,6 +36,9 @@ const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerI
                   isActiveAttacker={u.id === activeAttackerId}
                   isActiveTarget={u.id === activeTargetId}
                   currentTime={currentTime}
+                  presentationTracks={presentationTracks}
+                  replayPaused={replayPaused}
+                  reducedMotion={reducedMotion}
                 />
               </motion.div>
             ))}
@@ -54,6 +61,9 @@ const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerI
                   isActiveAttacker={u.id === activeAttackerId}
                   isActiveTarget={u.id === activeTargetId}
                   currentTime={currentTime}
+                  presentationTracks={presentationTracks}
+                  replayPaused={replayPaused}
+                  reducedMotion={reducedMotion}
                 />
               </motion.div>
             ))}

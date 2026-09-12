@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { motion } from 'framer-motion'
 import { getPassiveTitle, getUnit, type UnitPassive } from '../data/units'
 import { useUnitAnchors } from '../hooks/useUnitAnchors'
 import type { EffectSummary } from '../hooks/combat/types'
+import type { PresentationTrack } from '../hooks/combat/animation/presentationTimeline'
 import { combatUnitCardOpponentSizingStyle, combatUnitCardSizingStyle } from './combatUnitCardLayout'
 import CombatEffectBadge from './CombatEffectBadge'
 import { getCombatTooltipPosition, type CombatTooltipPosition } from './combatTooltipPosition'
@@ -47,6 +49,9 @@ interface Props {
   isActiveAttacker?: boolean
   isActiveTarget?: boolean
   currentTime?: number
+  presentationTracks?: PresentationTrack[]
+  replayPaused?: boolean
+  reducedMotion?: boolean
 }
 
 const getRarityColor = (cost?: number) => {
@@ -59,12 +64,12 @@ const getRarityColor = (cost?: number) => {
   return '#6b7280'
 }
 
-export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget, currentTime }: Props) {
+export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget, currentTime, presentationTracks = [], replayPaused = false, reducedMotion = false }: Props) {
   const passiveTitle = getPassiveTitle(unit.passive)
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState<CombatTooltipPosition | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
-  const { register } = useUnitAnchors()
+  const { register, getCenter } = useUnitAnchors()
 
   useEffect(() => {
     register(unit.id, rootRef.current)
@@ -101,6 +106,50 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   const displayHpRegen = unit.buffed_stats?.hp_regen_per_sec ?? 0
   const activeBorder = isActiveTarget ? '#fb923c' : isActiveAttacker ? '#fde047' : getRarityColor(unit.cost)
 
+  const unitTracks = presentationTracks.filter((track) => track.unitId === unit.id || track.targetId === unit.id)
+  const attackTrack = unitTracks.find((track) => track.unitId === unit.id && (track.intent === 'melee_lunge' || track.intent === 'ranged_projectile'))
+  const impactTrack = unitTracks.find((track) => track.targetId === unit.id && (track.intent === 'target_recoil' || track.intent === 'shield_hit' || track.intent === 'dodge'))
+  const statusTrack = unitTracks.find((track) => track.unitId === unit.id && (track.intent === 'death' || track.intent === 'buff' || track.intent === 'revive'))
+
+  let lungeOffset = { x: 0, y: 0 }
+  if (attackTrack && attackTrack.intent === 'melee_lunge' && typeof getCenter === 'function' && rootRef.current) {
+    const targetCenter = attackTrack.targetId ? getCenter(attackTrack.targetId) : null
+    const rootRect = rootRef.current.getBoundingClientRect()
+    if (targetCenter) {
+      const origin = { x: rootRect.left + rootRect.width / 2, y: rootRect.top + rootRect.height / 2 }
+      const dx = targetCenter.x - origin.x
+      const dy = targetCenter.y - origin.y
+      const distance = Math.max(1, Math.sqrt(dx * dx + dy * dy))
+      const amount = Math.min(84, Math.max(18, distance * 0.18))
+      lungeOffset = { x: (dx / distance) * amount, y: (dy / distance) * amount }
+    }
+  }
+
+  const recoilX = impactTrack?.intent === 'dodge' ? 0 : impactTrack ? -4 : 0
+  const recoilY = impactTrack?.intent === 'dodge' ? -3 : impactTrack ? 2 : 0
+  const animationDuration = Math.max(0.12, attackTrack?.duration || impactTrack?.duration || statusTrack?.duration || 0.16)
+  const presentationAnimation = reducedMotion || replayPaused
+    ? { x: 0, y: 0, scale: 1, filter: 'brightness(1)' }
+    : attackTrack
+      ? {
+        x: [0, lungeOffset.x, lungeOffset.x + recoilX, 0],
+        y: [0, lungeOffset.y, lungeOffset.y + recoilY, 0],
+        scale: [1, 1.04, impactTrack ? 0.98 : 1.02, 1],
+        filter: impactTrack?.intent === 'shield_hit' ? ['brightness(1)', 'brightness(1.15)', 'brightness(1)', 'brightness(1)'] : 'brightness(1)',
+      }
+      : impactTrack
+        ? {
+          x: [0, recoilX, 0],
+          y: [0, recoilY, 0],
+          scale: impactTrack.intent === 'shield_hit' ? [1, 1.06, 1] : [1, 0.97, 1],
+          filter: impactTrack.intent === 'shield_hit' ? ['brightness(1)', 'brightness(1.25)', 'brightness(1)'] : 'brightness(1)',
+        }
+        : statusTrack?.intent === 'death'
+          ? { x: [0, -3, 0], y: [0, 2, 0], scale: [1, 0.96, 1], filter: 'brightness(1)' }
+          : statusTrack
+            ? { x: [0, 0], y: [0, -2], scale: [1, 1.03], filter: 'brightness(1.1)' }
+            : { x: 0, y: 0, scale: 1, filter: 'brightness(1)' }
+
   // Resolve avatar source robustly: prefer server-side unit data via getUnit(),
   // then local unit payload, then predictable path.
   const avatarSrc: string = (() => {
@@ -131,9 +180,12 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   })()
 
   return (
-    <div
+    <motion.div
       ref={rootRef}
       className="combat-unit-card group"
+      initial={false}
+      animate={presentationAnimation}
+      transition={{ duration: animationDuration, ease: 'easeOut', times: attackTrack ? [0, 0.42, 0.62, 1] : undefined }}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => {
         if (document.activeElement !== rootRef.current) setShowTooltip(false)
@@ -169,6 +221,7 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
         position: 'relative',
         width: combatUnitCardSizingStyle.width,
         flexShrink: 0,
+        willChange: 'transform, filter',
       }}
     >
       {/* Active effect badges */}
@@ -317,6 +370,6 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
           +{Math.round(displayHpRegen)}/s
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }

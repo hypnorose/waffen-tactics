@@ -1,48 +1,85 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useProjectileSystem } from '../hooks/useProjectileSystem'
 import { useUnitAnchors } from '../hooks/useUnitAnchors'
+import type { PresentationDiagnostic } from '../hooks/combat/animation/presentationTimeline'
 
-export default function ProjectileLayer() {
+interface Props {
+  onDiagnostic?: (diagnostic: PresentationDiagnostic) => void
+}
+
+function stableUnit(id: string, salt: number): number {
+  let hash = 2166136261 ^ salt
+  for (let index = 0; index < id.length; index += 1) {
+    hash = Math.imul(hash ^ id.charCodeAt(index), 16777619)
+  }
+  return ((hash >>> 0) % 1000) / 1000
+}
+
+export default function ProjectileLayer({ onDiagnostic }: Props) {
   const { projectiles } = useProjectileSystem()
   const { getCenter } = useUnitAnchors()
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const [layoutVersion, setLayoutVersion] = useState(0)
 
-  // force reflow on window resize so positions stay correct
+  // Re-render on resize so an in-flight projectile follows the current anchors.
   useEffect(() => {
-    const onResize = () => {}
+    const onResize = () => setLayoutVersion((version) => version + 1)
     window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    window.visualViewport?.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.visualViewport?.removeEventListener('resize', onResize)
+    }
   }, [])
 
+  useEffect(() => {
+    if (!onDiagnostic || projectiles.length === 0) return
+    const timer = window.setTimeout(() => {
+      projectiles.forEach((projectile) => {
+        const missingId = !getCenter(projectile.fromId) ? projectile.fromId : !getCenter(projectile.toId) ? projectile.toId : null
+        if (!missingId) return
+        onDiagnostic({
+          code: 'missing_actor',
+          message: `Projectile ${projectile.id} has no registered visual anchor for ${missingId}.`,
+          eventType: 'projectile',
+          unitId: missingId,
+        })
+      })
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [getCenter, onDiagnostic, projectiles])
+
   return (
-    <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 80 }}>
+    <div ref={containerRef} data-layout-version={layoutVersion} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 80 }}>
       <AnimatePresence>
         {projectiles.map(p => {
           const start = getCenter(p.fromId, containerRef.current) || { x: 0, y: 0 }
           const end = getCenter(p.toId, containerRef.current) || { x: 0, y: 0 }
-          // small random offset/rotation
-          const offX = (Math.random() - 0.5) * 12
-          const offY = (Math.random() - 0.5) * 12
-          const rot = (Math.random() - 0.5) * 20
-          const midX = (start.x + end.x) / 2 + (Math.random() - 0.5) * 20
+          // Stable per-projectile offsets keep replay visuals reproducible.
+          const offX = (stableUnit(p.id, 1) - 0.5) * 12
+          const offY = (stableUnit(p.id, 2) - 0.5) * 12
+          const rot = (stableUnit(p.id, 3) - 0.5) * 20
+          const midX = (start.x + end.x) / 2 + (stableUnit(p.id, 4) - 0.5) * 20
           const midY = (start.y + end.y) / 2 - 40 // vertical arc
+          const duration = Math.max(0.3, Math.min(0.45, p.duration / 1000))
 
           return (
             <motion.div
               key={p.id}
               initial={{ x: start.x + offX, y: start.y + offY, rotate: rot, opacity: 0 }}
               animate={{ 
-                x: end.x + offX, 
-                y: end.y + offY, 
-                rotate: rot + 360, // Full spin during flight
+                x: [start.x + offX, midX + offX, end.x + offX],
+                y: [start.y + offY, midY + offY, end.y + offY],
+                rotate: [rot, rot + 180, rot + 360],
                 opacity: 1 
               }}
               exit={{ opacity: 0 }}
               transition={{ 
-                duration: Math.max(0.3, Math.min(0.45, p.duration / 1000)), 
+                duration,
                 ease: 'easeOut',
-                rotate: { duration: Math.max(0.3, Math.min(0.45, p.duration / 1000)), ease: 'linear' } // Linear rotation for smooth spinning
+                times: [0, 0.55, 1],
+                rotate: { duration, ease: 'linear' }
               }}
               style={{ position: 'absolute', left: 0, top: 0, transformOrigin: 'center center', fontSize: 24 }}
             >
