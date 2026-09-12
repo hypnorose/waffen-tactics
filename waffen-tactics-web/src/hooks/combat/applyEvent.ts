@@ -898,7 +898,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
           if (!expiredEffect) {
             // Fail-fast: expiration without matching effect is a contract violation
-            throw new Error(`[EFFECT_EXPIRED] Missing effect ${expiredEffectId} on unit ${u.id} at seq=${event.seq}`)
+            throw new CombatReplayValidationError(event, `Missing effect ${expiredEffectId} on unit ${u.id}`, u.id)
           }
 
           // Revert stat changes from the expired effect
@@ -906,41 +906,41 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
 
           if (expiredEffect.type === 'shield') {
             if (event.post_shield === undefined || event.post_shield === null) {
-              throw new Error(`[EFFECT_EXPIRED] Missing post_shield for unit ${u.id} at seq=${event.seq}`)
+              throw new CombatReplayValidationError(event, `Missing post_shield for unit ${u.id}`, u.id)
             }
             newU.shield = event.post_shield
           } else if (expiredEffect.stat) {
             if (expiredEffect.applied_delta === undefined) {
-              throw new Error(`[EFFECT_EXPIRED] Stat effect ${expiredEffectId} missing applied_delta for unit ${u.id} at seq=${event.seq}`)
+              throw new CombatReplayValidationError(event, `Stat effect ${expiredEffectId} missing applied_delta for unit ${u.id}`, u.id)
             }
             const delta = -expiredEffect.applied_delta  // Negative to revert
             console.log('[EFFECT_EXPIRED] Reverting stat:', expiredEffect.stat, 'delta:', delta)
 
             if (expiredEffect.stat === 'hp') {
               if (event.post_hp === undefined || event.post_hp === null) {
-                throw new Error(`[EFFECT_EXPIRED] Missing post_hp for unit ${u.id} at seq=${event.seq}`)
+                throw new CombatReplayValidationError(event, `Missing post_hp for unit ${u.id}`, u.id)
               }
             } else if (expiredEffect.stat === 'attack') {
               if (event.post_attack === undefined || event.post_attack === null) {
-                throw new Error(`[EFFECT_EXPIRED] Missing post_attack for unit ${u.id} at seq=${event.seq}`)
+                throw new CombatReplayValidationError(event, `Missing post_attack for unit ${u.id}`, u.id)
               }
               newU.attack = event.post_attack
               newU.buffed_stats = { ...u.buffed_stats, attack: newU.attack }
             } else if (expiredEffect.stat === 'defense') {
               if (event.post_defense === undefined || event.post_defense === null) {
-                throw new Error(`[EFFECT_EXPIRED] Missing post_defense for unit ${u.id} at seq=${event.seq}`)
+                throw new CombatReplayValidationError(event, `Missing post_defense for unit ${u.id}`, u.id)
               }
               newU.defense = event.post_defense
               newU.buffed_stats = { ...u.buffed_stats, defense: newU.defense }
             } else if (expiredEffect.stat === 'attack_speed') {
               if (event.post_attack_speed === undefined || event.post_attack_speed === null) {
-                throw new Error(`[EFFECT_EXPIRED] Missing post_attack_speed for unit ${u.id} at seq=${event.seq}`)
+                throw new CombatReplayValidationError(event, `Missing post_attack_speed for unit ${u.id}`, u.id)
               }
               newU.attack_speed = event.post_attack_speed
               newU.buffed_stats = { ...u.buffed_stats, attack_speed: newU.attack_speed }
             } else if (expiredEffect.stat === 'hp_regen_per_sec') {
               if (typeof event.post_hp_regen_per_sec !== 'number' || !Number.isFinite(event.post_hp_regen_per_sec)) {
-                throw new Error(`[EFFECT_EXPIRED] Missing post_hp_regen_per_sec for unit ${u.id} at seq=${event.seq}`)
+                throw new CombatReplayValidationError(event, `Missing post_hp_regen_per_sec for unit ${u.id}`, u.id)
               }
               newU.buffed_stats = {
                 ...u.buffed_stats,
@@ -948,7 +948,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
               }
             } else if (expiredEffect.stat === 'max_hp') {
               if (event.post_max_hp === undefined || event.post_hp === undefined || event.post_hp === null) {
-                throw new Error(`[EFFECT_EXPIRED] Missing post_max_hp/post_hp for unit ${u.id} at seq=${event.seq}`)
+                throw new CombatReplayValidationError(event, `Missing post_max_hp/post_hp for unit ${u.id}`, u.id)
               }
               newU.max_hp = event.post_max_hp
               newU.hp = event.post_hp

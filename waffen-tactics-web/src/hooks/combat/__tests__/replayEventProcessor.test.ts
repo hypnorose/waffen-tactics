@@ -93,4 +93,20 @@ describe('replayEventProcessor', () => {
     expect(result.desyncs[0].diff.snapshot).toEqual({ ui: 'not_compared', server: expect.any(String) })
     expect(result.desyncs[0].note).toContain('combat snapshot validation failed')
   })
+
+  it('contains effect expiration contract failures at the replay boundary', () => {
+    const state = stateWithUnits()
+    state.playerUnits[0].effects = [{ id: 'expired-effect', type: 'shield', amount: 10 }]
+    const result = processReplayEvent({
+      currentState: state,
+      event: { type: 'effect_expired', seq: 5, unit_id: 'player-1', effect_id: 'missing-effect', effect_type: 'shield' },
+      pendingEvents: [{ type: 'end', seq: 6 }],
+    })
+
+    expect(result.state).toBeUndefined()
+    expect(result.shouldStop).toBe(true)
+    expect(result.validationError?.unitId).toBe('player-1')
+    expect(result.desyncs[0].note).toContain('replay validation failed')
+    expect(result.desyncs[0].pending_events).toEqual([{ type: 'end', seq: 6 }])
+  })
 })
