@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from waffen_tactics.services.set2_contract import SET2_PASSIVE_NAMES
 
 
 def passive(unit_id: str, name: str, description: str, trigger: str, runtime_type: str, **runtime):
+    canonical_name = SET2_PASSIVE_NAMES.get(unit_id)
+    if canonical_name is None:
+        raise ValueError(f"Missing canonical Set 2 passive title for {unit_id}")
     return {
         "id": f"set2.passive.{unit_id}",
-        "name": name,
+        "name": canonical_name,
         "description": description,
         "trigger": trigger,
         "target": "self",

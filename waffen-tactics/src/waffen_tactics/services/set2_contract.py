@@ -1,9 +1,9 @@
-"""Fail-closed structural checks for the author-led Set 2 data contract.
+"""Fail-closed checks for the author-led Set 2 data contract.
 
-This module contains only the locked structural invariants and explicit
-removals from the author contract.  It does not contain balance values, trait
-effects, or runtime dispatch.  It validates data supplied by the author before
-a future dataset is allowed to become a canonical runtime source.
+This module contains the locked structural invariants and player-facing
+passive-title contract.  It does not contain balance values, trait effects, or
+runtime dispatch.  It validates data supplied by the author before a dataset
+is allowed to become a canonical runtime source.
 """
 
 from __future__ import annotations
@@ -17,6 +17,40 @@ SET2_ROSTER_SIZE = 32
 SET2_COST_DISTRIBUTION = {1: 6, 2: 7, 3: 8, 4: 6, 5: 5}
 SET2_TRAIT_COUNT = 12
 SET2_REMOVED_TRAIT_NAMES = frozenset({"Żołnierz mentora"})
+SET2_PASSIVE_NAMES = {
+    "anamol04": "Linijka z notatnika",
+    "fiko": "Jajcarz",
+    "uhla": "Hutnik, Hutnik to nasz klub",
+    "szanowny_kantor": "Serial",
+    "chessowy_mentos": "44 sekundy chwały",
+    "yossarian": "Wysoki sądzie, to był tylko mały figiel",
+    "galanonim": "Najlepszy przyjaciel Aleksandra",
+    "pytl": "Taktyczna podwkurwka",
+    "sofronow": "POwazna weryfikacja",
+    "alyson_stark": "Waffen kindergarden",
+    "skibidi_kubus": "Uszaty Gollum",
+    "aus_sher": "Nieposkromiona adoracja",
+    "szalwia": "Urocze stópki",
+    "mr0czeq1": "Przekminka",
+    "optimusprime": "Uprzejmie donoszę",
+    "kotmarcek": "Ole ole Haxball wrze",
+    "bbobel": "Młoda krew",
+    "fallensmokk": "Archeologia",
+    "jaeger": "Kryptonim Jeleń",
+    "kaktusek": "Walkover",
+    "empty_melancholy": "Oskarżony",
+    "4tune": "Mściwa Edyta",
+    "jadlainwestycji": "Inwestor 2137%",
+    "boczek": "Erosoman",
+    "merex": "nie",
+    "marcel_galadotka": "Widz idealny",
+    "klemens_zydoslawski": "Analiza <>",
+    "nicosc": "Mogę unbana?",
+    "knauff": "Nielot",
+    "vitas": "Rozbudzenie zmysłów",
+    "szachowymentor": "Arcyoferma",
+    "9wojtaz9": "Jakiś ziomek",
+}
 
 
 def validate_active_set2_dataset(
@@ -55,6 +89,12 @@ def validate_active_set2_dataset(
                         f"unit[{index}].traits references unknown active Set 2 trait: {trait_name!r}"
                     )
 
+    # The exact title mapping is part of the active 32-unit author contract.
+    # Keep the smaller fixture mode useful for structural tests and authoring
+    # tools by applying this content check only to the full active dataset.
+    if expected_unit_count == SET2_ROSTER_SIZE and expected_trait_count == SET2_TRAIT_COUNT:
+        errors.extend(_validate_active_set2_passive_names(units))
+
     return errors
 
 
@@ -68,6 +108,44 @@ def _non_empty_string(value: Any) -> bool:
 
 def _is_object(value: Any) -> bool:
     return isinstance(value, Mapping)
+
+
+def _validate_active_set2_passive_names(records: Any) -> list[str]:
+    if not isinstance(records, Sequence) or isinstance(records, (str, bytes)):
+        return []
+
+    errors: list[str] = []
+    for index, record in enumerate(records):
+        path = f"unit[{index}]"
+        if not _is_object(record):
+            continue
+
+        unit_id = record.get("id")
+        expected = SET2_PASSIVE_NAMES.get(unit_id)
+        if expected is None:
+            errors.append(f"{path} has no canonical active Set 2 passive title mapping for id {unit_id!r}")
+            continue
+
+        passive = record.get("passive")
+        if not _is_object(passive):
+            continue
+
+        name = passive.get("name")
+        title = passive.get("title")
+        candidate = name if _non_empty_string(name) else title
+        if not _non_empty_string(candidate):
+            errors.append(f"{path}.passive must have a non-empty player-facing name or title")
+            continue
+        if _non_empty_string(name) and _non_empty_string(title) and name != title:
+            errors.append(f"{path}.passive.name and .title must match")
+        if candidate != expected:
+            errors.append(
+                f"{path}.passive title mismatch for {unit_id!r}: expected {expected!r}, got {candidate!r}"
+            )
+        if candidate == record.get("name"):
+            errors.append(f"{path}.passive title must be independent from the unit name")
+
+    return errors
 
 
 def _validate_modular_effect(effect: Any, path: str) -> list[str]:

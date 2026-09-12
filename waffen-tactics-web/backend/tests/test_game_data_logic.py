@@ -117,6 +117,16 @@ class TestGetLeaderboardData:
 class TestGetUnitsData:
     """Test the get_units_data pure function"""
 
+    def test_get_units_data_keeps_unit_and_passive_titles_independent(self):
+        units = {unit['id']: unit for unit in get_units_data()}
+
+        assert units['fiko']['name'] == 'Fiko'
+        assert units['fiko']['passive']['name'] == 'Jajcarz'
+        assert units['yossarian']['name'] == 'Yossarian'
+        assert units['yossarian']['passive']['name'] == 'Wysoki sądzie, to był tylko mały figiel'
+        assert units['jaeger']['passive']['name'] == 'Kryptonim Jeleń'
+        assert units['klemens_zydoslawski']['passive']['name'] == 'Analiza <>'
+
     @patch('routes.game_data.game_manager')
     def test_get_units_data_success(self, mock_gm):
         """Test successful units data retrieval"""

@@ -67,4 +67,12 @@ describe('passive presentation data', () => {
     expect(getPassiveTitle({ title: 'Walkover', description: 'Efekt' })).toBe('Walkover')
     expect(getPassiveTitle({ description: 'Efekt' })).toBeNull()
   })
+
+  it('preserves authored punctuation and diacritics in passive titles', async () => {
+    const { getPassiveTitle } = await importUnitsModule()
+
+    expect(getPassiveTitle({ name: 'Wysoki sądzie, to był tylko mały figiel', description: 'Efekt' }))
+      .toBe('Wysoki sądzie, to był tylko mały figiel')
+    expect(getPassiveTitle({ name: 'Analiza <>', description: 'Efekt' })).toBe('Analiza <>')
+  })
 })

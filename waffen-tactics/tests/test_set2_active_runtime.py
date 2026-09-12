@@ -6,7 +6,12 @@ from pathlib import Path
 
 from waffen_tactics.services.data_loader import load_game_data
 from waffen_tactics.services.passive_processor import PassiveProcessor
-from waffen_tactics.services.set2_contract import validate_set2_roster, validate_set2_traits
+from waffen_tactics.services.set2_contract import (
+    SET2_PASSIVE_NAMES,
+    validate_active_set2_dataset,
+    validate_set2_roster,
+    validate_set2_traits,
+)
 from waffen_tactics.services.combat_unit import CombatUnit
 from waffen_tactics.services.synergy import SynergyEngine
 
@@ -50,6 +55,36 @@ def test_loader_uses_embedded_set2_passive_contract_without_legacy_lookup():
     assert len(data.traits) == 12
     assert all(unit.passive["id"] == f"set2.passive.{unit.id}" for unit in data.units)
     assert all(unit.traits for unit in data.units)
+
+
+def test_active_set2_passive_titles_match_the_author_contract_and_stay_independent():
+    units = json.loads((ROOT / "units.json").read_text(encoding="utf-8"))["units"]
+
+    assert {unit["id"] for unit in units} == set(SET2_PASSIVE_NAMES)
+    assert {
+        unit["id"]: unit["passive"]["name"]
+        for unit in units
+    } == SET2_PASSIVE_NAMES
+    assert all(unit["name"] != unit["passive"]["name"] for unit in units)
+    assert validate_active_set2_dataset(
+        units,
+        json.loads((ROOT / "traits.json").read_text(encoding="utf-8"))["traits"],
+    ) == []
+
+
+def test_active_set2_passive_title_contract_rejects_missing_or_unit_name_fallback():
+    dataset = json.loads((ROOT / "units.json").read_text(encoding="utf-8"))
+    traits = json.loads((ROOT / "traits.json").read_text(encoding="utf-8"))["traits"]
+
+    dataset["units"][0]["passive"]["name"] = dataset["units"][0]["name"]
+    errors = validate_active_set2_dataset(dataset["units"], traits)
+
+    assert any("passive title mismatch" in error for error in errors)
+    assert any("independent from the unit name" in error for error in errors)
+
+    dataset["units"][1]["passive"]["name"] = ""
+    errors = validate_active_set2_dataset(dataset["units"], traits)
+    assert any("non-empty player-facing name or title" in error for error in errors)
 
 
 def test_haxball_tier_one_redirects_forty_percent_to_stable_other_haxball_units():

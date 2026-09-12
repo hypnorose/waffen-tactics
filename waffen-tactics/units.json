@@ -31,7 +31,7 @@
       },
       "passive": {
         "id": "set2.passive.anamol04",
-        "name": "Anamol04",
+        "name": "Linijka z notatnika",
         "description": "Bonusowy atak leczy 8% maks. HP i daje +15% szybkości ataku na 2 s.",
         "trigger": "on_bonus_attack",
         "target": "self",
@@ -82,7 +82,7 @@
       },
       "passive": {
         "id": "set2.passive.fiko",
-        "name": "Fiko",
+        "name": "Jajcarz",
         "description": "Bonusowy atak ogłusza na 1,5 s i zadaje dodatkowe 100% obrażeń.",
         "trigger": "on_bonus_attack",
         "target": "self",
@@ -131,7 +131,7 @@
       },
       "passive": {
         "id": "set2.passive.uhla",
-        "name": "Uhla",
+        "name": "Hutnik, Hutnik to nasz klub",
         "description": "40% many zdobytej za atak przekazuje innemu Konfidentowi, maks. 5 many na zdarzenie.",
         "trigger": "on_attack",
         "target": "self",
@@ -182,7 +182,7 @@
       },
       "passive": {
         "id": "set2.passive.szanowny_kantor",
-        "name": "Szanowny Kantor",
+        "name": "Serial",
         "description": "Na starcie losowy sojusznik z pierwszej linii otrzymuje tarczę 150 na 4 s.",
         "trigger": "on_start",
         "target": "self",
@@ -232,7 +232,7 @@
       },
       "passive": {
         "id": "set2.passive.chessowy_mentos",
-        "name": "Chessowy Mentos",
+        "name": "44 sekundy chwały",
         "description": "Generuje o 100% więcej many przez pierwsze 4,4 s.",
         "trigger": "on_start",
         "target": "self",
@@ -281,7 +281,7 @@
       },
       "passive": {
         "id": "set2.passive.yossarian",
-        "name": "Yossarian",
+        "name": "Wysoki sądzie, to był tylko mały figiel",
         "description": "Bonusowy atak zamienia linię jednego losowego wroga.",
         "trigger": "on_bonus_attack",
         "target": "self",
@@ -330,7 +330,7 @@
       },
       "passive": {
         "id": "set2.passive.galanonim",
-        "name": "GalAnonim",
+        "name": "Najlepszy przyjaciel Aleksandra",
         "description": "Bonusowy atak leczy sojusznika z najmniejszym HP za wartość bonusowych obrażeń, maks. 120.",
         "trigger": "on_bonus_attack",
         "target": "self",
@@ -380,7 +380,7 @@
       },
       "passive": {
         "id": "set2.passive.pytl",
-        "name": "Pytl",
+        "name": "Taktyczna podwkurwka",
         "description": "Wrogowie z mniejszym HP atakują o 15% wolniej.",
         "trigger": "on_start",
         "target": "self",
@@ -429,7 +429,7 @@
       },
       "passive": {
         "id": "set2.passive.sofronow",
-        "name": "Sofronow",
+        "name": "POwazna weryfikacja",
         "description": "Na starcie zadaje najsłabszemu wrogowi obrażenia równe 15% jego maks. HP.",
         "trigger": "on_start",
         "target": "self",
@@ -478,7 +478,7 @@
       },
       "passive": {
         "id": "set2.passive.alyson_stark",
-        "name": "AlysonStark",
+        "name": "Waffen kindergarden",
         "description": "Sojusznicy z mniejszym atakiem otrzymują +30% szybkości ataku.",
         "trigger": "on_start",
         "target": "self",
@@ -524,7 +524,7 @@
       },
       "passive": {
         "id": "set2.passive.skibidi_kubus",
-        "name": "SkibidiKubuś",
+        "name": "Uszaty Gollum",
         "description": "Ma 10/20/30% szansy na unik.",
         "trigger": "on_damage_received",
         "target": "self",
@@ -575,7 +575,7 @@
       },
       "passive": {
         "id": "set2.passive.aus_sher",
-        "name": "auSSher",
+        "name": "Nieposkromiona adoracja",
         "description": "Bonusowy atak leczy sojusznika z największym atakiem za 10% jego maks. HP.",
         "trigger": "on_bonus_attack",
         "target": "self",
@@ -625,7 +625,7 @@
       },
       "passive": {
         "id": "set2.passive.szalwia",
-        "name": "szalwia",
+        "name": "Urocze stópki",
         "description": "Na starcie osłabia najsilniejszego wroga o 15% ataku na 3 s i ogłusza innego na 0,75 s.",
         "trigger": "on_start",
         "target": "self",
@@ -674,7 +674,7 @@
       },
       "passive": {
         "id": "set2.passive.mr0czeq1",
-        "name": "mr0czeq1",
+        "name": "Przekminka",
         "description": "Na starcie daje sobie i losowemu sojusznikowi +1 many/s.",
         "trigger": "on_start",
         "target": "self",
@@ -723,7 +723,7 @@
       },
       "passive": {
         "id": "set2.passive.optimusprime",
-        "name": "OptimusPrime",
+        "name": "Uprzejmie donoszę",
         "description": "Bonusowy atak usuwa 40% aktualnej many celu, maks. 10.",
         "trigger": "on_bonus_attack",
         "target": "self",
@@ -774,7 +774,7 @@
       },
       "passive": {
         "id": "set2.passive.kotmarcek",
-        "name": "KotMarcek",
+        "name": "Ole ole Haxball wrze",
         "description": "Na starcie +15% szybkości ataku; bonusowy atak przekazuje ten bonus losowemu sojusznikowi.",
         "trigger": "on_start",
         "target": "self",
@@ -823,7 +823,7 @@
       },
       "passive": {
         "id": "set2.passive.bbobel",
-        "name": "bbobel",
+        "name": "Młoda krew",
         "description": "Przy 50% HP leczy 20% maks. HP przez 3 s, raz na walkę.",
         "trigger": "on_damage_received",
         "target": "self",
@@ -874,7 +874,7 @@
       },
       "passive": {
         "id": "set2.passive.fallensmokk",
-        "name": "FallenSmokk",
+        "name": "Archeologia",
         "description": "Śmierć sojusznika daje +15% ataku i obrony na 3 s, maks. 2 stosy.",
         "trigger": "on_ally_death",
         "target": "self",
@@ -923,7 +923,7 @@
       },
       "passive": {
         "id": "set2.passive.jaeger",
-        "name": "Jaeger",
+        "name": "Kryptonim Jeleń",
         "description": "Bonusowy atak daje tarczę równą 10% maks. HP na 3 s.",
         "trigger": "on_bonus_attack",
         "target": "self",
@@ -973,7 +973,7 @@
       },
       "passive": {
         "id": "set2.passive.kaktusek",
-        "name": "Kaktusek",
+        "name": "Walkover",
         "description": "Po śmierci trzy razy uderza ten sam losowy cel za 100% ataku, raz na walkę.",
         "trigger": "on_death",
         "target": "self",
@@ -1022,7 +1022,7 @@
       },
       "passive": {
         "id": "set2.passive.empty_melancholy",
-        "name": "EmptyMelancholy",
+        "name": "Oskarżony",
         "description": "Po otrzymaniu trafienia zyskuje +8 obrony na 1 s, efekt się odświeża bez kumulacji.",
         "trigger": "on_damage_received",
         "target": "self",
@@ -1071,7 +1071,7 @@
       },
       "passive": {
         "id": "set2.passive.4tune",
-        "name": "4Tune",
+        "name": "Mściwa Edyta",
         "description": "Śmierć sojusznika daje +100% do następnego bonusowego ataku, maks. 2 stosy.",
         "trigger": "on_ally_death",
         "target": "self",
@@ -1120,7 +1120,7 @@
       },
       "passive": {
         "id": "set2.passive.jadlainwestycji",
-        "name": "JaDlaInwestycji",
+        "name": "Inwestor 2137%",
         "description": "+15% obrażeń przeciwko jednostkom 4g i +30% przeciwko 5g.",
         "trigger": "on_attack",
         "target": "self",
@@ -1169,7 +1169,7 @@
       },
       "passive": {
         "id": "set2.passive.boczek",
-        "name": "boczek",
+        "name": "Erosoman",
         "description": "Na starcie +4 HP/s do końca walki.",
         "trigger": "on_start",
         "target": "self",
@@ -1219,7 +1219,7 @@
       },
       "passive": {
         "id": "set2.passive.merex",
-        "name": "merex",
+        "name": "nie",
         "description": "Po zadaniu obrażeń zyskuje +4% szybkości ataku, maks. +40%, odnowienie 0,5 s.",
         "trigger": "on_damage_dealt",
         "target": "self",
@@ -1268,7 +1268,7 @@
       },
       "passive": {
         "id": "set2.passive.marcel_galadotka",
-        "name": "Marcel Galadotka",
+        "name": "Widz idealny",
         "description": "Za każdy normalny atak otrzymuje dodatkowe 2 many; bonusowy atak nie daje tej premii.",
         "trigger": "on_attack",
         "target": "self",
@@ -1318,7 +1318,7 @@
       },
       "passive": {
         "id": "set2.passive.klemens_zydoslawski",
-        "name": "Klemens Żydosławski",
+        "name": "Analiza <>",
         "description": "Bonusowy atak trafia każdego wroga z pierwszej linii za 15% własnego ataku.",
         "trigger": "on_bonus_attack",
         "target": "self",
@@ -1368,7 +1368,7 @@
       },
       "passive": {
         "id": "set2.passive.nicosc",
-        "name": "Nicość",
+        "name": "Mogę unbana?",
         "description": "Raz na walkę odradza się z 50% maks. HP i jest nieobieralna przez 0,75 s.",
         "trigger": "on_death",
         "target": "self",
@@ -1417,7 +1417,7 @@
       },
       "passive": {
         "id": "set2.passive.knauff",
-        "name": "Knauff",
+        "name": "Nielot",
         "description": "Poniżej 50% HP otrzymuje +30% szybkości ataku.",
         "trigger": "on_damage_received",
         "target": "self",
@@ -1466,7 +1466,7 @@
       },
       "passive": {
         "id": "set2.passive.vitas",
-        "name": "Vitas",
+        "name": "Rozbudzenie zmysłów",
         "description": "Bonusowy atak ogłusza tylną linię wroga na 1 s.",
         "trigger": "on_bonus_attack",
         "target": "self",
@@ -1515,7 +1515,7 @@
       },
       "passive": {
         "id": "set2.passive.szachowymentor",
-        "name": "SzachowyMentor",
+        "name": "Arcyoferma",
         "description": "Za każdego sojusznika z tyłu +1 many/s, maks. 3; co 5 s tarcza 40 za każdego sojusznika z przodu, maks. 120/tick i 240 łącznie.",
         "trigger": "per_second",
         "target": "self",
@@ -1564,7 +1564,7 @@
       },
       "passive": {
         "id": "set2.passive.9wojtaz9",
-        "name": "9wojtaz9",
+        "name": "Jakiś ziomek",
         "description": "Bonusowy atak ogłusza jeden cel na 0,25 s.",
         "trigger": "on_bonus_attack",
         "target": "self",
