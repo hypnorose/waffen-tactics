@@ -4,6 +4,7 @@ import {
   buildPresentationTimeline,
   createPresentationTimeline,
   getActivePresentationTracks,
+  getPresentationCoverage,
   reducePresentationTimeline,
 } from '../presentationTimeline'
 
@@ -73,6 +74,46 @@ describe('presentationTimeline', () => {
       'shield_hit',
       'dodge',
       'death',
+    ])
+  })
+
+  it('maps canonical status, multi-hit, and damage-over-time events to explicit tracks', () => {
+    let state = createPresentationTimeline()
+    const events: CombatEvent[] = [
+      event({ type: 'shield_broken', event_id: 'combat:status-1', unit_id: 'opp_0', target_id: 'opp_0', seq: 10 }),
+      event({ type: 'unit_stunned', event_id: 'combat:status-2', unit_id: 'opp_0', seq: 11 }),
+      event({ type: 'effect_applied', event_id: 'combat:status-3', unit_id: 'opp_0', effect_id: 'slow', seq: 12 }),
+      event({ type: 'stat_buff', event_id: 'combat:status-4', unit_id: 'opp_0', item_effect_id: 'item:buff', seq: 13 }),
+      event({ type: 'formation_changed', event_id: 'combat:status-5', unit_id: 'opp_0', seq: 14 }),
+      event({ type: 'multi_hit', event_id: 'combat:status-6', target_ids: ['opp_0', 'player_0'], seq: 15 }),
+      event({ type: 'damage_over_time_applied', event_id: 'combat:status-7', unit_id: 'opp_0', seq: 16 }),
+      event({ type: 'damage_over_time_tick', event_id: 'combat:status-8', unit_id: 'opp_0', damage: 3, seq: 17 }),
+    ]
+
+    for (const nextEvent of events) state = reducePresentationTimeline(state, nextEvent)
+
+    expect(Object.values(state.tracks).map((track) => track.intent)).toEqual([
+      'shield_break',
+      'stun',
+      'effect',
+      'item',
+      'formation_change',
+      'target_recoil',
+      'target_recoil',
+      'damage_over_time',
+      'target_recoil',
+    ])
+    expect(state.diagnostics).toEqual([])
+  })
+
+  it('distinguishes mapped, deliberately omitted, and unknown presentation event types', () => {
+    expect(getPresentationCoverage('unit_stunned')).toBe('mapped')
+    expect(getPresentationCoverage('mana_update')).toBe('omitted')
+    expect(getPresentationCoverage('future_event')).toBe('unknown')
+
+    const state = reducePresentationTimeline(createPresentationTimeline(), event({ type: 'future_event', event_id: 'combat:unknown' }))
+    expect(state.diagnostics).toEqual([
+      expect.objectContaining({ code: 'unknown_presentation_event', eventType: 'future_event' }),
     ])
   })
 

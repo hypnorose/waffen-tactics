@@ -308,6 +308,64 @@ input:focus-visible {
   box-shadow: inset 0 0 0.75rem rgba(253, 224, 71, 0.6), 0 0 1.25rem rgba(250, 204, 21, 0.45);
 }
 
+.combat-unit-status-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  border: 2px solid rgba(167, 139, 250, 0.9);
+  border-radius: inherit;
+  background: rgba(124, 58, 237, 0.12);
+  box-shadow: inset 0 0 0.7rem rgba(167, 139, 250, 0.55), 0 0 1rem rgba(124, 58, 237, 0.42);
+  mix-blend-mode: screen;
+}
+
+.combat-unit-status-flash-heal,
+.combat-unit-status-flash-revive {
+  border-color: rgba(74, 222, 128, 0.95);
+  background: rgba(34, 197, 94, 0.14);
+  box-shadow: inset 0 0 0.7rem rgba(134, 239, 172, 0.65), 0 0 1rem rgba(34, 197, 94, 0.45);
+}
+
+.combat-unit-status-flash-shield {
+  border-color: rgba(125, 211, 252, 0.95);
+  background: rgba(14, 165, 233, 0.14);
+  box-shadow: inset 0 0 0.7rem rgba(125, 211, 252, 0.65), 0 0 1rem rgba(14, 165, 233, 0.45);
+}
+
+.combat-unit-status-flash-effect,
+.combat-unit-status-flash-passive {
+  border-color: rgba(196, 181, 253, 0.95);
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.combat-unit-status-flash-buff,
+.combat-unit-status-flash-item {
+  border-color: rgba(250, 204, 21, 0.95);
+  background: rgba(245, 158, 11, 0.14);
+  box-shadow: inset 0 0 0.7rem rgba(253, 224, 71, 0.6), 0 0 1rem rgba(245, 158, 11, 0.45);
+}
+
+.combat-unit-status-flash-stun,
+.combat-unit-status-flash-shield_break {
+  border-color: rgba(251, 113, 133, 0.95);
+  background: rgba(225, 29, 72, 0.15);
+  box-shadow: inset 0 0 0.7rem rgba(251, 113, 133, 0.65), 0 0 1rem rgba(225, 29, 72, 0.45);
+}
+
+.combat-unit-status-flash-formation_change {
+  border-color: rgba(45, 212, 191, 0.95);
+  background: rgba(20, 184, 166, 0.13);
+  box-shadow: inset 0 0 0.7rem rgba(94, 234, 212, 0.6), 0 0 1rem rgba(20, 184, 166, 0.42);
+}
+
+.combat-unit-status-flash-damage_over_time,
+.combat-unit-status-flash-death {
+  border-color: rgba(251, 146, 60, 0.95);
+  background: rgba(234, 88, 12, 0.14);
+  box-shadow: inset 0 0 0.7rem rgba(253, 186, 116, 0.6), 0 0 1rem rgba(234, 88, 12, 0.45);
+}
+
 .combat-overlay-board {
   min-width: 0;
   min-height: 0;

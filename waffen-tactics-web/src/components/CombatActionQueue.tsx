@@ -15,9 +15,13 @@ interface Props {
 
 const EVENT_LABELS: Record<string, string> = {
   animation_start: 'ATTACK START',
+  attack: 'ATTACK',
   unit_attack: 'ATTACK',
   damage: 'REDIRECT DAMAGE',
   damage_dodged: 'DODGE',
+  attack_missed: 'MISS',
+  miss: 'MISS',
+  multi_hit: 'MULTI-HIT',
   unit_heal: 'HEAL',
   heal: 'HEAL',
   hp_regen: 'REGEN',
@@ -29,8 +33,17 @@ const EVENT_LABELS: Record<string, string> = {
   stat_buff: 'BUFF',
   passive_triggered: 'PASSIVE',
   unit_stunned: 'STUN',
+  damage_over_time_applied: 'DOT APPLIED',
+  damage_over_time_tick: 'DOT TICK',
+  damage_over_time_expired: 'DOT EXPIRED',
   unit_died: 'DEATH',
+  unit_revived: 'REVIVE',
+  revive: 'REVIVE',
   formation_changed: 'MOVE',
+  skill_cast: 'SKILL',
+  victory: 'VICTORY',
+  defeat: 'DEFEAT',
+  gold_reward: 'REWARD',
 }
 
 function eventDetail(event: CombatEvent): string {
@@ -45,7 +58,16 @@ function eventDetail(event: CombatEvent): string {
 }
 
 function eventLabel(event: CombatEvent): string {
-  const label = EVENT_LABELS[event.type] || event.type.replace(/_/g, ' ').toUpperCase()
+  const hasItemContext = typeof event.item_id === 'string' || typeof event.item_effect_id === 'string'
+  const itemLabel = hasItemContext
+    ? ({
+      effect_applied: 'ITEM EFFECT',
+      effect_expired: 'ITEM EXPIRED',
+      stat_buff: 'ITEM BUFF',
+      passive_triggered: 'ITEM PASSIVE',
+    } as Record<string, string>)[event.type]
+    : undefined
+  const label = itemLabel || EVENT_LABELS[event.type] || event.type.replace(/_/g, ' ').toUpperCase()
   return event.bonus_attack && (event.type === 'unit_attack' || event.type === 'animation_start') ? `BONUS ${label}` : label
 }
 

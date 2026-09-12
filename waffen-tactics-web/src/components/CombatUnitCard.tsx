@@ -64,6 +64,21 @@ const getRarityColor = (cost?: number) => {
   return '#6b7280'
 }
 
+const STATUS_PRESENTATION_INTENTS = new Set([
+  'death',
+  'buff',
+  'heal',
+  'shield',
+  'effect',
+  'passive',
+  'item',
+  'stun',
+  'formation_change',
+  'damage_over_time',
+  'shield_break',
+  'revive',
+])
+
 export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget, currentTime, presentationTracks = [], replayPaused = false, reducedMotion = false }: Props) {
   const passiveTitle = getPassiveTitle(unit.passive)
   const [showTooltip, setShowTooltip] = useState(false)
@@ -111,7 +126,7 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   const unitTracks = presentationTracks.filter((track) => track.unitId === unit.id || track.targetId === unit.id)
   const attackTrack = unitTracks.find((track) => track.unitId === unit.id && (track.intent === 'melee_lunge' || track.intent === 'ranged_projectile'))
   const impactTrack = unitTracks.find((track) => track.targetId === unit.id && (track.intent === 'target_recoil' || track.intent === 'shield_hit' || track.intent === 'dodge'))
-  const statusTrack = unitTracks.find((track) => track.unitId === unit.id && (track.intent === 'death' || track.intent === 'buff' || track.intent === 'revive'))
+  const statusTrack = unitTracks.find((track) => track.unitId === unit.id && STATUS_PRESENTATION_INTENTS.has(track.intent))
   const impactFlashDirection = isOpponent ? 'from-bottom' : 'from-top'
 
   let lungeOffset = { x: 0, y: 0 }
@@ -244,6 +259,19 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
           animate={reducedMotion
             ? { opacity: 0.55, scale: 1 }
             : { opacity: [0, 0.9, 0], scale: [0.96, 1.04, 1] }}
+          transition={{ duration: reducedMotion ? 0.08 : Math.max(0.12, animationDuration), ease: 'easeOut' }}
+        />
+      )}
+      {statusTrack && !replayPaused && (
+        <motion.div
+          key={statusTrack.id}
+          className={`combat-unit-status-flash combat-unit-status-flash-${statusTrack.intent}`}
+          data-status-intent={statusTrack.intent}
+          aria-hidden="true"
+          initial={{ opacity: reducedMotion ? 0.55 : 0, scale: reducedMotion ? 1 : 0.96 }}
+          animate={reducedMotion
+            ? { opacity: 0.55, scale: 1 }
+            : { opacity: [0, 0.72, 0], scale: [0.96, 1.03, 1] }}
           transition={{ duration: reducedMotion ? 0.08 : Math.max(0.12, animationDuration), ease: 'easeOut' }}
         />
       )}

@@ -136,6 +136,33 @@ describe('combat and table unit metric ownership', () => {
     expect(flash?.getAttribute('aria-hidden')).toBe('true')
   })
 
+  it('renders canonical status presentation tracks without changing unit state', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    act(() => {
+      root = createRoot(container)
+      root.render(createElement(CombatUnitCard as any, {
+        unit: combatUnit,
+        presentationTracks: [{
+          id: 'combat:status:stun',
+          intent: 'stun',
+          unitId: 'unit-1',
+          sourceEventId: 'combat:stun',
+          sourceSeq: 13,
+          startedAt: 0,
+          duration: 0.26,
+          intensity: 'medium',
+        }],
+      }))
+    })
+
+    const flash = container.querySelector('.combat-unit-status-flash')
+    expect(flash?.getAttribute('data-status-intent')).toBe('stun')
+    expect(flash?.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('[data-combat-vital="hp"]')?.textContent).toContain('80/100')
+  })
+
   it('keeps the same metrics available on the between-battle table card', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)

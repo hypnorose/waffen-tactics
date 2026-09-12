@@ -5,9 +5,18 @@ export type PresentationIntent =
   | 'ranged_projectile'
   | 'target_recoil'
   | 'shield_hit'
+  | 'shield_break'
   | 'dodge'
   | 'death'
   | 'buff'
+  | 'heal'
+  | 'shield'
+  | 'effect'
+  | 'passive'
+  | 'item'
+  | 'stun'
+  | 'formation_change'
+  | 'damage_over_time'
   | 'revive'
 
 export type PresentationIntensity = 'small' | 'medium' | 'large'
@@ -164,6 +173,95 @@ function impactIntensity(event: CombatEvent): PresentationIntensity {
   return 'medium'
 }
 
+const PRESENTATION_OMISSION_TYPES = new Set([
+  'error',
+  'start',
+  'units_init',
+  'victory',
+  'defeat',
+  'gold_income',
+  'gold_reward',
+  'end',
+  'state_snapshot',
+  'mana_update',
+  // skill_cast is replay metadata; animation_start owns its visual track.
+  'skill_cast',
+])
+
+export type PresentationCoverage = 'mapped' | 'omitted' | 'unknown'
+
+const PRESENTATION_MAPPED_TYPES = new Set([
+  'animation_start',
+  'attack',
+  'unit_attack',
+  'damage',
+  'damage_dodged',
+  'attack_missed',
+  'miss',
+  'multi_hit',
+  'unit_died',
+  'unit_revived',
+  'revive',
+  'shield_applied',
+  'shield_broken',
+  'damage_over_time_applied',
+  'damage_over_time_tick',
+  'damage_over_time_expired',
+  'effect_applied',
+  'effect_expired',
+  'stat_buff',
+  'passive_triggered',
+  'unit_stunned',
+  'unit_heal',
+  'heal',
+  'hp_regen',
+  'regen_gain',
+  'formation_changed',
+])
+
+/** Returns the explicit presentation contract for a canonical event type. */
+export function getPresentationCoverage(eventType: string): PresentationCoverage {
+  if (PRESENTATION_MAPPED_TYPES.has(eventType)) return 'mapped'
+  if (PRESENTATION_OMISSION_TYPES.has(eventType)) return 'omitted'
+  return 'unknown'
+}
+
+function hasItemContext(event: CombatEvent): boolean {
+  return typeof event.item_id === 'string' || typeof event.item_effect_id === 'string'
+}
+
+function addTargetImpact(
+  state: PresentationTimelineState,
+  event: CombatEvent,
+  targetId: string,
+  intent: 'target_recoil' | 'shield_hit' | 'shield_break' | 'dodge',
+  role: string,
+): PresentationTimelineState {
+  return addTrack(state, event, intent, {
+    targetId,
+    duration: intent === 'shield_break' ? 0.2 : 0.16,
+    intensity: impactIntensity(event),
+    role,
+  })
+}
+
+function addUnitStatus(
+  state: PresentationTimelineState,
+  event: CombatEvent,
+  intent: Extract<PresentationIntent, 'buff' | 'heal' | 'shield' | 'effect' | 'passive' | 'item' | 'stun' | 'formation_change' | 'damage_over_time'>,
+  duration = 0.22,
+): PresentationTimelineState {
+  const unitId = event.unit_id || event.caster_id
+  let next = unitRequiredDiagnostic(state, event, unitId, 'unit')
+  if (!unitId) return next
+  return addTrack(next, event, intent, {
+    unitId,
+    duration,
+    intensity: intent === 'stun' || intent === 'formation_change' ? 'medium' : 'small',
+    role: intent,
+  })
+}
+
 export function reducePresentationTimeline(
   state: PresentationTimelineState,
   event: CombatEvent,
@@ -187,6 +285,7 @@ export function reducePresentationTimeline(
       })
     }
 
+    case 'attack':
     case 'unit_attack':
     case 'damage': {
       next = unitRequiredDiagnostic(next, event, event.target_id || event.unit_id, 'target')
@@ -194,24 +293,36 @@ export function reducePresentationTimeline(
       if (!targetId) return next
       const dodged = event.type === 'unit_attack' && event.dodged === true
       const shieldHit = !dodged && Number(event.shield_absorbed || 0) > 0
-      return addTrack(next, event, dodged ? 'dodge' : shieldHit ? 'shield_hit' : 'target_recoil', {
-        targetId,
-        duration: 0.16,
-        intensity: impactIntensity(event),
-        role: dodged ? 'dodge' : shieldHit ? 'shield' : 'impact',
-      })
+      return addTargetImpact(next, event, targetId, dodged ? 'dodge' : shieldHit ? 'shield_hit' : 'target_recoil', dodged ? 'dodge' : shieldHit ? 'shield' : 'impact')
     }
 
     case 'damage_dodged': {
       next = unitRequiredDiagnostic(next, event, event.target_id || event.unit_id, 'target')
       const targetId = event.target_id || event.unit_id
       if (!targetId) return next
-      return addTrack(next, event, 'dodge', {
-        targetId,
-        duration: 0.16,
-        intensity: 'medium',
-        role: 'dodge',
-      })
+      return addTargetImpact(next, event, targetId, 'dodge', 'dodge')
+    }
+
+    case 'attack_missed':
+    case 'miss': {
+      next = unitRequiredDiagnostic(next, event, event.target_id, 'target')
+      if (!event.target_id) return next
+      return addTargetImpact(next, event, event.target_id, 'dodge', 'miss')
+    }
+
+    case 'multi_hit': {
+      const targetIds = Array.isArray(event.target_ids)
+        ? event.target_ids.filter((targetId): targetId is string => typeof targetId === 'string' && targetId.trim() !== '')
+        : event.target_id ? [event.target_id] : []
+      if (targetIds.length === 0) {
+        return addDiagnostic(next, event, {
+          code: 'missing_target',
+          message: `Presentation event ${event.type} seq=${event.seq ?? 'n/a'} event_id=${event.event_id ?? 'n/a'} is missing its target id list.`,
+        })
+      }
+      return targetIds.reduce((current, targetId, targetIndex) => (
+        addTargetImpact(current, event, targetId, event.shield_absorbed ? 'shield_hit' : 'target_recoil', `multi-hit:${targetIndex}:${targetId}`)
+      ), next)
     }
 
     case 'unit_died': {
@@ -237,26 +348,62 @@ export function reducePresentationTimeline(
       })
     }
 
+    case 'shield_broken': {
+      next = unitRequiredDiagnostic(next, event, event.unit_id || event.target_id, 'unit')
+      const unitId = event.unit_id || event.target_id
+      if (!unitId) return next
+      return addTrack(next, event, 'shield_break', {
+        unitId,
+        targetId: event.target_id || unitId,
+        duration: 0.2,
+        intensity: 'medium',
+        role: 'shield-break',
+      })
+    }
+
     case 'shield_applied':
+      return addUnitStatus(next, event, 'shield')
     case 'effect_applied':
+      return addUnitStatus(next, event, hasItemContext(event) ? 'item' : 'effect')
     case 'stat_buff':
+      return addUnitStatus(next, event, hasItemContext(event) ? 'item' : 'buff')
     case 'passive_triggered':
+      return addUnitStatus(next, event, hasItemContext(event) ? 'item' : 'passive')
+    case 'unit_stunned':
+      return addUnitStatus(next, event, 'stun', 0.26)
     case 'unit_heal':
     case 'heal':
     case 'hp_regen':
-    case 'regen_gain': {
-      next = unitRequiredDiagnostic(next, event, event.unit_id || event.caster_id, 'unit')
-      const unitId = event.unit_id || event.caster_id
-      if (!unitId) return next
-      return addTrack(next, event, 'buff', {
-        unitId,
-        duration: 0.22,
-        intensity: 'small',
-        role: 'buff',
+    case 'regen_gain':
+      return addUnitStatus(next, event, 'heal')
+    case 'damage_over_time_applied':
+    case 'damage_over_time_expired':
+      return addUnitStatus(next, event, 'damage_over_time')
+    case 'damage_over_time_tick': {
+      next = unitRequiredDiagnostic(next, event, event.unit_id, 'target')
+      if (!event.unit_id) return next
+      return addTargetImpact(next, event, event.unit_id, Number(event.shield_absorbed || 0) > 0 ? 'shield_hit' : 'target_recoil', 'dot-tick')
+    }
+    case 'effect_expired':
+      return addUnitStatus(next, event, hasItemContext(event) ? 'item' : 'effect')
+    case 'formation_changed': {
+      next = unitRequiredDiagnostic(next, event, event.unit_id, 'unit')
+      if (!event.unit_id) return next
+      return addTrack(next, event, 'formation_change', {
+        unitId: event.unit_id,
+        duration: 0.28,
+        intensity: 'medium',
+        role: 'formation-change',
       })
     }
 
     default:
+      if (getPresentationCoverage(event.type) === 'unknown') {
+        return addDiagnostic(next, event, {
+          code: 'unknown_presentation_event',
+          message: `No presentation mapping is registered for event ${event.type} seq=${event.seq ?? 'n/a'} event_id=${event.event_id ?? 'n/a'}.`,
+        })
+      }
       return next
   }
 }
