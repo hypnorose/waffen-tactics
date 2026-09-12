@@ -2,7 +2,7 @@ export interface TraitDescriptionSource {
   threshold_descriptions?: unknown
 }
 
-export const MISSING_TRAIT_DESCRIPTION = 'Brak opisu dla tego poziomu'
+export const MISSING_TRAIT_DESCRIPTION = 'No description available for this tier'
 
 const UNRESOLVED_PLACEHOLDER = /<[^>]+>/
 

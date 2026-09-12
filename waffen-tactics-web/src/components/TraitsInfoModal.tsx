@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { gameAPI } from '../services/api'
 import { getCostColor } from '../data/units'
-import { getTraitDescription } from '../hooks/combatOverlayUtils'
+import { getTraitThresholdDescription } from '../data/traits'
 import { getUnitsForTrait } from './traitMembers'
 
 interface TraitsInfoModalProps {
@@ -113,7 +113,7 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
                           <span className="block text-[10px] text-text/50">Tier {index + 1}</span>
                         </span>
                         <span className="text-text/80">
-                          {getTraitDescription(trait, index + 1)}
+                          {getTraitThresholdDescription(trait, index)}
                         </span>
                       </div>
                     ))}
