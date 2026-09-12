@@ -1,8 +1,21 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useProjectileSystem } from '../hooks/useProjectileSystem'
+import { useProjectileSystem, type Projectile } from '../hooks/useProjectileSystem'
 import { useUnitAnchors } from '../hooks/useUnitAnchors'
 import type { PresentationDiagnostic } from '../hooks/combat/animation/presentationTimeline'
+
+export type ProjectileEndpoint = { x: number; y: number }
+
+export function resolveProjectileEndpoints(
+  getCenter: (id: string, relativeTo?: Element | null) => ProjectileEndpoint | null,
+  projectile: Pick<Projectile, 'fromId' | 'toId'>,
+  relativeTo: Element | null,
+): { start: ProjectileEndpoint; end: ProjectileEndpoint } | null {
+  const start = getCenter(projectile.fromId, relativeTo)
+  const end = getCenter(projectile.toId, relativeTo)
+  if (!start || !end) return null
+  return { start, end }
+}
 
 interface Props {
   onDiagnostic?: (diagnostic: PresentationDiagnostic) => void
@@ -54,8 +67,11 @@ export default function ProjectileLayer({ onDiagnostic }: Props) {
     <div ref={containerRef} data-layout-version={layoutVersion} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 80 }}>
       <AnimatePresence>
         {projectiles.map(p => {
-          const start = getCenter(p.fromId, containerRef.current) || { x: 0, y: 0 }
-          const end = getCenter(p.toId, containerRef.current) || { x: 0, y: 0 }
+          // Never render a projectile from guessed coordinates. The diagnostic
+          // effect above reports the missing actor/target separately.
+          const endpoints = resolveProjectileEndpoints(getCenter, p, containerRef.current)
+          if (!endpoints) return null
+          const { start, end } = endpoints
           // Stable per-projectile offsets keep replay visuals reproducible.
           const offX = (stableUnit(p.id, 1) - 0.5) * 12
           const offY = (stableUnit(p.id, 2) - 0.5) * 12
