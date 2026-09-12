@@ -125,7 +125,7 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
 
   const unitTracks = presentationTracks.filter((track) => track.unitId === unit.id || track.targetId === unit.id)
   const attackTrack = unitTracks.find((track) => track.unitId === unit.id && (track.intent === 'melee_lunge' || track.intent === 'ranged_projectile'))
-  const impactTrack = unitTracks.find((track) => track.targetId === unit.id && (track.intent === 'target_recoil' || track.intent === 'shield_hit' || track.intent === 'dodge'))
+  const impactTrack = unitTracks.find((track) => track.targetId === unit.id && (track.intent === 'target_recoil' || track.intent === 'shield_hit' || track.intent === 'multi_hit' || track.intent === 'dodge'))
   const statusTrack = unitTracks.find((track) => track.unitId === unit.id && STATUS_PRESENTATION_INTENTS.has(track.intent))
   const impactFlashDirection = isOpponent ? 'from-bottom' : 'from-top'
 

@@ -27,4 +27,14 @@ describe('getCombatActionQueueEntries', () => {
   it('does not create a queue entry for an empty replay', () => {
     expect(getCombatActionQueueEntries([], 0)).toEqual([])
   })
+
+  it('keeps every explicit multi-hit target visible in the queue detail', () => {
+    const [entry] = getCombatActionQueueEntries([{
+      type: 'multi_hit',
+      event_id: 'combat:multi-hit',
+      target_ids: ['opp_0', 'player_0'],
+    }], 0)
+
+    expect(entry).toMatchObject({ label: 'MULTI-HIT', detail: 'opp_0 → player_0' })
+  })
 })

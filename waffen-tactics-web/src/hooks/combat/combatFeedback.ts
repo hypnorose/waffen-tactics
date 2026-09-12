@@ -62,6 +62,18 @@ function damageFeedback(event: CombatEvent, targetId: unknown): CombatFeedback[]
   return entries
 }
 
+function multiHitFeedback(event: CombatEvent): CombatFeedback[] {
+  const targetIds = Array.isArray(event.target_ids)
+    ? event.target_ids.filter((targetId): targetId is string => typeof targetId === 'string' && targetId.trim() !== '')
+    : event.target_id ? [event.target_id] : []
+
+  return targetIds.flatMap((targetId, targetIndex) => damageFeedback(event, targetId).map((entry) => ({
+    ...entry,
+    id: `${entry.id}:multi-hit:${targetIndex}:${targetId}`,
+    text: `MULTI-HIT ${entry.text}`,
+  })))
+}
+
 function healFeedback(event: CombatEvent): CombatFeedback[] {
   const actualGain = authoritativeDelta(event, 'pre_hp', 'post_hp')
   const amount = actualGain !== null
@@ -82,8 +94,11 @@ export function getCombatFeedback(event: CombatEvent | undefined): CombatFeedbac
   switch (event.type) {
     case 'unit_attack':
     case 'damage':
-    case 'multi_hit':
       return damageFeedback(event, event.target_id)
+    case 'attack':
+      return damageFeedback(event, event.target_id)
+    case 'multi_hit':
+      return multiHitFeedback(event)
     case 'damage_over_time_tick':
       return damageFeedback(event, event.unit_id)
     case 'damage_dodged':

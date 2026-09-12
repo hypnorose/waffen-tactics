@@ -6,6 +6,7 @@ export type PresentationIntent =
   | 'target_recoil'
   | 'shield_hit'
   | 'shield_break'
+  | 'multi_hit'
   | 'dodge'
   | 'death'
   | 'buff'
@@ -234,7 +235,7 @@ function addTargetImpact(
   state: PresentationTimelineState,
   event: CombatEvent,
   targetId: string,
-  intent: 'target_recoil' | 'shield_hit' | 'shield_break' | 'dodge',
+  intent: 'target_recoil' | 'shield_hit' | 'shield_break' | 'multi_hit' | 'dodge',
   role: string,
 ): PresentationTimelineState {
   return addTrack(state, event, intent, {
@@ -321,7 +322,7 @@ export function reducePresentationTimeline(
         })
       }
       return targetIds.reduce((current, targetId, targetIndex) => (
-        addTargetImpact(current, event, targetId, event.shield_absorbed ? 'shield_hit' : 'target_recoil', `multi-hit:${targetIndex}:${targetId}`)
+        addTargetImpact(current, event, targetId, event.shield_absorbed ? 'shield_hit' : 'multi_hit', `multi-hit:${targetIndex}:${targetId}`)
       ), next)
     }
 

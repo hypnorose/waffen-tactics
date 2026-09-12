@@ -56,6 +56,23 @@ describe('getCombatFeedback', () => {
     expect(getCombatFeedback({ type: 'unit_attack', event_id: 'combat:16', unit_id: 'opp_0', damage: 20 })).toEqual([])
   })
 
+  it('renders one deterministic impact per explicit multi-hit target', () => {
+    const feedback = getCombatFeedback({
+      type: 'multi_hit',
+      event_id: 'combat:multi-hit',
+      target_ids: ['opp_0', 'player_0'],
+      pre_hp: 100,
+      post_hp: 88,
+      damage: 12,
+    })
+
+    expect(feedback.map(({ targetId, text }) => ({ targetId, text }))).toEqual([
+      { targetId: 'opp_0', text: 'MULTI-HIT -12 HP' },
+      { targetId: 'player_0', text: 'MULTI-HIT -12 HP' },
+    ])
+    expect(new Set(feedback.map(({ id }) => id)).size).toBe(2)
+  })
+
   it('keeps IDs deterministic for the same canonical event', () => {
     const event: CombatEvent = {
       type: 'stat_buff',

@@ -47,6 +47,13 @@ const EVENT_LABELS: Record<string, string> = {
 }
 
 function eventDetail(event: CombatEvent): string {
+  if (event.type === 'multi_hit') {
+    const targets = Array.isArray(event.target_ids)
+      ? event.target_ids.filter((targetId): targetId is string => typeof targetId === 'string' && targetId.trim() !== '')
+      : event.target_id ? [event.target_id] : []
+    if (targets.length > 0) return targets.join(' → ')
+  }
+
   if (event.type === 'unit_attack' || event.type === 'damage' || event.type === 'damage_dodged' || event.type === 'animation_start') {
     const attacker = event.attacker_name || event.attacker_id
     const target = event.target_name || event.target_id

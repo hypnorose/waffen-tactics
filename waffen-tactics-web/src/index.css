@@ -308,6 +308,12 @@ input:focus-visible {
   box-shadow: inset 0 0 0.75rem rgba(253, 224, 71, 0.6), 0 0 1.25rem rgba(250, 204, 21, 0.45);
 }
 
+.combat-unit-impact-flash-multi_hit {
+  border-color: rgba(248, 113, 113, 0.98);
+  background: rgba(220, 38, 38, 0.2);
+  box-shadow: inset 0 0 0.75rem rgba(254, 202, 202, 0.72), 0 0 1.25rem rgba(220, 38, 38, 0.7);
+}
+
 .combat-unit-status-flash {
   position: absolute;
   inset: 0;

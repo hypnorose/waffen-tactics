@@ -98,8 +98,8 @@ describe('presentationTimeline', () => {
       'effect',
       'item',
       'formation_change',
-      'target_recoil',
-      'target_recoil',
+      'multi_hit',
+      'multi_hit',
       'damage_over_time',
       'target_recoil',
     ])
