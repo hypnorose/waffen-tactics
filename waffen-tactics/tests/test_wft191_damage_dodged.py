@@ -36,6 +36,7 @@ def test_wft191_dodge_emits_canonical_noop_without_ordinary_attack():
         [target],
         event_callback=lambda event_type, payload: events.append((event_type, payload)),
         skip_per_round_buffs=True,
+        skip_per_second_buffs=False,
     )
 
     dodges = [payload for event_type, payload in events if event_type == "damage_dodged"]
@@ -58,4 +59,3 @@ def test_wft191_dodge_emits_canonical_noop_without_ordinary_attack():
     assert dodge["cause"] == "set2_dodge"
     assert target.hp == 100
     assert simulator.b_hp == [100]
-

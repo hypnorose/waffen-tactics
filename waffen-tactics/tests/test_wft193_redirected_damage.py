@@ -46,6 +46,7 @@ def test_haxball_redirect_emits_damage_then_unit_died_with_authoritative_state(m
         [target, redirected],
         event_callback=lambda event_type, payload: events.append((event_type, payload)),
         skip_per_round_buffs=True,
+        skip_per_second_buffs=False,
     )
 
     redirect_index = next(i for i, (event_type, _) in enumerate(events) if event_type == "damage")
@@ -77,6 +78,7 @@ def test_attack_without_haxball_redirect_remains_unit_attack(monkeypatch):
         [target],
         event_callback=lambda event_type, payload: events.append((event_type, payload)),
         skip_per_round_buffs=True,
+        skip_per_second_buffs=False,
     )
 
     assert any(event_type == "unit_attack" for event_type, _ in events)

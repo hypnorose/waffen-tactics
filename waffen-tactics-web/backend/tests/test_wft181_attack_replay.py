@@ -52,6 +52,7 @@ def test_wft181_attack_damage_event_precedes_following_mana_or_snapshot():
                 player_units,
                 opponent_units,
                 skip_per_round_buffs=True,
+                skip_per_second_buffs=False,
                 attach_game_state=True,
             )
     finally:

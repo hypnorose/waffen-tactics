@@ -472,7 +472,21 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                 for ev_type, ev_payload in results:
                     sink.emit(ev_type, ev_payload)
 
-    def simulate(self, team_a, team_b, event_callback=None, round_number: int = 1, skip_per_round_buffs: bool = False):
+    def simulate(
+        self,
+        team_a,
+        team_b,
+        event_callback=None,
+        round_number: int = 1,
+        skip_per_round_buffs: bool = False,
+        skip_per_second_buffs: bool = False,
+    ):
+        """Simulate one fight with independent periodic-buff controls.
+
+        ``skip_per_round_buffs`` controls start-of-combat per-round effects,
+        while ``skip_per_second_buffs`` controls per-second trait/effect
+        processing. Regeneration remains a separate combat subsystem.
+        """
         # Prepare event callback
         if event_callback is None:
             def noop(*a, **k):
@@ -539,50 +553,50 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                         'team_b' if dead_side == 'team_a' else 'team_a',
                     )
 
-        # Canonical modular per-round records are dispatched at the same
-        # start-of-combat lifecycle point as legacy per-round records, before
-        # the first animation/state snapshot.
         from .modular_effect_processor import TriggerType
-        self._process_modular_trigger_for_team(
-            TriggerType.PER_ROUND,
-            self.team_a,
-            self.team_b,
-            self.a_hp,
-            'team_a',
-            0.0,
-            proc_cb,
-            round_number=round_number,
-        )
-        self._process_modular_trigger_for_team(
-            TriggerType.PER_ROUND,
-            self.team_b,
-            self.team_a,
-            self.b_hp,
-            'team_b',
-            0.0,
-            proc_cb,
-            round_number=round_number,
-        )
+        if not skip_per_round_buffs:
+            # Canonical modular per-round records are dispatched at the same
+            # start-of-combat lifecycle point as legacy per-round records,
+            # before the first animation/state snapshot.
+            self._process_modular_trigger_for_team(
+                TriggerType.PER_ROUND,
+                self.team_a,
+                self.team_b,
+                self.a_hp,
+                'team_a',
+                0.0,
+                proc_cb,
+                round_number=round_number,
+            )
+            self._process_modular_trigger_for_team(
+                TriggerType.PER_ROUND,
+                self.team_b,
+                self.team_a,
+                self.b_hp,
+                'team_b',
+                0.0,
+                proc_cb,
+                round_number=round_number,
+            )
 
-        # Apply per-round HP buffs through the same canonical path for both
-        # teams. The separate skip_per_round_buffs contract remains tracked by
-        # DEF-235 and is intentionally unchanged here.
-        self._process_per_round_hp_buffs_for_team(
-            self.team_a,
-            self.a_hp,
-            'team_a',
-            round_number,
-            proc_cb,
-            log,
-        )
-        self._process_per_round_hp_buffs_for_team(
-            self.team_b,
-            self.b_hp,
-            'team_b',
-            round_number,
-            proc_cb,
-            log,
-        )
+            # Apply legacy per-round HP buffs through the same canonical path
+            # for both teams.
+            self._process_per_round_hp_buffs_for_team(
+                self.team_a,
+                self.a_hp,
+                'team_a',
+                round_number,
+                proc_cb,
+                log,
+            )
+            self._process_per_round_hp_buffs_for_team(
+                self.team_b,
+                self.b_hp,
+                'team_b',
+                round_number,
+                proc_cb,
+                log,
+            )
 
         # emit animation start
         proc_cb('animation_start', {'timestamp': 0.0})
@@ -592,8 +606,10 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
         while time < self.timeout:
             self._current_time = time
 
-            # Per-second buffs and regen
-            if not skip_per_round_buffs:
+            # Per-second buffs and regen. Regeneration is intentionally kept
+            # outside the per-second-buff switch because it is a separate
+            # combat subsystem with its own contract.
+            if not skip_per_second_buffs:
                 self._process_modular_trigger_for_team(
                     TriggerType.PER_SECOND,
                     self.team_a,

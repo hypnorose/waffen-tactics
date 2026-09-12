@@ -1010,6 +1010,7 @@ def start_combat():
                     opponent_units,
                     event_callback=event_collector,
                     skip_per_round_buffs=True,
+                    skip_per_second_buffs=False,
                     attach_game_state=True,
                 )
             except CombatError:

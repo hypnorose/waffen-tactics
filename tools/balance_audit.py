@@ -514,6 +514,7 @@ def _audit_opponent_battle(
         round_number=1,
         event_callback=lambda event_type, payload: events.append((event_type, payload if isinstance(payload, dict) else {})),
         skip_per_round_buffs=True,
+        skip_per_second_buffs=False,
     )
 
     snapshots: dict[str, list[dict[str, Any]]] = defaultdict(list)

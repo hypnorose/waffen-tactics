@@ -1390,7 +1390,13 @@ class TestCombatService(unittest.TestCase):
             events_with_state.append((event_type, data))
 
         # Run simulation
-        result = simulator.simulate(player_units, opponent_units, event_collector, skip_per_round_buffs=True)
+        result = simulator.simulate(
+            player_units,
+            opponent_units,
+            event_collector,
+            skip_per_round_buffs=True,
+            skip_per_second_buffs=False,
+        )
 
         # Verify we got events
         self.assertGreater(len(events_with_state), 0, "No events collected")

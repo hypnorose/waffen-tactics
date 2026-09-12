@@ -104,6 +104,57 @@ def test_per_round_hp_buff_commits_canonical_unit_and_mirror_for_both_teams():
         assert (sim.a_hp if side == "team_a" else sim.b_hp) == [80]
 
 
+@pytest.mark.parametrize(
+    ("skip_per_round_buffs", "skip_per_second_buffs", "expected_hp", "expected_attack"),
+    [
+        (False, False, 60, 30),
+        (True, False, 50, 30),
+        (False, True, 60, 20),
+        (True, True, 50, 20),
+    ],
+)
+def test_periodic_buff_skip_flags_are_independent(
+    skip_per_round_buffs,
+    skip_per_second_buffs,
+    expected_hp,
+    expected_attack,
+):
+    """Each skip flag controls only its own periodic-buff phase."""
+    unit = make_unit(
+        "periodic",
+        "Periodic",
+        hp=50,
+        attack=20,
+        attack_speed=100.0,
+        effects=[
+            {
+                "type": "per_round_buff",
+                "stat": "hp",
+                "value": 10,
+                "is_percentage": False,
+            },
+            {
+                "type": "per_second_buff",
+                "stat": "attack",
+                "value": 10,
+                "is_percentage": False,
+            },
+        ],
+    )
+    unit.max_hp = 100
+    enemy = make_unit("enemy", "Enemy", hp=1000, attack=1, attack_speed=0.01)
+
+    CombatSimulator(dt=0.1, timeout=0.1).simulate(
+        [unit],
+        [enemy],
+        skip_per_round_buffs=skip_per_round_buffs,
+        skip_per_second_buffs=skip_per_second_buffs,
+    )
+
+    assert unit.hp == expected_hp
+    assert unit.attack == expected_attack
+
+
 def test_per_round_hp_buff_rejection_leaves_unit_mirror_log_and_events_unchanged():
     """A rejected start-of-combat heal fails before mirror/log/event commit."""
     for side in ("team_a", "team_b"):

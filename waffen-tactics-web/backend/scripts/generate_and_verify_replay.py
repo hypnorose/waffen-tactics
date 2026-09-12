@@ -63,7 +63,13 @@ def main():
         collected.append(deepcopy(data))
 
     print('Running simulation...')
-    summary = sim.simulate(team_a, team_b, collector, skip_per_round_buffs=True)
+    summary = sim.simulate(
+        team_a,
+        team_b,
+        collector,
+        skip_per_round_buffs=True,
+        skip_per_second_buffs=False,
+    )
     print('Simulation summary:', summary)
 
     out_path = Path(args.out)

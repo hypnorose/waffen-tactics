@@ -35,7 +35,13 @@ def test_simulator_event_dump_and_replay_matches_authoritative_state(tmp_path):
         collected.append(deepcopy(data))
 
     # Act: run simulation
-    result = simulator.simulate(team_a, team_b, collector, skip_per_round_buffs=True)
+    result = simulator.simulate(
+        team_a,
+        team_b,
+        collector,
+        skip_per_round_buffs=True,
+        skip_per_second_buffs=False,
+    )
 
     # Persist a dump for UI tests to consume
     dump_path = tmp_path / 'sim_events_dump.json'

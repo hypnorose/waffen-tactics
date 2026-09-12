@@ -19,6 +19,20 @@ passives, canonical event emission, and replay-facing authoritative values.
 The backend route must delegate through the service owner and must not create a
 second simulator implementation.
 
+## Periodic buff controls
+
+`CombatSimulator.simulate` exposes two independent switches:
+
+* `skip_per_round_buffs` skips start-of-combat modular and legacy per-round
+  effects.
+* `skip_per_second_buffs` skips modular, passive, and legacy per-second
+  effects.
+
+HP/mana regeneration is a separate subsystem and is not controlled by either
+  switch. Live combat, replay generation, and the balance audit explicitly
+  skip per-round effects while allowing per-second effects, so they share the
+  same intentional timing contract.
+
 ## Quarantined compatibility surfaces
 
 `waffen_tactics.core.combat_core` and

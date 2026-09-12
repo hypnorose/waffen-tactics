@@ -761,6 +761,7 @@ def run_combat_simulation(
     event_callback: Optional[Callable] = None,
     *,
     skip_per_round_buffs: bool = False,
+    skip_per_second_buffs: bool = False,
     attach_game_state: bool = False,
 ):
     """
@@ -770,6 +771,8 @@ def run_combat_simulation(
         player_units: Player's combat units
         opponent_units: Opponent's combat units
         event_callback: Optional callback for processing events
+        skip_per_round_buffs: Skip start-of-combat per-round effects
+        skip_per_second_buffs: Skip per-second trait/effect processing
 
     Returns:
         Combat result dictionary
@@ -894,6 +897,7 @@ def run_combat_simulation(
             opponent_units,
             event_collector,
             skip_per_round_buffs=skip_per_round_buffs,
+            skip_per_second_buffs=skip_per_second_buffs,
         )
         if not isinstance(result, dict) or result.get('winner') not in ('team_a', 'team_b'):
             raise CombatExecutionError(
