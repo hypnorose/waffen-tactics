@@ -720,6 +720,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'post_attack': data.get('post_attack'),
             'post_defense': data.get('post_defense'),
             'post_attack_speed': data.get('post_attack_speed'),
+            'post_hp_regen_per_sec': data.get('post_hp_regen_per_sec'),
             'post_shield': data.get('post_shield'),
             'applied_delta': data.get('applied_delta'),
             'applied_amount': data.get('applied_amount'),

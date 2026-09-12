@@ -4,7 +4,7 @@ from waffen_tactics.models.unit import Stats
 from waffen_tactics.services.combat_simulator import CombatSimulator
 from waffen_tactics.services.combat_unit import CombatUnit
 from waffen_tactics.services.data_loader import load_game_data
-from waffen_tactics.services.event_canonicalizer import emit_damage, emit_stat_buff
+from waffen_tactics.services.event_canonicalizer import emit_damage, emit_regen_gain, emit_stat_buff, emit_unit_stunned
 from waffen_tactics.services.passive_definitions import get_passive_definition
 from waffen_tactics.services.passive_processor import PassiveProcessor
 
@@ -277,6 +277,82 @@ def test_expired_max_hp_effect_uses_canonical_mutation_and_preserves_ratio():
     expiration = next(payload for event_type, payload in events if event_type == "effect_expired")
     assert expiration["post_max_hp"] == 100
     assert expiration["post_hp"] == 80
+
+
+def test_expiring_stun_preserves_independent_hp_regen_source():
+    """A stun expiration must not rebuild away a permanent regen passive."""
+    unit = make_unit("boczek", "boczek", hp=1536, attack_speed=0.8, star_level=3)
+    source = make_unit("stun-source")
+    events = []
+
+    emit_regen_gain(
+        lambda event_type, payload: events.append((event_type, payload)),
+        unit,
+        4,
+        duration=None,
+        timestamp=0.0,
+    )
+    emit_unit_stunned(
+        lambda event_type, payload: events.append((event_type, payload)),
+        unit,
+        duration=0.75,
+        source=source,
+        timestamp=0.0,
+    )
+
+    CombatSimulator()._process_effect_expiration_for_team(
+        [unit],
+        [unit.hp],
+        time=0.8,
+        event_callback=lambda event_type, payload: events.append((event_type, payload)),
+        side="team_b",
+    )
+
+    assert [event_type for event_type, _ in events] == [
+        "regen_gain", "unit_stunned", "effect_expired"
+    ]
+    assert unit.effects == []
+    assert unit.hp_regen_per_sec == 4
+    assert unit.to_dict()["buffed_stats"]["hp_regen_per_sec"] == 4
+
+
+def test_timed_hp_regen_effect_reverts_only_its_delta():
+    """A timed regen effect must coexist with and then remove only itself."""
+    unit = make_unit("regen-stack", hp=100, attack_speed=0.0)
+    events = []
+
+    emit_regen_gain(
+        lambda event_type, payload: events.append((event_type, payload)),
+        unit,
+        4,
+        duration=None,
+        timestamp=0.0,
+    )
+    applied = emit_stat_buff(
+        lambda event_type, payload: events.append((event_type, payload)),
+        unit,
+        "hp_regen_per_sec",
+        6,
+        duration=1.0,
+        timestamp=0.0,
+    )
+
+    assert applied["applied_delta"] == 6.0
+    assert unit.hp_regen_per_sec == 10
+
+    CombatSimulator()._process_effect_expiration_for_team(
+        [unit],
+        [unit.hp],
+        time=1.0,
+        event_callback=lambda event_type, payload: events.append((event_type, payload)),
+        side="team_a",
+    )
+
+    assert unit.effects == []
+    assert unit.hp_regen_per_sec == 4
+    expiration = next(payload for event_type, payload in events if event_type == "effect_expired")
+    assert expiration["stat"] == "hp_regen_per_sec"
+    assert expiration["post_hp_regen_per_sec"] == 4
 
 
 def test_effect_expiration_fails_before_mutation_when_collection_is_malformed():

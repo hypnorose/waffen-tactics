@@ -265,6 +265,7 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
 
                 # Effect has expired - revert stat changes
                 effect_type = effect.get('type')
+                pending_regen_reversion = None
                 if effect_type in ('buff', 'debuff'):
                     stat = effect.get('stat')
                     applied_delta = effect.get('applied_delta', 0)
@@ -289,6 +290,14 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                             apply_effect_expiration_mutation(unit, stat, new_max_hp, new_hp)
                             hp_list[i] = new_hp
                             log.append(f"{unit.name} stat {stat} reverted by {-applied_delta} (effect expired)")
+                        elif stat == 'hp_regen_per_sec':
+                            # Remove the effect first, then apply the
+                            # authoritative total.  CombatUnit keeps
+                            # non-effect regen sources (such as a permanent
+                            # start-of-combat passive) separately from the
+                            # effect-derived cache.
+                            old_regen = float(getattr(unit, stat, 0.0))
+                            pending_regen_reversion = old_regen - float(applied_delta)
                         else:
                             old_val = getattr(unit, stat, 0)
                             new_val = old_val - applied_delta
@@ -315,6 +324,9 @@ class CombatSimulator(CombatAttackProcessor, CombatEffectProcessor, CombatRegene
                     raise RuntimeError(
                         f"Failed to remove expired effect for unit={getattr(unit, 'id', None)} effect={effect_id!r}"
                     ) from exc
+
+                if pending_regen_reversion is not None:
+                    setattr(unit, 'hp_regen_per_sec', pending_regen_reversion)
 
                 # Emit this expiration AFTER this effect mutation so event
                 # game_state is post-expiry for this exact effect only.

@@ -696,6 +696,35 @@ describe('applyCombatEvent - Effect Handling', () => {
 
       expect(expired.playerUnits[0].effects).toEqual([])
     })
+
+    it('preserves independent HP regeneration when a stun expires', () => {
+      state.playerUnits[0] = {
+        ...state.playerUnits[0],
+        buffed_stats: { ...state.playerUnits[0].buffed_stats, hp_regen_per_sec: 4 }
+      }
+
+      const stunned = applyCombatEvent(state, {
+        type: 'unit_stunned',
+        unit_id: 'player_0',
+        duration: 0.75,
+        effect_id: 'stun-regen-1',
+        seq: 34,
+        timestamp: 0,
+      }, { simTime: 0 })
+
+      const expired = applyCombatEvent(stunned, {
+        type: 'effect_expired',
+        unit_id: 'player_0',
+        effect_id: 'stun-regen-1',
+        effect_type: 'stun',
+        post_hp: 500,
+        seq: 35,
+        timestamp: 0.8,
+      }, { simTime: 0.8 })
+
+      expect(expired.playerUnits[0].effects).toEqual([])
+      expect(expired.playerUnits[0].buffed_stats?.hp_regen_per_sec).toBe(4)
+    })
   })
 
   describe('damage_over_time_applied events', () => {

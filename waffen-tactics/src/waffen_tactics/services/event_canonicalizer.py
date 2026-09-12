@@ -478,6 +478,13 @@ def emit_stat_buff(
             expected_effects = list(getattr(recipient, 'effects', [])) + [effect]
             recipient.effects = expected_effects
 
+            # hp_regen_per_sec is represented by both the immediate numeric
+            # mutation and the effect record.  Re-assert the authoritative
+            # total after installing the effect so the CombatUnit can keep
+            # only the independent contribution outside the effect cache.
+            if stat == 'hp_regen_per_sec' and delta is not None:
+                set_and_verify(stat, cur + delta)
+
             # Fail-fast invariant: active buff effect must be present on recipient.
             actual_effects = list(getattr(recipient, 'effects', []) or [])
             if actual_effects != expected_effects or not any(
@@ -857,8 +864,12 @@ def emit_regen_gain(
         ) from exc
 
     try:
-        recipient.hp_regen_per_sec = expected_regen
-        actual_regen = float(getattr(recipient, 'hp_regen_per_sec'))
+        add_regen = getattr(recipient, '_add_non_effect_hp_regen', None)
+        if callable(add_regen):
+            actual_regen = float(add_regen(float(amount_per_sec)))
+        else:
+            recipient.hp_regen_per_sec = expected_regen
+            actual_regen = float(getattr(recipient, 'hp_regen_per_sec'))
         if actual_regen != expected_regen:
             raise RuntimeError(
                 f'Canonical HP-regen mutation did not apply for unit={getattr(recipient, "id", None)}: '

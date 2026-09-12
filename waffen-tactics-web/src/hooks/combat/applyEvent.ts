@@ -924,6 +924,14 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
               }
               newU.attack_speed = event.post_attack_speed
               newU.buffed_stats = { ...u.buffed_stats, attack_speed: newU.attack_speed }
+            } else if (expiredEffect.stat === 'hp_regen_per_sec') {
+              if (typeof event.post_hp_regen_per_sec !== 'number' || !Number.isFinite(event.post_hp_regen_per_sec)) {
+                throw new Error(`[EFFECT_EXPIRED] Missing post_hp_regen_per_sec for unit ${u.id} at seq=${event.seq}`)
+              }
+              newU.buffed_stats = {
+                ...u.buffed_stats,
+                hp_regen_per_sec: event.post_hp_regen_per_sec
+              }
             } else if (expiredEffect.stat === 'max_hp') {
               if (event.post_max_hp === undefined || event.post_hp === undefined || event.post_hp === null) {
                 throw new Error(`[EFFECT_EXPIRED] Missing post_max_hp/post_hp for unit ${u.id} at seq=${event.seq}`)

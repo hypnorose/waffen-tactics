@@ -53,6 +53,12 @@ class CombatUnit:
         self.item_runtime_state: Dict[str, Any] = {}
         
         # Computed stats cache
+        # Some canonical regen sources (for example a permanent Set 2
+        # start-of-combat passive) are intentionally represented by a
+        # ``regen_gain`` event rather than by a stat effect in ``effects``.
+        # Keep that contribution separate so replacing/reordering unrelated
+        # effects cannot erase it when the computed cache is rebuilt.
+        self._non_effect_hp_regen_per_sec = 0.0
         self._computed_stats = ComputedStats.from_effects(self._state.effects)
 
     @property
@@ -123,8 +129,10 @@ class CombatUnit:
         self._state.current_mana = max(0, min(self._stats.max_mana, value))
 
     def _update_caches(self):
-        """Update cached values from effects"""
-        self._computed_stats = ComputedStats.from_effects(self._state.effects)
+        """Update cached values from effects and independent regen sources."""
+        computed = ComputedStats.from_effects(self._state.effects)
+        computed.hp_regen_per_sec += self._non_effect_hp_regen_per_sec
+        self._computed_stats = computed
 
     def _set_hp(self, value: int, caller_module: str = None) -> None:
         """Centralized HP setter — clips value to [0, max_hp].
@@ -438,14 +446,27 @@ class CombatUnit:
 
     @hp_regen_per_sec.setter
     def hp_regen_per_sec(self, value: float):
+        # Direct assignments are retained for compatibility with older
+        # callers.  Store only the contribution that is not already explained
+        # by active stat effects; the next effects collection rebuild then
+        # preserves the same total.
         try:
-            self._computed_stats.hp_regen_per_sec = float(value)
+            effect_regen = ComputedStats.from_effects(self._state.effects).hp_regen_per_sec
+            total = float(value)
+            self._non_effect_hp_regen_per_sec = total - effect_regen
+            self._computed_stats.hp_regen_per_sec = total
         except Exception:
             # best-effort: set attribute directly
             try:
                 setattr(self._computed_stats, 'hp_regen_per_sec', float(value))
             except Exception:
                 pass
+
+    def _add_non_effect_hp_regen(self, amount: float) -> float:
+        """Add an authoritative regen source that has no stat-effect record."""
+        self._non_effect_hp_regen_per_sec += float(amount)
+        self._update_caches()
+        return float(self._computed_stats.hp_regen_per_sec)
 
     @property
     def lifesteal(self) -> float:
