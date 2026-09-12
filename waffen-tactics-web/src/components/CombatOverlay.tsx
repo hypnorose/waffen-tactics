@@ -186,7 +186,15 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
                 {combatPanelExpanded ? 'Zwiń panel' : 'Rozwiń panel'}
               </button>
 
-              <button type="button" onClick={() => setShowLog(!showLog)} style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+              <button
+                type="button"
+                className="combat-log-toggle"
+                aria-controls="combat-log-modal"
+                aria-expanded={showLog}
+                aria-label={showLog ? 'Hide combat log' : 'Show combat log'}
+                onClick={() => setShowLog(!showLog)}
+                style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+              >
                 {showLog && combatPanelExpanded ? 'Ukryj log walki' : 'Pokaż log walki'}
               </button>
 

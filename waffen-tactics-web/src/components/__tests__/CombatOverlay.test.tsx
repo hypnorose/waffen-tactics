@@ -101,9 +101,12 @@ describe('CombatOverlay panel collapse', () => {
   it('toggles without unmounting the log, preserves focus, and hides replay controls', () => {
     const container = renderOverlay()
     const toggle = container.querySelector('[aria-label="Zwiń panel walki"]') as HTMLButtonElement
+    const logToggle = container.querySelector('.combat-log-toggle') as HTMLButtonElement
     const log = container.textContent || ''
 
     expect(toggle).not.toBeNull()
+    expect(logToggle.getAttribute('aria-controls')).toBe('combat-log-modal')
+    expect(logToggle.getAttribute('aria-expanded')).toBe('true')
     expect(log).toContain('Pierwsze zdarzenie replayu')
     expect(container.querySelector('[aria-label="Sterowanie replayem walki"]')).not.toBeNull()
 
@@ -113,6 +116,7 @@ describe('CombatOverlay panel collapse', () => {
     })
 
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(logToggle.getAttribute('aria-expanded')).toBe('true')
     expect(container.querySelector('#combat-control-panel')?.getAttribute('aria-hidden')).toBe('true')
     expect(container.querySelector('[aria-label="Sterowanie replayem walki"]')?.getAttribute('aria-hidden')).toBe('true')
     expect((container.querySelector('[aria-label="Sterowanie replayem walki"]') as HTMLElement).style.display).toBe('none')
