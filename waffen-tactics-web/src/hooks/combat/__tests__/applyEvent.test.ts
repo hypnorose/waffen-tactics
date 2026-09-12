@@ -1697,6 +1697,38 @@ describe('applyCombatEvent - Effect Handling', () => {
   })
 
   describe('Combat presentation summary', () => {
+    it.each([
+      ['player_0', 'team_a'],
+      ['opp_0', 'team_b'],
+    ])('applies only an explicit canonical revive across the death boundary for %s', (unitId, side) => {
+      const died = applyCombatEvent(state, {
+        type: 'unit_died', unit_id: unitId, unit_name: unitId,
+        seq: 1103, timestamp: 7.45,
+      }, { simTime: 7.45 })
+
+      const ordinaryHeal = applyCombatEvent(died, {
+        type: 'heal', unit_id: unitId, unit_name: unitId, side,
+        pre_hp: 0, post_hp: 300, amount: 300, cause: 'healing_aura',
+        seq: 1104, event_id: 'combat:ordinary-dead-heal', timestamp: 7.45,
+      }, { simTime: 7.45 })
+
+      const afterOrdinaryHeal = unitId === 'player_0'
+        ? ordinaryHeal.playerUnits[0].hp
+        : ordinaryHeal.opponentUnits[0].hp
+      expect(afterOrdinaryHeal).toBe(0)
+
+      const revived = applyCombatEvent(ordinaryHeal, {
+        type: 'heal', unit_id: unitId, unit_name: unitId, side,
+        pre_hp: 0, post_hp: 300, amount: 300, cause: 'set2_revive',
+        seq: 1105, event_id: `combat:revive:${unitId}`, timestamp: 7.45,
+      }, { simTime: 7.45 })
+
+      const afterRevive = unitId === 'player_0'
+        ? revived.playerUnits[0].hp
+        : revived.opponentUnits[0].hp
+      expect(afterRevive).toBe(300)
+    })
+
     it('should ignore late mana and attack events after unit death', () => {
       const died = applyCombatEvent(state, {
         type: 'unit_died', unit_id: 'player_0', unit_name: 'TestPlayer',

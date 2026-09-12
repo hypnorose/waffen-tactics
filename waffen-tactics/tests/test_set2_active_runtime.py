@@ -197,10 +197,21 @@ def test_revive_is_once_per_fight_and_restores_half_max_hp():
     processor = PassiveProcessor()
     hp_arrays = {"team_a": [0], "team_b": []}
     processor.bind_hp_arrays(hp_arrays)
+    events = []
 
-    assert processor.try_revive(unit, None, "team_a", 2.0, 0, "team_a") is True
+    assert processor.try_revive(unit, lambda event_type, payload: events.append((event_type, payload)), "team_a", 2.0, 0, "team_a") is True
     assert unit.hp == 50
     assert hp_arrays["team_a"] == [50]
+    assert [event_type for event_type, _ in events] == ["heal", "passive_triggered"]
+    heal_payload = events[0][1]
+    assert heal_payload["cause"] == "set2_revive"
+    assert heal_payload["pre_hp"] == 0
+    assert heal_payload["post_hp"] == 50
+    assert heal_payload["side"] == "team_a"
+    assert events[1][1]["effect"] == "revive"
+    assert events[1][1]["restored_hp"] == 50
+    assert unit.effects[-1]["type"] == "untargetable"
+    assert unit.effects[-1]["expires_at"] == 2.75
     assert processor.try_revive(unit, None, "team_a", 3.0, 0, "team_a") is False
 
 

@@ -107,6 +107,10 @@ export function getCombatFeedback(event: CombatEvent | undefined): CombatFeedbac
       return feedback(event, event.target_id, event.type === 'damage_dodged' ? 'DODGE' : 'MISS', 'neutral', 'outcome')
     case 'unit_heal':
     case 'heal':
+      if (event.cause === 'set2_revive') {
+        return feedback(event, event.unit_id, 'REVIVE', 'heal', 'revive')
+      }
+      return healFeedback(event)
     case 'hp_regen':
     case 'regen_gain':
       return healFeedback(event)

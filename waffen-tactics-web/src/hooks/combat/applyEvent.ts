@@ -34,6 +34,17 @@ function isAuthorizedPostDeathAttack(state: CombatState, event: CombatEvent): bo
   return isUnitDead(state, event.attacker_id) && !isUnitDead(state, event.target_id)
 }
 
+function isAuthorizedPostDeathRevive(state: CombatState, event: CombatEvent): boolean {
+  if ((event.type !== 'heal' && event.type !== 'unit_heal') || event.cause !== 'set2_revive') return false
+  if (!event.unit_id || event.pre_hp !== 0 || !isUnitDead(state, event.unit_id)) return false
+
+  const postHp = event.post_hp
+  if (typeof postHp !== 'number' || !Number.isFinite(postHp) || postHp <= 0) return false
+
+  const unit = [...state.playerUnits, ...state.opponentUnits].find(candidate => candidate.id === event.unit_id)
+  return Boolean(unit && postHp <= unit.max_hp)
+}
+
 function requireKnownUnit(state: CombatState, event: CombatEvent, unitId: string | undefined): Unit {
   if (!unitId || !unitId.trim()) {
     throw new CombatReplayValidationError(event, 'missing required unit_id')
@@ -190,7 +201,8 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
   if (
     stateChangingTypes.has(event.type) &&
     involvedIds.some(id => isUnitDead(state, id)) &&
-    !isAuthorizedPostDeathAttack(state, event)
+    !isAuthorizedPostDeathAttack(state, event) &&
+    !isAuthorizedPostDeathRevive(state, event)
   ) {
     return newState
   }

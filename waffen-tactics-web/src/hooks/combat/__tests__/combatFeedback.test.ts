@@ -48,6 +48,19 @@ describe('getCombatFeedback', () => {
       post_hp: 55,
       amount: 30,
     })[0].text).toBe('+15 HP')
+    expect(getCombatFeedback({
+      type: 'heal',
+      event_id: 'combat:13-revive',
+      unit_id: 'opp_0',
+      pre_hp: 0,
+      post_hp: 300,
+      amount: 300,
+      cause: 'set2_revive',
+    })[0]).toMatchObject({
+      targetId: 'opp_0',
+      text: 'REVIVE',
+      tone: 'heal',
+    })
   })
 
   it('marks effect application and expiration without choosing an implicit target', () => {

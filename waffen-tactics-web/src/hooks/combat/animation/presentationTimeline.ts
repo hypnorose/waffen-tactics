@@ -350,6 +350,23 @@ function addUnitStatus(
   })
 }
 
+function addRevive(
+  state: PresentationTimelineState,
+  event: CombatEvent,
+): PresentationTimelineState {
+  let next = unitRequiredDiagnostic(state, event, event.unit_id, 'unit')
+  if (!event.unit_id || !isKnownActor(next, event.unit_id)) return next
+
+  const reviveTrack = addTrack(next, event, 'revive', {
+    unitId: event.unit_id,
+    duration: 0.32,
+    intensity: 'large',
+    role: 'revive',
+  })
+  const { [event.unit_id]: _wasDead, ...remainingDeadActors } = reviveTrack.deadActors
+  return { ...reviveTrack, deadActors: remainingDeadActors }
+}
+
 export function reducePresentationTimeline(
   state: PresentationTimelineState,
   event: CombatEvent,
@@ -434,16 +451,7 @@ export function reducePresentationTimeline(
 
     case 'unit_revived':
     case 'revive': {
-      next = unitRequiredDiagnostic(next, event, event.unit_id, 'unit')
-      if (!event.unit_id || !isKnownActor(next, event.unit_id)) return next
-      const reviveTrack = addTrack(next, event, 'revive', {
-        unitId: event.unit_id,
-        duration: 0.32,
-        intensity: 'large',
-        role: 'revive',
-      })
-      const { [event.unit_id]: _wasDead, ...remainingDeadActors } = reviveTrack.deadActors
-      return { ...reviveTrack, deadActors: remainingDeadActors }
+      return addRevive(next, event)
     }
 
     case 'shield_broken': {
@@ -471,6 +479,8 @@ export function reducePresentationTimeline(
       return addUnitStatus(next, event, 'stun', 0.26)
     case 'unit_heal':
     case 'heal':
+      if (event.cause === 'set2_revive') return addRevive(next, event)
+      return addUnitStatus(next, event, 'heal')
     case 'hp_regen':
     case 'regen_gain':
       return addUnitStatus(next, event, 'heal')

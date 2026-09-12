@@ -228,11 +228,14 @@ describe('presentationTimeline', () => {
     ])
 
     state = reducePresentationTimeline(state, event({
-      type: 'unit_revived',
+      type: 'heal',
       event_id: 'combat:lifecycle-revive',
       seq: 4,
       timestamp: 3,
       unit_id: 'opp_0',
+      cause: 'set2_revive',
+      pre_hp: 0,
+      post_hp: 300,
     }))
     state = reducePresentationTimeline(state, event({
       type: 'unit_attack',
