@@ -4,8 +4,10 @@ import { getCombatAttackProjectileEmoji, isRangedCombatAnimation } from './comba
 import type { CombatEvent } from './types'
 import {
   buildPresentationTimeline,
+  clearPresentationTracks,
   createPresentationTimeline,
   getActivePresentationTracks,
+  pruneExpiredPresentationTracks,
   reducePresentationTimeline,
   type PresentationDiagnostic,
   type PresentationTrack,
@@ -38,7 +40,13 @@ export function useCombatPresentation({ currentTime, replayPaused }: UseCombatPr
   const reducedMotion = usePrefersReducedMotion()
 
   const recordEvent = useCallback((event: CombatEvent) => {
-    setTimeline((previous) => reducePresentationTimeline(previous, event))
+    const eventTime = typeof event.timestamp === 'number' && Number.isFinite(event.timestamp)
+      ? event.timestamp
+      : 0
+    setTimeline((previous) => reducePresentationTimeline(
+      pruneExpiredPresentationTracks(previous, eventTime),
+      event,
+    ))
 
     // Keep the existing projectile feedback behind the presentation boundary.
     // It is visual-only and completes independently of the authoritative reducer.
@@ -60,6 +68,10 @@ export function useCombatPresentation({ currentTime, replayPaused }: UseCombatPr
     setPendingVisuals(0)
     setTimeline(buildPresentationTimeline(events, index))
   }, [clearProjectiles])
+
+  const clearTracks = useCallback(() => {
+    setTimeline((previous) => clearPresentationTracks(previous))
+  }, [])
 
   const reportDiagnostic = useCallback((diagnostic: PresentationDiagnostic) => {
     setTimeline((previous) => {
@@ -102,6 +114,7 @@ export function useCombatPresentation({ currentTime, replayPaused }: UseCombatPr
     recordEvent,
     reportDiagnostic,
     rebuild,
+    clearTracks,
     reset,
   }
 }

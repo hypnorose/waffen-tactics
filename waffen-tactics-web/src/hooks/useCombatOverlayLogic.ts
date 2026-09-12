@@ -40,6 +40,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
   const recentEventsRef = useRef<CombatEvent[]>([])
   const lastAppliedPlayheadRef = useRef<number>(-1)
   const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const presentationCleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const replayInitializedRef = useRef<boolean>(false)
   const prevReplayEnabledRef = useRef<boolean>(replayEnabled)
 
@@ -58,6 +59,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     recordEvent: recordPresentationEvent,
     reportDiagnostic: reportPresentationDiagnostic,
     rebuild: rebuildPresentation,
+    clearTracks: clearPresentationTracks,
     reset: resetPresentation,
   } = useCombatPresentation({ currentTime: combatState.simTime, replayPaused })
 
@@ -96,6 +98,11 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
   const clearReplayTimerAndPause = () => {
     clearReplayTimer()
+    if (presentationCleanupTimerRef.current) {
+      clearTimeout(presentationCleanupTimerRef.current)
+      presentationCleanupTimerRef.current = null
+    }
+    clearPresentationTracks()
     setReplayPaused(true)
   }
 
@@ -417,6 +424,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
   useEffect(() => {
     return () => {
       clearReplayTimer()
+      if (presentationCleanupTimerRef.current) clearTimeout(presentationCleanupTimerRef.current)
       replayInitializedRef.current = false
     }
   }, [])
@@ -426,8 +434,22 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     if (allEventsReplayed && pendingVisuals === 0) {
       setCombatState(prev => ({ ...prev, isFinished: true }))
       combatStateRef.current = { ...combatStateRef.current, isFinished: true }
+
+      // Let the terminal impact/status flash render, then remove transient
+      // tracks even though simTime no longer advances after the final event.
+      if (presentationCleanupTimerRef.current) clearTimeout(presentationCleanupTimerRef.current)
+      presentationCleanupTimerRef.current = setTimeout(() => {
+        clearPresentationTracks()
+        presentationCleanupTimerRef.current = null
+      }, 500)
     }
-  }, [allEventsReplayed, pendingVisuals])
+    return () => {
+      if (presentationCleanupTimerRef.current) {
+        clearTimeout(presentationCleanupTimerRef.current)
+        presentationCleanupTimerRef.current = null
+      }
+    }
+  }, [allEventsReplayed, pendingVisuals, clearPresentationTracks])
 
   // Regen cleanup only
   // CRITICAL: DO NOT auto-expire effects here! Effects should ONLY be removed when

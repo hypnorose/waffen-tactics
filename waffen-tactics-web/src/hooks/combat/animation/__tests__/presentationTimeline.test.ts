@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import type { CombatEvent } from '../../types'
 import {
   buildPresentationTimeline,
+  clearPresentationTracks,
   createPresentationTimeline,
   getActivePresentationTracks,
   getPresentationCoverage,
+  pruneExpiredPresentationTracks,
   reducePresentationTimeline,
 } from '../presentationTimeline'
 
@@ -141,5 +143,39 @@ describe('presentationTimeline', () => {
     expect(Object.values(beforeDeath.tracks).map((track) => track.intent)).toEqual(['melee_lunge'])
     expect(getActivePresentationTracks(beforeDeath, 1.1)).toHaveLength(1)
     expect(getActivePresentationTracks(beforeDeath, 1.5)).toHaveLength(0)
+  })
+
+  it('prunes expired live tracks without removing diagnostics', () => {
+    let state = createPresentationTimeline()
+    state = reducePresentationTimeline(state, event({
+      type: 'animation_start',
+      event_id: 'combat:expired',
+      animation_id: 'basic_attack',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+      timestamp: 1,
+      duration: 0.1,
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'future_event',
+      event_id: 'combat:diagnostic',
+      timestamp: 3,
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'animation_start',
+      event_id: 'combat:future',
+      animation_id: 'basic_attack',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+      timestamp: 2.5,
+      duration: 0.2,
+    }))
+
+    const pruned = pruneExpiredPresentationTracks(state, 2)
+    expect(Object.values(pruned.tracks)).toEqual([
+      expect.objectContaining({ sourceEventId: 'combat:future' }),
+    ])
+    expect(pruned.diagnostics).toHaveLength(1)
+    expect(clearPresentationTracks(state).diagnostics).toEqual(state.diagnostics)
   })
 })

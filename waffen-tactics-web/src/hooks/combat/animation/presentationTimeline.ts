@@ -54,6 +54,36 @@ export const createPresentationTimeline = (): PresentationTimelineState => ({
   diagnostics: [],
 })
 
+/**
+ * Removes transient tracks that have already finished in simulation time.
+ * Historical replay rebuilds intentionally start from a fresh timeline, so
+ * pruning the live projection cannot change authoritative combat state.
+ */
+export function pruneExpiredPresentationTracks(
+  state: PresentationTimelineState,
+  currentTime: number,
+): PresentationTimelineState {
+  if (!Number.isFinite(currentTime)) return state
+
+  const activeEntries = Object.entries(state.tracks).filter(([, track]) => (
+    currentTime <= track.startedAt + track.duration
+  ))
+  if (activeEntries.length === Object.keys(state.tracks).length) return state
+
+  return {
+    ...state,
+    tracks: Object.fromEntries(activeEntries),
+  }
+}
+
+/** Clears transient VFX tracks while preserving replay diagnostics. */
+export function clearPresentationTracks(
+  state: PresentationTimelineState,
+): PresentationTimelineState {
+  if (Object.keys(state.tracks).length === 0) return state
+  return { ...state, tracks: {} }
+}
+
 const DEFAULT_DURATION_SECONDS = 0.18
 const DEFAULT_LUNGE_DURATION_SECONDS = 0.2
 
