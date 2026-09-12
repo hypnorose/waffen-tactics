@@ -16,8 +16,8 @@ export default function Login() {
   }
 
   return (
-    <div className="login-screen flex items-center justify-center p-4">
-      <div className="login-card card max-w-md w-full text-center space-y-6">
+    <main className="login-screen flex items-center justify-center p-4">
+      <div className="login-card ui-panel ui-panel--raised max-w-md w-full text-center space-y-6 p-6 sm:p-8">
         <h1 className="text-4xl font-bold text-primary">⚔️ Waffen Tactics</h1>
         <p className="text-text/80">
           Strategiczna gra auto-battler w stylu TFT
@@ -27,7 +27,7 @@ export default function Login() {
           <button
             onClick={handleDiscordLogin}
             disabled={configError}
-            className="btn btn-primary w-full flex items-center justify-center gap-2"
+            className="ui-button ui-button--primary w-full"
           >
             <svg width="24" height="24" viewBox="0 0 71 55" fill="none">
               <g clipPath="url(#clip0)">
@@ -50,6 +50,6 @@ export default function Login() {
           <p>Strategiczny auto-battler</p>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

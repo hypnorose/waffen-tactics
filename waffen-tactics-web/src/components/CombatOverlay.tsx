@@ -18,6 +18,7 @@ import { UnitAnchorsProvider } from '../hooks/useUnitAnchors'
 import { ProjectileProvider } from '../hooks/useProjectileSystem'
 import ProjectileLayer from './ProjectileLayer'
 import { combatOverlayBoardStyle, combatOverlayPanelStyle, combatOverlaySidebarStyle, shouldStartCombatPanelCollapsed } from './combatOverlayLayout'
+import { Panel } from '../ui/primitives'
 
 export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
   const logEndRef = useRef<HTMLDivElement>(null)
@@ -246,7 +247,7 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
       )}
 
       <div className={`absolute inset-0 bg-slate-950 backdrop-blur-sm flex items-center justify-center z-[65] transition-all duration-300 ${showMatchmakingOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <div className="combat-matchmaking-panel bg-slate-900/90 border border-slate-600 rounded-xl p-8 min-w-[440px] text-center shadow-2xl">
+        <Panel variant="overlay" className="combat-matchmaking-panel border-slate-600 rounded-xl p-8 min-w-[440px] text-center shadow-2xl">
           <div className="flex justify-center mb-5">
             <div className="w-12 h-12 border-4 border-yellow-400/40 border-t-yellow-300 rounded-full animate-spin" />
           </div>
@@ -256,15 +257,15 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
           <div className="text-lg text-slate-100 font-semibold min-h-[28px] transition-all duration-150">
             {matchmakingPhase === 'searching' ? rouletteCandidates[rouletteIndex] : 'Godny przeciwnik'}
           </div>
-        </div>
+        </Panel>
       </div>
 
       <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-60 transition-all duration-300 ease-out ${showVictoryOverlay ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
-        <div className="combat-victory-panel bg-surface border-4 border-primary/60 rounded-xl p-8 shadow-2xl">
+        <Panel variant="raised" className="combat-victory-panel border-4 border-primary/60 rounded-xl p-8 shadow-2xl">
           <div className={`text-5xl font-bold text-center ${victory ? 'text-green-400' : 'text-red-400'}`}>
             {victory ? '🎉 ZWYCIĘSTWO! 🎉' : defeatMessage || '💔 PRZEGRANA! 💔'}
           </div>
-        </div>
+        </Panel>
       </div>
     </div>
   )

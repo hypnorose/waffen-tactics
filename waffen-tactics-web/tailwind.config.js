@@ -7,11 +7,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#5865F2',
-        secondary: '#57F287',
-        background: '#2C2F33',
-        surface: '#23272A',
-        text: '#DCDDDE',
+        primary: 'rgb(var(--wt-color-accent) / <alpha-value>)',
+        secondary: 'rgb(var(--wt-color-success) / <alpha-value>)',
+        background: 'rgb(var(--wt-color-canvas) / <alpha-value>)',
+        surface: 'rgb(var(--wt-color-surface) / <alpha-value>)',
+        text: 'rgb(var(--wt-color-text-primary) / <alpha-value>)',
       }
     },
   },

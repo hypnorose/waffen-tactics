@@ -14,6 +14,7 @@ import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import ItemsPanel from '../components/ItemsPanel'
 import type { Item } from '../data/items'
 import { buildDiscordAvatarUrl } from '../services/avatar'
+import { Panel } from '../ui/primitives'
 
 export default function Game() {
   const { user, logout } = useAuthStore()
@@ -394,7 +395,7 @@ export default function Game() {
       <div className={`game-content container mx-auto px-4 py-6 max-w-7xl space-y-4 ${isGameOver ? 'pointer-events-none opacity-50' : ''}`}>
         {!isGameOver && <ItemsPanel playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} itemCatalog={itemCatalog} onItemDragStart={setDraggedItemId} onItemDragEnd={() => setDraggedItemId(null)} />}
         {/* Board Section */}
-        <div className="game-section card">
+        <Panel variant="raised" className="game-section p-4">
           <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
             <span>🎯</span> Plansza bojowa 
             <span className={`text-sm font-mono ${
@@ -407,10 +408,10 @@ export default function Game() {
             {isGameOver && <span className="text-sm text-red-500 font-normal ml-2">(Gra zakończona - tylko podgląd)</span>}
           </h2>
           <GameBoard playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} onEquipItem={handleEquipItem} roundStatsByUnit={lastRoundStatsByUnit} itemCatalog={itemCatalog} draggedItemId={draggedItemId} />
-        </div>
+        </Panel>
 
         {/* Bench Section */}
-        <div className="game-section card">
+        <Panel variant="raised" className="game-section p-4">
           <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
             <span>📦</span> Ławka
             <span className={`text-sm font-mono ${
@@ -422,16 +423,16 @@ export default function Game() {
             </span>
           </h2>
           <Bench playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} onEquipItem={handleEquipItem} itemCatalog={itemCatalog} draggedItemId={draggedItemId} />
-        </div>
+        </Panel>
 
         {/* Shop Section */}
         {!isGameOver && (
-          <div className="game-section card">
+          <Panel variant="raised" className="game-section p-4">
             <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
               <span>🛍️</span> Sklep
             </h2>
             <Shop playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />
-          </div>
+          </Panel>
         )}
       </div>
 

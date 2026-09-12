@@ -3,6 +3,7 @@ import { gameAPI } from '../services/api'
 import { getCostColor } from '../data/units'
 import { getTraitThresholdDescription } from '../data/traits'
 import { getUnitsForTrait } from './traitMembers'
+import { Button, Panel } from '../ui/primitives'
 
 interface TraitsInfoModalProps {
   isOpen: boolean
@@ -56,18 +57,20 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
 
   return (
     <div className="traits-modal fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="traits-modal-dialog bg-surface border-2 border-primary/30 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+      <Panel variant="overlay" className="traits-modal-dialog border-2 border-primary/30 max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="traits-modal-header flex items-center justify-between p-6 border-b border-primary/20">
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <span>📚</span> Informacje o Traitach
           </h2>
-          <button
+          <Button
+            variant="icon"
             onClick={onClose}
-            className="text-text/60 hover:text-text transition-colors text-2xl"
+            className="text-text/60 hover:text-text text-2xl"
+            aria-label="Zamknij informacje o traitach"
           >
             ✕
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -148,14 +151,15 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
 
         {/* Footer */}
         <div className="traits-modal-footer border-t border-primary/20 p-4 flex justify-end">
-          <button
+          <Button
+            variant="primary"
             onClick={onClose}
-            className="btn bg-primary hover:bg-primary/80 px-6 py-2"
+            className="px-6 py-2"
           >
             Zamknij
-          </button>
+          </Button>
         </div>
-      </div>
+      </Panel>
     </div>
   )
 }

@@ -11,7 +11,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, token, hydrated } = useAuthStore()
   
   if (!hydrated) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+    return <div className="app-loading min-h-screen flex items-center justify-center">Loading...</div>
   }
   
   return user && token ? <>{children}</> : <Navigate to="/login" />
@@ -19,7 +19,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="app-shell min-h-screen bg-background">
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />

@@ -1,3 +1,5 @@
+@import './ui/primitives.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,8 +10,38 @@
   font-weight: 400;
 
   color-scheme: dark;
-  color: #DCDDDE;
-  background-color: #2C2F33;
+  --wt-color-canvas: 9 14 22;
+  --wt-color-surface: 16 23 34;
+  --wt-color-surface-raised: 23 32 46;
+  --wt-color-surface-overlay: 10 16 25;
+  --wt-color-surface-hover: 31 43 60;
+  --wt-color-border: 55 70 90;
+  --wt-color-border-strong: 83 100 124;
+  --wt-color-text-primary: 236 241 245;
+  --wt-color-text-muted: 156 169 183;
+  --wt-color-accent: 244 181 77;
+  --wt-color-accent-strong: 255 203 91;
+  --wt-color-accent-contrast: 24 18 10;
+  --wt-color-success: 65 190 130;
+  --wt-color-success-strong: 107 224 163;
+  --wt-color-warning: 240 167 66;
+  --wt-color-warning-strong: 255 198 105;
+  --wt-color-danger: 235 95 95;
+  --wt-color-danger-strong: 255 132 132;
+  --wt-color-danger-contrast: 35 10 10;
+  --wt-color-info: 90 185 224;
+  --wt-color-info-strong: 144 218 247;
+  --wt-color-focus: 255 218 128;
+  --wt-control-height: 2.75rem;
+  --wt-radius-control: 0.65rem;
+  --wt-radius-panel: 0.85rem;
+  --wt-space-2: 0.5rem;
+  --wt-shadow-panel: 0 16px 40px rgb(0 0 0 / 0.22);
+  --wt-shadow-overlay: 0 24px 70px rgb(0 0 0 / 0.42);
+  --wt-shadow-accent: 0 8px 24px rgb(var(--wt-color-accent) / 0.18);
+
+  color: rgb(var(--wt-color-text-primary));
+  background-color: rgb(var(--wt-color-canvas));
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -22,7 +54,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   overflow-x: hidden;
-  background: #2C2F33;
+  background: rgb(var(--wt-color-canvas));
 }
 
 html,
@@ -41,7 +73,7 @@ input[type='range'] {
 button:focus-visible,
 [role='button']:focus-visible,
 input:focus-visible {
-  outline: 3px solid #fde68a;
+  outline: 3px solid rgb(var(--wt-color-focus, 255 218 128));
   outline-offset: 2px;
 }
 

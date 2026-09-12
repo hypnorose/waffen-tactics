@@ -4,6 +4,7 @@ import type { PlayerState } from '../store/gameStore'
 import { getRecipePreview, ITEM_ICONS, type Item } from '../data/items'
 import ItemTooltip from './ItemTooltip'
 import ItemRecipePreviewTooltip from './ItemRecipePreviewTooltip'
+import { Panel } from '../ui/primitives'
 
 type Props = {
   playerState: PlayerState
@@ -110,7 +111,7 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
     </ItemTooltip>
   }
 
-  return <section className="items-panel card border border-amber-500/30">
+  return <Panel variant="raised" className="items-panel border-amber-500/30 p-4">
     <div className="items-panel-header flex items-center justify-between mb-3">
       <div><h2 className="text-lg font-bold">Przedmioty</h2><p className="text-xs text-text/60">Przeciągnij na jednostkę albo na drugi przedmiot, aby połączyć</p></div>
       <span className="text-sm text-text/60">{owned.length} szt.</span>
@@ -131,5 +132,5 @@ export default function ItemsPanel({ playerState, onUpdate, onNotification, item
         anchor={combining.anchor}
       />
     })()}
-  </section>
+  </Panel>
 }
