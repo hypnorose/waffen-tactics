@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { EffectSummary } from '../hooks/combat/types'
+import { getItemTooltipPosition, type ItemTooltipPosition } from './itemTooltipPosition'
 
 type EffectWithPresentation = EffectSummary & {
   name?: string
@@ -16,11 +17,6 @@ interface Props {
   effect: EffectWithPresentation
   currentTime?: number
   index: number
-}
-
-interface TooltipPosition {
-  left: number
-  top: number
 }
 
 const EFFECT_ICONS: Record<string, { icon: string; background: string }> = {
@@ -108,23 +104,17 @@ function getEffectDetails(effect: EffectWithPresentation, currentTime?: number):
   return details
 }
 
-function getTooltipPosition(button: HTMLButtonElement): TooltipPosition {
-  const rect = button.getBoundingClientRect()
-  const margin = 8
-  const width = Math.min(280, Math.max(220, window.innerWidth - margin * 2))
-  const estimatedHeight = 220
-  const left = Math.max(margin, Math.min(rect.right - width, window.innerWidth - width - margin))
-  const below = rect.bottom + margin
-  const top = below + estimatedHeight <= window.innerHeight - margin
-    ? below
-    : Math.max(margin, rect.top - estimatedHeight - margin)
-  return { left, top }
+function getTooltipPosition(button: HTMLButtonElement): ItemTooltipPosition {
+  return getItemTooltipPosition(button.getBoundingClientRect(), {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }, { width: 280, height: 320 })
 }
 
 export default function CombatEffectBadge({ effect, currentTime, index }: Props) {
   const buttonRef = useRef<HTMLButtonElement | null>(null)
   const [isOpen, setIsOpen] = useState(false)
-  const [position, setPosition] = useState<TooltipPosition>({ left: 8, top: 8 })
+  const [position, setPosition] = useState<ItemTooltipPosition>({ left: 8, top: 8, placement: 'below' })
   const tooltipId = useId()
   const icon = EFFECT_ICONS[effect.type] || { icon: '✨', background: 'linear-gradient(90deg,#a78bfa,#8b5cf6)' }
   const title = getEffectTitle(effect)

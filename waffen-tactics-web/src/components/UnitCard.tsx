@@ -1,11 +1,13 @@
 import { getUnit, getCostBorderColor, getFactionColor, getPassiveTitle } from '../data/units'
-import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { useCallback, useLayoutEffect, useRef, useState, useId } from 'react'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import EquippedItems from './EquippedItems'
 import { formatItemStat, formatItemTrigger, getItemMechanicDescription, ITEM_ICONS, type Item, type ItemUnitPreview } from '../data/items'
 import ItemPreviewTooltip from './ItemPreviewTooltip'
 import { ItemUnitPreviewContent } from './ItemPreviewContent'
 import { boardUnitCardSizingStyle } from './combatUnitCardLayout'
+import { getItemTooltipPosition, type ItemTooltipPosition } from './itemTooltipPosition'
 
 interface UnitCardProps {
   unitId: string
@@ -62,47 +64,47 @@ export default function UnitCard({
   const passiveTitle = getPassiveTitle(unit?.passive)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
-  const [tooltipTop, setTooltipTop] = useState<number | null>(null)
-  const [tooltipSide, setTooltipSide] = useState<'left' | 'right'>('right')
   const [showUnitTooltip, setShowUnitTooltip] = useState(false)
+  const [tooltipPosition, setTooltipPosition] = useState<ItemTooltipPosition | null>(null)
+  const tooltipId = useId()
 
   const closeUnitTooltip = () => {
     setShowUnitTooltip(false)
-    setTooltipTop(null)
+    setTooltipPosition(null)
   }
+
+  const updateTooltipPosition = useCallback(() => {
+    const anchor = containerRef.current
+    if (!anchor || typeof window === 'undefined') return
+
+    const measuredTooltip = tooltipRef.current?.getBoundingClientRect()
+    setTooltipPosition(getItemTooltipPosition(
+      anchor.getBoundingClientRect(),
+      { width: window.innerWidth, height: window.innerHeight },
+      measuredTooltip
+        ? { width: measuredTooltip.width, height: measuredTooltip.height }
+        : { width: 240, height: 460 },
+    ))
+  }, [])
 
   const openUnitTooltip = () => {
     if (isDragging) return
     setShowUnitTooltip(true)
-    setTimeout(() => {
-      const cont = containerRef.current
-      const tip = tooltipRef.current
-      if (!cont || !tip) return
-      const contRect = cont.getBoundingClientRect()
-      const tipHeight = tip.offsetHeight
-      const tipWidth = tip.offsetWidth
-      const viewportHeight = window.innerHeight
-      const viewportWidth = window.innerWidth
-      const margin = 8
-
-      if (contRect.left + contRect.width + tipWidth + margin > viewportWidth) {
-        setTooltipSide('left')
-      } else {
-        setTooltipSide('right')
-      }
-
-      let offset = 0
-      const tipBottom = contRect.top + offset + tipHeight
-      if (tipBottom > viewportHeight - margin) {
-        offset = viewportHeight - margin - contRect.top - tipHeight
-      }
-
-      const minOffset = margin - contRect.top
-      if (offset < minOffset) offset = minOffset
-
-      setTooltipTop(Math.round(offset))
-    }, 10)
   }
+
+  useLayoutEffect(() => {
+    if (!showUnitTooltip) return
+
+    // The portal is mounted before this layout effect runs, so the second
+    // measurement uses the real long-content height instead of a guess.
+    updateTooltipPosition()
+    window.addEventListener('resize', updateTooltipPosition)
+    window.addEventListener('scroll', updateTooltipPosition, true)
+    return () => {
+      window.removeEventListener('resize', updateTooltipPosition)
+      window.removeEventListener('scroll', updateTooltipPosition, true)
+    }
+  }, [showUnitTooltip, updateTooltipPosition])
 
   const getRoleEmoji = (role?: string) => {
     switch (role) {
@@ -178,6 +180,8 @@ export default function UnitCard({
       tabIndex={disabled ? -1 : 0}
       role="button"
       aria-label={`Jednostka: ${unit.name}`}
+      aria-describedby={showUnitTooltip ? tooltipId : undefined}
+      aria-expanded={showUnitTooltip}
       data-board-unit-card={boardLayout ? 'true' : undefined}
       className={`relative group ${boardLayout ? 'w-full' : detailed ? 'w-56' : 'w-36'} select-none ${boardLayout ? `${detailed ? 'board-unit-card-detailed' : 'board-unit-card'}` : ''} ${onClick && !disabled ? 'cursor-pointer' : ''} ${
         disabled ? 'opacity-50 cursor-not-allowed' : ''
@@ -187,17 +191,26 @@ export default function UnitCard({
       <ItemPreviewTooltip anchorRef={containerRef} open={Boolean(itemPreview)}>
         {itemPreview && <ItemUnitPreviewContent preview={itemPreview} itemCatalog={itemCatalog} />}
       </ItemPreviewTooltip>
-      {(
+      {showUnitTooltip && tooltipPosition && typeof document !== 'undefined' && createPortal(
         <div
-          className={`${showUnitTooltip ? 'block' : 'hidden'} group-hover:block absolute p-3 rounded-lg z-[100] shadow-2xl text-xs w-[240px] border-2 pointer-events-none`}
+          id={tooltipId}
+          data-unit-tooltip={unit.id}
+          className="p-3 rounded-lg shadow-2xl text-xs border-2 pointer-events-none text-left"
           ref={tooltipRef}
+          role="tooltip"
           style={{
             backgroundColor: '#0f172a',
             borderColor: getCostBorderColor(unit.cost),
-            [tooltipSide]: 'calc(100% + 0.5rem)',
-            top: tooltipTop !== null ? `${tooltipTop}px` : '0',
-            maxHeight: '90vh',
+            position: 'fixed',
+            left: tooltipPosition.left,
+            top: tooltipPosition.top,
+            width: 240,
+            maxWidth: 'calc(100vw - 16px)',
+            maxHeight: 'min(90vh, calc(100vh - 16px))',
+            boxSizing: 'border-box',
             overflowY: 'auto',
+            overflowWrap: 'anywhere',
+            zIndex: 2000,
           }}
         >
           <div className="mb-2">
@@ -355,7 +368,14 @@ export default function UnitCard({
               </div>
             </div>
           )}
-        </div>
+          <div
+            className="absolute left-1/2 -translate-x-1/2 w-0 h-0"
+            style={tooltipPosition.placement === 'above'
+              ? { top: '100%', borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: `4px solid ${getCostBorderColor(unit.cost)}` }
+              : { bottom: '100%', borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: `4px solid ${getCostBorderColor(unit.cost)}` }}
+          />
+        </div>,
+        document.body,
       )}
 
       <div

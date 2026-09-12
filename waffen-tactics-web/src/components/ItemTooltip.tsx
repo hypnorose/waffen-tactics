@@ -36,7 +36,7 @@ export default function ItemTooltip({ item, itemCatalog, children, className, tr
     setPosition(getItemTooltipPosition(trigger.getBoundingClientRect(), {
       width: window.innerWidth,
       height: window.innerHeight,
-    }))
+    }, { width: 256, height: 360 }))
   }, [])
 
   useEffect(() => () => {

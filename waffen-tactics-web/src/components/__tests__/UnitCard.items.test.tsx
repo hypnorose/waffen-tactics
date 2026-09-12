@@ -119,13 +119,15 @@ describe('UnitCard equipped item layout', () => {
     })
 
     const card = container.querySelector('[aria-label="Jednostka: Unit preview-unit"]') as HTMLElement
-    const tooltip = card.querySelector('.absolute') as HTMLElement
-    expect(tooltip.className).toContain('hidden')
+    expect(document.body.querySelector('[data-unit-tooltip="preview-unit"]')).toBeNull()
 
     act(() => card.dispatchEvent(new MouseEvent('click', { bubbles: true })))
 
-    expect(tooltip.className).toContain('block')
-    expect(tooltip.className).not.toContain('hidden')
+    const tooltip = document.body.querySelector('[data-unit-tooltip="preview-unit"]') as HTMLElement
+    expect(tooltip).not.toBeNull()
+    expect(tooltip.parentElement).toBe(document.body)
+    expect(tooltip.style.position).toBe('fixed')
+    expect(card.getAttribute('aria-describedby')).toBe(tooltip.id)
   })
 
   it('uses the generated result stat rows once in the unit item preview', async () => {

@@ -148,10 +148,15 @@ describe('combat and table unit metric ownership', () => {
       )
     })
 
-    expect(container.textContent).toContain('ETF przyprawowy')
-    expect(container.textContent).toContain('+30 Obrażenia')
-    expect(container.textContent).not.toContain('+30 ataku.')
-    expect(container.textContent).toContain('Aktywacja: Przy ataku · 2 s')
-    expect(container.textContent).toContain('Nieznany przedmiot: legacy_item_id')
+    const card = container.querySelector('[aria-label="Jednostka: Test unit"]') as HTMLElement
+    act(() => card.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+
+    const tooltip = document.body.querySelector('[data-unit-tooltip="unit-1"]') as HTMLElement
+    expect(tooltip).not.toBeNull()
+    expect(tooltip.textContent).toContain('ETF przyprawowy')
+    expect(tooltip.textContent).toContain('+30 Obrażenia')
+    expect(tooltip.textContent).not.toContain('+30 ataku.')
+    expect(tooltip.textContent).toContain('Aktywacja: Przy ataku · 2 s')
+    expect(tooltip.textContent).toContain('Nieznany przedmiot: legacy_item_id')
   })
 })
