@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useProjectileSystem } from '../useProjectileSystem'
-import { getCombatAttackProjectileEmoji } from './combatPresentation'
+import { getCombatAttackProjectileEmoji, isRangedCombatAnimation } from './combatPresentation'
 import type { CombatEvent } from './types'
 import {
   buildPresentationTimeline,
@@ -42,7 +42,7 @@ export function useCombatPresentation({ currentTime, replayPaused }: UseCombatPr
 
     // Keep the existing projectile feedback behind the presentation boundary.
     // It is visual-only and completes independently of the authoritative reducer.
-    if (!reducedMotion && event.type === 'animation_start' && event.attacker_id && event.target_id) {
+    if (!reducedMotion && event.type === 'animation_start' && isRangedCombatAnimation(event) && event.attacker_id && event.target_id) {
       setPendingVisuals((count) => count + 1)
       spawnProjectile({
         fromId: event.attacker_id,
@@ -53,18 +53,6 @@ export function useCombatPresentation({ currentTime, replayPaused }: UseCombatPr
       })
     }
 
-    // Bonus attacks can have an animation_start predecessor without bonus metadata.
-    // Their impact marker therefore starts from the canonical unit_attack event.
-    if (!reducedMotion && event.type === 'unit_attack' && event.bonus_attack && event.attacker_id && event.target_id) {
-      setPendingVisuals((count) => count + 1)
-      spawnProjectile({
-        fromId: event.attacker_id,
-        toId: event.target_id,
-        emoji: getCombatAttackProjectileEmoji(event),
-        duration: 220,
-        onComplete: () => setPendingVisuals((count) => Math.max(0, count - 1)),
-      })
-    }
   }, [reducedMotion, spawnProjectile])
 
   const rebuild = useCallback((events: CombatEvent[], index: number) => {

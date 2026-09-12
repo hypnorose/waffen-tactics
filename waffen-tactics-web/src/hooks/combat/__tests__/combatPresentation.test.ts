@@ -3,6 +3,7 @@ import {
   createCombatSummary,
   formatCombatLogEntry,
   getCombatAttackProjectileEmoji,
+  isRangedCombatAnimation,
   getTopDamageDealer,
   updateCombatSummary,
 } from '../combatPresentation'
@@ -13,6 +14,13 @@ describe('combatPresentation', () => {
     expect(getCombatAttackProjectileEmoji({ bonus_attack: false })).toBe('🗡️')
     expect(getCombatAttackProjectileEmoji({})).toBe('🗡️')
     expect(getCombatAttackProjectileEmoji({ bonus_attack: true })).toBe('⚡')
+  })
+
+  it('keeps melee animation starts separate from ranged projectiles', () => {
+    expect(isRangedCombatAnimation({ animation_id: 'basic_attack' })).toBe(false)
+    expect(isRangedCombatAnimation({ animation_id: 'ranged_projectile' })).toBe(true)
+    expect(isRangedCombatAnimation({ animation_id: 'skill_projectile_burst' })).toBe(true)
+    expect(isRangedCombatAnimation({})).toBe(false)
   })
 
   it('includes the passive display name in passive activation logs', () => {

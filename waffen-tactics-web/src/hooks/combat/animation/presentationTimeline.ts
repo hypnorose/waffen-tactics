@@ -1,4 +1,5 @@
 import type { CombatEvent } from '../types'
+import { isRangedCombatAnimation } from '../combatPresentation'
 
 export type PresentationIntent =
   | 'melee_lunge'
@@ -162,11 +163,6 @@ function animationContractDiagnostic(
   })
 }
 
-function isRangedAnimation(event: CombatEvent): boolean {
-  const animationId = (event.animation_id || '').toLowerCase()
-  return animationId.includes('ranged') || animationId.includes('projectile')
-}
-
 function impactIntensity(event: CombatEvent): PresentationIntensity {
   if (event.bonus_attack) return 'large'
   const damage = Number(event.applied_damage ?? event.damage ?? 0)
@@ -277,7 +273,7 @@ export function reducePresentationTimeline(
       const withContractDiagnostics = animationContractDiagnostic(next, event)
       if (withContractDiagnostics !== next) return withContractDiagnostics
 
-      return addTrack(next, event, isRangedAnimation(event) ? 'ranged_projectile' : 'melee_lunge', {
+      return addTrack(next, event, isRangedCombatAnimation(event) ? 'ranged_projectile' : 'melee_lunge', {
         unitId: event.attacker_id,
         targetId: event.target_id,
         duration: event.duration ?? DEFAULT_LUNGE_DURATION_SECONDS,

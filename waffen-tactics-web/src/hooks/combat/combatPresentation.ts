@@ -1,5 +1,10 @@
 import { CombatEvent, CombatSummary, CombatSummaryEntry, CombatSummaryFocus, CombatUnitRoundStats } from './types'
 
+export function isRangedCombatAnimation(event: Pick<CombatEvent, 'animation_id'>): boolean {
+  const animationId = (event.animation_id || '').toLowerCase()
+  return animationId.includes('ranged') || animationId.includes('projectile')
+}
+
 export function getCombatAttackProjectileEmoji(event: Pick<CombatEvent, 'bonus_attack'>): string {
   return event.bonus_attack ? '⚡' : '🗡️'
 }
