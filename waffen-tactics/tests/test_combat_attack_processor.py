@@ -290,7 +290,7 @@ class TestCombatAttackProcessor(unittest.TestCase):
         assert defending_hp[0] == 100, "defending_hp must not be mutated by compute when scheduler is present"
 
     def test_scheduled_attack_is_cancelled_when_participant_dies_before_impact(self):
-        """A delayed impact must not mutate state after its attacker or target dies."""
+        """A delayed impact resolves as an explicit no-op after terminal state."""
         for dead_participant in ('attacker', 'target'):
             with self.subTest(dead_participant=dead_participant):
                 attacker = MockUnit('player_1', 'Warrior')
@@ -317,7 +317,18 @@ class TestCombatAttackProcessor(unittest.TestCase):
                 else:
                     defender.hp = 0
 
-                self.assertEqual(scheduled['action'](), [])
+                results = scheduled['action']()
+                self.assertEqual(len(results), 1)
+                event_type, payload = results[0]
+                self.assertEqual(event_type, 'damage_dodged')
+                self.assertEqual(payload['damage'], 0)
+                self.assertEqual(payload['applied_damage'], 0)
+                self.assertEqual(payload['pre_hp'], defender.hp)
+                self.assertEqual(payload['post_hp'], defender.hp)
+                self.assertEqual(
+                    payload['cause'],
+                    f'{dead_participant}_dead_before_impact',
+                )
                 self.assertEqual(defender.hp, 0 if dead_participant == 'target' else 100)
                 self.assertEqual(attacker.mana, 50)
 

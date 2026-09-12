@@ -55,6 +55,95 @@ def _load_game_config():
 GAME_CONFIG = _load_game_config()
 
 
+def _validate_attack_animation_outcomes(events: List[Tuple[str, Dict[str, Any]]]) -> None:
+    """Require every identified attack animation to resolve canonically.
+
+    Basic attacks announce their animation before the delayed impact is
+    delivered. A participant can become terminal during that delay, so a
+    missing result is a broken stream even when the simulator still reports a
+    winner. Explicit ``damage_dodged`` cancellation outcomes are valid no-op
+    resolutions; snapshots are not used to repair a missing event.
+    """
+    pending: List[Dict[str, Any]] = []
+    outcome_types = {'unit_attack', 'damage', 'damage_dodged'}
+
+    def is_primary_outcome(event_type: str, payload: Dict[str, Any]) -> bool:
+        """Exclude secondary effects from the basic-animation accounting."""
+        # A full-mana bonus impact is queued from the preceding basic attack
+        # and intentionally has no separate animation_start, whether it hits
+        # or is dodged/cancelled.
+        if payload.get('bonus_attack'):
+            return False
+        cause = payload.get('cause')
+        if event_type == 'damage_dodged':
+            return bool(payload.get('cancelled')) or cause == 'set2_dodge'
+        if event_type in {'unit_attack', 'damage'}:
+            # Legacy primary unit_attack payloads had no cause. Current
+            # secondary hits always carry an explicit non-attack cause.
+            return cause in (None, 'attack')
+        return False
+
+    for index, (event_type, payload) in enumerate(events):
+        if not isinstance(payload, dict):
+            continue
+
+        if event_type == 'animation_start':
+            attacker_id = payload.get('attacker_id')
+            target_id = payload.get('target_id')
+            # The initial simulator marker intentionally has no combat pair.
+            if attacker_id and target_id:
+                pending.append({
+                    'index': index,
+                    'seq': payload.get('seq'),
+                    'attacker_id': attacker_id,
+                    'target_id': target_id,
+                })
+            continue
+
+        if event_type not in outcome_types:
+            continue
+        if not is_primary_outcome(event_type, payload):
+            continue
+
+        attacker_id = payload.get('attacker_id')
+        target_id = payload.get('target_id') or payload.get('unit_id')
+        if not attacker_id or not target_id:
+            continue
+
+        matching_index = next(
+            (
+                pending_index
+                for pending_index, animation in enumerate(pending)
+                if animation['attacker_id'] == attacker_id
+                and animation['target_id'] == target_id
+            ),
+            None,
+        )
+        if matching_index is not None:
+            pending.pop(matching_index)
+        elif attacker_id and target_id:
+            # Bonus attacks are queued as a follow-up impact from the same
+            # full-mana action and intentionally have no second animation.
+            if event_type == 'unit_attack' and payload.get('bonus_attack'):
+                continue
+            raise CombatExecutionError(
+                'Combat event stream has a canonical attack outcome without a '
+                f'pending animation: event_index={index} seq={payload.get("seq")} '
+                f'pair={attacker_id}->{target_id} event_type={event_type}'
+            )
+
+    if pending:
+        details = ', '.join(
+            f"animation_index={item['index']} seq={item['seq']} "
+            f"pair={item['attacker_id']}->{item['target_id']}"
+            for item in pending
+        )
+        raise CombatExecutionError(
+            'Combat event stream has animation_start event(s) without a canonical '
+            f'unit_attack, damage, or damage_dodged outcome: {details}'
+        )
+
+
 def _item_effects_for_combat(item_ids: Any, owner_id: str) -> List[Dict[str, Any]]:
     """Build stable runtime item effects from the persisted loadout."""
     if item_ids is None:
@@ -904,6 +993,7 @@ def run_combat_simulation(
                 f"Simulator returned invalid combat outcome: {result!r}"
             )
         result['events'] = events
+        _validate_attack_animation_outcomes(events)
 
         # Update unit HP with final values from simulation via canonical emitters
         for i, unit in enumerate(player_units):

@@ -133,5 +133,7 @@ def test_buffered_bonus_attack_events_keep_per_event_snapshots():
     bonus_state = bonus_payload['game_state']
     assert stat_state['player_units'][0]['current_mana'] == 100
     assert stat_state['opponent_units'][0]['hp'] == 60
-    assert bonus_state['player_units'][0]['current_mana'] == 0
+    # The hit checkpoint is captured immediately after HP mutation and before
+    # the following bonus-attack mana reset event.
+    assert bonus_state['player_units'][0]['current_mana'] == 100
     assert bonus_state['opponent_units'][0]['hp'] == 20

@@ -52,6 +52,8 @@ class CombatAttackProcessor:
             'timestamp': deliver_ts,
         }
         if isinstance(dmg_payload, dict):
+            ua['cause'] = dmg_payload.get('cause')
+        if isinstance(dmg_payload, dict):
             ua['is_skill'] = bool(dmg_payload.get('is_skill', False))
             ua['pre_hp'] = dmg_payload.get('pre_hp', ua['pre_hp'])
             ua['post_hp'] = dmg_payload.get('post_hp', ua['post_hp'])
@@ -67,6 +69,55 @@ class CombatAttackProcessor:
             ua['post_shield'] = ua['unit_shield']
             ua['target_max_hp'] = getattr(target_obj, 'max_hp', None)
         return ua
+
+    def _build_cancelled_attack_payload(
+        self,
+        attacker: 'CombatUnit',
+        target_obj: 'CombatUnit',
+        side_val: str,
+        deliver_ts: float,
+        cause: str,
+        bonus_attack: bool = False,
+    ) -> Dict[str, Any]:
+        """Build an explicit no-op outcome for a delayed attack that expired.
+
+        ``animation_start`` is emitted while both units are alive, but the
+        delayed impact can become invalid before delivery (for example when
+        simultaneous lethal attacks are resolved in scheduler order). The
+        animation still needs one canonical terminal outcome so replay can
+        account for the complete event stream without inventing damage.
+        """
+        current_hp = max(0, int(getattr(target_obj, 'hp', 0) or 0))
+        current_shield = max(0, int(getattr(target_obj, 'shield', 0) or 0))
+        return {
+            'type': 'damage_dodged',
+            'attacker_id': getattr(attacker, 'id', None),
+            'attacker_name': getattr(attacker, 'name', None),
+            'attacker_current_mana': getattr(attacker, 'mana', None),
+            'attacker_max_mana': getattr(attacker, 'max_mana', None),
+            'unit_id': getattr(target_obj, 'id', None),
+            'unit_name': getattr(target_obj, 'name', None),
+            'target_id': getattr(target_obj, 'id', None),
+            'target_name': getattr(target_obj, 'name', None),
+            'pre_hp': current_hp,
+            'post_hp': current_hp,
+            'target_hp': current_hp,
+            'new_hp': current_hp,
+            'unit_hp': current_hp,
+            'target_max_hp': getattr(target_obj, 'max_hp', None),
+            'damage': 0,
+            'applied_damage': 0,
+            'shield_absorbed': 0,
+            'unit_shield': current_shield,
+            'post_shield': current_shield,
+            'damage_type': getattr(attacker, 'damage_type', 'physical'),
+            'bonus_attack': bonus_attack,
+            'dodged': True,
+            'cancelled': True,
+            'cause': cause,
+            'side': side_val,
+            'timestamp': deliver_ts,
+        }
 
     def _emit_bonus_basic_attack(
         self,
@@ -236,12 +287,29 @@ class CombatAttackProcessor:
 
                         # The animation was scheduled from a previously live
                         # pair, but either participant can die before impact.
-                        # Never mutate or emit a late attack in that case: the
-                        # replay client treats death as terminal as well.
-                        if getattr(attacker, '_dead', False) or getattr(attacker, 'hp', 0) <= 0:
-                            return results
-                        if getattr(target_obj, '_dead', False) or getattr(target_obj, 'hp', 0) <= 0:
-                            return results
+                        # Emit an explicit no-op outcome rather than silently
+                        # dropping the scheduled action. This preserves the
+                        # one-animation/one-outcome replay contract without
+                        # mutating terminal state or reconstructing damage.
+                        attacker_dead = getattr(attacker, '_dead', False) or getattr(attacker, 'hp', 0) <= 0
+                        target_dead = getattr(target_obj, '_dead', False) or getattr(target_obj, 'hp', 0) <= 0
+                        if attacker_dead or target_dead:
+                            cause = (
+                                'attacker_dead_before_impact'
+                                if attacker_dead
+                                else 'target_dead_before_impact'
+                            )
+                            cancelled = self._build_cancelled_attack_payload(
+                                attacker,
+                                target_obj,
+                                side_val,
+                                deliver_ts,
+                                cause,
+                                bonus_attack=bonus_attack,
+                            )
+                            if hasattr(self, '_capture_runtime_state'):
+                                cancelled['_event_game_state'] = self._capture_runtime_state()
+                            return [('damage_dodged', cancelled)]
 
                         dmg_payload = None
                         action_plan = dict(passive_plan or {})
@@ -377,6 +445,30 @@ class CombatAttackProcessor:
                                 bonus_attack=bonus_attack,
                             )
 
+                            # Publish the primary hit immediately after its
+                            # canonical HP/shield mutation. Later reflection,
+                            # passives, and mana events must not carry a
+                            # snapshot that reveals this earlier mutation.
+                            ua = self._build_unit_attack_payload(
+                                attacker,
+                                target_obj,
+                                action_damage,
+                                side_val,
+                                deliver_ts,
+                                old_hp_val,
+                                new_hp_val,
+                                bonus_attack=bonus_attack,
+                                dmg_payload=dmg_payload,
+                            )
+                            if isinstance(action_plan.get('item_context'), dict):
+                                item_context = action_plan['item_context']
+                                ua.update({
+                                    'item_id': item_context.get('item_id'),
+                                    'item_effect_id': item_context.get('item_effect_id'),
+                                    'item_effect': item_context.get('item_effect'),
+                                })
+                            append_result('unit_attack', ua)
+
                             # Reflect damage is a separate canonical hit after
                             # the direct hit. It never re-enters damage_plan,
                             # which prevents reflect recursion.
@@ -470,7 +562,7 @@ class CombatAttackProcessor:
                                         unit_side=redirected_side,
                                     )
                                     if redirected_died:
-                                        results.append(('unit_died', redirected_died))
+                                        append_result('unit_died', redirected_died)
                                     if getattr(self, 'passive_processor', None):
                                         # Passive hooks emit (event_type, payload)
                                         # pairs. Use the same buffered collector
@@ -515,8 +607,9 @@ class CombatAttackProcessor:
                             if bonus_attack:
                                 self.passive_processor.after_bonus_damage(attacker, action_damage, attacker_team, local_collector, side_val, deliver_ts)
 
-                        # Apply mana gain at delivery time before building unit_attack payload.
-                        # This keeps server snapshot state and unit_attack payload coherent.
+                        # Apply the ordinary mana gain after the primary hit
+                        # has been buffered. This keeps each checkpoint tied
+                        # to the mutation that produced its event.
                         mana_payload = None
                         if grant_mana or reset_mana:
                             from .event_canonicalizer import emit_mana_change
@@ -560,27 +653,6 @@ class CombatAttackProcessor:
                                     deliver_ts,
                                     bonus_attack=bonus_attack,
                                 )
-
-                        if not damage_plan.get('dodged'):
-                            ua = self._build_unit_attack_payload(
-                                attacker,
-                                target_obj,
-                                action_damage,
-                                side_val,
-                                deliver_ts,
-                                old_hp_val,
-                                new_hp_val,
-                                bonus_attack=bonus_attack,
-                                dmg_payload=dmg_payload,
-                            )
-                            if isinstance(action_plan.get('item_context'), dict):
-                                item_context = action_plan['item_context']
-                                ua.update({
-                                    'item_id': item_context.get('item_id'),
-                                    'item_effect_id': item_context.get('item_effect_id'),
-                                    'item_effect': item_context.get('item_effect'),
-                                })
-                            append_result('unit_attack', ua)
 
                         if mana_payload:
                             append_result('mana_update', mana_payload)
@@ -768,9 +840,9 @@ class CombatAttackProcessor:
                             # list would produce a winner without unit_died.
                             died = emit_unit_died(None, target_obj, side=side_val, timestamp=deliver_ts, unit_hp=dmg_payload.get('pre_hp'), hp_arrays=hp_arrays, unit_index=unit_index, unit_side=unit_side)
                             if died:
-                                results.append(('unit_died', died))
+                                append_result('unit_died', died)
 
-                            passive_collector = lambda ev_type, ev_payload: results.append((ev_type, ev_payload))
+                            passive_collector = append_result
                             if getattr(self, 'passive_processor', None):
                                 self.passive_processor.on_kill(attacker, attacking_team, defending_team, passive_collector, side_val, deliver_ts)
                                 self.passive_processor.on_unit_death(target_obj, attacking_team, defending_team, passive_collector, side_val, deliver_ts)
