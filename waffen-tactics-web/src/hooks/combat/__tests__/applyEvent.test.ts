@@ -14,6 +14,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { applyCombatEvent, CombatReplayValidationError } from '../applyEvent'
 import { compareCombatStates } from '../desync'
+import { reconstructCombatState } from '../replayController'
 import { CombatState, CombatEvent } from '../types'
 
 // Helper to create initial combat state
@@ -172,6 +173,74 @@ describe('applyCombatEvent - Effect Handling', () => {
     expect(next.opponentUnits[0].shield).toBe(0)
     expect(next.combatLog).toEqual(['[DODGE] TestOpponent unika obrażeń od TestPlayer'])
     expect(duplicate).toBe(next)
+  })
+
+  it('replays an authorized death-strike after the attacker has died', () => {
+    const events: CombatEvent[] = [
+      {
+        type: 'animation_start',
+        attacker_id: 'player_0',
+        target_id: 'opp_0',
+        seq: 20,
+        timestamp: 1,
+      },
+      {
+        type: 'unit_died',
+        unit_id: 'opp_0',
+        unit_name: 'TestOpponent',
+        seq: 21,
+        timestamp: 1.1,
+      },
+      {
+        type: 'unit_attack',
+        attacker_id: 'opp_0',
+        attacker_name: 'TestOpponent',
+        target_id: 'player_0',
+        target_name: 'TestPlayer',
+        damage: 3,
+        applied_damage: 3,
+        pre_hp: 500,
+        target_hp: 497,
+        post_hp: 497,
+        post_shield: 0,
+        shield_absorbed: 0,
+        cause: 'set2_death_strike',
+        event_id: 'combat:22',
+        seq: 22,
+        timestamp: 1.1,
+      },
+    ]
+
+    const replayed = reconstructCombatState(events, events.length - 1, state)
+    expect(replayed.playerUnits[0].hp).toBe(497)
+    expect(replayed.opponentUnits[0].hp).toBe(0)
+
+    for (let repeat = 0; repeat < 5; repeat += 1) {
+      expect(reconstructCombatState(events, events.length - 1, state)).toEqual(replayed)
+    }
+  })
+
+  it('ignores an ordinary late attack emitted by a dead attacker', () => {
+    const died = applyCombatEvent(state, {
+      type: 'unit_died',
+      unit_id: 'opp_0',
+      unit_name: 'TestOpponent',
+      seq: 21,
+      timestamp: 1.1,
+    }, { simTime: 1.1 })
+
+    const lateAttack = applyCombatEvent(died, {
+      type: 'unit_attack',
+      attacker_id: 'opp_0',
+      target_id: 'player_0',
+      target_hp: 497,
+      post_shield: 0,
+      cause: 'attack',
+      seq: 22,
+      timestamp: 1.1,
+    }, { simTime: 1.1 })
+
+    expect(lateAttack.playerUnits[0].hp).toBe(500)
   })
 
   it('replays shield_broken as a zero-shield transition and deduplicates reconnect delivery', () => {

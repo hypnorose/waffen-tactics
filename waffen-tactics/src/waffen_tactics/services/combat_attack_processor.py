@@ -617,10 +617,18 @@ class CombatAttackProcessor:
                                             side_val,
                                             deliver_ts,
                                         )
+                                        # Death hooks receive the dead unit's
+                                        # surviving allies first and the
+                                        # opposing team second.  The previous
+                                        # order passed the attacker's team as
+                                        # ``surviving_team``; a death-strike
+                                        # could then target its own dead team or
+                                        # resolve an HP mirror index from the
+                                        # wrong side.
                                         self.passive_processor.on_unit_death(
                                             redirected_target,
-                                            self.team_a if side_val == 'team_a' else self.team_b,
                                             self.team_b if side_val == 'team_a' else self.team_a,
+                                            self.team_a if side_val == 'team_a' else self.team_b,
                                             append_result,
                                             side_val,
                                             deliver_ts,
@@ -892,7 +900,12 @@ class CombatAttackProcessor:
                             passive_collector = append_result
                             if getattr(self, 'passive_processor', None):
                                 self.passive_processor.on_kill(attacker, attacking_team, defending_team, passive_collector, side_val, deliver_ts)
-                                self.passive_processor.on_unit_death(target_obj, attacking_team, defending_team, passive_collector, side_val, deliver_ts)
+                                # Death hooks are owned by the dead unit's
+                                # team: pass its surviving allies first, then
+                                # the attacker's opposing team.  Keeping this
+                                # order is required for death-strike target
+                                # selection and for side-correct HP mirrors.
+                                self.passive_processor.on_unit_death(target_obj, defending_team, attacking_team, passive_collector, side_val, deliver_ts)
 
                             # Preserve the existing legacy death-trigger path
                             # after the passive kill hook has been recorded.

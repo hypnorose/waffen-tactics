@@ -24,6 +24,16 @@ function isUnitDead(state: CombatState, unitId: string): boolean {
   return Boolean(unit && unit.hp <= 0)
 }
 
+function isAuthorizedPostDeathAttack(state: CombatState, event: CombatEvent): boolean {
+  if (event.type !== 'unit_attack' || event.cause !== 'set2_death_strike') return false
+  if (!event.attacker_id || !event.target_id) return false
+
+  // Death-strike is a canonical follow-up emitted by the dead unit's passive.
+  // It intentionally has a dead attacker, but it must still target a living
+  // unit and carry the normal canonical post-state fields validated below.
+  return isUnitDead(state, event.attacker_id) && !isUnitDead(state, event.target_id)
+}
+
 function requireKnownUnit(state: CombatState, event: CombatEvent, unitId: string | undefined): Unit {
   if (!unitId || !unitId.trim()) {
     throw new CombatReplayValidationError(event, 'missing required unit_id')
@@ -177,7 +187,11 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
   const involvedIds = [event.unit_id, event.attacker_id, event.target_id].filter(
     (id): id is string => Boolean(id)
   )
-  if (stateChangingTypes.has(event.type) && involvedIds.some(id => isUnitDead(state, id))) {
+  if (
+    stateChangingTypes.has(event.type) &&
+    involvedIds.some(id => isUnitDead(state, id)) &&
+    !isAuthorizedPostDeathAttack(state, event)
+  ) {
     return newState
   }
 
