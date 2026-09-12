@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { gameAPI } from '../services/api'
 import { getCostColor } from '../data/units'
 import { getTraitDescription } from '../hooks/combatOverlayUtils'
+import { getUnitsForTrait } from './traitMembers'
 
 interface TraitsInfoModalProps {
   isOpen: boolean
@@ -122,13 +123,9 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
                   <div className="mt-3">
                     <h4 className="font-semibold text-text/90 mb-2">Jednostki z tym traitem:</h4>
                     <div className="flex flex-wrap gap-2">
-                      {units && units.length > 0 ? (
+                      {getUnitsForTrait(units, trait.name).length > 0 ? (
                         <>
-                          {units.filter((u: any) => {
-                            const factions = u.factions || []
-                            const classes = u.classes || []
-                            return factions.includes(trait.name) || classes.includes(trait.name)
-                          }).map((u: any) => {
+                          {getUnitsForTrait(units, trait.name).map((u: any) => {
                             const costClass = getCostColor(u.cost || 1).split(' ')[0]
                             return (
                               <div key={u.id} className="flex items-center gap-2 bg-surface/60 px-2 py-1 rounded">
@@ -139,7 +136,7 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
                           })}
                         </>
                       ) : (
-                        <div className="text-sm text-text/60">Brak jednostek</div>
+                        <div className="text-sm text-text/60">No units assigned to this trait</div>
                       )}
                     </div>
                   </div>
