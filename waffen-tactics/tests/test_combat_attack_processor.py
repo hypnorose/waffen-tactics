@@ -289,6 +289,68 @@ class TestCombatAttackProcessor(unittest.TestCase):
         assert scheduled.get('called', False) is True
         assert defending_hp[0] == 100, "defending_hp must not be mutated by compute when scheduler is present"
 
+    def test_attack_is_rejected_when_participant_is_dead_at_planning(self):
+        """Stale HP mirrors must not create an animation for a terminal unit."""
+        for dead_participant in ('attacker', 'target'):
+            with self.subTest(dead_participant=dead_participant):
+                attacker = MockUnit('player_1', 'Warrior')
+                defender = MockUnit('opp_1', 'Goblin')
+                scheduled = {}
+                emitted = []
+
+                def dummy_schedule_event(deliver_at, action_callable):
+                    scheduled['action'] = action_callable
+
+                self.processor.schedule_event = dummy_schedule_event
+                dead_unit = attacker if dead_participant == 'attacker' else defender
+                dead_unit.hp = 0
+                dead_unit._dead = True
+
+                self.processor._process_team_attacks(
+                    attacking_team=[attacker],
+                    defending_team=[defender],
+                    # Deliberately leave the array mirror stale and positive.
+                    attacking_hp=[100],
+                    defending_hp=[100],
+                    time=1.0,
+                    log=[],
+                    event_callback=lambda event_type, payload: emitted.append((event_type, payload)),
+                    side='team_a'
+                )
+
+                self.assertNotIn('action', scheduled)
+                self.assertEqual([event_type for event_type, _ in emitted], [])
+
+    def test_attack_is_rejected_if_passive_kills_target_before_animation(self):
+        """A synchronous lethal passive cannot leave an illegal animation track."""
+        attacker = MockUnit('player_1', 'Warrior')
+        defender = MockUnit('opp_1', 'Goblin')
+        scheduled = {}
+        emitted = []
+
+        class KillingPassive:
+            def before_attack(self, _attacker, target, *_args):
+                target.hp = 0
+                target._dead = True
+                return {}
+
+        self.processor.passive_processor = KillingPassive()
+        self.processor.schedule_event = lambda deliver_at, action_callable: scheduled.setdefault('action', action_callable)
+
+        self.processor._process_team_attacks(
+            attacking_team=[attacker],
+            defending_team=[defender],
+            attacking_hp=[100],
+            defending_hp=[100],
+            time=1.0,
+            log=[],
+            event_callback=lambda event_type, payload: emitted.append((event_type, payload)),
+            side='team_a'
+        )
+
+        self.assertNotIn('action', scheduled)
+        self.assertEqual(emitted, [])
+
     def test_scheduled_attack_is_cancelled_when_participant_dies_before_impact(self):
         """A delayed impact resolves as an explicit no-op after terminal state."""
         for dead_participant in ('attacker', 'target'):

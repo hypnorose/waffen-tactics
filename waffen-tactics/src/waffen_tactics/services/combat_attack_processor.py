@@ -3,12 +3,40 @@ Combat attack processor - handles attack logic and damage calculation
 """
 import random
 import os
+import math
 from typing import List, Dict, Any, Callable, Optional
 from .event_canonicalizer import emit_animation_start, emit_mana_change, emit_unit_stunned
 
 
 class CombatAttackProcessor:
     """Handles attack processing and damage calculations"""
+
+    @staticmethod
+    def _is_alive_for_attack(unit: 'CombatUnit', hp_mirror: Optional[Any] = None) -> bool:
+        """Require the live unit and its canonical HP mirror to agree.
+
+        Attack scheduling can run after another event has marked a unit dead.
+        The mirror is retained for array-based processors, but it must not
+        override the unit's own terminal state (or vice versa).
+        """
+        if unit is None or bool(getattr(unit, '_dead', False)):
+            return False
+
+        try:
+            unit_hp = getattr(unit, 'hp')
+            if isinstance(unit_hp, bool) or not math.isfinite(float(unit_hp)) or float(unit_hp) <= 0:
+                return False
+        except Exception:
+            return False
+
+        if hp_mirror is not None:
+            try:
+                if isinstance(hp_mirror, bool) or not math.isfinite(float(hp_mirror)) or float(hp_mirror) <= 0:
+                    return False
+            except Exception:
+                return False
+
+        return True
 
     def _calculate_damage(self, attacker: 'CombatUnit', defender: 'CombatUnit', damage_multiplier: float = 1.0, ignore_defense_pct: float = 0.0) -> int:
         """Calculate damage from attacker to defender."""
@@ -169,7 +197,7 @@ class CombatAttackProcessor:
     ) -> Optional[str]:
         """Process attacks for one team. Returns winner if defending team is defeated, None otherwise."""
         for i, unit in enumerate(attacking_team):
-            if attacking_hp[i] <= 0:
+            if i >= len(attacking_hp) or not self._is_alive_for_attack(unit, attacking_hp[i]):
                 continue
 
             # Attack if enough time has passed since last attack
@@ -186,6 +214,11 @@ class CombatAttackProcessor:
                     return "team_a" if side == "team_a" else "team_b"
 
                 target = defending_team[target_idx]
+                if not self._is_alive_for_attack(target, defending_hp[target_idx]):
+                    # Target selection must never rely on a stale HP mirror or
+                    # an old focus id. Treat an already-terminal target as a
+                    # rejected attack before any animation is emitted.
+                    continue
                 passive_plan = {}
                 passive_processor = getattr(self, 'passive_processor', None)
                 if passive_processor:
@@ -246,6 +279,15 @@ class CombatAttackProcessor:
                             unit_index=target_index,
                             unit_side=target_side,
                         )
+
+                # Passive hooks may resolve lethal effects synchronously. Do
+                # not create an animation track for a participant that became
+                # terminal while the attack was being planned.
+                if (
+                    not self._is_alive_for_attack(unit, attacking_hp[i])
+                    or not self._is_alive_for_attack(target, defending_hp[target_idx])
+                ):
+                    continue
 
                 # Calculate damage after passive attack modifiers are applied.
                 damage = self._calculate_damage(
@@ -1017,7 +1059,11 @@ class CombatAttackProcessor:
         focused_id = getattr(unit, 'focus_target_id', None)
         if focused_id:
             focused_idx = next((j for j, d in enumerate(defending_team) if getattr(d, 'id', None) == focused_id), None)
-            if focused_idx is not None and focused_idx < len(defending_hp) and defending_hp[focused_idx] > 0:
+            if (
+                focused_idx is not None
+                and focused_idx < len(defending_hp)
+                and self._is_alive_for_attack(defending_team[focused_idx], defending_hp[focused_idx])
+            ):
                 return focused_idx
             # Focus target unavailable -> clear and select a new one.
             try:
@@ -1065,8 +1111,20 @@ class CombatAttackProcessor:
                 for effect in (getattr(candidate, 'effects', []) or [])
             )
 
-        front_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'front' and _targetable(defending_team[j])]
-        back_targets = [(j, defending_team[j].defense) for j in range(len(defending_team)) if defending_hp[j] > 0 and defending_team[j].position == 'back' and _targetable(defending_team[j])]
+        front_targets = [
+            (j, defending_team[j].defense)
+            for j in range(min(len(defending_team), len(defending_hp)))
+            if self._is_alive_for_attack(defending_team[j], defending_hp[j])
+            and defending_team[j].position == 'front'
+            and _targetable(defending_team[j])
+        ]
+        back_targets = [
+            (j, defending_team[j].defense)
+            for j in range(min(len(defending_team), len(defending_hp)))
+            if self._is_alive_for_attack(defending_team[j], defending_hp[j])
+            and defending_team[j].position == 'back'
+            and _targetable(defending_team[j])
+        ]
 
         # Default ordering: front line first then back line
         targets = front_targets + back_targets

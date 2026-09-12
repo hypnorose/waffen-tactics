@@ -94,7 +94,15 @@ def validate_animation_start_payload(
                     return True
                 hp = unit.get('hp')
                 return isinstance(hp, (int, float)) and not isinstance(hp, bool) and hp <= 0
-            return bool(getattr(unit, '_dead', False))
+            if bool(getattr(unit, '_dead', False)):
+                return True
+            hp = getattr(unit, 'hp', None)
+            if hp is None:
+                return False
+            try:
+                return float(hp) <= 0
+            except (TypeError, ValueError):
+                return True
 
         dead = [
             unit_id

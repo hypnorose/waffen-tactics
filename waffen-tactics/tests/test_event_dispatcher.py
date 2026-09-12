@@ -57,6 +57,25 @@ def test_callback_exception_is_not_swallowed_and_seq_is_not_advanced():
     assert d.get_current_seq() == 0
 
 
+@pytest.mark.parametrize('dead_side', ['attacker', 'target'])
+def test_animation_start_rejects_object_with_non_positive_hp(dead_side):
+    attacker = SimpleUnit('a-dead' if dead_side == 'attacker' else 'a-live', hp=0 if dead_side == 'attacker' else 100)
+    target = SimpleUnit('b-dead' if dead_side == 'target' else 'b-live', hp=0 if dead_side == 'target' else 100)
+    d = EventDispatcher([attacker], [target], [attacker.hp], [target.hp])
+    wrapped = d.wrap_callback(lambda *_args: None)
+
+    with pytest.raises(ValueError, match='references dead unit'):
+        wrapped('animation_start', {
+            'animation_id': 'basic_attack',
+            'attacker_id': attacker.id,
+            'target_id': target.id,
+            'duration': 0.2,
+            'timestamp': 1.0,
+        })
+
+    assert d.get_current_seq() == 0
+
+
 def test_mana_delta_computed_when_prev_exists():
     u = SimpleUnit('u1', mana=10)
     a_hp = [100]
