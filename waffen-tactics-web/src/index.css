@@ -327,6 +327,99 @@ input:focus-visible {
   color: #f8fafc;
 }
 
+.combat-action-queue {
+  margin: 0.75rem 0;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.combat-action-queue > summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 800;
+  list-style-position: inside;
+}
+
+.combat-action-queue > summary:focus-visible {
+  outline: 3px solid #fde68a;
+  outline-offset: -3px;
+}
+
+.combat-action-queue-count {
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.combat-action-queue-list {
+  display: grid;
+  gap: 0.25rem;
+  max-height: 11rem;
+  margin: 0;
+  padding: 0 0.5rem 0.5rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.combat-action-queue-list li {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: 0.4rem;
+  align-items: center;
+  min-width: 0;
+  padding: 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: #cbd5e1;
+  font-size: 0.65rem;
+}
+
+.combat-action-queue-list li.is-current {
+  border-color: rgba(251, 191, 36, 0.65);
+  background: rgba(120, 53, 15, 0.3);
+  color: #fef3c7;
+}
+
+.combat-action-queue-index {
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.combat-action-queue-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.combat-action-queue-copy strong,
+.combat-action-queue-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combat-action-queue-copy strong {
+  color: #f8fafc;
+  font-size: 0.65rem;
+}
+
+.combat-action-queue-empty {
+  margin: 0;
+  padding: 0 0.75rem 0.75rem;
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .combat-feedback-item {
     transition: none !important;

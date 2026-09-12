@@ -26,6 +26,7 @@ vi.mock('../SynergiesPanel', () => ({ default: () => null }))
 vi.mock('../CombatSpeedSlider', () => ({ default: () => null }))
 vi.mock('../ProjectileLayer', () => ({ default: () => null }))
 vi.mock('../CombatFeedbackLayer', () => ({ default: () => null }))
+vi.mock('../CombatActionQueue', () => ({ default: () => null }))
 vi.mock('../DesyncInspector', () => ({ default: () => null }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true

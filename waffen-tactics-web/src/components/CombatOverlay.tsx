@@ -18,6 +18,7 @@ import { UnitAnchorsProvider } from '../hooks/useUnitAnchors'
 import { ProjectileProvider } from '../hooks/useProjectileSystem'
 import ProjectileLayer from './ProjectileLayer'
 import CombatFeedbackLayer from './CombatFeedbackLayer'
+import CombatActionQueue from './CombatActionQueue'
 import { combatOverlayBoardStyle, combatOverlayPanelStyle, combatOverlaySidebarStyle, shouldStartCombatPanelCollapsed } from './combatOverlayLayout'
 import { Panel } from '../ui/primitives'
 
@@ -139,6 +140,7 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
               <div>
                 <CombatHeader opponentInfo={opponentInfo} />
                 <CombatSummaryPanel summary={combatSummary} synergies={synergies} />
+                <CombatActionQueue events={replayEvents} currentIndex={replayEventIndex} />
                 <details style={{ marginTop: 12, marginBottom: 12 }}>
                   <summary style={{ cursor: 'pointer', color: '#cbd5e1', fontSize: 12, fontWeight: 700, listStyle: 'none' }}>
                     Pokaż synergie
