@@ -2,7 +2,7 @@
   "schema_version": 1,
   "issue": "WFT-199",
   "title": "Pełna macierz testów walk, itemów, merge i replayu Set 2",
-  "generated_date": "2026-09-11",
+  "generated_date": "2026-09-12",
   "generated_by": "tools/wft199_qa_matrix.py",
   "automated_evidence_only": true,
   "overall_status": "in_review_needs_manual_test",
