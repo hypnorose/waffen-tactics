@@ -9,7 +9,7 @@ import CombatLog from './CombatLog'
 // import CombatFooter from './CombatFooter'
 import CombatSummaryPanel from './CombatSummaryPanel'
 import SynergiesPanel from './SynergiesPanel'
-import CombatSpeedSlider from './CombatSpeedSlider'
+import CombatSpeedPresets from './CombatSpeedPresets'
 import CombatLogModal from './CombatLogModal'
 import DesyncInspector from './DesyncInspector'
 import ReplayControls from './ReplayControls'
@@ -163,7 +163,7 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
                   </button>
                 )}
               </div>
-              <CombatSpeedSlider combatSpeed={combatSpeed} setCombatSpeed={setCombatSpeed} />
+              <CombatSpeedPresets combatSpeed={combatSpeed} setCombatSpeed={setCombatSpeed} />
             </div>
 
             <div className="combat-overlay-board" style={combatOverlayBoardStyle}>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, MutableRefObject } from 'react'
 import { PlayerState } from '../store/gameStore'
 import { useAuthStore } from '../store/authStore'
 import { useCombatSSEBuffer } from './combat/useCombatSSEBuffer'
-import { computeDelayMs } from './combat/replayTiming'
+import { computeDelayMs, normalizeCombatSpeed } from './combat/replayTiming'
 import { applyCombatEvent, CombatReplayValidationError } from './combat/applyEvent'
 import { createEmptyCombatState, reconstructCombatState } from './combat/replayController'
 import { compareCombatStates } from './combat/desync'
@@ -28,7 +28,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
   const [showLog, setShowLog] = useState(false)
   const [combatSpeed, setCombatSpeed] = useState(() => {
     const saved = localStorage.getItem('combatSpeed')
-    return saved ? parseFloat(saved) : 1
+    return normalizeCombatSpeed(saved)
   })
   const [desyncLogs, setDesyncLogs] = useState<DesyncEntry[]>([])
   const [storedGoldBreakdown, setStoredGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number, item_parts: string[] } | null>(null)

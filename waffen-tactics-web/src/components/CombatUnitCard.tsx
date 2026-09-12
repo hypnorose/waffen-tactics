@@ -103,6 +103,8 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   const displayAS = unit.buffed_stats?.attack_speed ?? 0
   const displayMaxMana = unit.buffed_stats?.max_mana ?? 100
   const displayMana = unit.current_mana ?? 0
+  const rawShield = (unit as Unit & { shield?: number }).shield
+  const displayShield = typeof rawShield === 'number' && Number.isFinite(rawShield) ? Math.max(0, rawShield) : 0
   const displayHpRegen = unit.buffed_stats?.hp_regen_per_sec ?? 0
   const activeBorder = isActiveTarget ? '#fb923c' : isActiveAttacker ? '#fde047' : getRarityColor(unit.cost)
 
@@ -260,7 +262,15 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
         </div>
       )}
 
-      <div className="combat-unit-card-bar relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600" style={{ height: combatUnitCardSizingStyle.barHeight }}>
+      <div
+        className="combat-unit-card-bar relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600"
+        style={{ height: combatUnitCardSizingStyle.barHeight }}
+        role="progressbar"
+        aria-label={`HP ${Math.round(displayHp)} of ${Math.round(displayMaxHp)}`}
+        aria-valuemin={0}
+        aria-valuemax={Math.round(displayMaxHp)}
+        aria-valuenow={Math.round(displayHp)}
+      >
         <div
           className="absolute inset-y-0 left-0"
           style={{
@@ -270,7 +280,15 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
         />
       </div>
 
-      <div className="combat-unit-card-bar combat-unit-card-mana-bar relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600 mt-1" style={{ height: combatUnitCardSizingStyle.barHeight, marginTop: combatUnitCardSizingStyle.barGap }}>
+      <div
+        className="combat-unit-card-bar combat-unit-card-mana-bar relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600 mt-1"
+        style={{ height: combatUnitCardSizingStyle.barHeight, marginTop: combatUnitCardSizingStyle.barGap }}
+        role="progressbar"
+        aria-label={`Mana ${Math.round(displayMana)} of ${Math.round(displayMaxMana)}`}
+        aria-valuemin={0}
+        aria-valuemax={Math.round(displayMaxMana)}
+        aria-valuenow={Math.round(displayMana)}
+      >
         <div
           className="absolute inset-y-0 left-0"
           style={{
@@ -278,6 +296,21 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
             background: 'linear-gradient(to right, #8b5cf6, #a855f7)',
           }}
         />
+      </div>
+
+      <div className="combat-unit-card-vitals" aria-label={`Combat stats for ${unit.name}`}>
+        <div className="combat-unit-card-vital" data-combat-vital="hp">
+          <span className="combat-unit-card-vital-label">HP</span>
+          <strong>{Math.round(displayHp)}/{Math.round(displayMaxHp)}</strong>
+        </div>
+        <div className="combat-unit-card-vital" data-combat-vital="mana">
+          <span className="combat-unit-card-vital-label">Mana</span>
+          <strong>{Math.round(displayMana)}/{Math.round(displayMaxMana)}</strong>
+        </div>
+        <div className="combat-unit-card-vital" data-combat-vital="shield">
+          <span className="combat-unit-card-vital-label">Shield</span>
+          <strong>{Math.round(displayShield)}</strong>
+        </div>
       </div>
 
       {/* Tooltip is portaled so the board/frame overflow cannot clip it. */}

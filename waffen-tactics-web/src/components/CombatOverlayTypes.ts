@@ -61,7 +61,7 @@ export interface SynergiesPanelProps {
   traits: TraitDefinition[]
 }
 
-export interface CombatSpeedSliderProps {
+export interface CombatSpeedPresetsProps {
   combatSpeed: number
   setCombatSpeed: (speed: number) => void
 }

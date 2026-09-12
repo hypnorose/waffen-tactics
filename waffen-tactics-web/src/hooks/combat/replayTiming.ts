@@ -1,5 +1,14 @@
 import { CombatEvent } from './types'
 
+export const COMBAT_SPEED_PRESETS = [1, 2, 5] as const
+
+export function normalizeCombatSpeed(value: unknown): number {
+  const parsed = typeof value === 'number' ? value : Number(value)
+  return COMBAT_SPEED_PRESETS.includes(parsed as (typeof COMBAT_SPEED_PRESETS)[number])
+    ? parsed
+    : COMBAT_SPEED_PRESETS[0]
+}
+
 export function computeDelayMs(curr: CombatEvent, next: CombatEvent | null, combatSpeed: number, animationScale: number): number {
   if (!next) return 0
   const currTs = curr.timestamp ?? 0

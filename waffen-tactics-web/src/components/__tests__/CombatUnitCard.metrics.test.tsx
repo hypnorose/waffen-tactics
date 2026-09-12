@@ -48,6 +48,7 @@ const combatUnit = {
   avatar: '/avatars/test.png',
   current_mana: 100,
   max_mana: 100,
+  shield: 12,
 }
 
 const tableUnitStats = {
@@ -90,6 +91,21 @@ describe('combat and table unit metric ownership', () => {
     expect(container.textContent).not.toContain('DPS')
     expect(container.textContent).not.toContain('Przyjęte/s')
     expect(container.textContent).not.toContain('BONUS')
+  })
+
+  it('keeps HP, mana, and shield values visible without opening the tooltip', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    act(() => {
+      root = createRoot(container)
+      root.render(createElement(CombatUnitCard as any, { unit: combatUnit }))
+    })
+
+    expect(container.querySelector('[data-combat-vital="hp"]')?.textContent).toContain('80/100')
+    expect(container.querySelector('[data-combat-vital="mana"]')?.textContent).toContain('100/100')
+    expect(container.querySelector('[data-combat-vital="shield"]')?.textContent).toContain('12')
+    expect(container.querySelectorAll('[role="progressbar"]')).toHaveLength(2)
   })
 
   it('keeps the same metrics available on the between-battle table card', () => {
