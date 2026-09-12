@@ -163,6 +163,35 @@ describe('presentationTimeline', () => {
     ])
   })
 
+  it('treats an explicitly empty canonical roster as ready and rejects visual actors', () => {
+    let state = reducePresentationTimeline(createPresentationTimeline(), event({
+      type: 'units_init',
+      event_id: 'combat:empty-init',
+      seq: 1,
+      timestamp: 0,
+      player_units: [],
+      opponent_units: [],
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'unit_died',
+      event_id: 'combat:empty-roster-death',
+      seq: 2,
+      timestamp: 1,
+      unit_id: 'ghost',
+    }))
+
+    expect(state.actorRegistryReady).toBe(true)
+    expect(state.tracks).toEqual({})
+    expect(state.diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'missing_actor',
+        eventId: 'combat:empty-roster-death',
+        seq: 2,
+        unitId: 'ghost',
+      }),
+    ])
+  })
+
   it('rebuilds only through the requested replay index and exposes active tracks', () => {
     const events = [
       event({ type: 'animation_start', event_id: 'combat:10', animation_id: 'basic_attack', attacker_id: 'player_0', target_id: 'opp_0', timestamp: 1 }),

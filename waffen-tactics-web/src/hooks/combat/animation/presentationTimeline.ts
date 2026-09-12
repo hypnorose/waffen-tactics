@@ -49,12 +49,15 @@ export interface PresentationTimelineState {
   diagnostics: PresentationDiagnostic[]
   /** Logical actor registry populated by the canonical units_init event. */
   actors: Record<string, true>
+  /** Distinguishes a canonical empty roster from synthetic fixtures without units_init. */
+  actorRegistryReady: boolean
 }
 
 export const createPresentationTimeline = (): PresentationTimelineState => ({
   tracks: {},
   diagnostics: [],
   actors: {},
+  actorRegistryReady: false,
 })
 
 /**
@@ -100,20 +103,20 @@ function registerActorsFromInit(
     .map((unit) => unit?.id)
     .filter((id): id is string => typeof id === 'string' && id.trim() !== '')
 
-  if (actorIds.length === 0) return state
   return {
     ...state,
     actors: actorIds.reduce<Record<string, true>>((actors, id) => {
       actors[id] = true
       return actors
     }, { ...state.actors }),
+    actorRegistryReady: true,
   }
 }
 
 function isKnownActor(state: PresentationTimelineState, unitId: string): boolean {
   // Synthetic timeline tests may intentionally omit units_init. In a real
   // canonical stream the registry is populated before visual events arrive.
-  return Object.keys(state.actors).length === 0 || state.actors[unitId] === true
+  return !state.actorRegistryReady || state.actors[unitId] === true
 }
 
 const DEFAULT_DURATION_SECONDS = 0.18
