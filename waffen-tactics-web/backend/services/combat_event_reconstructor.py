@@ -18,7 +18,10 @@ They never derive HP, stats, effects, or expiration state from snapshots.
 """
 import math
 from typing import Dict, List, Any, Tuple
-from .combat_snapshot_contract import validate_combat_snapshot
+from .combat_snapshot_contract import (
+    validate_combat_snapshot,
+    validate_mana_update_snapshot_coherence,
+)
 
 
 class CombatEventReconstructor:
@@ -102,6 +105,17 @@ class CombatEventReconstructor:
         seq = event_data.get('seq', 'N/A')
         # print(f"Processing event: type={event_type}, seq={seq}")
         self._validate_item_context(event_data)
+        if event_type == 'mana_update':
+            # Validate the event-vs-snapshot post-state before mutating the
+            # reducer.  A malformed checkpoint must stop replay, never be
+            # repaired by applying whichever side looks more convenient.
+            validate_mana_update_snapshot_coherence(
+                event_data,
+                context=(
+                    f"mana_update seq={seq} "
+                    f"event_id={event_data.get('event_id', 'N/A')}"
+                ),
+            )
 
         if event_type in ['attack', 'unit_attack']:
             self._process_damage_event(event_data)

@@ -111,6 +111,58 @@ def validate_combat_snapshot(snapshot: Any, *, context: str = "snapshot") -> Dic
     return snapshot
 
 
+def validate_mana_update_snapshot_coherence(
+    event: Any,
+    *,
+    context: str = "mana_update",
+) -> None:
+    """Require a mana event and its embedded snapshot to describe one state.
+
+    ``current_mana``/``post_mana`` are post-mutation values.  When a producer
+    attaches ``game_state`` to the event, the matching unit must therefore
+    carry the same value.  This is deliberately a validation-only boundary:
+    it never repairs the event from the snapshot or vice versa.
+    """
+    if not isinstance(event, dict):
+        _fail(context, "event", "an object", event)
+
+    snapshot = event.get("game_state")
+    if snapshot is None:
+        return
+    validate_combat_snapshot(snapshot, context=f"{context} game_state")
+
+    unit_id = event.get("unit_id")
+    if not isinstance(unit_id, str) or not unit_id.strip():
+        raise CombatSnapshotContractError(
+            f"Invalid mana_update at {context}: missing unit_id"
+        )
+
+    matching_unit = next(
+        (
+            unit
+            for side in ("player_units", "opponent_units")
+            for unit in snapshot[side]
+            if unit.get("id") == unit_id
+        ),
+        None,
+    )
+    if matching_unit is None:
+        raise CombatSnapshotContractError(
+            f"Invalid mana_update at {context}: unit_id={unit_id} is absent from game_state"
+        )
+
+    for field in ("current_mana", "post_mana"):
+        value = event.get(field)
+        if value is None:
+            continue
+        if value != matching_unit["current_mana"]:
+            raise CombatSnapshotContractError(
+                f"Invalid mana_update at {context}: unit_id={unit_id} "
+                f"field={field}; event={value!r}, game_state.current_mana="
+                f"{matching_unit['current_mana']!r}"
+            )
+
+
 def dumps_combat_snapshot(snapshot: Any, *, context: str = "snapshot") -> str:
     """Validate, serialize, and validate the JSON round-trip."""
     validate_combat_snapshot(snapshot, context=context)

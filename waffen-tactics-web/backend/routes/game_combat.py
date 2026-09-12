@@ -20,7 +20,10 @@ from services.combat_service import (
     prepare_round_buffs, run_combat_simulation, process_combat_results, resolve_defeat_hp_mutation,
     resolve_persisted_team_units,
 )
-from services.combat_snapshot_contract import validate_combat_snapshot
+from services.combat_snapshot_contract import (
+    validate_combat_snapshot,
+    validate_mana_update_snapshot_coherence,
+)
 from waffen_tactics.services.event_canonicalizer import validate_animation_start_payload
 from waffen_tactics.services.combat_errors import (
     CombatError,
@@ -813,6 +816,14 @@ def map_event_to_sse_payload(event_type: str, data: dict):
                 data['game_state'],
                 context=f"{event_type} game_state seq={data.get('seq', 'N/A')}",
             )
+            if event_type == 'mana_update':
+                validate_mana_update_snapshot_coherence(
+                    data,
+                    context=(
+                        f"mana_update seq={data.get('seq', 'N/A')} "
+                        f"event_id={data.get('event_id', 'N/A')}"
+                    ),
+                )
             res['game_state'] = copy.deepcopy(data['game_state'])
         logger.debug(f"Mapped {event_type} to payload with seq={res.get('seq')}")
         return res

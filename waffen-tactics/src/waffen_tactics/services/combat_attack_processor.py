@@ -682,6 +682,17 @@ class CombatAttackProcessor:
                                 unit_side=atk_side,
                             )
 
+                            # Publish the primary mana mutation at the exact
+                            # point where it was applied.  Some after-attack
+                            # passives (for example Uhla's transfer) mutate
+                            # the same attacker immediately afterwards.  If
+                            # this result is buffered after that hook, the
+                            # event still says "post_mana=16" while its
+                            # emission snapshot already says 12.  That is a
+                            # canonical event/state mismatch for replay.
+                            if mana_payload:
+                                append_result('mana_update', mana_payload)
+
                             if getattr(self, 'passive_processor', None):
                                 self.passive_processor.after_attack_mana(
                                     attacker,
@@ -692,9 +703,6 @@ class CombatAttackProcessor:
                                     deliver_ts,
                                     bonus_attack=bonus_attack,
                                 )
-
-                        if mana_payload:
-                            append_result('mana_update', mana_payload)
 
                         # Bonus-attack item mana is applied after the normal
                         # bonus attack reset and uses the same canonical path.
