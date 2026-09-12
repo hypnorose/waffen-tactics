@@ -12,20 +12,22 @@ def make_unit(uid, name, factions=None, classes=None, atk_speed=1.0):
     skill = Skill(name="s", description="d", mana_cost=100, effect={})
     return Unit(id=uid, name=name, cost=1, factions=factions or [], classes=classes or [], stats=stats, skill=skill)
 
-# Create player with 3 XN Waffen and 1 XN Jugend
-player = PlayerState(user_id=1)
+if __name__ == "__main__":
+    # Keep this diagnostic utility runnable directly without making pytest
+    # depend on whichever mutable local database happens to be present.
+    player = PlayerState(user_id=1)
 
-# Create unit instances with matching IDs
-ui1 = UnitInstance(unit_id="yossarian", star_level=1)
-ui2 = UnitInstance(unit_id="szalwia", star_level=1)
-ui3 = UnitInstance(unit_id="bosman", star_level=1)
+    # Create unit instances with matching IDs.
+    ui1 = UnitInstance(unit_id="yossarian", star_level=1)
+    ui2 = UnitInstance(unit_id="szalwia", star_level=1)
+    ui3 = UnitInstance(unit_id="bosman", star_level=1)
 
-player.board = [ui1, ui2, ui3]
+    player.board = [ui1, ui2, ui3]
 
-state = gsu.enrich_player_state(player)
+    state = gsu.enrich_player_state(player)
 
-print("Synergies:", state['synergies'])
-for b in state['board']:
-    iid = b['instance_id']
-    buffed = b['buffed_stats']
-    print(f"Unit {b['unit_id']}: attack {buffed['attack']}, attack_speed {buffed['attack_speed']}")
+    print("Synergies:", state['synergies'])
+    for b in state['board']:
+        iid = b['instance_id']
+        buffed = b['buffed_stats']
+        print(f"Unit {b['unit_id']}: attack {buffed['attack']}, attack_speed {buffed['attack_speed']}")
