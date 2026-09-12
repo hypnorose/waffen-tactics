@@ -36,7 +36,7 @@ export interface PresentationTrack {
 }
 
 export interface PresentationDiagnostic {
-  code: 'missing_actor' | 'missing_target' | 'invalid_animation' | 'unknown_presentation_event'
+  code: 'missing_actor' | 'missing_target' | 'dead_actor' | 'invalid_animation' | 'unknown_presentation_event'
   message: string
   eventType: string
   eventId?: string
@@ -51,6 +51,8 @@ export interface PresentationTimelineState {
   actors: Record<string, true>
   /** Distinguishes a canonical empty roster from synthetic fixtures without units_init. */
   actorRegistryReady: boolean
+  /** Lifecycle state is presentation metadata only; combat HP remains reducer-owned. */
+  deadActors: Record<string, true>
 }
 
 export const createPresentationTimeline = (): PresentationTimelineState => ({
@@ -58,6 +60,7 @@ export const createPresentationTimeline = (): PresentationTimelineState => ({
   diagnostics: [],
   actors: {},
   actorRegistryReady: false,
+  deadActors: {},
 })
 
 /**
@@ -117,6 +120,10 @@ function isKnownActor(state: PresentationTimelineState, unitId: string): boolean
   // Synthetic timeline tests may intentionally omit units_init. In a real
   // canonical stream the registry is populated before visual events arrive.
   return !state.actorRegistryReady || state.actors[unitId] === true
+}
+
+function isLiveActor(state: PresentationTimelineState, unitId: string): boolean {
+  return !state.deadActors[unitId]
 }
 
 const DEFAULT_DURATION_SECONDS = 0.18
@@ -212,6 +219,22 @@ function unitRequiredDiagnostic(
   })
 }
 
+function liveActorDiagnostic(
+  state: PresentationTimelineState,
+  event: CombatEvent,
+  unitId: string | undefined,
+  role: 'attacker' | 'target' | 'unit',
+): PresentationTimelineState {
+  const next = unitRequiredDiagnostic(state, event, unitId, role)
+  if (!unitId || !isKnownActor(next, unitId) || isLiveActor(next, unitId)) return next
+
+  return addDiagnostic(next, event, {
+    code: 'dead_actor',
+    unitId,
+    message: `Presentation event ${event.type} seq=${event.seq ?? 'n/a'} event_id=${event.event_id ?? 'n/a'} references dead ${role} actor ${unitId}.`,
+  })
+}
+
 function animationContractDiagnostic(
   state: PresentationTimelineState,
   event: CombatEvent,
@@ -300,8 +323,8 @@ function addTargetImpact(
   intent: 'target_recoil' | 'shield_hit' | 'shield_break' | 'multi_hit' | 'dodge',
   role: string,
 ): PresentationTimelineState {
-  const next = unitRequiredDiagnostic(state, event, targetId, 'target')
-  if (!isKnownActor(next, targetId)) return next
+  const next = liveActorDiagnostic(state, event, targetId, 'target')
+  if (!isKnownActor(next, targetId) || !isLiveActor(next, targetId)) return next
   return addTrack(next, event, intent, {
     targetId,
     duration: intent === 'shield_break' ? 0.2 : 0.16,
@@ -317,8 +340,8 @@ function addUnitStatus(
   duration = 0.22,
 ): PresentationTimelineState {
   const unitId = event.unit_id || event.caster_id
-  let next = unitRequiredDiagnostic(state, event, unitId, 'unit')
-  if (!unitId || !isKnownActor(next, unitId)) return next
+  let next = liveActorDiagnostic(state, event, unitId, 'unit')
+  if (!unitId || !isKnownActor(next, unitId) || !isLiveActor(next, unitId)) return next
   return addTrack(next, event, intent, {
     unitId,
     duration,
@@ -335,9 +358,9 @@ export function reducePresentationTimeline(
 
   switch (event.type) {
     case 'animation_start': {
-      next = unitRequiredDiagnostic(next, event, event.attacker_id, 'attacker')
-      next = unitRequiredDiagnostic(next, event, event.target_id, 'target')
-      if (!event.attacker_id || !event.target_id || !isKnownActor(next, event.attacker_id) || !isKnownActor(next, event.target_id)) return next
+      next = liveActorDiagnostic(next, event, event.attacker_id, 'attacker')
+      next = liveActorDiagnostic(next, event, event.target_id, 'target')
+      if (!event.attacker_id || !event.target_id || !isKnownActor(next, event.attacker_id) || !isKnownActor(next, event.target_id) || !isLiveActor(next, event.attacker_id) || !isLiveActor(next, event.target_id)) return next
       const withContractDiagnostics = animationContractDiagnostic(next, event)
       if (withContractDiagnostics !== next) return withContractDiagnostics
 
@@ -353,7 +376,7 @@ export function reducePresentationTimeline(
     case 'attack':
     case 'unit_attack':
     case 'damage': {
-      next = unitRequiredDiagnostic(next, event, event.target_id || event.unit_id, 'target')
+      next = liveActorDiagnostic(next, event, event.target_id || event.unit_id, 'target')
       const targetId = event.target_id || event.unit_id
       if (!targetId) return next
       const dodged = event.type === 'unit_attack' && event.dodged === true
@@ -362,7 +385,7 @@ export function reducePresentationTimeline(
     }
 
     case 'damage_dodged': {
-      next = unitRequiredDiagnostic(next, event, event.target_id || event.unit_id, 'target')
+      next = liveActorDiagnostic(next, event, event.target_id || event.unit_id, 'target')
       const targetId = event.target_id || event.unit_id
       if (!targetId) return next
       return addTargetImpact(next, event, targetId, 'dodge', 'dodge')
@@ -370,7 +393,7 @@ export function reducePresentationTimeline(
 
     case 'attack_missed':
     case 'miss': {
-      next = unitRequiredDiagnostic(next, event, event.target_id, 'target')
+      next = liveActorDiagnostic(next, event, event.target_id, 'target')
       if (!event.target_id) return next
       return addTargetImpact(next, event, event.target_id, 'dodge', 'miss')
     }
@@ -393,30 +416,40 @@ export function reducePresentationTimeline(
     case 'unit_died': {
       next = unitRequiredDiagnostic(next, event, event.unit_id, 'unit')
       if (!event.unit_id || !isKnownActor(next, event.unit_id)) return next
-      return addTrack(next, event, 'death', {
+      if (!isLiveActor(next, event.unit_id)) {
+        return addDiagnostic(next, event, {
+          code: 'dead_actor',
+          unitId: event.unit_id,
+          message: `Presentation event ${event.type} seq=${event.seq ?? 'n/a'} event_id=${event.event_id ?? 'n/a'} repeats death for already dead actor ${event.unit_id}.`,
+        })
+      }
+      const deathTrack = addTrack(next, event, 'death', {
         unitId: event.unit_id,
         duration: 0.28,
         intensity: 'large',
         role: 'death',
       })
+      return { ...deathTrack, deadActors: { ...deathTrack.deadActors, [event.unit_id]: true } }
     }
 
     case 'unit_revived':
     case 'revive': {
       next = unitRequiredDiagnostic(next, event, event.unit_id, 'unit')
       if (!event.unit_id || !isKnownActor(next, event.unit_id)) return next
-      return addTrack(next, event, 'revive', {
+      const reviveTrack = addTrack(next, event, 'revive', {
         unitId: event.unit_id,
         duration: 0.32,
         intensity: 'large',
         role: 'revive',
       })
+      const { [event.unit_id]: _wasDead, ...remainingDeadActors } = reviveTrack.deadActors
+      return { ...reviveTrack, deadActors: remainingDeadActors }
     }
 
     case 'shield_broken': {
-      next = unitRequiredDiagnostic(next, event, event.unit_id || event.target_id, 'unit')
+      next = liveActorDiagnostic(next, event, event.unit_id || event.target_id, 'unit')
       const unitId = event.unit_id || event.target_id
-      if (!unitId || !isKnownActor(next, unitId)) return next
+      if (!unitId || !isKnownActor(next, unitId) || !isLiveActor(next, unitId)) return next
       return addTrack(next, event, 'shield_break', {
         unitId,
         targetId: event.target_id || unitId,
@@ -445,15 +478,15 @@ export function reducePresentationTimeline(
     case 'damage_over_time_expired':
       return addUnitStatus(next, event, 'damage_over_time')
     case 'damage_over_time_tick': {
-      next = unitRequiredDiagnostic(next, event, event.unit_id, 'target')
-      if (!event.unit_id || !isKnownActor(next, event.unit_id)) return next
+      next = liveActorDiagnostic(next, event, event.unit_id, 'target')
+      if (!event.unit_id || !isKnownActor(next, event.unit_id) || !isLiveActor(next, event.unit_id)) return next
       return addTargetImpact(next, event, event.unit_id, Number(event.shield_absorbed || 0) > 0 ? 'shield_hit' : 'target_recoil', 'dot-tick')
     }
     case 'effect_expired':
       return addUnitStatus(next, event, hasItemContext(event) ? 'item' : 'effect')
     case 'formation_changed': {
-      next = unitRequiredDiagnostic(next, event, event.unit_id, 'unit')
-      if (!event.unit_id || !isKnownActor(next, event.unit_id)) return next
+      next = liveActorDiagnostic(next, event, event.unit_id, 'unit')
+      if (!event.unit_id || !isKnownActor(next, event.unit_id) || !isLiveActor(next, event.unit_id)) return next
       return addTrack(next, event, 'formation_change', {
         unitId: event.unit_id,
         duration: 0.28,

@@ -192,6 +192,60 @@ describe('presentationTimeline', () => {
     ])
   })
 
+  it('rejects presentation events after death until a canonical revive', () => {
+    let state = reducePresentationTimeline(createPresentationTimeline(), event({
+      type: 'units_init',
+      event_id: 'combat:lifecycle-init',
+      seq: 1,
+      timestamp: 0,
+      player_units: [{ id: 'player_0' } as any],
+      opponent_units: [{ id: 'opp_0' } as any],
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'unit_died',
+      event_id: 'combat:lifecycle-death',
+      seq: 2,
+      timestamp: 1,
+      unit_id: 'opp_0',
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'unit_attack',
+      event_id: 'combat:lifecycle-after-death',
+      seq: 3,
+      timestamp: 2,
+      target_id: 'opp_0',
+    }))
+
+    expect(state.deadActors).toEqual({ opp_0: true })
+    expect(Object.values(state.tracks).map((track) => track.intent)).toEqual(['death'])
+    expect(state.diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'dead_actor',
+        eventId: 'combat:lifecycle-after-death',
+        seq: 3,
+        unitId: 'opp_0',
+      }),
+    ])
+
+    state = reducePresentationTimeline(state, event({
+      type: 'unit_revived',
+      event_id: 'combat:lifecycle-revive',
+      seq: 4,
+      timestamp: 3,
+      unit_id: 'opp_0',
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'unit_attack',
+      event_id: 'combat:lifecycle-after-revive',
+      seq: 5,
+      timestamp: 4,
+      target_id: 'opp_0',
+    }))
+
+    expect(state.deadActors).toEqual({})
+    expect(Object.values(state.tracks).map((track) => track.intent)).toEqual(['death', 'revive', 'target_recoil'])
+  })
+
   it('rebuilds only through the requested replay index and exposes active tracks', () => {
     const events = [
       event({ type: 'animation_start', event_id: 'combat:10', animation_id: 'basic_attack', attacker_id: 'player_0', target_id: 'opp_0', timestamp: 1 }),
