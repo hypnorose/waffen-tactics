@@ -70,6 +70,46 @@
   padding: 0.5rem;
 }
 
+.ui-toggle {
+  align-items: center;
+  background: rgb(var(--wt-color-surface-overlay));
+  border: 1px solid rgb(var(--wt-color-border));
+  border-radius: 999px;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  height: 2rem;
+  padding: 0.25rem;
+  position: relative;
+  transition: background-color 160ms ease, border-color 160ms ease;
+  width: 3.5rem;
+}
+
+.ui-toggle:hover {
+  border-color: rgb(var(--wt-color-border-strong));
+}
+
+.ui-toggle--on {
+  background: rgb(var(--wt-color-success) / 0.28);
+  border-color: rgb(var(--wt-color-success));
+}
+
+.ui-toggle__thumb {
+  background: rgb(var(--wt-color-text-primary));
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.32);
+  display: block;
+  height: 1.5rem;
+  transform: translateX(0);
+  transition: transform 160ms ease;
+  width: 1.5rem;
+}
+
+.ui-toggle--on .ui-toggle__thumb {
+  background: rgb(var(--wt-color-success-strong));
+  transform: translateX(1.5rem);
+}
+
 .ui-panel {
   background: rgb(var(--wt-color-surface));
   border: 1px solid rgb(var(--wt-color-border));
@@ -127,6 +167,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ui-button,
+  .ui-toggle,
+  .ui-toggle__thumb,
   .ui-progress__fill {
     transition: none;
   }

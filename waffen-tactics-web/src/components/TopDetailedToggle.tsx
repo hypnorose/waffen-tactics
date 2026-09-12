@@ -6,11 +6,13 @@ export default function TopDetailedToggle() {
   return (
     <button
       onClick={() => setDetailedView(!detailedView)}
-      className={`ml-2 w-14 h-8 rounded-full relative transition-colors flex items-center ${detailedView ? 'bg-green-500/80' : 'bg-gray-700/40'}`}
+      className={`ui-toggle ml-2 ${detailedView ? 'ui-toggle--on' : ''}`}
       title={detailedView ? 'Widok szczegółowy — wyłącz' : 'Widok skondensowany — włącz'}
       aria-label="Toggle detailed view"
+      aria-pressed={detailedView}
+      data-state={detailedView ? 'on' : 'off'}
     >
-      <span className={`absolute left-1 top-1 w-6 h-6 bg-white rounded-full shadow transform transition-transform ${detailedView ? 'translate-x-6' : 'translate-x-0'}`} />
+      <span className="ui-toggle__thumb" />
       <span className="sr-only">Toggle detailed view</span>
     </button>
   )

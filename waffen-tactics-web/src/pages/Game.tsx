@@ -2,19 +2,16 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useGameStore } from '../store/gameStore'
 import { gameAPI } from '../services/api'
-import GameBoard from '../components/GameBoard'
-import Shop from '../components/Shop'
-import Bench from '../components/Bench'
-import TopDetailedToggle from '../components/TopDetailedToggle'
 import CombatOverlay from '../components/CombatOverlay'
 import TraitsInfoModal from '../components/TraitsInfoModal'
 import NotificationModal from '../components/NotificationModal'
 import { loadUnits } from '../data/units'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
-import ItemsPanel from '../components/ItemsPanel'
 import type { Item } from '../data/items'
 import { buildDiscordAvatarUrl } from '../services/avatar'
-import { Panel } from '../ui/primitives'
+import GameHeader from '../components/GameHeader'
+import GameSections from '../components/GameSections'
+import GameShell from '../components/GameShell'
 
 export default function Game() {
   const { user, logout } = useAuthStore()
@@ -290,151 +287,35 @@ export default function Game() {
         </div>
       )}
 
-      {/* Top Bar - Avatar, HP, Level, Username, Wyloguj */}
-      <div className="game-topbar bg-surface/80 backdrop-blur-md border-b border-primary/20 sticky top-0 z-50">
-        <div className="game-topbar-inner container mx-auto px-4 py-3">
-          <div className="game-topbar-row flex items-center justify-between">
-            {/* Left: Avatar + User Info + Stats */}
-            <div className="game-topbar-player flex items-center gap-4">
-              {playerAvatarUrl ? (
-                <img
-                  src={playerAvatarUrl}
-                  alt="Avatar"
-                  className="w-12 h-12 rounded-full ring-2 ring-primary/30"
-                />
-              ) : (
-                <div
-                  role="img"
-                  aria-label="Brak avatara"
-                  className="w-12 h-12 rounded-full ring-2 ring-primary/30 bg-slate-700 flex items-center justify-center font-bold text-primary"
-                >
-                  {user?.username?.charAt(0).toUpperCase() || '?'}
-                </div>
-              )}
-              <div className="flex items-center gap-4">
-                <div>
-                  <div className="text-sm font-bold">{user?.username}</div>
-                  <div className="text-xs text-text/60">Runda {playerState.round_number}</div>
-                </div>
-                <div className="game-topbar-stats flex items-center gap-3 text-sm">
-                  {/* HP */}
-                  <div className={`flex items-center gap-1 px-2 py-1 rounded ${playerState.hp <= 0 ? 'bg-red-500/40 animate-pulse' : 'bg-red-500/20'}`}>
-                    <span>❤️</span>
-                    <span className="font-bold">{playerState.hp}</span>
-                  </div>
-                  
-                  {/* Level */}
-                  <div className="flex items-center gap-1 bg-blue-500/20 px-2 py-1 rounded">
-                    <span>⭐</span>
-                    <span className="font-bold">Lvl {playerState.level}</span>
-                  </div>
-                  
-                  {/* Gold */}
-                  <div className="flex items-center gap-1 bg-yellow-500/20 px-2 py-1 rounded">
-                    <span>💰</span>
-                    <span className="font-bold">{playerState.gold}</span>
-                  </div>
-                  
-                  {/* Wins */}
-                  <div className="flex items-center gap-1 bg-green-500/20 px-2 py-1 rounded">
-                    <span>🏆</span>
-                    <span className="font-bold">{playerState.wins}W</span>
-                  </div>
-                  <div className="flex items-center gap-1 bg-green-500/20 px-2 py-1 rounded">
-                    <span>🔥</span>
-                    <span className="font-bold">{playerState.streak}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Right: Combat/Surrender Buttons + Leaderboard + Logout + Global Toggle */}
-            <div className="game-topbar-actions flex items-center gap-3">
-              {!isGameOver && (
-                <>
-                  <button
-                    onClick={handleStartCombat}
-                    disabled={playerState.board.length === 0}
-                    className="btn bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-2 font-bold"
-                  >
-                    ⚔️ WALCZ!
-                  </button>
-                  <button
-                    onClick={handleSurrender}
-                    className="btn bg-gray-600 hover:bg-gray-700 px-4 py-2 text-sm"
-                    title="Poddaj się"
-                  >
-                    🏳️ Poddaj się
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => setShowTraitsInfo(true)}
-                className="btn bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm"
-                title="Informacje o traitach"
-              >
-                📚 Info
-              </button>
-              <button
-                onClick={handleShowLeaderboard}
-                className="btn bg-yellow-600 hover:bg-yellow-700 px-4 py-2 text-sm"
-                title="Tablica wyników"
-              >
-                🏆 Ranking
-              </button>
-              <button onClick={logout} className="btn btn-danger">
-                🚪 Wyloguj
-              </button> 
-              {/* Detailed view toggle (global) */}
-              <TopDetailedToggle />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={`game-content container mx-auto px-4 py-6 max-w-7xl space-y-4 ${isGameOver ? 'pointer-events-none opacity-50' : ''}`}>
-        {!isGameOver && <ItemsPanel playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} itemCatalog={itemCatalog} onItemDragStart={setDraggedItemId} onItemDragEnd={() => setDraggedItemId(null)} />}
-        {/* Board Section */}
-        <Panel variant="raised" className="game-section p-4">
-          <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
-            <span>🎯</span> Plansza bojowa 
-            <span className={`text-sm font-mono ${
-              playerState.board.length >= playerState.max_board_size 
-                ? 'text-yellow-500' 
-                : 'text-text/60'
-            }`}>
-              [{playerState.board.length}/{playerState.max_board_size}]
-            </span>
-            {isGameOver && <span className="text-sm text-red-500 font-normal ml-2">(Gra zakończona - tylko podgląd)</span>}
-          </h2>
-          <GameBoard playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} onEquipItem={handleEquipItem} roundStatsByUnit={lastRoundStatsByUnit} itemCatalog={itemCatalog} draggedItemId={draggedItemId} />
-        </Panel>
-
-        {/* Bench Section */}
-        <Panel variant="raised" className="game-section p-4">
-          <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
-            <span>📦</span> Ławka
-            <span className={`text-sm font-mono ${
-              playerState.bench.length >= playerState.max_bench_size 
-                ? 'text-red-500' 
-                : 'text-text/60'
-            }`}>
-              [{playerState.bench.length}/{playerState.max_bench_size}]
-            </span>
-          </h2>
-          <Bench playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} onEquipItem={handleEquipItem} itemCatalog={itemCatalog} draggedItemId={draggedItemId} />
-        </Panel>
-
-        {/* Shop Section */}
-        {!isGameOver && (
-          <Panel variant="raised" className="game-section p-4">
-            <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
-              <span>🛍️</span> Sklep
-            </h2>
-            <Shop playerState={playerState} onUpdate={setPlayerState} onNotification={showNotificationModal} />
-          </Panel>
-        )}
-      </div>
+      <GameShell
+        contentDisabled={isGameOver}
+        header={
+          <GameHeader
+            user={user}
+            playerState={playerState}
+            playerAvatarUrl={playerAvatarUrl}
+            isGameOver={isGameOver}
+            onStartCombat={handleStartCombat}
+            onSurrender={handleSurrender}
+            onShowTraits={() => setShowTraitsInfo(true)}
+            onShowLeaderboard={handleShowLeaderboard}
+            onLogout={logout}
+          />
+        }
+      >
+        <GameSections
+          playerState={playerState}
+          itemCatalog={itemCatalog}
+          isGameOver={isGameOver}
+          lastRoundStatsByUnit={lastRoundStatsByUnit}
+          draggedItemId={draggedItemId}
+          onUpdate={setPlayerState}
+          onNotification={showNotificationModal}
+          onEquipItem={handleEquipItem}
+          onItemDragStart={setDraggedItemId}
+          onItemDragEnd={() => setDraggedItemId(null)}
+        />
+      </GameShell>
 
       {/* Combat Overlay */}
       {showCombat && <CombatOverlay onClose={handleCombatEnd} />}
