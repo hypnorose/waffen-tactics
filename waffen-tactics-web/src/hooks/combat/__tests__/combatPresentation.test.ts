@@ -3,6 +3,7 @@ import {
   createCombatSummary,
   formatCombatLogEntry,
   getCombatAttackProjectileEmoji,
+  hasCanonicalAnimationIdentity,
   isRangedCombatAnimation,
   getTopDamageDealer,
   updateCombatSummary,
@@ -21,6 +22,13 @@ describe('combatPresentation', () => {
     expect(isRangedCombatAnimation({ animation_id: 'ranged_projectile' })).toBe(true)
     expect(isRangedCombatAnimation({ animation_id: 'skill_projectile_burst' })).toBe(true)
     expect(isRangedCombatAnimation({})).toBe(false)
+  })
+
+  it('requires canonical identity fields before animation VFX can be emitted', () => {
+    expect(hasCanonicalAnimationIdentity({ event_id: 'combat:1', seq: 1, timestamp: 0.5 })).toBe(true)
+    expect(hasCanonicalAnimationIdentity({ event_id: '', seq: 1, timestamp: 0.5 })).toBe(false)
+    expect(hasCanonicalAnimationIdentity({ event_id: 'combat:2', seq: 0, timestamp: 0.5 })).toBe(false)
+    expect(hasCanonicalAnimationIdentity({ event_id: 'combat:3', seq: 3, timestamp: Number.NaN })).toBe(false)
   })
 
   it('includes the passive display name in passive activation logs', () => {

@@ -5,6 +5,17 @@ export function isRangedCombatAnimation(event: Pick<CombatEvent, 'animation_id'>
   return animationId.includes('ranged') || animationId.includes('projectile')
 }
 
+export function hasCanonicalAnimationIdentity(
+  event: Pick<CombatEvent, 'event_id' | 'seq' | 'timestamp'>,
+): boolean {
+  return typeof event.event_id === 'string'
+    && event.event_id.trim() !== ''
+    && Number.isInteger(event.seq)
+    && (event.seq || 0) > 0
+    && typeof event.timestamp === 'number'
+    && Number.isFinite(event.timestamp)
+}
+
 export function getCombatAttackProjectileEmoji(event: Pick<CombatEvent, 'bonus_attack'>): string {
   return event.bonus_attack ? '⚡' : '🗡️'
 }

@@ -28,10 +28,13 @@ export class ProjectileRenderer extends BaseAnimationRenderer {
   readonly animationType = AnimationType.PROJECTILE
 
   constructor(private spawnProjectile: (opts: {
+    id?: string
     fromId: string
     toId: string
     emoji?: string
     duration?: number
+    sourceEventId?: string
+    sourceSeq?: number
     onComplete?: () => void
   }) => void) {
     super()

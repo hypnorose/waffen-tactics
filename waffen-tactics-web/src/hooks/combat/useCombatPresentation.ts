@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useProjectileSystem } from '../useProjectileSystem'
-import { getCombatAttackProjectileEmoji, isRangedCombatAnimation } from './combatPresentation'
+import { getCombatAttackProjectileEmoji, hasCanonicalAnimationIdentity, isRangedCombatAnimation } from './combatPresentation'
 import type { CombatEvent } from './types'
 import {
   buildPresentationTimeline,
@@ -50,13 +50,16 @@ export function useCombatPresentation({ currentTime, replayPaused }: UseCombatPr
 
     // Keep the existing projectile feedback behind the presentation boundary.
     // It is visual-only and completes independently of the authoritative reducer.
-    if (!reducedMotion && event.type === 'animation_start' && isRangedCombatAnimation(event) && event.attacker_id && event.target_id) {
+    if (!reducedMotion && hasCanonicalAnimationIdentity(event) && event.type === 'animation_start' && isRangedCombatAnimation(event) && event.attacker_id && event.target_id) {
       setPendingVisuals((count) => count + 1)
       spawnProjectile({
+        id: `projectile:${event.event_id}`,
         fromId: event.attacker_id,
         toId: event.target_id,
         emoji: getCombatAttackProjectileEmoji(event),
         duration: (event.duration || 0.3) * 1000,
+        sourceEventId: event.event_id,
+        sourceSeq: event.seq,
         onComplete: () => setPendingVisuals((count) => Math.max(0, count - 1)),
       })
     }

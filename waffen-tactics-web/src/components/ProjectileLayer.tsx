@@ -56,6 +56,8 @@ export default function ProjectileLayer({ onDiagnostic }: Props) {
           code: 'missing_actor',
           message: `Projectile ${projectile.id} has no registered visual anchor for ${missingId}.`,
           eventType: 'projectile',
+          eventId: projectile.sourceEventId,
+          seq: projectile.sourceSeq,
           unitId: missingId,
         })
       })

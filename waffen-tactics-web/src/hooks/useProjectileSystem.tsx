@@ -7,12 +7,14 @@ export type Projectile = {
   toId: string
   duration: number
   createdAt: number
+  sourceEventId?: string
+  sourceSeq?: number
   onComplete?: () => void
 }
 
 interface ProjectileContextValue {
   projectiles: Projectile[]
-  spawnProjectile: (opts: { fromId: string; toId: string; emoji?: string; duration?: number; onComplete?: () => void }) => void
+  spawnProjectile: (opts: { id?: string; fromId: string; toId: string; emoji?: string; duration?: number; sourceEventId?: string; sourceSeq?: number; onComplete?: () => void }) => void
   clearProjectiles: () => void
 }
 
@@ -28,9 +30,9 @@ export function ProjectileProvider({ children }: { children: React.ReactNode }) 
     setProjectiles([])
   }, [])
 
-  const spawnProjectile = useCallback(({ fromId, toId, emoji = '💥', duration = 350, onComplete }: { fromId: string; toId: string; emoji?: string; duration?: number; onComplete?: () => void }) => {
-    const id = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`
-    const p: Projectile = { id, emoji, fromId, toId, duration, createdAt: Date.now(), onComplete }
+  const spawnProjectile = useCallback(({ id: requestedId, fromId, toId, emoji = '💥', duration = 350, sourceEventId, sourceSeq, onComplete }: { id?: string; fromId: string; toId: string; emoji?: string; duration?: number; sourceEventId?: string; sourceSeq?: number; onComplete?: () => void }) => {
+    const id = requestedId || `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`
+    const p: Projectile = { id, emoji, fromId, toId, duration, createdAt: Date.now(), sourceEventId, sourceSeq, onComplete }
     setProjectiles(prev => [...prev, p])
     console.debug('[PROJECTILE] spawn', { id, fromId, toId, emoji, duration })
     const t = window.setTimeout(() => {
