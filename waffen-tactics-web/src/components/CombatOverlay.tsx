@@ -17,6 +17,7 @@ import { CombatOverlayProps } from './CombatOverlayTypes'
 import { UnitAnchorsProvider } from '../hooks/useUnitAnchors'
 import { ProjectileProvider } from '../hooks/useProjectileSystem'
 import ProjectileLayer from './ProjectileLayer'
+import CombatFeedbackLayer from './CombatFeedbackLayer'
 import { combatOverlayBoardStyle, combatOverlayPanelStyle, combatOverlaySidebarStyle, shouldStartCombatPanelCollapsed } from './combatOverlayLayout'
 import { Panel } from '../ui/primitives'
 
@@ -221,6 +222,12 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
           </div>
 
           <ProjectileLayer onDiagnostic={reportPresentationDiagnostic} />
+          <CombatFeedbackLayer
+            event={replayEvents[replayEventIndex]}
+            eventIndex={replayEventIndex}
+            replayPaused={replayPaused}
+            reducedMotion={reducedMotion}
+          />
           {presentationDiagnostics.length > 0 && (
             <div
               role="status"

@@ -233,6 +233,71 @@ input:focus-visible {
   min-height: 0;
 }
 
+.combat-feedback-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 110;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.combat-feedback-anchor {
+  position: absolute;
+  z-index: 1;
+}
+
+.combat-feedback-item {
+  min-width: 4.5rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgba(248, 250, 252, 0.35);
+  border-radius: 999px;
+  color: #f8fafc;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
+}
+
+.combat-feedback-item-motion {
+  display: inline-block;
+}
+
+.combat-feedback-item-damage {
+  background: rgba(153, 27, 27, 0.94);
+  color: #fee2e2;
+}
+
+.combat-feedback-item-heal {
+  background: rgba(6, 95, 70, 0.94);
+  color: #d1fae5;
+}
+
+.combat-feedback-item-effect {
+  background: rgba(30, 64, 175, 0.94);
+  color: #dbeafe;
+}
+
+.combat-feedback-item-death {
+  background: rgba(88, 28, 135, 0.96);
+  color: #f3e8ff;
+}
+
+.combat-feedback-item-neutral {
+  background: rgba(71, 85, 105, 0.96);
+  color: #f8fafc;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .combat-feedback-item {
+    transition: none !important;
+  }
+}
+
 .combat-panel-toggle:focus-visible {
   outline: 3px solid #fde68a;
   outline-offset: 3px;

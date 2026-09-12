@@ -115,6 +115,7 @@ export interface CombatEvent {
   target_name?: string
   unit_name?: string
   amount?: number
+  applied_amount?: number
   item_parts?: string[]
   stat?: string
   side?: string
