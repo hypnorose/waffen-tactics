@@ -369,8 +369,15 @@ input:focus-visible {
     overflow: visible !important;
   }
 
+  .combat-unit-grid > * {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+  }
+
   .combat-unit-card {
-    width: 100% !important;
+    width: var(--combat-unit-card-width, 120px) !important;
+    max-width: 100%;
   }
 
   .combat-log-modal {
@@ -450,7 +457,11 @@ input:focus-visible {
   }
 
   .combat-unit-grid {
-    grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)) !important;
+  }
+
+  .combat-unit-card {
+    --combat-unit-card-width: 96px;
   }
 }
 
