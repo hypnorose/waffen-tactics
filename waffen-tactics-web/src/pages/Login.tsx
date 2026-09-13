@@ -1,3 +1,5 @@
+import { loginCopy } from '../content/loginCopy'
+
 const DISCORD_CLIENT_ID = import.meta.env.VITE_DISCORD_CLIENT_ID || ''
 const REDIRECT_URI = window.location.hostname === 'localhost' 
   ? 'http://localhost:3000/auth/callback' 
@@ -18,13 +20,11 @@ export default function Login() {
   return (
     <main className="login-screen flex items-center justify-center p-4">
       <div className="login-card ui-panel ui-panel--raised max-w-md w-full text-center space-y-6 p-6 sm:p-8">
-        <div className="login-branding" aria-label="Waffen Tactics, Set 2: Świt Nowociot">
-          <h1 className="login-branding-title">WAFFEN TACTICS</h1>
-          <strong className="login-branding-set">SET 2: ŚWIT NOWOCIOT</strong>
+        <div className="login-branding" aria-label={loginCopy.accessibleBrandName}>
+          <h1 className="login-branding-title">{loginCopy.brandName}</h1>
+          <strong className="login-branding-set">{loginCopy.setName}</strong>
         </div>
-        <p className="text-text/80">
-          Strategiczna gra auto-battler w stylu TFT
-        </p>
+        <p className="text-text/80">{loginCopy.description}</p>
         
         <div className="space-y-4">
           <button
@@ -40,17 +40,17 @@ export default function Login() {
                 />
               </g>
             </svg>
-            Zaloguj się przez Discord
+            {loginCopy.discordLogin}
           </button>
           {configError && (
             <p className="text-sm text-red-400">
-              Brak konfiguracji logowania przez Discord. Sprawdź `VITE_DISCORD_CLIENT_ID` w frontendowym `.env`.
+              {loginCopy.missingDiscordConfig}
             </p>
           )}
         </div>
 
         <div className="text-sm text-text/60">
-          <p>Strategiczny auto-battler</p>
+          <p>{loginCopy.footer}</p>
         </div>
       </div>
     </main>

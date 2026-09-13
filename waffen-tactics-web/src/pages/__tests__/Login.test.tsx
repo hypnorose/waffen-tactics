@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import Login from '../Login'
+import { loginCopy } from '../../content/loginCopy'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -26,9 +27,9 @@ describe('Login', () => {
       root.render(<Login />)
     })
 
-    expect(container.textContent).toContain('WAFFEN TACTICS')
-    expect(container.textContent).toContain('SET 2: ŚWIT NOWOCIOT')
-    expect(container.textContent).toContain('Zaloguj się przez Discord')
+    expect(container.textContent).toContain(loginCopy.brandName)
+    expect(container.textContent).toContain(loginCopy.setName)
+    expect(container.textContent).toContain(loginCopy.discordLogin)
     expect(container.textContent).not.toContain('51 jednostek')
     expect(container.textContent).not.toContain('14 traitów')
   })
