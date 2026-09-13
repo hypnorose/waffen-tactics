@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { useCombatOverlayLogic } from '../hooks/useCombatOverlayLogic'
+import { useCombatMatchmakingFlow } from '../hooks/useCombatMatchmakingFlow'
 import { PlayerState } from '../store/gameStore'
 import GoldNotification from './GoldNotification'
 import PlayerUnits from './PlayerUnits'
@@ -21,13 +22,16 @@ import CombatWindowStatusOverlays from './CombatWindowStatusOverlays'
 export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
   const logEndRef = useRef<HTMLDivElement>(null)
   const [showVictoryOverlay, setShowVictoryOverlay] = useState(false)
-  const [rouletteIndex, setRouletteIndex] = useState(0)
-  const [matchmakingPhase, setMatchmakingPhase] = useState<'searching' | 'final' | 'done'>('searching')
-  const [replayGateOpen, setReplayGateOpen] = useState(false)
   const [combatPanelExpanded, setCombatPanelExpanded] = useState(() => {
     if (typeof window === 'undefined') return true
     return !shouldStartCombatPanelCollapsed(window.innerWidth)
   })
+  const {
+    matchmakingPhase,
+    rouletteCandidate,
+    showMatchmakingOverlay,
+    replayGateOpen,
+  } = useCombatMatchmakingFlow()
 
   const {
     playerUnits,
@@ -74,19 +78,6 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
   } = useCombatOverlayLogic({ onClose, logEndRef, replayEnabled: replayGateOpen })
   const [showDesyncInspector, setShowDesyncInspector] = useState(false)
 
-  const rouletteCandidates = [
-    'Uszaty Cwel',
-    'Słonik Dumbo',
-    'Srebrny Baron',
-    'Spijacz kropelek',
-    'Spermofil pospolity',
-    'Przyprawowy Imperator',
-    'Giełdowy Dyletant',
-    'Obwoźny sprzedawca oprawek',
-    'Grochowianin nr. 207',
-    'Skurwiel z Wesołej'
-  ]
-
   useEffect(() => {
     if (victory !== null && isFinished) {
       const showTimer = setTimeout(() => setShowVictoryOverlay(true), 500)
@@ -96,31 +87,6 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
       setShowVictoryOverlay(false)
     }
   }, [victory, isFinished])
-
-  useEffect(() => {
-    setMatchmakingPhase('searching')
-    const rouletteTimer = setTimeout(() => setMatchmakingPhase('final'), 2000)
-    const finalTimer = setTimeout(() => setMatchmakingPhase('done'), 3000)
-    return () => {
-      clearTimeout(rouletteTimer)
-      clearTimeout(finalTimer)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (matchmakingPhase !== 'searching') return
-    const interval = setInterval(() => {
-      setRouletteIndex(prev => (prev + 1) % rouletteCandidates.length)
-    }, 320)
-    return () => clearInterval(interval)
-  }, [matchmakingPhase, rouletteCandidates.length])
-
-  const showMatchmakingOverlay = matchmakingPhase !== 'done'
-
-  useEffect(() => {
-    // Replay starts only after matchmaking/intro panel is fully dismissed.
-    setReplayGateOpen(!showMatchmakingOverlay)
-  }, [showMatchmakingOverlay])
 
   return (
     <div className="combat-overlay-root" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
@@ -194,7 +160,7 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
         combatError={combatError}
         showMatchmakingOverlay={showMatchmakingOverlay}
         matchmakingPhase={matchmakingPhase}
-        rouletteCandidate={rouletteCandidates[rouletteIndex]}
+        rouletteCandidate={rouletteCandidate}
         showVictoryOverlay={showVictoryOverlay}
         victory={victory}
         defeatMessage={defeatMessage}
