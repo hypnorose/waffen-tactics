@@ -1,11 +1,17 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import TraitsInfoModal from '../TraitsInfoModal'
 import { gameAPI } from '../../services/api'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
+
+const canonicalTraits = JSON.parse(
+  readFileSync(resolve(process.cwd(), '..', 'waffen-tactics', 'traits.json'), 'utf-8'),
+).traits as any[]
 
 vi.mock('../../services/api', () => ({
   gameAPI: {
@@ -60,5 +66,27 @@ describe('TraitsInfoModal canonical descriptions', () => {
 
     expect(container.textContent).toContain('Canonical resolved description')
     expect(container.textContent).not.toContain('999')
+  })
+
+  it('renders every canonical tier and effect from the full API matrix', async () => {
+    vi.mocked(gameAPI.getTraits).mockResolvedValue({ data: canonicalTraits } as any)
+    vi.mocked(gameAPI.getUnits).mockResolvedValue({ data: [] } as any)
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    await act(async () => {
+      root = createRoot(container)
+      root.render(<TraitsInfoModal isOpen onClose={vi.fn()} />)
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
+
+    const expectedEffectCount = canonicalTraits.reduce(
+      (count, trait) => count + trait.modular_effects.flat().length,
+      0,
+    )
+    expect(container.querySelectorAll('[data-trait-effect-details]')).toHaveLength(expectedEffectCount)
+    expect(container.textContent).not.toContain('Do review')
+    expect(container.textContent).not.toMatch(/\d[.,]?\d*\/\d/)
+    expect(container.querySelectorAll('.traits-modal-content > div > div')).toHaveLength(canonicalTraits.length)
   })
 })
