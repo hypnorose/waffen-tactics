@@ -311,6 +311,38 @@ describe('presentationTimeline', () => {
     expect(getActivePresentationTracks(beforeDeath, 1.5)).toHaveLength(0)
   })
 
+  it('orders concurrent tracks by explicit intensity rank before stable id', () => {
+    let state = createPresentationTimeline()
+    state = reducePresentationTimeline(state, event({
+      type: 'effect_applied',
+      event_id: 'combat:rank-small',
+      unit_id: 'opp_0',
+      timestamp: 1,
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'damage',
+      event_id: 'combat:rank-medium',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+      timestamp: 1,
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'animation_start',
+      event_id: 'combat:rank-large',
+      animation_id: 'basic_attack',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+      bonus_attack: true,
+      timestamp: 1,
+    }))
+
+    expect(getActivePresentationTracks(state, 1.05).map((track) => track.sourceEventId)).toEqual([
+      'combat:rank-large',
+      'combat:rank-medium',
+      'combat:rank-small',
+    ])
+  })
+
   it('keeps overlapping attack, impact, and status tracks active in deterministic order', () => {
     let state = createPresentationTimeline()
     state = reducePresentationTimeline(state, event({

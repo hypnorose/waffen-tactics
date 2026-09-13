@@ -128,6 +128,16 @@ function isLiveActor(state: PresentationTimelineState, unitId: string): boolean 
 
 const DEFAULT_DURATION_SECONDS = 0.18
 const DEFAULT_LUNGE_DURATION_SECONDS = 0.2
+const PRESENTATION_INTENSITY_RANK: Record<PresentationIntensity, number> = {
+  small: 0,
+  medium: 1,
+  large: 2,
+}
+
+function compareStableIds(left: string, right: string): number {
+  if (left === right) return 0
+  return left < right ? -1 : 1
+}
 
 function eventTime(event: CombatEvent): number {
   return typeof event.timestamp === 'number' && Number.isFinite(event.timestamp)
@@ -533,5 +543,8 @@ export function getActivePresentationTracks(
 ): PresentationTrack[] {
   return Object.values(state.tracks)
     .filter((track) => currentTime >= track.startedAt && currentTime <= track.startedAt + track.duration)
-    .sort((left, right) => right.intensity.localeCompare(left.intensity) || left.id.localeCompare(right.id))
+    .sort((left, right) => (
+      PRESENTATION_INTENSITY_RANK[right.intensity] - PRESENTATION_INTENSITY_RANK[left.intensity]
+      || compareStableIds(left.id, right.id)
+    ))
 }
