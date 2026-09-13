@@ -105,11 +105,13 @@ describe('combat and table unit metric ownership', () => {
       root.render(createElement(CombatUnitCard as any, { unit: combatUnit }))
     })
 
-    expect(container.querySelector('[data-combat-vital="hp"] .combat-unit-card-vital-heading')?.getAttribute('aria-hidden')).toBe('true')
-    expect(container.querySelector('[data-combat-vital="mana"] .combat-unit-card-vital-heading')?.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('[data-combat-vital="hp"] .combat-unit-card-vital-heading')).toBeNull()
+    expect(container.querySelector('[data-combat-vital="mana"] .combat-unit-card-vital-heading')).toBeNull()
     expect(container.querySelector('[data-combat-vital="shield"]')).toBeNull()
     expect(container.querySelector('.combat-unit-card-meter-shield')).not.toBeNull()
     expect(container.querySelectorAll('[role="progressbar"]')).toHaveLength(2)
+    expect(container.querySelector('.combat-unit-card')?.textContent).not.toContain('HP')
+    expect(container.querySelector('.combat-unit-card')?.textContent).not.toContain('Mana')
 
     const card = container.querySelector('.combat-unit-card') as HTMLElement
     act(() => card.click())
@@ -203,7 +205,7 @@ describe('combat and table unit metric ownership', () => {
     const flash = container.querySelector('.combat-unit-status-flash')
     expect(flash?.getAttribute('data-status-intent')).toBe('stun')
     expect(flash?.getAttribute('aria-hidden')).toBe('true')
-    expect(container.querySelector('[data-combat-vital="hp"] .combat-unit-card-vital-heading')?.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('[data-combat-vital="hp"] .combat-unit-card-vital-heading')).toBeNull()
   })
 
   it('shows the live trait effect contract and replay trigger evidence in the tooltip', () => {

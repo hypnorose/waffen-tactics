@@ -429,44 +429,8 @@ input:focus-visible {
 
 /* The combat card is visual feedback only: the bars communicate the current
    state while exact values and labels remain available in the tooltip. */
-.combat-unit-card-vital-heading {
-  display: none;
-}
-
 .combat-unit-card-vital {
   min-width: 0;
-}
-
-.combat-unit-card-vital-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.35rem;
-  min-width: 0;
-  margin-bottom: 0.2rem;
-}
-
-.combat-unit-card-vital-label {
-  color: #9baabd;
-  font-size: 0.56rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.combat-unit-card-vital strong {
-  min-width: 0;
-  overflow: hidden;
-  color: #f8fafc;
-  font-size: 0.64rem;
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.combat-unit-card-shield-value {
-  color: #8edbff;
-  font-size: 0.58rem;
 }
 
 .combat-unit-card-meter {

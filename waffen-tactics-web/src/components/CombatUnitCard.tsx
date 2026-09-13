@@ -285,13 +285,6 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
 
       <div className="combat-unit-card-vitals" aria-label={`Combat vitals for ${unit.name}`}>
         <div className="combat-unit-card-vital" data-combat-vital="hp">
-          <div className="combat-unit-card-vital-heading" aria-hidden="true">
-            <span className="combat-unit-card-vital-label">HP</span>
-            <strong>
-              {Math.round(displayHp)}/{Math.round(displayMaxHp)}
-              {displayShield > 0 && <span className="combat-unit-card-shield-value"> +{Math.round(displayShield)}</span>}
-            </strong>
-          </div>
           <div
             className="combat-unit-card-meter combat-unit-card-meter-hp"
             role="progressbar"
@@ -312,10 +305,6 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
           </div>
         </div>
         <div className="combat-unit-card-vital" data-combat-vital="mana">
-          <div className="combat-unit-card-vital-heading" aria-hidden="true">
-            <span className="combat-unit-card-vital-label">Mana</span>
-            <strong>{Math.round(displayMana)}/{Math.round(displayMaxMana)}</strong>
-          </div>
           <div
             className="combat-unit-card-meter combat-unit-card-meter-mana"
             role="progressbar"
