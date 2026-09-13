@@ -8,6 +8,7 @@ import type { PresentationTrack } from '../hooks/combat/animation/presentationTi
 import { combatUnitCardOpponentSizingStyle, combatUnitCardSizingStyle } from './combatUnitCardLayout'
 import CombatEffectBadge from './CombatEffectBadge'
 import { getCombatTooltipPosition, type CombatTooltipPosition } from './combatTooltipPosition'
+import { getCombatImpactDirection } from './combatImpactDirection'
 
 interface Unit {
   id: string
@@ -127,7 +128,12 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   const attackTrack = unitTracks.find((track) => track.unitId === unit.id && (track.intent === 'melee_lunge' || track.intent === 'ranged_projectile'))
   const impactTrack = unitTracks.find((track) => track.targetId === unit.id && (track.intent === 'target_recoil' || track.intent === 'shield_hit' || track.intent === 'multi_hit' || track.intent === 'dodge'))
   const statusTrack = unitTracks.find((track) => track.unitId === unit.id && STATUS_PRESENTATION_INTENTS.has(track.intent))
-  const impactFlashDirection = isOpponent ? 'from-bottom' : 'from-top'
+  const impactFallbackDirection = isOpponent ? 'from-bottom' : 'from-top'
+  const impactSourceCenter = impactTrack?.unitId && typeof getCenter === 'function'
+    ? getCenter(impactTrack.unitId)
+    : null
+  const targetCenter = typeof getCenter === 'function' ? getCenter(unit.id) : null
+  const impactFlashDirection = getCombatImpactDirection(impactSourceCenter, targetCenter, impactFallbackDirection)
 
   let lungeOffset = { x: 0, y: 0 }
   if (attackTrack && attackTrack.intent === 'melee_lunge' && typeof getCenter === 'function' && rootRef.current) {

@@ -296,6 +296,14 @@ input:focus-visible {
   background: linear-gradient(to top, rgba(254, 202, 202, 0.52), transparent 45%);
 }
 
+.combat-unit-impact-flash-from-left::after {
+  background: linear-gradient(to right, rgba(254, 202, 202, 0.52), transparent 45%);
+}
+
+.combat-unit-impact-flash-from-right::after {
+  background: linear-gradient(to left, rgba(254, 202, 202, 0.52), transparent 45%);
+}
+
 .combat-unit-impact-flash-shield_hit {
   border-color: rgba(125, 211, 252, 0.95);
   background: rgba(14, 165, 233, 0.16);

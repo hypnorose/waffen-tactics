@@ -322,10 +322,12 @@ function addTargetImpact(
   targetId: string,
   intent: 'target_recoil' | 'shield_hit' | 'shield_break' | 'multi_hit' | 'dodge',
   role: string,
+  sourceId?: string,
 ): PresentationTimelineState {
   const next = liveActorDiagnostic(state, event, targetId, 'target')
   if (!isKnownActor(next, targetId) || !isLiveActor(next, targetId)) return next
   return addTrack(next, event, intent, {
+    unitId: sourceId,
     targetId,
     duration: intent === 'shield_break' ? 0.2 : 0.16,
     intensity: impactIntensity(event),
@@ -398,21 +400,21 @@ export function reducePresentationTimeline(
       if (!targetId) return next
       const dodged = event.type === 'unit_attack' && event.dodged === true
       const shieldHit = !dodged && Number(event.shield_absorbed || 0) > 0
-      return addTargetImpact(next, event, targetId, dodged ? 'dodge' : shieldHit ? 'shield_hit' : 'target_recoil', dodged ? 'dodge' : shieldHit ? 'shield' : 'impact')
+      return addTargetImpact(next, event, targetId, dodged ? 'dodge' : shieldHit ? 'shield_hit' : 'target_recoil', dodged ? 'dodge' : shieldHit ? 'shield' : 'impact', event.attacker_id || event.source_id)
     }
 
     case 'damage_dodged': {
       next = liveActorDiagnostic(next, event, event.target_id || event.unit_id, 'target')
       const targetId = event.target_id || event.unit_id
       if (!targetId) return next
-      return addTargetImpact(next, event, targetId, 'dodge', 'dodge')
+      return addTargetImpact(next, event, targetId, 'dodge', 'dodge', event.attacker_id || event.source_id)
     }
 
     case 'attack_missed':
     case 'miss': {
       next = liveActorDiagnostic(next, event, event.target_id, 'target')
       if (!event.target_id) return next
-      return addTargetImpact(next, event, event.target_id, 'dodge', 'miss')
+      return addTargetImpact(next, event, event.target_id, 'dodge', 'miss', event.attacker_id || event.source_id)
     }
 
     case 'multi_hit': {
@@ -426,7 +428,7 @@ export function reducePresentationTimeline(
         })
       }
       return targetIds.reduce((current, targetId, targetIndex) => (
-        addTargetImpact(current, event, targetId, event.shield_absorbed ? 'shield_hit' : 'multi_hit', `multi-hit:${targetIndex}:${targetId}`)
+        addTargetImpact(current, event, targetId, event.shield_absorbed ? 'shield_hit' : 'multi_hit', `multi-hit:${targetIndex}:${targetId}`, event.attacker_id || event.source_id)
       ), next)
     }
 
@@ -490,7 +492,7 @@ export function reducePresentationTimeline(
     case 'damage_over_time_tick': {
       next = liveActorDiagnostic(next, event, event.unit_id, 'target')
       if (!event.unit_id || !isKnownActor(next, event.unit_id) || !isLiveActor(next, event.unit_id)) return next
-      return addTargetImpact(next, event, event.unit_id, Number(event.shield_absorbed || 0) > 0 ? 'shield_hit' : 'target_recoil', 'dot-tick')
+      return addTargetImpact(next, event, event.unit_id, Number(event.shield_absorbed || 0) > 0 ? 'shield_hit' : 'target_recoil', 'dot-tick', event.source_id || event.caster_id)
     }
     case 'effect_expired':
       return addUnitStatus(next, event, hasItemContext(event) ? 'item' : 'effect')

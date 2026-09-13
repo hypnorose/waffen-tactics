@@ -54,6 +54,7 @@ describe('presentationTimeline', () => {
     state = reducePresentationTimeline(state, event({
       type: 'damage',
       event_id: 'combat:3',
+      attacker_id: 'player_0',
       target_id: 'opp_0',
       shield_absorbed: 10,
       timestamp: 2.1,
@@ -77,6 +78,10 @@ describe('presentationTimeline', () => {
       'dodge',
       'death',
     ])
+    expect(Object.values(state.tracks).find((track) => track.intent === 'shield_hit')).toEqual(expect.objectContaining({
+      unitId: 'player_0',
+      targetId: 'opp_0',
+    }))
   })
 
   it('maps canonical status, multi-hit, and damage-over-time events to explicit tracks', () => {

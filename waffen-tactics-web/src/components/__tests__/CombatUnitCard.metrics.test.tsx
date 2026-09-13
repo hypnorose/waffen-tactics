@@ -7,8 +7,10 @@ import UnitCard from '../UnitCard'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
+const mockGetCenter = vi.hoisted(() => vi.fn())
+
 vi.mock('../../hooks/useUnitAnchors', () => ({
-  useUnitAnchors: () => ({ register: vi.fn() }),
+  useUnitAnchors: () => ({ register: vi.fn(), getCenter: mockGetCenter }),
 }))
 
 vi.mock('../../data/units', () => ({
@@ -64,6 +66,7 @@ describe('combat and table unit metric ownership', () => {
   let root: Root | null = null
 
   afterEach(() => {
+    mockGetCenter.mockReset()
     if (root) {
       act(() => root?.unmount())
       root = null
@@ -134,6 +137,36 @@ describe('combat and table unit metric ownership', () => {
     expect(flash?.getAttribute('data-impact-intent')).toBe('target_recoil')
     expect(flash?.getAttribute('data-impact-direction')).toBe('from-bottom')
     expect(flash?.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('uses the canonical source anchor when resolving impact direction', () => {
+    mockGetCenter.mockImplementation((id: string) => id === 'source-unit'
+      ? { x: 20, y: 100 }
+      : { x: 120, y: 100 })
+
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    act(() => {
+      root = createRoot(container)
+      root.render(createElement(CombatUnitCard as any, {
+        unit: combatUnit,
+        isOpponent: true,
+        presentationTracks: [{
+          id: 'combat:impact:source-aware',
+          intent: 'target_recoil',
+          unitId: 'source-unit',
+          targetId: 'unit-1',
+          sourceEventId: 'combat:impact-source-aware',
+          sourceSeq: 14,
+          startedAt: 0,
+          duration: 0.16,
+          intensity: 'medium',
+        }],
+      }))
+    })
+
+    expect(container.querySelector('.combat-unit-impact-flash')?.getAttribute('data-impact-direction')).toBe('from-left')
   })
 
   it('renders canonical status presentation tracks without changing unit state', () => {
