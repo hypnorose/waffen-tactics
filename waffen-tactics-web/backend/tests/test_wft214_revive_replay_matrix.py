@@ -58,6 +58,27 @@ def test_fixture_covers_canonical_death_revive_order_for_both_sides():
     assert opponents["opp_0"]["effects"] == []
 
 
+def test_replay_is_repeatable_and_same_timestamp_lifecycle_order_is_stable():
+    events = _fixture_events()
+    assert [
+        (event["seq"], event["type"], event["timestamp"])
+        for event in events[1:5]
+    ] == [
+        (1103, "unit_attack", 7.45),
+        (1104, "unit_revived", 7.45),
+        (1105, "passive_triggered", 7.45),
+        (1106, "effect_expired", 8.2),
+    ]
+
+    replays = []
+    for _ in range(5):
+        reconstructor = _replay(events)
+        players, opponents = reconstructor.get_reconstructed_state()
+        replays.append((players, opponents))
+
+    assert replays == [replays[0]] * 5
+
+
 def test_fixture_transport_and_replay_keep_revive_contract_atomic():
     events = _fixture_events()
     revive_events = [event for event in events if event["type"] == "unit_revived"]

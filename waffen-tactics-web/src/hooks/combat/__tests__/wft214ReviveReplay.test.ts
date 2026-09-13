@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import fixture from '../../../../test-fixtures/wft214_revive_replay.json'
 import { applyCombatEvent, CombatReplayValidationError } from '../applyEvent'
-import { createEmptyCombatState, reconstructCombatState } from '../replayController'
+import { createEmptyCombatState, getReplaySchedule, reconstructCombatState } from '../replayController'
 import { processReplayEvent } from '../replayEventProcessor'
 import type { CombatEvent, CombatState, Unit } from '../types'
 
@@ -60,16 +60,31 @@ describe('WFT-214 canonical revive replay matrix', () => {
 
   it('is deterministic after reconnect duplicate delivery and full replay seek', () => {
     const initial = stateWithFixtureUnits()
-    const died = applyCombatEvent(initial, events[1], { simTime: 7.45 })
-    const revived = applyCombatEvent(died, events[2], { simTime: 7.45 })
-    const duplicate = applyCombatEvent(revived, events[2], { simTime: 7.45 })
+    let reconnectState = initial
 
-    expect(duplicate).toBe(revived)
-    expect(reconstructCombatState(events, events.length - 1)).toEqual(
-      reconstructCombatState(events, events.length - 1),
-    )
-    expect(unit(revived, 'opp_0').hp).toBe(480)
-    expect(unit(revived, 'opp_0').effects).toHaveLength(1)
+    for (const event of events.slice(1)) {
+      reconnectState = applyCombatEvent(reconnectState, event, { simTime: reconnectState.simTime })
+      if (event.type === 'unit_revived') {
+        const duplicate = applyCombatEvent(reconnectState, event, { simTime: reconnectState.simTime })
+        expect(duplicate).toBe(reconnectState)
+      }
+    }
+
+    const canonicalReplay = reconstructCombatState(events, events.length - 1)
+    expect(reconnectState).toEqual(canonicalReplay)
+    expect(unit(reconnectState, 'opp_0').hp).toBe(480)
+    expect(unit(reconnectState, 'opp_0').effects).toEqual([])
+  })
+
+  it.each([1, 2, 5] as const)('scales the canonical revive-protection expiry at %sx replay speed', speed => {
+    const reviveIndex = events.findIndex(event => event.seq === 1105)
+    const expiryIndex = events.findIndex(event => event.seq === 1106)
+    const schedule = getReplaySchedule(events, reviveIndex, true, speed)
+
+    expect(schedule.kind).toBe('advance')
+    if (schedule.kind !== 'advance') return
+    expect(schedule.nextIndex).toBe(expiryIndex)
+    expect(schedule.delayMs).toBeCloseTo(750 / speed, 8)
   })
 
   it.each(['unit_heal', 'heal', 'hp_regen', 'regen_gain'] as const)(
