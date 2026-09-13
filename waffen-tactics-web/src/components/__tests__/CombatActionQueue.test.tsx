@@ -37,4 +37,14 @@ describe('getCombatActionQueueEntries', () => {
 
     expect(entry).toMatchObject({ label: 'MULTI-HIT', detail: 'opp_0 → player_0' })
   })
+
+  it('does not display a single target as a multi-hit target list', () => {
+    const [entry] = getCombatActionQueueEntries([{
+      type: 'multi_hit',
+      event_id: 'combat:multi-hit-missing-list',
+      target_id: 'opp_0',
+    }], 0)
+
+    expect(entry).toMatchObject({ label: 'MULTI-HIT', detail: 'Target pending' })
+  })
 })

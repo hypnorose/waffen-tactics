@@ -86,6 +86,15 @@ describe('getCombatFeedback', () => {
     expect(new Set(feedback.map(({ id }) => id)).size).toBe(2)
   })
 
+  it('does not infer a multi-hit target from the single-target field', () => {
+    expect(getCombatFeedback({
+      type: 'multi_hit',
+      event_id: 'combat:multi-hit-missing-list',
+      target_id: 'opp_0',
+      damage: 12,
+    })).toEqual([])
+  })
+
   it('keeps IDs deterministic for the same canonical event', () => {
     const event: CombatEvent = {
       type: 'stat_buff',

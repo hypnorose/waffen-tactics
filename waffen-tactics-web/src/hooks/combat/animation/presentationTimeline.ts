@@ -420,7 +420,7 @@ export function reducePresentationTimeline(
     case 'multi_hit': {
       const targetIds = Array.isArray(event.target_ids)
         ? event.target_ids.filter((targetId): targetId is string => typeof targetId === 'string' && targetId.trim() !== '')
-        : event.target_id ? [event.target_id] : []
+        : []
       if (targetIds.length === 0) {
         return addDiagnostic(next, event, {
           code: 'missing_target',

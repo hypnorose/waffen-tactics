@@ -148,7 +148,7 @@ describe('presentationTimeline', () => {
       opponent_units: [{ id: 'opp_0' } as any],
     }))
 
-    for (const [index, type] of (['unit_attack', 'damage', 'damage_dodged'] as const).entries()) {
+    for (const [index, type] of (['unit_attack', 'damage', 'damage_dodged', 'multi_hit'] as const).entries()) {
       state = reducePresentationTimeline(state, event({
         type,
         event_id: `combat:strict-target-${type}`,
@@ -165,6 +165,7 @@ describe('presentationTimeline', () => {
       expect.objectContaining({ code: 'missing_target', eventType: 'unit_attack', unitId: undefined }),
       expect.objectContaining({ code: 'missing_target', eventType: 'damage', unitId: undefined }),
       expect.objectContaining({ code: 'missing_target', eventType: 'damage_dodged', unitId: undefined }),
+      expect.objectContaining({ code: 'missing_target', eventType: 'multi_hit' }),
     ])
   })
 

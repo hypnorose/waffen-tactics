@@ -65,7 +65,7 @@ function damageFeedback(event: CombatEvent, targetId: unknown): CombatFeedback[]
 function multiHitFeedback(event: CombatEvent): CombatFeedback[] {
   const targetIds = Array.isArray(event.target_ids)
     ? event.target_ids.filter((targetId): targetId is string => typeof targetId === 'string' && targetId.trim() !== '')
-    : event.target_id ? [event.target_id] : []
+    : []
 
   return targetIds.flatMap((targetId, targetIndex) => damageFeedback(event, targetId).map((entry) => ({
     ...entry,
