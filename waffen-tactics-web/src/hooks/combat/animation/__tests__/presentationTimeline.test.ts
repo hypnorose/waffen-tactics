@@ -311,6 +311,48 @@ describe('presentationTimeline', () => {
     expect(getActivePresentationTracks(beforeDeath, 1.5)).toHaveLength(0)
   })
 
+  it('keeps overlapping attack, impact, and status tracks active in deterministic order', () => {
+    let state = createPresentationTimeline()
+    state = reducePresentationTimeline(state, event({
+      type: 'animation_start',
+      event_id: 'combat:concurrent-attack',
+      animation_id: 'basic_attack',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+      timestamp: 1,
+      duration: 0.5,
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'damage',
+      event_id: 'combat:concurrent-impact',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+      timestamp: 1.05,
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'unit_stunned',
+      event_id: 'combat:concurrent-status',
+      unit_id: 'opp_0',
+      timestamp: 1.1,
+    }))
+
+    const active = getActivePresentationTracks(state, 1.15)
+
+    expect(active.map((track) => track.sourceEventId)).toEqual([
+      'combat:concurrent-attack',
+      'combat:concurrent-impact',
+      'combat:concurrent-status',
+    ])
+    expect(active.map((track) => track.intent)).toEqual([
+      'melee_lunge',
+      'target_recoil',
+      'stun',
+    ])
+    expect(getActivePresentationTracks(state, 1.4).map((track) => track.sourceEventId)).toEqual([
+      'combat:concurrent-attack',
+    ])
+  })
+
   it('prunes expired live tracks without removing diagnostics', () => {
     let state = createPresentationTimeline()
     state = reducePresentationTimeline(state, event({
