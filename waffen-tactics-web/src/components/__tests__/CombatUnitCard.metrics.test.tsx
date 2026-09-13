@@ -96,7 +96,7 @@ describe('combat and table unit metric ownership', () => {
     expect(container.textContent).not.toContain('BONUS')
   })
 
-  it('keeps HP, mana, and the shield amount visible on the HP bar without opening the tooltip', () => {
+  it('shows only bars on the combat card and keeps full metrics in the tooltip', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
 
@@ -105,12 +105,20 @@ describe('combat and table unit metric ownership', () => {
       root.render(createElement(CombatUnitCard as any, { unit: combatUnit }))
     })
 
-    expect(container.querySelector('[data-combat-vital="hp"]')?.textContent).toContain('80/100')
-    expect(container.querySelector('[data-combat-vital="mana"]')?.textContent).toContain('100/100')
+    expect(container.querySelector('[data-combat-vital="hp"] .combat-unit-card-vital-heading')?.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('[data-combat-vital="mana"] .combat-unit-card-vital-heading')?.getAttribute('aria-hidden')).toBe('true')
     expect(container.querySelector('[data-combat-vital="shield"]')).toBeNull()
-    expect(container.querySelector('[data-combat-vital="hp"]')?.textContent).toContain('+12')
     expect(container.querySelector('.combat-unit-card-meter-shield')).not.toBeNull()
     expect(container.querySelectorAll('[role="progressbar"]')).toHaveLength(2)
+
+    const card = container.querySelector('.combat-unit-card') as HTMLElement
+    act(() => card.click())
+
+    const tooltip = document.body.querySelector('[data-combat-unit-tooltip="unit-1"]') as HTMLElement
+    expect(tooltip).not.toBeNull()
+    expect(tooltip.textContent).toContain('HP: 80/100')
+    expect(tooltip.textContent).toContain('Shield: 12')
+    expect(tooltip.textContent).toContain('Mana: 100/100')
   })
 
   it('renders the canonical target impact flash with directional metadata', () => {
@@ -195,7 +203,7 @@ describe('combat and table unit metric ownership', () => {
     const flash = container.querySelector('.combat-unit-status-flash')
     expect(flash?.getAttribute('data-status-intent')).toBe('stun')
     expect(flash?.getAttribute('aria-hidden')).toBe('true')
-    expect(container.querySelector('[data-combat-vital="hp"]')?.textContent).toContain('80/100')
+    expect(container.querySelector('[data-combat-vital="hp"] .combat-unit-card-vital-heading')?.getAttribute('aria-hidden')).toBe('true')
   })
 
   it('shows the live trait effect contract and replay trigger evidence in the tooltip', () => {
