@@ -1,8 +1,7 @@
 import { createPortal } from 'react-dom'
-import { useCallback, useEffect, useState } from 'react'
 import type { Item } from '../data/items'
 import { ItemRecipePreviewContent } from './ItemPreviewContent'
-import { getItemTooltipPosition, type ItemTooltipPosition } from './itemTooltipPosition'
+import { useViewportTooltipPosition } from '../ui/useViewportTooltipPosition'
 
 interface Props {
   first: Item
@@ -15,25 +14,11 @@ interface Props {
 const PREVIEW_SIZE = { width: 320, height: 360 }
 
 export default function ItemRecipePreviewTooltip({ first, second, result, itemCatalog, anchor }: Props) {
-  const [position, setPosition] = useState<ItemTooltipPosition | null>(null)
-
-  const updatePosition = useCallback(() => {
-    if (typeof window === 'undefined') return
-    setPosition(getItemTooltipPosition(anchor.getBoundingClientRect(), {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }, PREVIEW_SIZE))
-  }, [anchor])
-
-  useEffect(() => {
-    updatePosition()
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
-    return () => {
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
-    }
-  }, [updatePosition])
+  const { position } = useViewportTooltipPosition({
+    open: true,
+    anchor,
+    size: PREVIEW_SIZE,
+  })
 
   if (!position || typeof document === 'undefined') return null
 

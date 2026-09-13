@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
-import { useCallback, useEffect, useState, type ReactNode, type RefObject } from 'react'
-import { getItemTooltipPosition, type ItemTooltipPosition } from './itemTooltipPosition'
+import { type ReactNode, type RefObject } from 'react'
+import { useViewportTooltipPosition } from '../ui/useViewportTooltipPosition'
 
 interface Props {
   anchorRef: RefObject<HTMLElement | null>
@@ -11,30 +11,11 @@ interface Props {
 const PREVIEW_SIZE = { width: 288, height: 360 }
 
 export default function ItemPreviewTooltip({ anchorRef, open, children }: Props) {
-  const [position, setPosition] = useState<ItemTooltipPosition | null>(null)
-
-  const updatePosition = useCallback(() => {
-    const anchor = anchorRef.current
-    if (!anchor) return
-    setPosition(getItemTooltipPosition(anchor.getBoundingClientRect(), {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }, PREVIEW_SIZE))
-  }, [anchorRef])
-
-  useEffect(() => {
-    if (!open) {
-      setPosition(null)
-      return
-    }
-    updatePosition()
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
-    return () => {
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
-    }
-  }, [open, updatePosition])
+  const { position } = useViewportTooltipPosition({
+    open,
+    anchorRef,
+    size: PREVIEW_SIZE,
+  })
 
   if (!open || !position || typeof document === 'undefined') return null
 

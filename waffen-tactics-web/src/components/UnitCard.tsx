@@ -1,13 +1,13 @@
 import { getUnit, getCostBorderColor, getFactionColor, getPassiveTitle } from '../data/units'
 import { createPortal } from 'react-dom'
-import { useCallback, useLayoutEffect, useRef, useState, useId } from 'react'
+import { useRef, useState, useId } from 'react'
 import type { CombatUnitRoundStats } from '../hooks/combat/types'
 import EquippedItems from './EquippedItems'
 import { formatItemStat, formatItemTrigger, getItemMechanicDescription, ITEM_ICONS, type Item, type ItemUnitPreview } from '../data/items'
 import ItemPreviewTooltip from './ItemPreviewTooltip'
 import { ItemUnitPreviewContent } from './ItemPreviewContent'
 import { boardUnitCardSizingStyle } from './combatUnitCardLayout'
-import { getItemTooltipPosition, type ItemTooltipPosition } from './itemTooltipPosition'
+import { useViewportTooltipPosition } from '../ui/useViewportTooltipPosition'
 
 interface UnitCardProps {
   unitId: string
@@ -65,46 +65,23 @@ export default function UnitCard({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [showUnitTooltip, setShowUnitTooltip] = useState(false)
-  const [tooltipPosition, setTooltipPosition] = useState<ItemTooltipPosition | null>(null)
   const tooltipId = useId()
+
+  const { position: tooltipPosition } = useViewportTooltipPosition({
+    open: showUnitTooltip,
+    anchorRef: containerRef,
+    measuredRef: tooltipRef,
+    size: { width: 240, height: 460 },
+  })
 
   const closeUnitTooltip = () => {
     setShowUnitTooltip(false)
-    setTooltipPosition(null)
   }
-
-  const updateTooltipPosition = useCallback(() => {
-    const anchor = containerRef.current
-    if (!anchor || typeof window === 'undefined') return
-
-    const measuredTooltip = tooltipRef.current?.getBoundingClientRect()
-    setTooltipPosition(getItemTooltipPosition(
-      anchor.getBoundingClientRect(),
-      { width: window.innerWidth, height: window.innerHeight },
-      measuredTooltip
-        ? { width: measuredTooltip.width, height: measuredTooltip.height }
-        : { width: 240, height: 460 },
-    ))
-  }, [])
 
   const openUnitTooltip = () => {
     if (isDragging) return
     setShowUnitTooltip(true)
   }
-
-  useLayoutEffect(() => {
-    if (!showUnitTooltip) return
-
-    // The portal is mounted before this layout effect runs, so the second
-    // measurement uses the real long-content height instead of a guess.
-    updateTooltipPosition()
-    window.addEventListener('resize', updateTooltipPosition)
-    window.addEventListener('scroll', updateTooltipPosition, true)
-    return () => {
-      window.removeEventListener('resize', updateTooltipPosition)
-      window.removeEventListener('scroll', updateTooltipPosition, true)
-    }
-  }, [showUnitTooltip, updateTooltipPosition])
 
   const getRoleEmoji = (role?: string) => {
     switch (role) {

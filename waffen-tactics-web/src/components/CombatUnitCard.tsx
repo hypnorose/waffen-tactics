@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react'
+import { useState, useRef, useEffect, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { getPassiveTitle, getUnit, type UnitPassive } from '../data/units'
@@ -7,9 +7,9 @@ import type { CombatEvent, EffectSummary, TraitDefinition } from '../hooks/comba
 import type { PresentationTrack } from '../hooks/combat/animation/presentationTimeline'
 import { combatUnitCardOpponentSizingStyle, combatUnitCardSizingStyle } from './combatUnitCardLayout'
 import CombatEffectBadge from './CombatEffectBadge'
-import { getCombatTooltipPosition, type CombatTooltipPosition } from './combatTooltipPosition'
 import { getCombatImpactDirection } from './combatImpactDirection'
 import { getTraitColor, getTraitDescription, getTraitEffectPresentation } from '../hooks/combatOverlayUtils'
+import { useViewportTooltipPosition } from '../ui/useViewportTooltipPosition'
 
 interface Unit {
   id: string
@@ -88,7 +88,6 @@ const STATUS_PRESENTATION_INTENTS = new Set([
 export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget, currentTime, presentationTracks = [], synergies = {}, traits = [], replayEvents = [], replayPaused = false, reducedMotion = false }: Props) {
   const passiveTitle = getPassiveTitle(unit.passive)
   const [showTooltip, setShowTooltip] = useState(false)
-  const [tooltipPosition, setTooltipPosition] = useState<CombatTooltipPosition | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const { register, getCenter } = useUnitAnchors()
 
@@ -96,26 +95,11 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
     return register(unit.id, rootRef.current)
   }, [unit.id, register])
 
-  const updateTooltipPosition = useCallback(() => {
-    const root = rootRef.current
-    if (!root) return
-
-    const rect = root.getBoundingClientRect()
-    setTooltipPosition(getCombatTooltipPosition(rect, { width: window.innerWidth, height: window.innerHeight }))
-  }, [])
-
-  useEffect(() => {
-    if (!showTooltip) return
-
-    updateTooltipPosition()
-    window.addEventListener('resize', updateTooltipPosition)
-    window.addEventListener('scroll', updateTooltipPosition, true)
-
-    return () => {
-      window.removeEventListener('resize', updateTooltipPosition)
-      window.removeEventListener('scroll', updateTooltipPosition, true)
-    }
-  }, [showTooltip, updateTooltipPosition])
+  const { position: tooltipPosition } = useViewportTooltipPosition({
+    open: showTooltip,
+    anchorRef: rootRef,
+    size: { width: 320, height: 360 },
+  })
   const displayMaxHp = unit.buffed_stats?.hp ?? unit.max_hp
   const displayHp = Math.min(unit.hp, displayMaxHp)
   const displayAttack = unit.buffed_stats?.attack ?? unit.attack

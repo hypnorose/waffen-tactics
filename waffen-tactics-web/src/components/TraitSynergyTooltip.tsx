@@ -1,9 +1,9 @@
 import { createPortal } from 'react-dom'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { getTraitColor, getTraitDescription, getTraitEffectPresentation } from '../hooks/combatOverlayUtils'
 import { getAllUnits, getCostBorderColor } from '../data/units'
-import { getCombatTooltipPosition, type CombatTooltipPosition } from './combatTooltipPosition'
 import TraitEffectDetails from './TraitEffectDetails'
+import { useViewportTooltipPosition } from '../ui/useViewportTooltipPosition'
 
 interface Props {
   traitName: string
@@ -15,34 +15,16 @@ const TOOLTIP_SIZE = { width: 360, height: 620 }
 
 export default function TraitSynergyTooltip({ traitName, data, traitData }: Props) {
   const [showTooltip, setShowTooltip] = useState(false)
-  const [tooltipPosition, setTooltipPosition] = useState<CombatTooltipPosition | null>(null)
   const triggerRef = useRef<HTMLDivElement | null>(null)
   const isActive = data.tier > 0
   const color = isActive ? getTraitColor(data.tier) : '#6b7280'
   const opacity = isActive ? 1 : 0.5
 
-  const updateTooltipPosition = useCallback(() => {
-    const trigger = triggerRef.current
-    if (!trigger || typeof window === 'undefined') return
-
-    setTooltipPosition(getCombatTooltipPosition(trigger.getBoundingClientRect(), {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }, TOOLTIP_SIZE))
-  }, [])
-
-  useEffect(() => {
-    if (!showTooltip) return
-
-    updateTooltipPosition()
-    window.addEventListener('resize', updateTooltipPosition)
-    window.addEventListener('scroll', updateTooltipPosition, true)
-
-    return () => {
-      window.removeEventListener('resize', updateTooltipPosition)
-      window.removeEventListener('scroll', updateTooltipPosition, true)
-    }
-  }, [showTooltip, updateTooltipPosition])
+  const { position: tooltipPosition } = useViewportTooltipPosition({
+    open: showTooltip,
+    anchorRef: triggerRef,
+    size: TOOLTIP_SIZE,
+  })
 
   return (
     <div

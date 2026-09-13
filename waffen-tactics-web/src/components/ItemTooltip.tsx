@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from 'react'
 import type { Item } from '../data/items'
 import ItemTooltipContent from './ItemTooltipContent'
-import { getItemTooltipPosition, type ItemTooltipPosition } from './itemTooltipPosition'
+import { useViewportTooltipPosition } from '../ui/useViewportTooltipPosition'
 
 interface Props {
   item: Item
@@ -16,9 +16,16 @@ const CLOSE_DELAY_MS = 120
 
 export default function ItemTooltip({ item, itemCatalog, children, className, triggerProps }: Props) {
   const [isOpen, setIsOpen] = useState(false)
-  const [position, setPosition] = useState<ItemTooltipPosition | null>(null)
   const triggerRef = useRef<HTMLDivElement | null>(null)
+  const tooltipRef = useRef<HTMLDivElement | null>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const { position } = useViewportTooltipPosition({
+    open: isOpen,
+    anchorRef: triggerRef,
+    measuredRef: tooltipRef,
+    size: { width: 256, height: 360 },
+  })
 
   const cancelClose = useCallback(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current)
@@ -30,29 +37,9 @@ export default function ItemTooltip({ item, itemCatalog, children, className, tr
     closeTimer.current = setTimeout(() => setIsOpen(false), CLOSE_DELAY_MS)
   }, [cancelClose])
 
-  const updatePosition = useCallback(() => {
-    const trigger = triggerRef.current
-    if (!trigger) return
-    setPosition(getItemTooltipPosition(trigger.getBoundingClientRect(), {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }, { width: 256, height: 360 }))
-  }, [])
-
   useEffect(() => () => {
     cancelClose()
   }, [cancelClose])
-
-  useEffect(() => {
-    if (!isOpen) return
-    updatePosition()
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
-    return () => {
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
-    }
-  }, [isOpen, updatePosition])
 
   const {
     onMouseEnter: onTriggerMouseEnter,
@@ -100,6 +87,7 @@ export default function ItemTooltip({ item, itemCatalog, children, className, tr
         <div
           data-item-tooltip
           data-tooltip-placement={position.placement}
+          ref={tooltipRef}
           role="tooltip"
           className="pointer-events-auto rounded-lg border border-amber-300/60 bg-slate-950 px-3 py-2 text-left text-xs shadow-2xl"
           style={{

@@ -1,7 +1,7 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { EffectSummary } from '../hooks/combat/types'
-import { getItemTooltipPosition, type ItemTooltipPosition } from './itemTooltipPosition'
+import { useViewportTooltipPosition } from '../ui/useViewportTooltipPosition'
 
 type EffectWithPresentation = EffectSummary & {
   name?: string
@@ -104,18 +104,15 @@ function getEffectDetails(effect: EffectWithPresentation, currentTime?: number):
   return details
 }
 
-function getTooltipPosition(button: HTMLButtonElement): ItemTooltipPosition {
-  return getItemTooltipPosition(button.getBoundingClientRect(), {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  }, { width: 280, height: 320 })
-}
-
 export default function CombatEffectBadge({ effect, currentTime, index }: Props) {
   const buttonRef = useRef<HTMLButtonElement | null>(null)
   const [isOpen, setIsOpen] = useState(false)
-  const [position, setPosition] = useState<ItemTooltipPosition>({ left: 8, top: 8, placement: 'below' })
   const tooltipId = useId()
+  const { position } = useViewportTooltipPosition({
+    open: isOpen,
+    anchorRef: buttonRef,
+    size: { width: 280, height: 320 },
+  })
   const icon = EFFECT_ICONS[effect.type] || { icon: '✨', background: 'linear-gradient(90deg,#a78bfa,#8b5cf6)' }
   const title = getEffectTitle(effect)
   const description = getEffectDescription(effect)
@@ -123,24 +120,10 @@ export default function CombatEffectBadge({ effect, currentTime, index }: Props)
   const ariaLabel = `${title}. ${description}${details.length ? ` ${details.join('. ')}` : ''}`
 
   const openTooltip = () => {
-    if (buttonRef.current) setPosition(getTooltipPosition(buttonRef.current))
     setIsOpen(true)
   }
 
-  useEffect(() => {
-    if (!isOpen) return
-    const reposition = () => {
-      if (buttonRef.current) setPosition(getTooltipPosition(buttonRef.current))
-    }
-    window.addEventListener('resize', reposition)
-    window.addEventListener('scroll', reposition, true)
-    return () => {
-      window.removeEventListener('resize', reposition)
-      window.removeEventListener('scroll', reposition, true)
-    }
-  }, [isOpen])
-
-  const popover = isOpen && typeof document !== 'undefined' ? createPortal(
+  const popover = isOpen && position && typeof document !== 'undefined' ? createPortal(
     <div
       id={tooltipId}
       role="tooltip"
