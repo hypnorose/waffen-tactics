@@ -278,9 +278,8 @@ def test_refresh_contract_does_not_stack_empty_melancholy_defense():
     active = [effect for effect in unit.effects if effect.get("set2_refresh_key") == "set2:empty_melancholy:empty"]
     assert len(active) == 1
     assert active[0]["expires_at"] == 2.5
-    assert [event_type for event_type, _ in events] == [
-        "stat_buff", "effect_expired", "effect_applied"
-    ]
+    assert [event_type for event_type, _ in events] == ["stat_buff", "effect_applied"]
+    assert events[1][1]["effect_id"] == events[0][1]["effect_id"]
 
 
 def test_half_hp_regen_initial_application_has_no_phantom_expiration():
