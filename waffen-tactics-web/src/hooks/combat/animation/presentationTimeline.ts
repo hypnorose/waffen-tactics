@@ -395,8 +395,8 @@ export function reducePresentationTimeline(
     case 'attack':
     case 'unit_attack':
     case 'damage': {
-      next = liveActorDiagnostic(next, event, event.target_id || event.unit_id, 'target')
-      const targetId = event.target_id || event.unit_id
+      next = liveActorDiagnostic(next, event, event.target_id, 'target')
+      const targetId = event.target_id
       if (!targetId) return next
       const dodged = event.type === 'unit_attack' && event.dodged === true
       const shieldHit = !dodged && Number(event.shield_absorbed || 0) > 0
@@ -404,8 +404,8 @@ export function reducePresentationTimeline(
     }
 
     case 'damage_dodged': {
-      next = liveActorDiagnostic(next, event, event.target_id || event.unit_id, 'target')
-      const targetId = event.target_id || event.unit_id
+      next = liveActorDiagnostic(next, event, event.target_id, 'target')
+      const targetId = event.target_id
       if (!targetId) return next
       return addTargetImpact(next, event, targetId, 'dodge', 'dodge', event.attacker_id || event.source_id)
     }

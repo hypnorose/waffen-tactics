@@ -138,6 +138,36 @@ describe('presentationTimeline', () => {
     ])
   })
 
+  it('does not infer a single-target presentation target from unit_id', () => {
+    let state = reducePresentationTimeline(createPresentationTimeline(), event({
+      type: 'units_init',
+      event_id: 'combat:strict-target-init',
+      seq: 1,
+      timestamp: 0,
+      player_units: [{ id: 'player_0' } as any],
+      opponent_units: [{ id: 'opp_0' } as any],
+    }))
+
+    for (const [index, type] of (['unit_attack', 'damage', 'damage_dodged'] as const).entries()) {
+      state = reducePresentationTimeline(state, event({
+        type,
+        event_id: `combat:strict-target-${type}`,
+        seq: index + 2,
+        timestamp: index + 1,
+        unit_id: 'opp_0',
+        attacker_id: 'player_0',
+        target_id: undefined,
+      }))
+    }
+
+    expect(state.tracks).toEqual({})
+    expect(state.diagnostics).toEqual([
+      expect.objectContaining({ code: 'missing_target', eventType: 'unit_attack', unitId: undefined }),
+      expect.objectContaining({ code: 'missing_target', eventType: 'damage', unitId: undefined }),
+      expect.objectContaining({ code: 'missing_target', eventType: 'damage_dodged', unitId: undefined }),
+    ])
+  })
+
   it('rejects unknown actors after the canonical roster is registered', () => {
     let state = reducePresentationTimeline(createPresentationTimeline(), event({
       type: 'units_init',
