@@ -20,6 +20,7 @@ describe('CombatWindowShell', () => {
   it('keeps stable arena slots and delegates panel controls', () => {
     const onTogglePanel = vi.fn()
     const onToggleLog = vi.fn()
+    const onToggleDesyncInspector = vi.fn()
     const container = document.createElement('div')
     document.body.appendChild(container)
 
@@ -33,8 +34,11 @@ describe('CombatWindowShell', () => {
         playerSlot: createElement('div', { id: 'player-child' }, 'player'),
         log: createElement('div', { id: 'log-child' }, 'log'),
         replayControls: createElement('div', { id: 'replay-child' }, 'replay'),
+        showDesyncInspector: false,
+        desyncCount: 2,
         onTogglePanel,
         onToggleLog,
+        onToggleDesyncInspector,
       }))
     })
 
@@ -48,10 +52,13 @@ describe('CombatWindowShell', () => {
     act(() => {
       ;(container.querySelector('.combat-panel-toggle') as HTMLButtonElement).click()
       ;(container.querySelector('.combat-log-toggle') as HTMLButtonElement).click()
+      ;(container.querySelector('.combat-desync-toggle') as HTMLButtonElement).click()
     })
 
     expect(onTogglePanel).toHaveBeenCalledTimes(1)
     expect(onToggleLog).toHaveBeenCalledTimes(1)
+    expect(onToggleDesyncInspector).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.combat-desync-toggle')?.textContent).toContain('Desync log (2)')
   })
 
   it('exposes collapsed state without removing the board controls', () => {
@@ -68,8 +75,11 @@ describe('CombatWindowShell', () => {
         playerSlot: createElement('div'),
         log: createElement('div'),
         replayControls: createElement('div'),
+        showDesyncInspector: true,
+        desyncCount: 1,
         onTogglePanel: vi.fn(),
         onToggleLog: vi.fn(),
+        onToggleDesyncInspector: vi.fn(),
       }))
     })
 
@@ -78,5 +88,6 @@ describe('CombatWindowShell', () => {
     expect(panelToggle.getAttribute('aria-expanded')).toBe('false')
     expect(panelToggle.getAttribute('aria-label')).toBe('Rozwiń panel walki')
     expect(logToggle.getAttribute('aria-expanded')).toBe('true')
+    expect(container.querySelector('.combat-desync-toggle')?.getAttribute('aria-expanded')).toBe('true')
   })
 })

@@ -59,7 +59,7 @@ describe('replayEventProcessor', () => {
     const pending: CombatEvent[] = [{ type: 'end', seq: 3 }]
     const result = processReplayEvent({
       currentState: stateWithUnits(),
-      event: { type: 'mana_update', seq: 2, unit_id: 'missing', current_mana: 10 },
+      event: { type: 'mana_update', seq: 2, event_id: 'combat:missing-mana', unit_id: 'missing', current_mana: 10 },
       pendingEvents: pending,
     })
 
@@ -69,6 +69,7 @@ describe('replayEventProcessor', () => {
     expect(result.desyncs[0]).toMatchObject({
       unit_id: 'missing',
       seq: 2,
+      event_id: 'combat:missing-mana',
       pending_events: pending,
     })
     expect(result.desyncs[0].note).toContain('replay validation failed')

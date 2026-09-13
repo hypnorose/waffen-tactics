@@ -138,4 +138,18 @@ describe('CombatOverlay panel collapse', () => {
     expect(container.querySelector('[aria-label="Rozwiń panel walki"]')).not.toBeNull()
     expect(container.querySelector('#combat-control-panel')?.getAttribute('aria-hidden')).toBe('true')
   })
+
+  it('exposes the desync log toggle in the production-shaped overlay', () => {
+    const container = renderOverlay()
+    const toggle = container.querySelector('.combat-desync-toggle') as HTMLButtonElement
+
+    expect(toggle).not.toBeNull()
+    expect(toggle.getAttribute('aria-controls')).toBe('desync-inspector')
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(toggle.textContent).toContain('Desync log')
+
+    act(() => toggle.click())
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+  })
 })

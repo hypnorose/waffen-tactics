@@ -41,6 +41,7 @@ function desyncForEvent(
     unit_id: unitId,
     unit_name: event.unit_name || '',
     seq: event.seq,
+    event_id: event.event_id,
     timestamp: event.timestamp,
     diff,
     pending_events: pendingEvents,

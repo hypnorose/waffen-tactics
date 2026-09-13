@@ -1,15 +1,5 @@
 import React from 'react'
-
-interface DesyncEntry {
-  unit_id: string
-  unit_name?: string
-  seq?: number | null
-  timestamp?: number | null
-  diff: Record<string, { ui: any, server: any }>
-  pending_events: any[]
-  recent_events?: any[]
-  note?: string
-}
+import type { DesyncEntry } from '../hooks/combat/types'
 
 interface Props {
   desyncLogs: DesyncEntry[]
@@ -31,15 +21,18 @@ export default function DesyncInspector({ desyncLogs, onClear, onExport }: Props
     URL.revokeObjectURL(url)
   }
 
-  if (!import.meta.env.DEV) return null
-
   return (
-    <div style={{ position: 'fixed', right: 20, bottom: 20, width: 520, maxHeight: '60vh', overflow: 'auto', background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 8, padding: 12, zIndex: 200 }}>
+    <div
+      id="desync-inspector"
+      role="dialog"
+      aria-label="Desync log"
+      style={{ position: 'fixed', right: 16, bottom: 16, width: 'min(520px, calc(100vw - 32px))', maxHeight: 'min(60vh, 520px)', overflow: 'auto', background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 8, padding: 12, zIndex: 200, boxSizing: 'border-box' }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <strong>Desync Inspector</strong>
+        <strong>Desync log ({desyncLogs.length})</strong>
         <div>
-          <button onClick={download} style={{ marginRight: 8, background: '#2563eb', color: 'white', border: 'none', padding: '6px 10px', borderRadius: 6 }}>Export</button>
-          <button onClick={onClear} style={{ background: '#334155', color: '#f1f5f9', border: 'none', padding: '6px 10px', borderRadius: 6 }}>Clear</button>
+          <button type="button" onClick={download} style={{ marginRight: 8, background: '#2563eb', color: 'white', border: 'none', padding: '6px 10px', borderRadius: 6 }}>Export</button>
+          <button type="button" onClick={onClear} style={{ background: '#334155', color: '#f1f5f9', border: 'none', padding: '6px 10px', borderRadius: 6 }}>Clear</button>
         </div>
       </div>
       <div style={{ fontSize: 12 }}>
@@ -49,7 +42,9 @@ export default function DesyncInspector({ desyncLogs, onClear, onExport }: Props
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontWeight: 700 }}>{d.unit_name || d.unit_id}</div>
-                <div style={{ fontSize: 11, opacity: 0.8 }}>{d.note || ''} {d.seq ? `seq:${d.seq}` : ''} {d.timestamp ? `@${new Date(d.timestamp).toLocaleTimeString()}` : ''}</div>
+                <div style={{ fontSize: 11, opacity: 0.8 }}>
+                  {d.note || ''} {d.seq !== undefined && d.seq !== null ? `seq:${d.seq}` : ''} {d.event_id ? `event:${d.event_id}` : 'event:unknown'} {d.timestamp !== undefined && d.timestamp !== null ? `@${new Date(d.timestamp).toLocaleTimeString()}` : ''}
+                </div>
               </div>
               <div style={{ textAlign: 'right', fontSize: 12, opacity: 0.9 }}>{d.pending_events?.length ?? 0} pending</div>
             </div>

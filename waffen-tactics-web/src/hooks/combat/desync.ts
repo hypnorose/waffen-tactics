@@ -56,6 +56,7 @@ export function compareUnits(localUnits: Unit[], serverUnits: any[], side: strin
         unit_id: su.id,
         unit_name: su.name,
         seq: event.seq,
+        event_id: event.event_id,
         timestamp: event.timestamp,
         diff,
         pending_events: [],

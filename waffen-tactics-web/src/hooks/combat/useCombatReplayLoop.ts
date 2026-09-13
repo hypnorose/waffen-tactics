@@ -144,6 +144,8 @@ export function useCombatReplayLoop({
 
     if (!result.state) {
       clearReplayTimer()
+      setReplayPaused(true)
+      setReplaySeekError(`Replay zatrzymany na seq=${event.seq ?? 'unknown'}. Otwórz Desync log.`)
       if (result.validationError) {
         console.error(`🛑 Combat replay stopped at seq=${event.seq} due to validation failure`, result.validationError)
       }
@@ -161,6 +163,8 @@ export function useCombatReplayLoop({
     if (result.shouldStop) {
       console.error(`🛑 Combat stopped at seq=${event.seq} due to replay validation/desync diagnostics`)
       clearReplayTimer()
+      setReplayPaused(true)
+      setReplaySeekError(`Replay zatrzymany na seq=${event.seq ?? 'unknown'} z powodu desyncu. Otwórz Desync log.`)
       return
     }
 

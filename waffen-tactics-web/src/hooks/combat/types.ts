@@ -36,6 +36,7 @@ export interface DesyncEntry {
   unit_id: string
   unit_name?: string
   seq?: number | null
+  event_id?: string
   timestamp?: number | null
   diff: Record<string, { ui: any, server: any }>
   pending_events: CombatEvent[]
