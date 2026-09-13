@@ -129,8 +129,8 @@ echo ""
 # Endpointy
 echo -e "${CYAN}🌍 Dostępne endpointy:${NC}"
 echo "   • Production:     https://waffentactics.pl"
-echo "   • Backend (dev):  http://localhost:8000"
-echo "   • Frontend (dev): http://localhost:3000"
+echo "   • Backend:          http://localhost:8000"
+echo "   • Frontend preview: http://localhost:3000"
 
 echo ""
 echo "════════════════════════════════════════════════════════"

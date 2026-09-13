@@ -154,6 +154,15 @@ log_info "Loading Node runtime"
 load_nvm
 log_success "Node runtime ready"
 
+log_info "Building frontend production bundle"
+cd "$WEB_DIR"
+if ! npm run build > frontend-build.log 2>&1; then
+    log_error "Frontend production build failed"
+    tail -n 40 frontend-build.log | sed 's/^/   /' || true
+    exit 1
+fi
+log_success "Frontend production bundle ready"
+
 log_info "Starting backend API on port 8000"
 cd "$BACKEND_DIR"
 source venv/bin/activate
@@ -167,9 +176,9 @@ else
     exit 1
 fi
 
-log_info "Starting frontend on port 3000"
+log_info "Starting frontend preview on port 3000"
 cd "$WEB_DIR"
-nohup npm run dev -- --host 127.0.0.1 > vite.log 2>&1 &
+nohup npm run preview -- --host 127.0.0.1 --port 3000 > vite.log 2>&1 &
 FRONTEND_PID=$!
 sleep 5
 if ps -p "$FRONTEND_PID" > /dev/null; then
@@ -197,7 +206,7 @@ log_success "Project started"
 echo "=============================================="
 echo "Production: https://waffentactics.pl"
 echo "Backend dev: http://localhost:8000"
-echo "Frontend dev: http://localhost:3000"
+echo "Frontend preview: http://localhost:3000"
 echo ""
 echo "Processes:"
 ps aux | grep -E "api.py|vite|caddy" | grep -v grep | awk '{printf "  PID %-6s %s\n", $2, $11}'
