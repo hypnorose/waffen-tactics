@@ -49,6 +49,31 @@ def test_default_targeting_uses_frontline_then_reaches_backline():
     ) == 1
 
 
+def test_revive_protection_removes_a_target_until_exact_expiry():
+    attacker = _unit('attacker')
+    protected = _unit(
+        'protected',
+        effects=[{
+            'id': 'set2:protected:revive-untargetable',
+            'type': 'untargetable',
+            'expires_at': 2.75,
+        }],
+    )
+    back = _unit('back', position='back')
+    simulator = CombatSimulator()
+
+    simulator._current_time = 2.0
+    assert simulator._select_target(
+        [attacker], [protected, back], [100], [100, 100], 0
+    ) == 1
+
+    attacker.focus_target_id = None
+    simulator._current_time = 2.75
+    assert simulator._select_target(
+        [attacker], [protected, back], [100], [100, 100], 0
+    ) == 0
+
+
 def test_no_legal_target_is_a_noop_and_clears_stale_focus():
     attacker = _unit('attacker')
     attacker.focus_target_id = 'dead-target'

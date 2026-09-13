@@ -818,6 +818,12 @@ class CombatEventReconstructor:
                 f"at seq={event_data.get('seq')}: {event_data}"
             )
 
+        if unit_dict.get('hp', 0) <= 0:
+            raise ValueError(
+                f"ordinary hp regen cannot revive dead unit_id={unit_id} "
+                f"at seq={event_data.get('seq')}"
+            )
+
         if 'post_hp' not in event_data or event_data.get('post_hp') is None:
             raise ValueError(
                 f"HP regen event missing canonical post_hp for unit_id={unit_id} "
@@ -836,6 +842,12 @@ class CombatEventReconstructor:
             raise ValueError(
                 f"HP regen gain event references unknown unit_id={unit_id} "
                 f"at seq={event_data.get('seq')}: {event_data}"
+            )
+
+        if unit_dict.get('hp', 0) <= 0:
+            raise ValueError(
+                f"ordinary regen gain cannot mutate dead unit_id={unit_id} "
+                f"at seq={event_data.get('seq')}"
             )
 
         post_regen = event_data.get('post_hp_regen_per_sec')
