@@ -377,6 +377,38 @@ input:focus-visible {
   min-height: 0;
 }
 
+.combat-unit-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.combat-unit-grid-slot {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  min-height: var(--combat-unit-card-slot-height, 12rem);
+}
+
+.combat-unit-grid-slot-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.combat-unit-line-label {
+  margin-bottom: 0.25rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  line-height: 1.1;
+}
+
+.combat-unit-line + .combat-unit-line {
+  margin-top: 0.75rem;
+}
+
 .combat-feedback-layer {
   position: absolute;
   inset: 0;
@@ -804,10 +836,8 @@ input:focus-visible {
     overflow: visible !important;
   }
 
-  .combat-unit-grid > * {
-    display: flex;
-    justify-content: center;
-    min-width: 0;
+  .combat-unit-grid-slot {
+    min-height: var(--combat-unit-card-slot-height, 10rem);
   }
 
   .combat-unit-card {
@@ -905,6 +935,10 @@ input:focus-visible {
     --combat-unit-card-width: 96px;
   }
 
+  .combat-unit-grid-slot {
+    min-height: var(--combat-unit-card-slot-height, 10rem);
+  }
+
   .combat-log-modal {
     height: min(66dvh, 26rem) !important;
   }
@@ -955,6 +989,10 @@ input:focus-visible {
     margin-bottom: 0.5rem !important;
   }
 
+  .combat-unit-line + .combat-unit-line {
+    margin-top: 0;
+  }
+
   .combat-unit-grid {
     gap: 0.25rem !important;
     max-height: none !important;
@@ -968,6 +1006,10 @@ input:focus-visible {
     --combat-unit-bar-height: 0.3rem;
     --combat-unit-bar-gap: 0.1rem;
     box-sizing: border-box;
+  }
+
+  .combat-unit-grid-slot {
+    min-height: var(--combat-unit-card-slot-height, 7rem);
   }
 
   .combat-unit-card-name {

@@ -1,6 +1,5 @@
 import { memo } from 'react'
-import { motion } from 'framer-motion'
-import CombatUnitCard from './CombatUnitCard'
+import CombatFormationRow from './CombatFormationRow'
 import type { PresentationTrack } from '../hooks/combat/animation/presentationTimeline'
 
 interface Props {
@@ -23,52 +22,34 @@ const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerI
       
       {/* Front Line */}
       {frontUnits.length > 0 && (
-        <div className="combat-unit-line mb-3">
-          <div className="text-xs text-gray-400 mb-1">Linia Frontowa</div>
-          <div className="combat-unit-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', maxHeight: '150px', overflow: 'visible' }}>
-            {frontUnits.map((u: any) => (
-              <motion.div
-                key={u.id}
-              >
-                <CombatUnitCard
-                  unit={u}
-                  regen={regenMap[u.id]}
-                  isActiveAttacker={u.id === activeAttackerId}
-                  isActiveTarget={u.id === activeTargetId}
-                  currentTime={currentTime}
-                  presentationTracks={presentationTracks}
-                  replayPaused={replayPaused}
-                  reducedMotion={reducedMotion}
-                />
-              </motion.div>
-            ))}
-          </div>
-        </div>
+        <CombatFormationRow
+          units={frontUnits}
+          label="Linia Frontowa"
+          rowName="front"
+          regenMap={regenMap}
+          activeAttackerId={activeAttackerId}
+          activeTargetId={activeTargetId}
+          currentTime={currentTime}
+          presentationTracks={presentationTracks}
+          replayPaused={replayPaused}
+          reducedMotion={reducedMotion}
+        />
       )}
 
       {/* Back Line */}
       {backUnits.length > 0 && (
-        <div>
-          <div className="text-xs text-gray-400 mb-1">Linia Tylna</div>
-          <div className="combat-unit-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', maxHeight: '150px', overflow: 'visible' }}>
-            {backUnits.map((u: any) => (
-              <motion.div
-                key={u.id}
-              >
-                <CombatUnitCard
-                  unit={u}
-                  regen={regenMap[u.id]}
-                  isActiveAttacker={u.id === activeAttackerId}
-                  isActiveTarget={u.id === activeTargetId}
-                  currentTime={currentTime}
-                  presentationTracks={presentationTracks}
-                  replayPaused={replayPaused}
-                  reducedMotion={reducedMotion}
-                />
-              </motion.div>
-            ))}
-          </div>
-        </div>
+        <CombatFormationRow
+          units={backUnits}
+          label="Linia Tylna"
+          rowName="back"
+          regenMap={regenMap}
+          activeAttackerId={activeAttackerId}
+          activeTargetId={activeTargetId}
+          currentTime={currentTime}
+          presentationTracks={presentationTracks}
+          replayPaused={replayPaused}
+          reducedMotion={reducedMotion}
+        />
       )}
     </div>
   )
