@@ -113,6 +113,33 @@ input:focus-visible {
   min-height: 44px;
 }
 
+.login-branding {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
+  padding: 0.35rem 0 0.15rem;
+}
+
+.login-branding-title {
+  margin: 0;
+  color: #f1f5f9;
+  font-size: clamp(1.75rem, 7vw, 2.65rem);
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.login-branding-set {
+  color: #f4b54d;
+  font-size: clamp(0.72rem, 2.8vw, 0.9rem);
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .items-inventory {
   overflow-wrap: anywhere;
 }
@@ -633,27 +660,6 @@ input:focus-visible {
   justify-content: flex-end;
 }
 
-.combat-arena-brand {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 0.75rem;
-  min-height: 1.5rem;
-  color: #a6b5c6;
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  line-height: 1;
-  text-transform: uppercase;
-  animation: combat-brand-entry 520ms ease-out both;
-}
-
-.combat-arena-brand strong {
-  color: #f4b54d;
-  font-size: 0.7rem;
-  font-weight: 900;
-}
-
 .combat-header {
   margin: 0 0 0.9rem;
   padding: 0.8rem;
@@ -763,11 +769,6 @@ input:focus-visible {
   border-radius: 50%;
   color: #f4b54d;
   background: #0e1722;
-}
-
-@keyframes combat-brand-entry {
-  from { opacity: 0; transform: translateY(-0.35rem); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 .combat-panel-toggle,

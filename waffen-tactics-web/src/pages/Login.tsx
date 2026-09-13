@@ -18,7 +18,10 @@ export default function Login() {
   return (
     <main className="login-screen flex items-center justify-center p-4">
       <div className="login-card ui-panel ui-panel--raised max-w-md w-full text-center space-y-6 p-6 sm:p-8">
-        <h1 className="text-4xl font-bold text-primary">⚔️ Waffen Tactics</h1>
+        <div className="login-branding" aria-label="Waffen Tactics, Set 2: Świt Nowociot">
+          <h1 className="login-branding-title">WAFFEN TACTICS</h1>
+          <strong className="login-branding-set">SET 2: ŚWIT NOWOCIOT</strong>
+        </div>
         <p className="text-text/80">
           Strategiczna gra auto-battler w stylu TFT
         </p>

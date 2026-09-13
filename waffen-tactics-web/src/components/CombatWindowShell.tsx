@@ -34,11 +34,6 @@ export default function CombatWindowShell({
       {combatPanel}
 
       <main className="combat-overlay-board" style={combatOverlayBoardStyle}>
-        <div className="combat-arena-brand" aria-label="Waffen Tactics Set 2 Świt Nowociot">
-          <span>WAFFEN TACTICS</span>
-          <strong>SET 2: ŚWIT NOWOCIOT</strong>
-        </div>
-
         <div className="combat-opponent-slot">
           {opponentSlot}
         </div>

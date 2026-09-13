@@ -44,6 +44,7 @@ describe('CombatWindowShell', () => {
     expect(container.querySelector('#panel-child')).not.toBeNull()
     expect(container.querySelector('#log-child')).not.toBeNull()
     expect(container.querySelector('#replay-child')).not.toBeNull()
+    expect(container.querySelector('.combat-arena-brand')).toBeNull()
 
     act(() => {
       ;(container.querySelector('.combat-panel-toggle') as HTMLButtonElement).click()

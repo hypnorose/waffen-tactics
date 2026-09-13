@@ -26,7 +26,8 @@ describe('Login', () => {
       root.render(<Login />)
     })
 
-    expect(container.textContent).toContain('Waffen Tactics')
+    expect(container.textContent).toContain('WAFFEN TACTICS')
+    expect(container.textContent).toContain('SET 2: ŚWIT NOWOCIOT')
     expect(container.textContent).toContain('Zaloguj się przez Discord')
     expect(container.textContent).not.toContain('51 jednostek')
     expect(container.textContent).not.toContain('14 traitów')
