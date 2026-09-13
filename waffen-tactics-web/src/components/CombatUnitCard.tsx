@@ -88,8 +88,7 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   const { register, getCenter } = useUnitAnchors()
 
   useEffect(() => {
-    register(unit.id, rootRef.current)
-    return () => register(unit.id, null)
+    return register(unit.id, rootRef.current)
   }, [unit.id, register])
 
   const updateTooltipPosition = useCallback(() => {
