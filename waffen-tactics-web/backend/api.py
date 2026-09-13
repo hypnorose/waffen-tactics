@@ -93,7 +93,7 @@ game_manager = GameManager()
 API_HOST = '127.0.0.1'
 API_PORT = 8000
 
-print(f"📦 Using database: {DB_PATH}")
+print(f"[db] Using database: {DB_PATH}")
 
 
 # Authorization helpers are provided by `routes.auth` (blueprint registered above)
@@ -116,6 +116,6 @@ if __name__ == '__main__':
     # Initialize database
     run_async(db_manager.initialize())
     run_async(init_sample_bots())
-    print("✅ Database initialized")
+    print("[db] Database initialized")
     
     run_api_server()
