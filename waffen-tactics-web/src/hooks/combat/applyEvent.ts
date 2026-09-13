@@ -502,7 +502,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       break
 
     case 'damage_dodged': {
-      const targetId = event.target_id || event.unit_id
+      const targetId = event.target_id
       requireKnownUnit(newState, event, targetId)
       requireKnownUnit(newState, event, event.attacker_id)
 

@@ -304,6 +304,19 @@ describe('applyCombatEvent - Effect Handling', () => {
     }, { simTime: 0 })).toThrow('[REPLAY_VALIDATION] damage_dodged event seq=85 must be a zero-damage outcome for applied_damage')
   })
 
+  it('rejects damage_dodged when the canonical target_id is missing', () => {
+    const original = JSON.parse(JSON.stringify(state)) as CombatState
+
+    expect(() => applyCombatEvent(state, {
+      type: 'damage_dodged',
+      attacker_id: 'player_0',
+      unit_id: 'opp_0',
+      seq: 86,
+    }, { simTime: 0 })).toThrow('[REPLAY_VALIDATION] damage_dodged event seq=86 missing required unit_id')
+
+    expect(state).toEqual(original)
+  })
+
   describe('unit identity validation', () => {
     const unitTargetedTypes = ['unit_died', 'heal', 'unit_heal', 'hp_regen', 'damage_over_time_applied'] as const
 
