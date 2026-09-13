@@ -42,6 +42,7 @@ export interface DesyncEntry {
   pending_events: CombatEvent[]
   recent_events?: CombatEvent[]
   note?: string
+  replay_session_id?: string
 }
 
 export interface TraitDefinition {

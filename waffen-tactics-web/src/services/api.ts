@@ -107,6 +107,9 @@ export const gameAPI = {
   
   startCombat: (options?: MutationRequestOptions) =>
     postMutation('/game/combat', undefined, options),
+
+  reportCombatDesync: (payload: unknown) =>
+    api.post('/game/combat/desync', payload),
   
   resetGame: (options?: MutationRequestOptions) =>
     postMutation('/game/reset', undefined, options),

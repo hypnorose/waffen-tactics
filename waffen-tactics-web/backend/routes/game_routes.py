@@ -45,6 +45,11 @@ from .game_management import get_state, start_game, reset_game, surrender_game, 
 from .game_actions import buy_unit, sell_unit, move_to_board, switch_line, move_to_bench, reroll_shop, buy_xp, toggle_shop_lock, get_items, equip_item_route, combine_item_route
 from .game_data import get_leaderboard, get_leaderboard_data, get_units, get_traits
 from .game_combat import start_combat
+from services.combat_desync_service import (
+    DesyncReportValidationError,
+    MAX_REPORT_BYTES,
+    normalize_desync_report,
+)
 
 # Persistent stacking rules
 HP_STACK_PER_STAR = 5  # default
@@ -313,6 +318,40 @@ def combine_item_route_api(user_id):
 @game_bp.route('/combat', methods=['POST'])
 def start_combat_route():
     return start_combat()
+
+@game_bp.route('/combat/desync', methods=['POST'])
+@require_auth
+def report_combat_desync_route(user_id):
+    """Receive and durably store a replay desync diagnostic from the client."""
+    if request.content_length and request.content_length > MAX_REPORT_BYTES:
+        return jsonify({
+            'error': 'Invalid desync report',
+            'code': 'invalid_desync_report',
+        }), 400
+    try:
+        report = normalize_desync_report(request.get_json(silent=True))
+    except DesyncReportValidationError:
+        return jsonify({
+            'error': 'Invalid desync report',
+            'code': 'invalid_desync_report',
+        }), 400
+
+    try:
+        report_id, created = run_async(
+            db_manager.save_combat_desync_report(user_id, report)
+        )
+    except Exception:
+        logger.exception(
+            'combat desync report persistence failed user_id=%s request_id=%s',
+            user_id,
+            getattr(request, 'request_id', 'unknown'),
+        )
+        return jsonify({
+            'error': 'Unable to save desync report',
+            'code': 'desync_report_persistence_failed',
+        }), 500
+
+    return jsonify({'id': report_id, 'created': created}), 201 if created else 200
 
 @game_bp.route('/reset', methods=['POST'])
 @require_auth

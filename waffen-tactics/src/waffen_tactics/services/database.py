@@ -1,6 +1,7 @@
 """Database manager for player states"""
 import aiosqlite
 import json
+import hashlib
 from typing import Optional, Dict, Callable, Tuple, Any
 from pathlib import Path
 from ..models.player_state import PlayerState
@@ -80,6 +81,7 @@ class DatabaseManager:
                 )
             """)
             await self._ensure_action_results_table(db)
+            await self._ensure_desync_reports_table(db)
             
             # Migration: Add losses column to opponent_teams if it doesn't exist
             try:
@@ -139,6 +141,81 @@ class DatabaseManager:
                 )
             except aiosqlite.OperationalError:
                 pass
+
+    @staticmethod
+    async def _ensure_desync_reports_table(db):
+        """Create the durable replay-desync diagnostic ledger."""
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS combat_desync_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                report_key TEXT NOT NULL,
+                event_id TEXT,
+                seq INTEGER,
+                unit_id TEXT NOT NULL,
+                report_json TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (user_id, report_key)
+            )
+        """)
+
+    async def save_combat_desync_report(self, user_id: int, report: Dict[str, Any]):
+        """Persist one replay diagnostic and return ``(id, created)``.
+
+        The dedupe identity intentionally excludes the rolling event context so
+        replay retries do not create duplicate rows when recent/pending events
+        have changed around the same canonical failure.
+        """
+        normalized_user_id = int(user_id)
+        report_json = json.dumps(
+            report, ensure_ascii=False, allow_nan=False, separators=(',', ':')
+        )
+        identity = {
+            'replay_session_id': report.get('replay_session_id'),
+            'event_id': report.get('event_id'),
+            'seq': report.get('seq'),
+            'unit_id': report.get('unit_id'),
+            'note': report.get('note'),
+            'diff': report.get('diff'),
+        }
+        report_key = hashlib.sha256(
+            json.dumps(identity, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
+        ).hexdigest()
+
+        async with aiosqlite.connect(self.db_path, timeout=5.0) as db:
+            await db.execute('PRAGMA busy_timeout = 5000')
+            await self._ensure_desync_reports_table(db)
+            cursor = await db.execute(
+                """
+                INSERT OR IGNORE INTO combat_desync_reports
+                    (user_id, report_key, event_id, seq, unit_id, report_json)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    normalized_user_id,
+                    report_key,
+                    report.get('event_id'),
+                    report.get('seq'),
+                    report.get('unit_id'),
+                    report_json,
+                ),
+            )
+            created = cursor.rowcount == 1
+            await cursor.close()
+            async with db.execute(
+                """
+                SELECT id
+                FROM combat_desync_reports
+                WHERE user_id = ? AND report_key = ?
+                """,
+                (normalized_user_id, report_key),
+            ) as row_cursor:
+                row = await row_cursor.fetchone()
+            await db.commit()
+
+        if not row:
+            raise RuntimeError('combat desync report was not persisted')
+        return int(row[0]), created
 
     @staticmethod
     def _serialize_player(player: PlayerState) -> str:

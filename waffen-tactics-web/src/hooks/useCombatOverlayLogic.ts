@@ -9,6 +9,7 @@ import { useCombatReplayCompletion } from './combat/useCombatReplayCompletion'
 import { useCombatReplayControls } from './combat/useCombatReplayControls'
 import { useCombatReplayLoop } from './combat/useCombatReplayLoop'
 import { CombatState, CombatEvent, CombatUnitRoundStats, DesyncEntry } from './combat/types'
+import { gameAPI } from '../services/api'
 
 interface UseCombatOverlayLogicProps {
   onClose: (newState?: PlayerState, roundStatsByUnit?: Record<string, CombatUnitRoundStats>) => void
@@ -32,6 +33,12 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     return normalizeCombatSpeed(saved)
   })
   const [desyncLogs, setDesyncLogs] = useState<DesyncEntry[]>([])
+  const replaySessionIdRef = useRef<string>(
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `replay-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  )
+  const reportedDesyncKeysRef = useRef<Set<string>>(new Set())
   const [storedGoldBreakdown, setStoredGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number, item_parts: string[] } | null>(null)
   const [displayedGoldBreakdown, setDisplayedGoldBreakdown] = useState<{ base: number, interest: number, milestone: number, win_bonus: number, total: number, item_parts: string[] } | null>(null)
 
@@ -62,8 +69,31 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
   const pushDesync = useCallback((entry: DesyncEntry) => {
     const recent_events = recentEventsRef.current.slice(-25)
+    const report = {
+      ...entry,
+      pending_events: entry.pending_events.slice(0, 50),
+      recent_events,
+      replay_session_id: replaySessionIdRef.current,
+    }
     setDesyncLogs(prev => {
       return [{ ...entry, recent_events }, ...prev].slice(0, 200)
+    })
+
+    const reportKey = JSON.stringify([
+      report.replay_session_id,
+      report.event_id || null,
+      report.seq ?? null,
+      report.unit_id,
+      report.note || null,
+      report.diff,
+    ])
+    if (reportedDesyncKeysRef.current.has(reportKey)) return
+    reportedDesyncKeysRef.current.add(reportKey)
+
+    void gameAPI.reportCombatDesync(report).catch((error) => {
+      // Reporting is diagnostic-only: never turn a telemetry failure into a
+      // second replay failure or interrupt the player's combat view.
+      console.warn('[DESYNC REPORT] Failed to save replay diagnostic', error)
     })
   }, [])
 
