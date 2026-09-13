@@ -35,6 +35,16 @@ function isAuthorizedPostDeathAttack(state: CombatState, event: CombatEvent): bo
 }
 
 function isAuthorizedPostDeathRevive(state: CombatState, event: CombatEvent): boolean {
+  if (event.type === 'unit_revived') {
+    return Boolean(
+      event.unit_id &&
+      event.pre_hp === 0 &&
+      isUnitDead(state, event.unit_id) &&
+      typeof event.post_hp === 'number' &&
+      Number.isFinite(event.post_hp) &&
+      event.post_hp > 0,
+    )
+  }
   if ((event.type !== 'heal' && event.type !== 'unit_heal') || event.cause !== 'set2_revive') return false
   if (!event.unit_id || event.pre_hp !== 0 || !isUnitDead(state, event.unit_id)) return false
 
@@ -43,6 +53,82 @@ function isAuthorizedPostDeathRevive(state: CombatState, event: CombatEvent): bo
 
   const unit = [...state.playerUnits, ...state.opponentUnits].find(candidate => candidate.id === event.unit_id)
   return Boolean(unit && postHp <= unit.max_hp)
+}
+
+function validateCanonicalReviveEvent(state: CombatState, event: CombatEvent) {
+  if (typeof event.event_id !== 'string' || !event.event_id.trim()) {
+    throw new CombatReplayValidationError(event, 'missing required event_id', event.unit_id)
+  }
+
+  const unit = requireKnownUnit(state, event, event.unit_id)
+  const requireInteger = (field: string, value: unknown, positive = false): number => {
+    if (typeof value !== 'number' || !Number.isInteger(value) || !Number.isFinite(value) || (!positive && value < 0) || (positive && value <= 0)) {
+      throw new CombatReplayValidationError(
+        event,
+        `requires ${positive ? 'positive' : 'non-negative'} integer ${field}`,
+        event.unit_id,
+      )
+    }
+    return value
+  }
+  const requireFinite = (field: string, value: unknown): number => {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new CombatReplayValidationError(event, `requires finite numeric ${field}`, event.unit_id)
+    }
+    return value
+  }
+
+  const preHp = requireInteger('pre_hp', event.pre_hp)
+  const postHp = requireInteger('post_hp', event.post_hp, true)
+  const maxHp = requireInteger('max_hp', event.max_hp, true)
+  if (preHp !== 0 || postHp > maxHp) {
+    throw new CombatReplayValidationError(event, 'has invalid HP range', event.unit_id)
+  }
+  if (event.unit_hp !== undefined && event.unit_hp !== postHp) {
+    throw new CombatReplayValidationError(event, 'unit_hp must match post_hp', event.unit_id)
+  }
+  if (event.unit_max_hp !== undefined && event.unit_max_hp !== maxHp) {
+    throw new CombatReplayValidationError(event, 'unit_max_hp must match max_hp', event.unit_id)
+  }
+  const timestamp = requireFinite('timestamp', event.timestamp)
+  if (typeof event.cause !== 'string' || !event.cause.trim()) {
+    throw new CombatReplayValidationError(event, 'requires non-empty cause', event.unit_id)
+  }
+
+  const effectId = requireEffectId(event)
+  const protection = event.protection
+  if (!protection || typeof protection !== 'object') {
+    throw new CombatReplayValidationError(event, 'requires canonical protection', event.unit_id)
+  }
+  if (protection.effect_id !== effectId || protection.type !== 'untargetable') {
+    throw new CombatReplayValidationError(event, 'protection identity/type mismatch', event.unit_id)
+  }
+  const duration = requireFinite('protection.duration', protection.duration)
+  if (duration !== 0.75) {
+    throw new CombatReplayValidationError(event, 'protection duration must be exactly 0.75', event.unit_id)
+  }
+  const expiresAt = requireFinite('protection.expires_at', protection.expires_at)
+  if (Math.abs(expiresAt - (timestamp + duration)) > 1e-9) {
+    throw new CombatReplayValidationError(event, 'protection expiry mismatch', event.unit_id)
+  }
+  if (!event.effect || typeof event.effect !== 'object' || event.effect.id !== effectId || event.effect.type !== 'untargetable') {
+    throw new CombatReplayValidationError(event, 'requires matching canonical effect', event.unit_id)
+  }
+  if (event.effect.expires_at !== expiresAt) {
+    throw new CombatReplayValidationError(event, 'effect expiry mismatch', event.unit_id)
+  }
+
+  return {
+    unit,
+    signature: {
+      unitId: event.unit_id!,
+      preHp,
+      postHp,
+      maxHp,
+      effectId,
+      expiresAt,
+    },
+  }
 }
 
 function requireKnownUnit(state: CombatState, event: CombatEvent, unitId: string | undefined): Unit {
@@ -129,6 +215,45 @@ function hasCanonicalPositions(units: Unit[] | undefined, side: string, seq?: nu
 export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: ApplyEventContext): CombatState {
   validateItemEventContext(event)
 
+  if (event.type === 'unit_revived') {
+    const validated = validateCanonicalReviveEvent(state, event)
+    const applied = state.appliedReviveEvents?.[event.event_id!]
+    if (applied) {
+      if (
+        applied.unitId !== validated.signature.unitId ||
+        applied.preHp !== validated.signature.preHp ||
+        applied.postHp !== validated.signature.postHp ||
+        applied.maxHp !== validated.signature.maxHp ||
+        applied.effectId !== validated.signature.effectId ||
+        applied.expiresAt !== validated.signature.expiresAt
+      ) {
+        throw new CombatReplayValidationError(
+          event,
+          `conflicting duplicate event_id=${event.event_id}`,
+          event.unit_id,
+        )
+      }
+      return state
+    }
+    if (validated.unit.hp !== validated.signature.preHp) {
+      throw new CombatReplayValidationError(
+        event,
+        `pre_hp mismatch: expected current=${validated.unit.hp}, event=${validated.signature.preHp}`,
+        event.unit_id,
+      )
+    }
+    if (validated.unit.max_hp !== validated.signature.maxHp) {
+      throw new CombatReplayValidationError(
+        event,
+        `max_hp mismatch: expected current=${validated.unit.max_hp}, event=${validated.signature.maxHp}`,
+        event.unit_id,
+      )
+    }
+    if ((validated.unit.effects || []).some(effect => effect.id === validated.signature.effectId)) {
+      throw new CombatReplayValidationError(event, `duplicate effect_id=${validated.signature.effectId}`, event.unit_id)
+    }
+  }
+
   if (event.type === 'formation_changed') {
     if (typeof event.event_id !== 'string' || !event.event_id.trim()) {
       throw new CombatReplayValidationError(event, 'missing required event_id', event.unit_id)
@@ -193,7 +318,7 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
     'attack', 'unit_attack', 'damage', 'mana_update', 'stat_buff', 'shield_applied',
     'shield_broken', 'unit_stunned', 'damage_over_time_applied',
     'damage_over_time_tick', 'damage_over_time_expired', 'effect_applied', 'effect_expired',
-    'unit_heal', 'heal', 'hp_regen', 'regen_gain', 'formation_changed'
+    'unit_heal', 'heal', 'unit_revived', 'hp_regen', 'regen_gain', 'formation_changed'
   ])
   const involvedIds = [event.unit_id, event.attacker_id, event.target_id].filter(
     (id): id is string => Boolean(id)
@@ -425,6 +550,39 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       updateKnownUnitById(newState, event, event.unit_id, u => ({ ...u, hp: 0 }))
       if (logLine) newState.combatLog = [...newState.combatLog, logLine]
       break
+
+    case 'unit_revived': {
+      const validated = validateCanonicalReviveEvent(newState, event)
+      const protection = event.protection!
+      const reviveEffect: EffectSummary = {
+        ...event.effect,
+        id: validated.signature.effectId,
+        type: 'untargetable',
+        duration: protection.duration,
+        expires_at: protection.expires_at,
+        expiresAt: protection.expires_at,
+        source: event.source_id || event.unit_id,
+        cause: event.cause,
+      }
+      updateKnownUnitById(newState, event, event.unit_id, unit => ({
+        ...unit,
+        hp: validated.signature.postHp,
+        effects: [...(unit.effects || []), reviveEffect],
+      }))
+      newState.appliedReviveEvents = {
+        ...(newState.appliedReviveEvents || {}),
+        [event.event_id!]: {
+          unitId: validated.signature.unitId,
+          preHp: validated.signature.preHp,
+          postHp: validated.signature.postHp,
+          maxHp: validated.signature.maxHp,
+          effectId: validated.signature.effectId,
+          expiresAt: validated.signature.expiresAt,
+        },
+      }
+      if (logLine) newState.combatLog = [...newState.combatLog, logLine]
+      break
+    }
 
     case 'formation_changed': {
       const unit = requireKnownUnit(newState, event, event.unit_id)

@@ -3,6 +3,7 @@
 from collections import Counter
 import json
 from pathlib import Path
+import pytest
 
 from waffen_tactics.services.data_loader import load_game_data
 from waffen_tactics.services.passive_processor import PassiveProcessor
@@ -14,6 +15,7 @@ from waffen_tactics.services.set2_contract import (
 )
 from waffen_tactics.services.combat_unit import CombatUnit
 from waffen_tactics.services.synergy import SynergyEngine
+from waffen_tactics.services.event_canonicalizer import emit_damage
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -194,6 +196,7 @@ def test_revive_is_once_per_fight_and_restores_half_max_hp():
     unit = CombatUnit("nicosc", "Nicość", 100, 10, 5, 1.0, passive={
         "runtime": {"type": "revive"},
     })
+    emit_damage(None, None, unit, 100)
     processor = PassiveProcessor()
     hp_arrays = {"team_a": [0], "team_b": []}
     processor.bind_hp_arrays(hp_arrays)
@@ -202,17 +205,51 @@ def test_revive_is_once_per_fight_and_restores_half_max_hp():
     assert processor.try_revive(unit, lambda event_type, payload: events.append((event_type, payload)), "team_a", 2.0, 0, "team_a") is True
     assert unit.hp == 50
     assert hp_arrays["team_a"] == [50]
-    assert [event_type for event_type, _ in events] == ["heal", "passive_triggered"]
-    heal_payload = events[0][1]
-    assert heal_payload["cause"] == "set2_revive"
-    assert heal_payload["pre_hp"] == 0
-    assert heal_payload["post_hp"] == 50
-    assert heal_payload["side"] == "team_a"
+    assert [event_type for event_type, _ in events] == ["unit_revived", "passive_triggered"]
+    revive_payload = events[0][1]
+    assert revive_payload["cause"] == "set2_revive"
+    assert revive_payload["pre_hp"] == 0
+    assert revive_payload["post_hp"] == 50
+    assert revive_payload["max_hp"] == 100
+    assert revive_payload["side"] == "team_a"
+    assert revive_payload["protection"] == {
+        "effect_id": "set2:nicosc:revive-untargetable",
+        "type": "untargetable",
+        "duration": 0.75,
+        "expires_at": 2.75,
+    }
     assert events[1][1]["effect"] == "revive"
     assert events[1][1]["restored_hp"] == 50
     assert unit.effects[-1]["type"] == "untargetable"
     assert unit.effects[-1]["expires_at"] == 2.75
     assert processor.try_revive(unit, None, "team_a", 3.0, 0, "team_a") is False
+
+
+def test_revive_uses_target_side_and_rolls_back_when_delivery_fails():
+    unit = CombatUnit("nicosc-opponent", "Nicość", 100, 10, 5, 1.0, passive={
+        "runtime": {"type": "revive"},
+    })
+    emit_damage(None, None, unit, 100)
+    hp_arrays = {"team_a": [], "team_b": [0]}
+    processor = PassiveProcessor()
+    processor.bind_hp_arrays(hp_arrays)
+
+    def fail_delivery(_event_type, _payload):
+        raise RuntimeError("delivery failed")
+
+    with pytest.raises(RuntimeError, match="delivery failed"):
+        processor.try_revive(unit, fail_delivery, "team_a", 2.0, 0, "team_b")
+
+    assert unit.hp == 0
+    assert unit.effects == []
+    assert unit._dead is False
+    assert hp_arrays["team_b"] == [0]
+    assert unit.passive_state.get("set2_revive_used") is None
+
+    events = []
+    assert processor.try_revive(unit, lambda event_type, payload: events.append((event_type, payload)), "team_a", 2.0, 0, "team_b") is True
+    assert events[0][1]["side"] == "team_b"
+    assert events[1][1]["side"] == "team_b"
 
 
 def test_konfident_transfers_only_actual_attack_mana_without_recursive_chain():

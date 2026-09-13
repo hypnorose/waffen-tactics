@@ -31,6 +31,7 @@ class CombatEventReconstructor:
         self.reconstructed_player_units: Dict[str, Dict[str, Any]] = {}
         self.reconstructed_opponent_units: Dict[str, Dict[str, Any]] = {}
         self._applied_formation_events: Dict[str, Tuple[str, str, str]] = {}
+        self._applied_revive_events: Dict[str, Tuple[Any, ...]] = {}
         self.seed = None
 
     @staticmethod
@@ -99,6 +100,7 @@ class CombatEventReconstructor:
         self.reconstructed_player_units = {u['id']: normalize_unit(u) for u in snapshot_data['player_units']}
         self.reconstructed_opponent_units = {u['id']: normalize_unit(u) for u in snapshot_data['opponent_units']}
         self._applied_formation_events = {}
+        self._applied_revive_events = {}
 
     def process_event(self, event_type: str, event_data: Dict[str, Any]):
         """Process a single event and update the reconstructed state."""
@@ -127,6 +129,8 @@ class CombatEventReconstructor:
             self._process_damage_dodged_event(event_data)
         elif event_type == 'unit_died':
             self._process_unit_death_event(event_data)
+        elif event_type == 'unit_revived':
+            self._process_unit_revived_event(event_data)
         elif event_type == 'mana_update':
             self._process_mana_update_event(event_data)
         elif event_type in ['heal', 'unit_heal']:
@@ -308,6 +312,145 @@ class CombatEventReconstructor:
         if 'olsak' in unit_id:
             print(f"    DEBUG: olsak unit {unit_id} died, HP was {old_hp} before setting to 0")
 
+    def _process_unit_revived_event(self, event_data: Dict[str, Any]):
+        """Apply a complete revive transition from the event stream only."""
+        event_id = event_data.get('event_id')
+        if not isinstance(event_id, str) or not event_id.strip():
+            raise ValueError(
+                f"unit_revived event missing event_id at seq={event_data.get('seq')}"
+            )
+
+        unit_id = event_data.get('unit_id')
+        if not isinstance(unit_id, str) or not unit_id.strip():
+            raise ValueError(
+                f"unit_revived event missing unit_id at seq={event_data.get('seq')}"
+            )
+        unit_dict = self._get_unit_dict(unit_id)
+        if unit_dict is None:
+            raise ValueError(
+                f"unit_revived references unknown unit_id={unit_id} "
+                f"at seq={event_data.get('seq')}"
+            )
+
+        def require_integer(field: str, *, positive: bool = False) -> int:
+            value = event_data.get(field)
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise ValueError(
+                    f"unit_revived requires integer {field} at seq={event_data.get('seq')}"
+                )
+            if positive and value <= 0:
+                raise ValueError(
+                    f"unit_revived requires positive {field} at seq={event_data.get('seq')}"
+                )
+            if not positive and value < 0:
+                raise ValueError(
+                    f"unit_revived requires non-negative {field} at seq={event_data.get('seq')}"
+                )
+            return value
+
+        def require_finite(field: str) -> float:
+            value = event_data.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+                raise ValueError(
+                    f"unit_revived requires finite numeric {field} at seq={event_data.get('seq')}"
+                )
+            return float(value)
+
+        timestamp = require_finite('timestamp')
+        pre_hp = require_integer('pre_hp')
+        post_hp = require_integer('post_hp', positive=True)
+        max_hp = require_integer('max_hp', positive=True)
+        if pre_hp != 0 or post_hp > max_hp:
+            raise ValueError(
+                f"unit_revived has invalid HP range at seq={event_data.get('seq')}"
+            )
+        cause = event_data.get('cause')
+        if not isinstance(cause, str) or not cause.strip():
+            raise ValueError(
+                f"unit_revived requires non-empty cause at seq={event_data.get('seq')}"
+            )
+        effect_id = self._require_effect_id(
+            event_data.get('effect_id'),
+            f"unit_revived event seq={event_data.get('seq')}"
+        )
+        protection = event_data.get('protection')
+        if not isinstance(protection, dict):
+            raise ValueError(
+                f"unit_revived requires canonical protection at seq={event_data.get('seq')}"
+            )
+        if protection.get('effect_id') != effect_id or protection.get('type') != 'untargetable':
+            raise ValueError(
+                f"unit_revived protection identity/type mismatch at seq={event_data.get('seq')}"
+            )
+        duration = protection.get('duration')
+        if isinstance(duration, bool) or not isinstance(duration, (int, float)) or not math.isfinite(float(duration)) or float(duration) != 0.75:
+            raise ValueError(
+                f"unit_revived protection duration must be exactly 0.75 at seq={event_data.get('seq')}"
+            )
+        expires_at = protection.get('expires_at')
+        if isinstance(expires_at, bool) or not isinstance(expires_at, (int, float)) or not math.isfinite(float(expires_at)):
+            raise ValueError(
+                f"unit_revived requires finite protection expires_at at seq={event_data.get('seq')}"
+            )
+        if not math.isclose(float(expires_at), timestamp + float(duration), rel_tol=0.0, abs_tol=1e-9):
+            raise ValueError(
+                f"unit_revived protection expiry mismatch at seq={event_data.get('seq')}"
+            )
+
+        effect = event_data.get('effect')
+        if not isinstance(effect, dict) or effect.get('id') != effect_id or effect.get('type') != 'untargetable':
+            raise ValueError(
+                f"unit_revived requires matching canonical effect at seq={event_data.get('seq')}"
+            )
+        if effect.get('expires_at') != expires_at:
+            raise ValueError(
+                f"unit_revived effect expiry mismatch at seq={event_data.get('seq')}"
+            )
+
+        signature = (
+            unit_id,
+            pre_hp,
+            post_hp,
+            max_hp,
+            cause,
+            effect_id,
+            effect.get('type'),
+            float(duration),
+            float(expires_at),
+        )
+        applied = self._applied_revive_events.get(event_id)
+        if applied is not None:
+            if applied != signature:
+                raise ValueError(
+                    f"unit_revived conflicting duplicate event_id={event_id} "
+                    f"at seq={event_data.get('seq')}"
+                )
+            return
+
+        if unit_dict.get('hp') != pre_hp:
+            raise ValueError(
+                f"unit_revived pre_hp mismatch for unit_id={unit_id} at seq={event_data.get('seq')}: "
+                f"expected current={unit_dict.get('hp')}, event={pre_hp}"
+            )
+        if unit_dict.get('max_hp') != max_hp:
+            raise ValueError(
+                f"unit_revived max_hp mismatch for unit_id={unit_id} at seq={event_data.get('seq')}: "
+                f"expected current={unit_dict.get('max_hp')}, event={max_hp}"
+            )
+
+        if any(
+            isinstance(existing, dict) and existing.get('id') == effect_id
+            for existing in unit_dict.get('effects', [])
+        ):
+            raise ValueError(
+                f"unit_revived duplicates effect_id={effect_id} on unit={unit_id} "
+                f"at seq={event_data.get('seq')}"
+            )
+
+        unit_dict['hp'] = post_hp
+        unit_dict.setdefault('effects', []).append(dict(effect))
+        self._applied_revive_events[event_id] = signature
+
     def _process_mana_update_event(self, event_data: Dict[str, Any]):
         """Process mana_update event.
 
@@ -357,6 +500,11 @@ class CombatEventReconstructor:
             raise ValueError(
                 f"Heal event missing canonical post_hp for unit_id={unit_id} "
                 f"at seq={event_data.get('seq')}: {event_data}"
+            )
+        if unit_dict.get('hp', 0) <= 0 and event_data.get('cause') != 'set2_revive':
+            raise ValueError(
+                f"ordinary heal cannot revive dead unit_id={unit_id} "
+                f"at seq={event_data.get('seq')}"
             )
         unit_dict['hp'] = event_data['post_hp']
 

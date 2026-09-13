@@ -95,6 +95,86 @@ def _require_effect_id(data: dict, event_type: str):
     return effect_id
 
 
+def _require_revive_number(data: dict, field: str, event_type: str, *, integer: bool = False, positive: bool = False):
+    value = data.get(field)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+        raise RuntimeError(
+            f"{event_type} requires finite numeric {field} at seq={data.get('seq')}"
+        )
+    if integer and (not isinstance(value, int) or value < 0):
+        raise RuntimeError(
+            f"{event_type} requires non-negative integer {field} at seq={data.get('seq')}"
+        )
+    if positive and value <= 0:
+        raise RuntimeError(
+            f"{event_type} requires positive {field} at seq={data.get('seq')}"
+        )
+    return value
+
+
+def _map_unit_revived(data: dict) -> dict:
+    event_type = 'unit_revived'
+    seq = data.get('seq')
+    event_id = data.get('event_id')
+    if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1:
+        raise RuntimeError(f"{event_type} requires canonical integer seq at seq={seq}")
+    if not isinstance(event_id, str) or not event_id.strip():
+        raise RuntimeError(f"{event_type} requires canonical event_id at seq={seq}")
+    unit_id = data.get('unit_id')
+    if not isinstance(unit_id, str) or not unit_id.strip():
+        raise RuntimeError(f"{event_type} missing required unit_id at seq={seq}")
+
+    pre_hp = _require_revive_number(data, 'pre_hp', event_type, integer=True)
+    post_hp = _require_revive_number(data, 'post_hp', event_type, integer=True, positive=True)
+    max_hp = _require_revive_number(data, 'max_hp', event_type, integer=True, positive=True)
+    if pre_hp != 0 or post_hp > max_hp:
+        raise RuntimeError(f"{event_type} has invalid HP range at seq={seq}")
+
+    timestamp = _require_revive_number(data, 'timestamp', event_type)
+    cause = data.get('cause')
+    if not isinstance(cause, str) or not cause.strip():
+        raise RuntimeError(f"{event_type} requires non-empty cause at seq={seq}")
+    effect_id = _require_effect_id(data, event_type)
+    protection = data.get('protection')
+    if not isinstance(protection, dict):
+        raise RuntimeError(f"{event_type} requires canonical protection at seq={seq}")
+    if protection.get('effect_id') != effect_id or protection.get('type') != 'untargetable':
+        raise RuntimeError(f"{event_type} protection identity/type mismatch at seq={seq}")
+    duration = _require_revive_number(protection, 'duration', event_type, positive=True)
+    if duration != 0.75:
+        raise RuntimeError(f"{event_type} protection duration must be exactly 0.75 at seq={seq}")
+    expires_at = _require_revive_number(protection, 'expires_at', event_type)
+    if not math.isclose(float(expires_at), float(timestamp) + float(duration), rel_tol=0.0, abs_tol=1e-9):
+        raise RuntimeError(f"{event_type} protection expiry mismatch at seq={seq}")
+
+    effect = data.get('effect')
+    if not isinstance(effect, dict) or effect.get('id') != effect_id or effect.get('type') != 'untargetable':
+        raise RuntimeError(f"{event_type} requires matching canonical effect at seq={seq}")
+    if effect.get('expires_at') != expires_at:
+        raise RuntimeError(f"{event_type} effect expiry mismatch at seq={seq}")
+
+    return {
+        'type': event_type,
+        'unit_id': unit_id,
+        'unit_name': data.get('unit_name'),
+        'pre_hp': pre_hp,
+        'post_hp': post_hp,
+        'unit_hp': post_hp,
+        'max_hp': max_hp,
+        'unit_max_hp': max_hp,
+        'effect_id': effect_id,
+        'effect_type': 'untargetable',
+        'effect': effect,
+        'protection': protection,
+        'side': data.get('side'),
+        'cause': cause,
+        'source_id': data.get('source_id'),
+        'timestamp': timestamp,
+        'seq': seq,
+        'event_id': event_id,
+    }
+
+
 def _preserve_player_facing_context(payload: dict, data: dict) -> None:
     """Keep canonical explanation metadata available to live and replay UI.
 
@@ -260,6 +340,8 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq')
         }
+    if event_type == 'unit_revived':
+        res = _map_unit_revived(data)
     if event_type == 'regen_gain':
         post_regen = data.get('post_hp_regen_per_sec')
         if isinstance(post_regen, bool) or not isinstance(post_regen, (int, float)) or not math.isfinite(float(post_regen)):

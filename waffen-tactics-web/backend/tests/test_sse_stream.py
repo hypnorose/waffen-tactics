@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from services.combat_service import run_combat_simulation
 from waffen_tactics.services.combat_unit import CombatUnit
+import routes.game_combat as game_combat
 
 
 def test_full_mana_emits_bonus_basic_attack_and_no_skill_cast(monkeypatch):
@@ -66,3 +67,61 @@ def test_full_mana_emits_bonus_basic_attack_and_no_skill_cast(monkeypatch):
     assert attacks[0][1].get('bonus_attack') is False
     assert any(evt.get('bonus_attack') is True for _, evt in attacks)
     assert not any('casts' in msg for msg in result.get('log', []))
+
+
+def test_unit_revived_mapping_preserves_authoritative_protection_contract():
+    payload = game_combat.map_event_to_sse_payload('unit_revived', {
+        'type': 'unit_revived',
+        'event_id': 'combat:revive:1',
+        'seq': 12,
+        'timestamp': 4.0,
+        'unit_id': 'target1',
+        'unit_name': 'Target',
+        'pre_hp': 0,
+        'post_hp': 50,
+        'max_hp': 100,
+        'unit_max_hp': 100,
+        'cause': 'set2_revive',
+        'side': 'team_b',
+        'effect_id': 'set2:target1:revive-untargetable',
+        'effect': {
+            'id': 'set2:target1:revive-untargetable',
+            'type': 'untargetable',
+            'duration': 0.75,
+            'expires_at': 4.75,
+        },
+        'protection': {
+            'effect_id': 'set2:target1:revive-untargetable',
+            'type': 'untargetable',
+            'duration': 0.75,
+            'expires_at': 4.75,
+        },
+    })
+
+    assert payload['type'] == 'unit_revived'
+    assert payload['unit_id'] == 'target1'
+    assert payload['post_hp'] == 50
+    assert payload['effect_id'] == 'set2:target1:revive-untargetable'
+    assert payload['protection']['expires_at'] == 4.75
+
+
+def test_unit_revived_mapping_rejects_invalid_protection_range():
+    with pytest.raises(RuntimeError, match='duration must be exactly 0.75'):
+        game_combat.map_event_to_sse_payload('unit_revived', {
+            'event_id': 'combat:revive:bad',
+            'seq': 13,
+            'timestamp': 4.0,
+            'unit_id': 'target1',
+            'pre_hp': 0,
+            'post_hp': 50,
+            'max_hp': 100,
+            'cause': 'set2_revive',
+            'effect_id': 'set2:target1:revive-untargetable',
+            'effect': {'id': 'set2:target1:revive-untargetable', 'type': 'untargetable', 'expires_at': 5.0},
+            'protection': {
+                'effect_id': 'set2:target1:revive-untargetable',
+                'type': 'untargetable',
+                'duration': 1.0,
+                'expires_at': 5.0,
+            },
+        })

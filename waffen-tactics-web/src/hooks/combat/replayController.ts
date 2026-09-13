@@ -56,6 +56,7 @@ export const createEmptyCombatState = (): CombatState => ({
   appliedFormationEvents: {},
   appliedDamageDodgedEvents: {},
   appliedShieldBrokenEvents: {},
+  appliedReviveEvents: {},
 })
 
 function cloneInitialState(state: CombatState): CombatState {
@@ -71,6 +72,7 @@ function cloneInitialState(state: CombatState): CombatState {
     appliedFormationEvents: { ...state.appliedFormationEvents },
     appliedDamageDodgedEvents: { ...state.appliedDamageDodgedEvents },
     appliedShieldBrokenEvents: { ...state.appliedShieldBrokenEvents },
+    appliedReviveEvents: { ...state.appliedReviveEvents },
   }
 }
 

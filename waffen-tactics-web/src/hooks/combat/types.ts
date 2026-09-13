@@ -83,11 +83,13 @@ export interface CombatEvent {
   dodged?: boolean
   bonus_attack?: boolean
   unit_hp?: number
+  unit_max_hp?: number
   target_hp?: number
   target_max_hp?: number
   unit_id?: string
   post_hp?: number  // Authoritative HP after event (for heals, damage)
   pre_hp?: number   // HP before event
+  max_hp?: number   // Authoritative max HP for lifecycle transitions
   new_hp?: number   // Alternative authoritative HP field (legacy)
   post_max_hp?: number
   post_attack?: number
@@ -145,6 +147,12 @@ export interface CombatEvent {
   effect_id?: string
   effect_type?: string
   effect?: any
+  protection?: {
+    effect_id?: string
+    type?: string
+    duration?: number
+    expires_at?: number
+  }
   item_id?: string
   item_effect_id?: string
   item_effect?: Record<string, unknown>
@@ -307,5 +315,15 @@ export interface CombatState {
   appliedShieldBrokenEvents?: Record<string, {
     unitId: string
     amount: number
+  }>
+  // Revive transitions carry their own idempotency identity and protection
+  // contract so reconnects cannot restore HP or protection twice.
+  appliedReviveEvents?: Record<string, {
+    unitId: string
+    preHp: number
+    postHp: number
+    maxHp: number
+    effectId: string
+    expiresAt: number
   }>
 }

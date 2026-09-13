@@ -20,6 +20,7 @@ from .event_canonicalizer import (
     emit_regen_gain,
     emit_shield_applied,
     emit_stat_buff,
+    emit_unit_revived,
     emit_unit_stunned,
 )
 
@@ -836,22 +837,35 @@ class Set2Runtime:
     def try_revive(self, target: Any, callback: EventCallback, side: str, timestamp: float, hp_arrays: Optional[Dict[str, List[int]]], unit_index: Optional[int], unit_side: Optional[str]) -> bool:
         if self._passive_type(target) != "revive" or self._state(target).get("set2_revive_used"):
             return False
-        self._state(target)["set2_revive_used"] = True
-        amount = int(target.max_hp * 0.5)
-        payload = emit_heal(callback, target, amount, source=target, side=side, timestamp=timestamp, cause="set2_revive", current_hp=0)
-        if payload is None:
+        if int(getattr(target, "hp", 0) or 0) > 0 and not getattr(target, "_dead", False):
             return False
-        if hp_arrays is not None and unit_index is not None and unit_side:
-            hp_arrays[unit_side][unit_index] = int(payload["post_hp"])
-        target._dead = False
-        target._death_processed = False
-        target.effects = list(getattr(target, "effects", []) or []) + [{
-            "id": f"set2:{target.id}:revive-untargetable",
-            "type": "untargetable",
-            "expires_at": timestamp + 0.75,
-            "source": target.id,
-        }]
-        self._emit_runtime_event(callback, target, "on_death", "revive", side, timestamp, restored_hp=payload["post_hp"])
+        revive_side = unit_side or side
+        payload = emit_unit_revived(
+            callback,
+            target,
+            source=target,
+            side=revive_side,
+            timestamp=timestamp,
+            pre_hp=int(getattr(target, "hp", 0) or 0),
+            post_hp=int(target.max_hp * 0.5),
+            max_hp=int(target.max_hp),
+            hp_arrays=hp_arrays,
+            unit_index=unit_index,
+            unit_side=unit_side,
+            cause="set2_revive",
+        )
+        self._state(target)["set2_revive_used"] = True
+        self._emit_runtime_event(
+            callback,
+            target,
+            "on_death",
+            "revive",
+            revive_side,
+            timestamp,
+            restored_hp=payload["post_hp"],
+            protection_effect_id=payload["effect_id"],
+            protection_expires_at=payload["protection"]["expires_at"],
+        )
         return True
 
     def _retarget_weeb(self, owner: Any, allies: List[Any], callback: EventCallback, side: str, timestamp: float) -> None:

@@ -662,6 +662,166 @@ def emit_heal(
     return payload
 
 
+def emit_unit_revived(
+    event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
+    recipient: Any,
+    *,
+    source: Optional[Any] = None,
+    side: Optional[str] = None,
+    timestamp: Optional[float] = None,
+    pre_hp: Optional[int] = None,
+    post_hp: Optional[int] = None,
+    max_hp: Optional[int] = None,
+    cause: str = 'set2_revive',
+    protection_duration: float = 0.75,
+    hp_arrays: Optional[Dict[str, List[int]]] = None,
+    unit_index: Optional[int] = None,
+    unit_side: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Atomically apply and emit the canonical revive lifecycle event.
+
+    Revive is a lifecycle transition, not a heal.  The event carries the
+    complete authoritative post-state needed by replay consumers: restored HP
+    and the temporary untargetable protection installed by the transition.
+    ``hp_arrays`` is the simulator's side mirror and is committed together
+    with the unit object so a failed downstream delivery cannot leave a
+    half-applied revive behind.
+    """
+    unit_id = getattr(recipient, 'id', None)
+    if not isinstance(unit_id, str) or not unit_id.strip():
+        raise ValueError('unit_revived requires a non-empty recipient id')
+
+    ts = timestamp if timestamp is not None else _now_ts()
+    if isinstance(ts, bool) or not isinstance(ts, (int, float)) or not math.isfinite(float(ts)):
+        raise ValueError('unit_revived requires a finite numeric timestamp')
+    if not isinstance(cause, str) or not cause.strip():
+        raise ValueError('unit_revived requires a non-empty cause')
+
+    current_hp = int(getattr(recipient, 'hp', 0))
+    before_hp = current_hp if pre_hp is None else pre_hp
+    if isinstance(before_hp, bool) or not isinstance(before_hp, int) or before_hp != current_hp or before_hp > 0:
+        raise ValueError(
+            f'unit_revived requires pre_hp equal to the current non-positive HP '
+            f'for unit={unit_id}: pre_hp={before_hp!r}, current_hp={current_hp!r}'
+        )
+
+    canonical_max_hp = int(getattr(recipient, 'max_hp', 0)) if max_hp is None else max_hp
+    if isinstance(canonical_max_hp, bool) or not isinstance(canonical_max_hp, int) or canonical_max_hp <= 0:
+        raise ValueError(f'unit_revived requires a positive integer max_hp for unit={unit_id}')
+    recipient_max_hp = int(getattr(recipient, 'max_hp', 0))
+    if recipient_max_hp != canonical_max_hp:
+        raise ValueError(
+            f'unit_revived max_hp mismatch for unit={unit_id}: '
+            f'event={canonical_max_hp}, current={recipient_max_hp}'
+        )
+
+    restored_hp = int(canonical_max_hp * 0.5) if post_hp is None else post_hp
+    if isinstance(restored_hp, bool) or not isinstance(restored_hp, int) or restored_hp <= 0 or restored_hp > canonical_max_hp:
+        raise ValueError(
+            f'unit_revived requires 0 < post_hp <= max_hp for unit={unit_id}: '
+            f'post_hp={restored_hp!r}, max_hp={canonical_max_hp!r}'
+        )
+
+    if (
+        isinstance(protection_duration, bool)
+        or not isinstance(protection_duration, (int, float))
+        or not math.isfinite(float(protection_duration))
+        or float(protection_duration) != 0.75
+    ):
+        raise ValueError('unit_revived protection duration must be exactly 0.75 seconds')
+
+    hp_array = None
+    hp_array_previous = None
+    if hp_arrays is not None:
+        if not isinstance(hp_arrays, dict) or unit_side is None or unit_index is None:
+            raise ValueError('unit_revived requires hp_arrays, unit_side and unit_index together')
+        try:
+            hp_array = hp_arrays[unit_side]
+            hp_array_previous = hp_array[unit_index]
+        except Exception as exc:
+            raise RuntimeError(
+                f'Cannot prepare revive HP mirror for unit={unit_id} '
+                f'side={unit_side} index={unit_index}'
+            ) from exc
+        if int(hp_array_previous) != before_hp:
+            raise ValueError(
+                f'unit_revived HP mirror mismatch for unit={unit_id}: '
+                f'mirror={hp_array_previous!r}, pre_hp={before_hp!r}'
+            )
+
+    effect_id = f'set2:{unit_id}:revive-untargetable'
+    expires_at = float(ts) + float(protection_duration)
+    protection = {
+        'effect_id': effect_id,
+        'type': 'untargetable',
+        'duration': float(protection_duration),
+        'expires_at': expires_at,
+    }
+    effect = {
+        'id': effect_id,
+        'type': 'untargetable',
+        'duration': float(protection_duration),
+        'expires_at': expires_at,
+        'source': unit_id,
+        'source_id': getattr(source, 'id', None) if source is not None else unit_id,
+        'cause': cause,
+    }
+
+    previous_dead = getattr(recipient, '_dead', False)
+    previous_death_processed = getattr(recipient, '_death_processed', False)
+    previous_hp = current_hp
+    previous_effects = list(getattr(recipient, 'effects', []) or [])
+
+    try:
+        _set_and_verify_canonical_hp(recipient, restored_hp)
+        setattr(recipient, '_dead', False)
+        setattr(recipient, '_death_processed', False)
+        remaining_effects = [
+            existing for existing in previous_effects
+            if not (isinstance(existing, dict) and existing.get('id') == effect_id)
+        ]
+        recipient.effects = remaining_effects + [dict(effect)]
+        if hp_array is not None:
+            hp_array[unit_index] = restored_hp
+
+        payload = {
+            'unit_id': unit_id,
+            'unit_name': getattr(recipient, 'name', None),
+            'pre_hp': before_hp,
+            'post_hp': restored_hp,
+            'unit_hp': restored_hp,
+            'max_hp': canonical_max_hp,
+            'unit_max_hp': canonical_max_hp,
+            'side': unit_side or side,
+            'timestamp': float(ts),
+            'cause': cause,
+            'source_id': getattr(source, 'id', None) if source is not None else unit_id,
+            'effect_id': effect_id,
+            'effect_type': 'untargetable',
+            'effect': dict(effect),
+            'protection': dict(protection),
+        }
+        _deliver_canonical_event(event_callback, 'unit_revived', payload)
+        return payload
+    except Exception:
+        try:
+            _set_and_verify_canonical_hp(recipient, previous_hp)
+        except Exception:
+            pass
+        try:
+            setattr(recipient, '_dead', previous_dead)
+            setattr(recipient, '_death_processed', previous_death_processed)
+            recipient.effects = previous_effects
+        except Exception:
+            pass
+        if hp_array is not None:
+            try:
+                hp_array[unit_index] = hp_array_previous
+            except Exception:
+                pass
+        raise
+
+
 def emit_mana_update(
     event_callback: Optional[Callable[[str, Dict[str, Any]], None]],
     recipient: Any,

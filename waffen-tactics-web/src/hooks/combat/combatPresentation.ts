@@ -237,6 +237,8 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
     case 'unit_heal':
     case 'heal':
       return tag('HEAL', `${event.unit_name || event.unit_id || 'Unit'} +${formatAmount(event.amount)} HP${formatEventContext(event)}`)
+    case 'unit_revived':
+      return tag('REVIVE', `${event.unit_name || event.unit_id || 'Unit'} revives at ${formatAmount(event.post_hp)} HP${formatEventContext(event)}`)
     case 'hp_regen':
       return tag('REGEN', `${event.unit_name || event.unit_id || 'Unit'} regeneruje +${formatAmount(event.amount)} HP`)
     case 'regen_gain':

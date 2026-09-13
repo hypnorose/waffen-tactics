@@ -325,6 +325,24 @@ function applyCombatEvent(state, event, ctx) {
       }
       break
 
+    case 'unit_revived': {
+      if (!event.unit_id || typeof event.post_hp !== 'number' || !event.effect_id || !event.protection || !event.effect) {
+        throw new Error(`Malformed unit_revived event at seq=${event.seq}`)
+      }
+      const updateRevivedUnit = (u) => ({
+        ...u,
+        hp: event.post_hp,
+        effects: [...(u.effects || []), { ...event.effect, expiresAt: event.protection.expires_at }],
+      })
+      if (event.unit_id.startsWith('opp_')) {
+        newState.opponentUnits = updateUnitById(newState.opponentUnits, event.unit_id, updateRevivedUnit)
+      } else {
+        newState.playerUnits = updateUnitById(newState.playerUnits, event.unit_id, updateRevivedUnit)
+      }
+      newState.combatLog = [...newState.combatLog, `✨ ${event.unit_name} revives at ${event.post_hp} HP`]
+      break
+    }
+
     case 'heal':
     case 'unit_heal':
       const healUnitId = event.unit_id

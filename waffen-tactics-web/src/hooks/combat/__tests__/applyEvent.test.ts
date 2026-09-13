@@ -1729,6 +1729,77 @@ describe('applyCombatEvent - Effect Handling', () => {
       expect(afterRevive).toBe(300)
     })
 
+    it.each(['player_0', 'opp_0'])('reconstructs a first-class revive with protection and idempotent replay for %s', (unitId) => {
+      const died = applyCombatEvent(state, {
+        type: 'unit_died', unit_id: unitId, unit_name: unitId,
+        seq: 1200, timestamp: 8,
+      }, { simTime: 8 })
+      const maxHp = unitId === 'player_0' ? 500 : 600
+      const revive: CombatEvent = {
+        type: 'unit_revived',
+        event_id: `combat:unit-revived:${unitId}`,
+        seq: 1201,
+        timestamp: 8.2,
+        unit_id: unitId,
+        unit_name: unitId,
+        pre_hp: 0,
+        post_hp: maxHp / 2,
+        unit_hp: maxHp / 2,
+        max_hp: maxHp,
+        unit_max_hp: maxHp,
+        cause: 'set2_revive',
+        effect_id: `set2:${unitId}:revive-untargetable`,
+        effect_type: 'untargetable',
+        effect: {
+          id: `set2:${unitId}:revive-untargetable`,
+          type: 'untargetable',
+          duration: 0.75,
+          expires_at: 8.95,
+          source: unitId,
+          cause: 'set2_revive',
+        },
+        protection: {
+          effect_id: `set2:${unitId}:revive-untargetable`,
+          type: 'untargetable',
+          duration: 0.75,
+          expires_at: 8.95,
+        },
+      }
+
+      const revived = applyCombatEvent(died, revive, { simTime: 8.2 })
+      const unit = [...revived.playerUnits, ...revived.opponentUnits].find(candidate => candidate.id === unitId)
+      expect(unit?.hp).toBe(maxHp / 2)
+      expect(unit?.effects).toContainEqual(expect.objectContaining({
+        id: revive.effect_id,
+        type: 'untargetable',
+        expires_at: 8.95,
+        expiresAt: 8.95,
+      }))
+      expect(revived.appliedReviveEvents?.[revive.event_id!]).toMatchObject({
+        unitId,
+        postHp: maxHp / 2,
+        effectId: revive.effect_id,
+      })
+
+      const duplicate = applyCombatEvent(revived, revive, { simTime: 8.2 })
+      expect(duplicate).toBe(revived)
+      expect(() => applyCombatEvent(revived, { ...revive, post_hp: 200 }, { simTime: 8.2 }))
+        .toThrow(CombatReplayValidationError)
+
+      const expired = applyCombatEvent(revived, {
+        type: 'effect_expired',
+        event_id: `combat:revive-expired:${unitId}`,
+        seq: 1202,
+        timestamp: 8.95,
+        unit_id: unitId,
+        effect_id: revive.effect_id,
+        effect_type: 'untargetable',
+      }, { simTime: 8.95 })
+      const expiredUnit = [...expired.playerUnits, ...expired.opponentUnits].find(candidate => candidate.id === unitId)
+      expect(expiredUnit?.hp).toBe(maxHp / 2)
+      expect(expiredUnit?.effects).toEqual([])
+    })
+
     it('should ignore late mana and attack events after unit death', () => {
       const died = applyCombatEvent(state, {
         type: 'unit_died', unit_id: 'player_0', unit_name: 'TestPlayer',

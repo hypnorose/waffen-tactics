@@ -29,6 +29,38 @@ def _reconstructor(*units):
     return reconstructor
 
 
+def _revive_event(unit_id="u1", event_id="combat:revive:1", timestamp=2.0, post_hp=50, max_hp=100):
+    effect_id = f"set2:{unit_id}:revive-untargetable"
+    effect = {
+        "id": effect_id,
+        "type": "untargetable",
+        "duration": 0.75,
+        "expires_at": timestamp + 0.75,
+        "source": unit_id,
+        "cause": "set2_revive",
+    }
+    return {
+        "seq": 2,
+        "event_id": event_id,
+        "timestamp": timestamp,
+        "unit_id": unit_id,
+        "pre_hp": 0,
+        "post_hp": post_hp,
+        "max_hp": max_hp,
+        "unit_hp": post_hp,
+        "unit_max_hp": max_hp,
+        "cause": "set2_revive",
+        "effect_id": effect_id,
+        "effect": effect,
+        "protection": {
+            "effect_id": effect_id,
+            "type": "untargetable",
+            "duration": 0.75,
+            "expires_at": timestamp + 0.75,
+        },
+    }
+
+
 INVALID_EFFECT_IDS = [None, "", "   ", 123]
 
 
@@ -175,6 +207,85 @@ def test_damage_event_prefers_canonical_post_shield_over_compatibility_alias():
     })
 
     assert reconstructor.reconstructed_player_units["u1"]["shield"] == 3
+
+
+def test_unit_revived_reconstructs_hp_and_protection_without_snapshot_mutation():
+    reconstructor = _reconstructor(_unit(max_hp=100))
+    reconstructor.process_event("unit_attack", {
+        "seq": 1,
+        "target_id": "u1",
+        "target_hp": 0,
+    })
+
+    event = _revive_event()
+    reconstructor.process_event("unit_revived", event)
+    unit = reconstructor.reconstructed_player_units["u1"]
+    assert unit["hp"] == 50
+    assert unit["effects"] == [event["effect"]]
+
+    reconstructor.process_event("unit_revived", dict(event))
+    assert unit["hp"] == 50
+    assert unit["effects"] == [event["effect"]]
+
+    reconstructor.process_event("effect_expired", {
+        "seq": 3,
+        "unit_id": "u1",
+        "effect_id": event["effect_id"],
+        "effect_type": "untargetable",
+        "post_hp": 50,
+    })
+    assert unit["hp"] == 50
+    assert unit["effects"] == []
+
+    with pytest.raises(ValueError, match="conflicting duplicate"):
+        reconstructor.process_event("unit_revived", {**event, "post_hp": 60})
+
+
+def test_ordinary_heal_cannot_revive_a_dead_unit():
+    reconstructor = _reconstructor(_unit(max_hp=100))
+    reconstructor.process_event("unit_died", {
+        "seq": 1,
+        "unit_id": "u1",
+    })
+
+    with pytest.raises(ValueError, match="ordinary heal cannot revive"):
+        reconstructor.process_event("unit_heal", {
+            "seq": 2,
+            "unit_id": "u1",
+            "pre_hp": 0,
+            "post_hp": 50,
+            "amount": 50,
+            "cause": "healing_aura",
+        })
+    assert reconstructor.reconstructed_player_units["u1"]["hp"] == 0
+
+
+@pytest.mark.parametrize("field", ["event_id", "effect_id", "post_hp", "max_hp", "protection", "effect"])
+def test_unit_revived_rejects_malformed_contract_before_mutation(field):
+    reconstructor = _reconstructor(_unit(max_hp=100))
+    reconstructor.process_event("unit_attack", {
+        "seq": 1,
+        "target_id": "u1",
+        "target_hp": 0,
+    })
+    event = _revive_event()
+    if field == "event_id":
+        event[field] = ""
+    elif field == "effect_id":
+        event[field] = ""
+    elif field == "post_hp":
+        event[field] = 0
+    elif field == "max_hp":
+        event[field] = 0
+    elif field == "protection":
+        event[field] = None
+    elif field == "effect":
+        event[field] = {"id": event["effect_id"], "type": "heal"}
+
+    with pytest.raises(ValueError):
+        reconstructor.process_event("unit_revived", event)
+    assert reconstructor.reconstructed_player_units["u1"]["hp"] == 0
+    assert reconstructor.reconstructed_player_units["u1"]["effects"] == []
 
 
 @pytest.mark.parametrize(

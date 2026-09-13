@@ -228,7 +228,7 @@ describe('presentationTimeline', () => {
     ])
 
     state = reducePresentationTimeline(state, event({
-      type: 'heal',
+      type: 'unit_revived',
       event_id: 'combat:lifecycle-revive',
       seq: 4,
       timestamp: 3,
@@ -236,6 +236,20 @@ describe('presentationTimeline', () => {
       cause: 'set2_revive',
       pre_hp: 0,
       post_hp: 300,
+      max_hp: 600,
+      effect_id: 'set2:opp_0:revive-untargetable',
+      effect: {
+        id: 'set2:opp_0:revive-untargetable',
+        type: 'untargetable',
+        duration: 0.75,
+        expires_at: 3.75,
+      },
+      protection: {
+        effect_id: 'set2:opp_0:revive-untargetable',
+        type: 'untargetable',
+        duration: 0.75,
+        expires_at: 3.75,
+      },
     }))
     state = reducePresentationTimeline(state, event({
       type: 'unit_attack',

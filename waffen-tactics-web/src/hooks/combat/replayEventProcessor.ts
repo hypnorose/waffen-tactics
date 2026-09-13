@@ -60,7 +60,7 @@ function unexpectedHpRestoration(state: CombatState, nextState: CombatState, eve
   const newUnit = unitForId(nextState, relevantId)
   const oldHp = oldUnit?.hp
   const newHp = newUnit?.hp
-  const healTypes = new Set(['heal', 'unit_heal', 'hp_regen', 'regen_gain'])
+  const healTypes = new Set(['heal', 'unit_heal', 'unit_revived', 'hp_regen', 'regen_gain'])
 
   if (
     (oldHp === 0 || oldHp === null || oldHp === undefined) &&
