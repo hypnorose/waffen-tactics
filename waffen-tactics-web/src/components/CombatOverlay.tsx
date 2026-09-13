@@ -79,6 +79,13 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     }
   }, [victory, isFinished])
 
+  useEffect(() => {
+    // The completion action lives inside the drawer. Reveal it automatically
+    // when the terminal replay state is reached so the player is never left
+    // without a visible way to leave the finished combat.
+    if (isFinished) setCombatPanelExpanded(true)
+  }, [isFinished])
+
   return (
     <div className="combat-overlay-root">
       {!showMatchmakingOverlay && (

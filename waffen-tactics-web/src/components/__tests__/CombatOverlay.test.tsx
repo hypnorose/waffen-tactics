@@ -135,6 +135,17 @@ describe('CombatOverlay panel collapse', () => {
     expect(container.querySelector('#combat-control-panel')?.getAttribute('aria-hidden')).toBe('true')
   })
 
+  it('automatically opens the drawer when the combat reaches its terminal state', () => {
+    vi.mocked(useCombatOverlayLogic).mockReturnValue({ ...mockLogic, isFinished: true } as ReturnType<typeof useCombatOverlayLogic>)
+    const container = renderOverlay()
+
+    const toggle = container.querySelector('.combat-panel-toggle') as HTMLButtonElement
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(toggle.getAttribute('aria-label')).toBe('Zwiń panel walki')
+    expect(container.querySelector('#combat-control-panel')?.getAttribute('aria-hidden')).toBe('false')
+    expect(container.textContent).toContain('Kontynuuj')
+  })
+
   it('does not expose a local desync log when diagnostics report automatically', () => {
     const container = renderOverlay()
     expect(container.querySelector('.combat-desync-toggle')).toBeNull()
