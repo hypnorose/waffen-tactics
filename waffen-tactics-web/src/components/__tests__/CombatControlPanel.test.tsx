@@ -51,7 +51,8 @@ describe('CombatControlPanel', () => {
 
     const panel = container.querySelector('#combat-control-panel') as HTMLElement
     expect(panel.getAttribute('aria-hidden')).toBe('true')
-    expect(panel.style.display).toBe('none')
+    expect(panel.getAttribute('data-expanded')).toBe('false')
+    expect(panel.style.display).toBe('flex')
   })
 
   it('reveals the continue action only after combat completion', () => {

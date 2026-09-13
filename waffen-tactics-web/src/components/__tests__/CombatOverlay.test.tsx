@@ -96,9 +96,9 @@ describe('CombatOverlay panel collapse', () => {
     return container
   }
 
-  it('toggles without unmounting the log, preserves focus, and hides replay controls', () => {
+  it('starts with the drawer hidden, then toggles it without unmounting the log', () => {
     const container = renderOverlay()
-    const toggle = container.querySelector('[aria-label="Zwiń panel walki"]') as HTMLButtonElement
+    const toggle = container.querySelector('[aria-label="Rozwiń panel walki"]') as HTMLButtonElement
     const logToggle = container.querySelector('.combat-log-toggle') as HTMLButtonElement
     const log = container.textContent || ''
 
@@ -106,25 +106,25 @@ describe('CombatOverlay panel collapse', () => {
     expect(logToggle.getAttribute('aria-controls')).toBe('combat-log-modal')
     expect(logToggle.getAttribute('aria-expanded')).toBe('true')
     expect(log).toContain('Pierwsze zdarzenie replayu')
-    expect(container.querySelector('[aria-label="Sterowanie replayem walki"]')).not.toBeNull()
+    expect(container.querySelector('#combat-control-panel')?.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('[aria-label="Sterowanie replayem walki"]')?.getAttribute('aria-hidden')).toBe('true')
 
     act(() => {
       toggle.focus()
       toggle.click()
     })
 
-    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
     expect(logToggle.getAttribute('aria-expanded')).toBe('true')
-    expect(container.querySelector('#combat-control-panel')?.getAttribute('aria-hidden')).toBe('true')
-    expect(container.querySelector('[aria-label="Sterowanie replayem walki"]')?.getAttribute('aria-hidden')).toBe('true')
-    expect((container.querySelector('[aria-label="Sterowanie replayem walki"]') as HTMLElement).style.display).toBe('none')
+    expect(container.querySelector('#combat-control-panel')?.getAttribute('aria-hidden')).toBe('false')
+    expect(container.querySelector('[aria-label="Sterowanie replayem walki"]')?.getAttribute('aria-hidden')).toBe('false')
     expect(container.textContent).toContain('Pierwsze zdarzenie replayu')
     expect(document.activeElement).toBe(toggle)
     expect(toggle.className).toContain('combat-panel-toggle')
 
     act(() => toggle.click())
-    expect(toggle.getAttribute('aria-expanded')).toBe('true')
-    expect(container.querySelector('#combat-control-panel')?.getAttribute('aria-hidden')).toBe('false')
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(container.querySelector('#combat-control-panel')?.getAttribute('aria-hidden')).toBe('true')
   })
 
   it('starts collapsed on a narrow viewport while keeping the board control visible', () => {

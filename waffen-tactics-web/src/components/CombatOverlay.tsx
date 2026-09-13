@@ -14,17 +14,13 @@ import { UnitAnchorsProvider } from '../hooks/useUnitAnchors'
 import { ProjectileProvider } from '../hooks/useProjectileSystem'
 import ProjectileLayer from './ProjectileLayer'
 import CombatFeedbackLayer from './CombatFeedbackLayer'
-import { shouldStartCombatPanelCollapsed } from './combatOverlayLayout'
 import CombatWindowShell from './CombatWindowShell'
 import CombatWindowStatusOverlays from './CombatWindowStatusOverlays'
 
 export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
   const logEndRef = useRef<HTMLDivElement>(null)
   const [showVictoryOverlay, setShowVictoryOverlay] = useState(false)
-  const [combatPanelExpanded, setCombatPanelExpanded] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return !shouldStartCombatPanelCollapsed(window.innerWidth)
-  })
+  const [combatPanelExpanded, setCombatPanelExpanded] = useState(false)
   const {
     matchmakingPhase,
     rouletteCandidate,
@@ -84,7 +80,7 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
   }, [victory, isFinished])
 
   return (
-    <div className="combat-overlay-root" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+    <div className="combat-overlay-root">
       {!showMatchmakingOverlay && (
         <>
           <CombatWindowShell

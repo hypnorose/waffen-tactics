@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { getPassiveTitle, getUnit, type UnitPassive } from '../data/units'
@@ -205,7 +205,7 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   return (
     <motion.div
       ref={rootRef}
-      className="combat-unit-card group"
+      className={`combat-unit-card ${isOpponent ? 'is-opponent' : 'is-player'}${unit.hp <= 0 ? ' is-defeated' : ''}${isActiveAttacker ? ' is-active-attacker' : ''}${isActiveTarget ? ' is-active-target' : ''}`}
       initial={false}
       animate={presentationAnimation}
       transition={{ duration: animationDuration, ease: 'easeOut', times: attackTrack ? [0, 0.42, 0.62, 1] : undefined }}
@@ -225,30 +225,16 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
       tabIndex={0}
       role="button"
       aria-expanded={showTooltip}
-      aria-label={`Jednostka bojowa: ${unit.name}`}
+      aria-label={`Combat unit: ${unit.name}`}
       style={{
-        backgroundColor: '#0f172a',
-        borderRadius: isOpponent ? '0.25rem' : '0.5rem',
+        '--combat-unit-accent': getRarityColor(unit.cost),
         padding: isOpponent ? combatUnitCardOpponentSizingStyle.padding : combatUnitCardSizingStyle.padding,
         border: `2px solid ${unit.hp > 0 ? activeBorder : '#374151'}`,
-        opacity: unit.hp > 0 ? 1 : 0.4,
-        transition: 'all 0.3s',
-        boxShadow: unit.hp > 0
-          ? isActiveTarget
-            ? '0 0 0 2px rgba(251, 146, 60, 0.45), 0 0 18px rgba(251, 146, 60, 0.18)'
-            : isActiveAttacker
-              ? '0 0 0 2px rgba(250, 204, 21, 0.45), 0 0 18px rgba(250, 204, 21, 0.18)'
-              : `0 0 10px ${getRarityColor(unit.cost)}40`
-          : 'none',
-        minWidth: 0,
-        position: 'relative',
         width: combatUnitCardSizingStyle.width,
-        flexShrink: 0,
-        willChange: 'transform, filter',
-      }}
+      } as CSSProperties}
     >
       {/* Active effect badges */}
-      <div className="combat-unit-card-badges" style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '6px', maxWidth: 'calc(100% - 12px)', zIndex: 40 }}>
+      <div className="combat-unit-card-badges">
         {(unit.effects || []).map((effect, idx) => (
           <CombatEffectBadge key={`${effect.id || effect.type}-${idx}`} effect={effect} currentTime={currentTime} index={idx} />
         ))}
@@ -283,81 +269,68 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
       {/* Old inline attack/skill/target visuals removed in favor of projectile VFX */}
 
       {/* Unit avatar (robust source resolution with fallback) */}
-      <img
-        src={avatarSrc}
-        alt={unit.name}
-        className="combat-unit-avatar"
-        style={{ width: '100%', height: combatUnitCardSizingStyle.avatarHeight, objectFit: 'cover', borderRadius: '0.25rem', marginBottom: '0.25rem' }}
-        onError={(e: any) => {
-          // Fallback to generic avatar if specific file missing
-          if (e?.currentTarget && e.currentTarget.src && !e.currentTarget.src.endsWith('/avatars/default.png')) {
-            e.currentTarget.src = '/avatars/default.png'
-          }
-        }}
-      />
-
-      <div className="combat-unit-card-name text-xs font-bold text-white mb-1 text-center truncate">
-        {unit.name} ⭐{unit.star_level}
-      </div>
-
-      {unit.factions && unit.factions.length > 0 && !isOpponent && (
-        <div className="combat-unit-card-factions flex flex-wrap gap-1 justify-center mb-1">
-          {unit.factions.slice(0, 2).map((f) => (
-            <span key={f} className="text-[9px] px-1 py-0.5 bg-blue-500/30 rounded text-blue-200">
-              {f}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div
-        className="combat-unit-card-bar relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600"
-        style={{ height: combatUnitCardSizingStyle.barHeight }}
-        role="progressbar"
-        aria-label={`HP ${Math.round(displayHp)} of ${Math.round(displayMaxHp)}`}
-        aria-valuemin={0}
-        aria-valuemax={Math.round(displayMaxHp)}
-        aria-valuenow={Math.round(displayHp)}
-      >
-        <div
-          className="absolute inset-y-0 left-0"
-          style={{
-            width: `${displayMaxHp > 0 ? (displayHp / displayMaxHp) * 100 : 0}%`,
-            background: `linear-gradient(to right, ${getRarityColor(unit.cost)}, ${getRarityColor(unit.cost)}dd)`,
+      <div className="combat-unit-avatar-frame">
+        <img
+          src={avatarSrc}
+          alt={unit.name}
+          className="combat-unit-avatar"
+          onError={(e: any) => {
+            // Fallback to generic avatar if specific file missing
+            if (e?.currentTarget && e.currentTarget.src && !e.currentTarget.src.endsWith('/avatars/default.png')) {
+              e.currentTarget.src = '/avatars/default.png'
+            }
           }}
         />
+        {unit.hp <= 0 && <span className="combat-unit-defeated-mark" aria-hidden="true">×</span>}
       </div>
 
-      <div
-        className="combat-unit-card-bar combat-unit-card-mana-bar relative h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600 mt-1"
-        style={{ height: combatUnitCardSizingStyle.barHeight, marginTop: combatUnitCardSizingStyle.barGap }}
-        role="progressbar"
-        aria-label={`Mana ${Math.round(displayMana)} of ${Math.round(displayMaxMana)}`}
-        aria-valuemin={0}
-        aria-valuemax={Math.round(displayMaxMana)}
-        aria-valuenow={Math.round(displayMana)}
-      >
-        <div
-          className="absolute inset-y-0 left-0"
-          style={{
-            width: `${displayMaxMana > 0 ? (displayMana / displayMaxMana) * 100 : 0}%`,
-            background: 'linear-gradient(to right, #8b5cf6, #a855f7)',
-          }}
-        />
+      <div className="combat-unit-card-name">
+        <span>{unit.name}</span>
       </div>
 
-      <div className="combat-unit-card-vitals" aria-label={`Combat stats for ${unit.name}`}>
+      <div className="combat-unit-card-vitals" aria-label={`Combat vitals for ${unit.name}`}>
         <div className="combat-unit-card-vital" data-combat-vital="hp">
-          <span className="combat-unit-card-vital-label">HP</span>
-          <strong>{Math.round(displayHp)}/{Math.round(displayMaxHp)}</strong>
+          <div className="combat-unit-card-vital-heading">
+            <span className="combat-unit-card-vital-label">HP</span>
+            <strong>
+              {Math.round(displayHp)}/{Math.round(displayMaxHp)}
+              {displayShield > 0 && <span className="combat-unit-card-shield-value"> +{Math.round(displayShield)}</span>}
+            </strong>
+          </div>
+          <div
+            className="combat-unit-card-meter combat-unit-card-meter-hp"
+            role="progressbar"
+            aria-label={`HP ${Math.round(displayHp)} of ${Math.round(displayMaxHp)}${displayShield > 0 ? ` with ${Math.round(displayShield)} shield` : ''}`}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(displayMaxHp)}
+            aria-valuenow={Math.round(displayHp)}
+          >
+            <span className="combat-unit-card-meter-fill" style={{ width: `${displayMaxHp > 0 ? (displayHp / displayMaxHp) * 100 : 0}%` }} />
+            {displayShield > 0 && (
+              <span
+                className="combat-unit-card-meter-shield"
+                style={{
+                  width: `${Math.min(100, Math.max(6, displayMaxHp > 0 ? (displayShield / displayMaxHp) * 100 : 6))}%`,
+                }}
+              />
+            )}
+          </div>
         </div>
         <div className="combat-unit-card-vital" data-combat-vital="mana">
-          <span className="combat-unit-card-vital-label">Mana</span>
-          <strong>{Math.round(displayMana)}/{Math.round(displayMaxMana)}</strong>
-        </div>
-        <div className="combat-unit-card-vital" data-combat-vital="shield">
-          <span className="combat-unit-card-vital-label">Shield</span>
-          <strong>{Math.round(displayShield)}</strong>
+          <div className="combat-unit-card-vital-heading">
+            <span className="combat-unit-card-vital-label">Mana</span>
+            <strong>{Math.round(displayMana)}/{Math.round(displayMaxMana)}</strong>
+          </div>
+          <div
+            className="combat-unit-card-meter combat-unit-card-meter-mana"
+            role="progressbar"
+            aria-label={`Mana ${Math.round(displayMana)} of ${Math.round(displayMaxMana)}`}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(displayMaxMana)}
+            aria-valuenow={Math.round(displayMana)}
+          >
+            <span className="combat-unit-card-meter-fill" style={{ width: `${displayMaxMana > 0 ? (displayMana / displayMaxMana) * 100 : 0}%` }} />
+          </div>
         </div>
       </div>
 
@@ -433,24 +406,6 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
         document.body,
       )}
 
-      {displayHpRegen > 0 && unit.hp > 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '6px',
-            left: '6px',
-            background: 'linear-gradient(90deg,#10b981,#34d399)',
-            color: '#03241a',
-            padding: '2px 6px',
-            borderRadius: '999px',
-            fontSize: '10px',
-            fontWeight: '700',
-            boxShadow: '0 4px 10px rgba(16,185,129,0.15)',
-          }}
-        >
-          +{Math.round(displayHpRegen)}/s
-        </div>
-      )}
     </motion.div>
   )
 }

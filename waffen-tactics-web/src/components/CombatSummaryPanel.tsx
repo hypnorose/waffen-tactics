@@ -95,7 +95,7 @@ export default function CombatSummaryPanel({ summary, synergies }: Props) {
   const tone = resultTone(summary?.roundResult)
 
   return (
-    <section style={{
+    <section className="combat-summary-panel" style={{
       marginTop: 12,
       border: '1px solid rgba(51, 65, 85, 0.95)',
       background: 'rgba(15, 23, 42, 0.72)',

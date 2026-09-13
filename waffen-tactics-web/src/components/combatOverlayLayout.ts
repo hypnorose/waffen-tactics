@@ -1,30 +1,33 @@
 export const combatOverlayPanelStyle = {
-  backgroundColor: '#1e293b',
-  borderRadius: '0.75rem',
-  width: 'min(1400px, calc(100vw - 16px))',
-  height: 'min(850px, calc(100vh - 16px))',
-  maxWidth: 'calc(100vw - 16px)',
-  maxHeight: 'calc(100vh - 16px)',
+  backgroundColor: '#0b111a',
+  borderRadius: '1.25rem',
+  width: 'min(1500px, calc(100vw - 32px))',
+  height: 'min(900px, calc(100dvh - 32px))',
+  maxWidth: 'calc(100vw - 32px)',
+  maxHeight: 'calc(100dvh - 32px)',
   boxSizing: 'border-box',
   display: 'flex',
   flexDirection: 'row',
-  border: '3px solid #475569',
-  boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+  border: '1px solid rgba(143, 163, 187, 0.22)',
+  boxShadow: '0 24px 70px rgba(0, 0, 0, 0.52)',
   overflow: 'hidden',
   position: 'relative',
 } as const
 
 export const combatOverlaySidebarStyle = {
-  width: 320,
-  minWidth: 0,
+  width: 'min(320px, 86vw)',
+  minWidth: 'min(320px, 86vw)',
   minHeight: 0,
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'space-between',
-  padding: '1.5rem 1rem',
-  borderRight: '2px solid #334155',
-  background: 'rgba(30,41,59,0.98)',
+  padding: '1rem',
+  borderRight: '1px solid rgba(143, 163, 187, 0.2)',
+  background: 'rgba(12, 19, 29, 0.98)',
   overflowY: 'auto',
+  position: 'absolute',
+  inset: '0 auto 0 0',
+  zIndex: 140,
   boxSizing: 'border-box',
 } as const
 
@@ -34,13 +37,13 @@ export const combatOverlayBoardStyle = {
   minHeight: 0,
   display: 'flex',
   flexDirection: 'column',
-  padding: '1.5rem',
+  padding: '1.25rem',
   position: 'relative',
   overflow: 'hidden',
 } as const
 
-/** Keep the full combat panel available on desktop while giving narrow views
- * the board-first layout they need on first render. */
+/** The fight is the primary surface; summary/replay tools start as a drawer. */
 export function shouldStartCombatPanelCollapsed(viewportWidth: number): boolean {
-  return viewportWidth < 900
+  void viewportWidth
+  return true
 }

@@ -58,7 +58,8 @@ export default function CombatControlPanel({
       className="combat-control-panel"
       id="combat-control-panel"
       aria-hidden={!expanded}
-      style={{ ...combatOverlaySidebarStyle, display: expanded ? 'flex' : 'none' }}
+      data-expanded={expanded}
+      style={combatOverlaySidebarStyle}
     >
       <div>
         <CombatHeader opponentInfo={opponentInfo} />

@@ -33,17 +33,21 @@ export default function CombatWindowShell({
     <div className="combat-overlay-panel" style={combatOverlayPanelStyle}>
       {combatPanel}
 
-      <div className="combat-overlay-board" style={combatOverlayBoardStyle}>
-        <div
-          className="combat-opponent-slot"
-          style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}
-        >
+      <main className="combat-overlay-board" style={combatOverlayBoardStyle}>
+        <div className="combat-arena-brand" aria-label="Waffen Tactics Set 2 Świt Nowociot">
+          <span>WAFFEN TACTICS</span>
+          <strong>SET 2: ŚWIT NOWOCIOT</strong>
+        </div>
+
+        <div className="combat-opponent-slot">
           {opponentSlot}
         </div>
-        <div
-          className="combat-player-slot"
-          style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}
-        >
+
+        <div className="combat-arena-divider" aria-hidden="true">
+          <span>VS</span>
+        </div>
+
+        <div className="combat-player-slot">
           {playerSlot}
         </div>
 
@@ -54,7 +58,6 @@ export default function CombatWindowShell({
           aria-expanded={expanded}
           aria-label={expanded ? 'Zwiń panel walki' : 'Rozwiń panel walki'}
           onClick={onTogglePanel}
-          style={{ position: 'absolute', top: 16, left: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.55)', borderRadius: 6, padding: '6px 12px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
         >
           {expanded ? 'Zwiń panel' : 'Rozwiń panel'}
         </button>
@@ -66,14 +69,13 @@ export default function CombatWindowShell({
           aria-expanded={showLog}
           aria-label={showLog ? 'Hide combat log' : 'Show combat log'}
           onClick={onToggleLog}
-          style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
         >
           {showLog && expanded ? 'Ukryj log walki' : 'Pokaż log walki'}
         </button>
 
         {log}
         {replayControls}
-      </div>
+      </main>
     </div>
   )
 }

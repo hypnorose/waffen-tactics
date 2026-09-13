@@ -17,8 +17,14 @@ const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerI
   const frontUnits = units.filter(u => u.position === 'front')
   const backUnits = units.filter(u => u.position === 'back')
   return (
-    <div className="combat-units-panel bg-gray-800 rounded-lg p-3 border border-gray-700" style={{ flexShrink: 0, width: '100%' }}>
-      <h3 className="text-sm font-bold text-green-400 mb-2 text-center">🛡️ Twoje Jednostki</h3>
+    <section className="combat-units-panel combat-units-panel-player" aria-label="Your units">
+      <div className="combat-units-panel-heading">
+        <div>
+          <span className="combat-units-panel-kicker">YOUR SQUAD</span>
+          <h3>Twoje jednostki</h3>
+        </div>
+        <span className="combat-units-panel-count">{units.filter(u => u.hp > 0).length}/{units.length}</span>
+      </div>
       
       {/* Front Line */}
       {frontUnits.length > 0 && (
@@ -51,7 +57,7 @@ const PlayerUnits = memo(function PlayerUnits({ units, regenMap, activeAttackerI
           reducedMotion={reducedMotion}
         />
       )}
-    </div>
+    </section>
   )
 })
 

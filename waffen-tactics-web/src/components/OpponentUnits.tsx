@@ -18,8 +18,14 @@ const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttac
   const backUnits = units.filter(u => u.position === 'back')
 
   return (
-    <div className="combat-units-panel bg-gray-800 rounded-lg p-3 border border-gray-700" style={{ flexShrink: 0, width: '100%' }}>
-      <h3 className="text-sm font-bold text-red-400 mb-2 text-center">⚔️ Przeciwnik</h3>
+    <section className="combat-units-panel combat-units-panel-opponent" aria-label="Opponent units">
+      <div className="combat-units-panel-heading">
+        <div>
+          <span className="combat-units-panel-kicker">OPPONENT</span>
+          <h3>Przeciwnik</h3>
+        </div>
+        <span className="combat-units-panel-count">{units.filter(u => u.hp > 0).length}/{units.length}</span>
+      </div>
       
       {/* Back Line (now displayed first) */}
       {backUnits.length > 0 && (
@@ -54,7 +60,7 @@ const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttac
           reducedMotion={reducedMotion}
         />
       )}
-    </div>
+    </section>
   )
 })
 

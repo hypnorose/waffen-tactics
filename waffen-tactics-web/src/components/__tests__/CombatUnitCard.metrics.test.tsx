@@ -96,7 +96,7 @@ describe('combat and table unit metric ownership', () => {
     expect(container.textContent).not.toContain('BONUS')
   })
 
-  it('keeps HP, mana, and shield values visible without opening the tooltip', () => {
+  it('keeps HP, mana, and the shield amount visible on the HP bar without opening the tooltip', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
 
@@ -107,7 +107,9 @@ describe('combat and table unit metric ownership', () => {
 
     expect(container.querySelector('[data-combat-vital="hp"]')?.textContent).toContain('80/100')
     expect(container.querySelector('[data-combat-vital="mana"]')?.textContent).toContain('100/100')
-    expect(container.querySelector('[data-combat-vital="shield"]')?.textContent).toContain('12')
+    expect(container.querySelector('[data-combat-vital="shield"]')).toBeNull()
+    expect(container.querySelector('[data-combat-vital="hp"]')?.textContent).toContain('+12')
+    expect(container.querySelector('.combat-unit-card-meter-shield')).not.toBeNull()
     expect(container.querySelectorAll('[role="progressbar"]')).toHaveLength(2)
   })
 
