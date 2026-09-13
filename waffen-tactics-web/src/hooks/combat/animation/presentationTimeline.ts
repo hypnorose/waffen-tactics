@@ -134,6 +134,15 @@ const PRESENTATION_INTENSITY_RANK: Record<PresentationIntensity, number> = {
   large: 2,
 }
 
+const PRESENTATION_DEDUPE_WINDOW_SECONDS = 0.08
+const IMPACT_INTENT_RANK: Record<Extract<PresentationIntent, 'target_recoil' | 'shield_hit' | 'shield_break' | 'multi_hit' | 'dodge'>, number> = {
+  target_recoil: 0,
+  multi_hit: 1,
+  shield_hit: 2,
+  dodge: 2,
+  shield_break: 3,
+}
+
 function compareStableIds(left: string, right: string): number {
   if (left === right) return 0
   return left < right ? -1 : 1
@@ -165,10 +174,23 @@ function addTrack(
     duration?: number
     intensity?: PresentationIntensity
     role: string
+    dedupeWindow?: number
   },
 ): PresentationTimelineState {
   const id = `${eventKey(event)}:${options.role}`
   if (state.tracks[id]) return state
+
+  const dedupeWindow = options.dedupeWindow
+  if (dedupeWindow !== undefined) {
+    const startedAt = eventTime(event)
+    const duplicate = Object.values(state.tracks).some((track) => (
+      track.intent === intent &&
+      track.unitId === options.unitId &&
+      track.targetId === options.targetId &&
+      Math.abs(track.startedAt - startedAt) <= dedupeWindow
+    ))
+    if (duplicate) return state
+  }
 
   return {
     ...state,
@@ -344,6 +366,38 @@ function addTargetImpact(
 ): PresentationTimelineState {
   const next = liveActorDiagnostic(state, event, targetId, 'target')
   if (!isKnownActor(next, targetId) || !isLiveActor(next, targetId)) return next
+
+  // unit_attack/attack/damage are separate canonical records that can describe
+  // one resolved hit. They must not create a second visible recoil when they
+  // share the same source, target, and impact timestamp. Keep the first track
+  // id stable so React does not restart the same VFX on every alias event.
+  if (sourceId) {
+    const equivalent = Object.values(next.tracks).find((track) => (
+      track.targetId === targetId &&
+      track.unitId === sourceId &&
+      Object.prototype.hasOwnProperty.call(IMPACT_INTENT_RANK, track.intent) &&
+      Math.abs(track.startedAt - eventTime(event)) <= PRESENTATION_DEDUPE_WINDOW_SECONDS
+    ))
+    if (equivalent) {
+      const currentRank = IMPACT_INTENT_RANK[equivalent.intent as keyof typeof IMPACT_INTENT_RANK] ?? 0
+      const nextRank = IMPACT_INTENT_RANK[intent] ?? 0
+      if (nextRank <= currentRank) return next
+
+      return {
+        ...next,
+        tracks: {
+          ...next.tracks,
+          [equivalent.id]: {
+            ...equivalent,
+            intent,
+            duration: intent === 'shield_break' ? 0.2 : 0.16,
+            intensity: impactIntensity(event),
+          },
+        },
+      }
+    }
+  }
+
   return addTrack(next, event, intent, {
     unitId: sourceId,
     targetId,
@@ -407,6 +461,7 @@ export function reducePresentationTimeline(
         duration: event.duration ?? DEFAULT_LUNGE_DURATION_SECONDS,
         intensity: event.bonus_attack ? 'large' : 'medium',
         role: 'attack',
+        dedupeWindow: PRESENTATION_DEDUPE_WINDOW_SECONDS,
       })
     }
 

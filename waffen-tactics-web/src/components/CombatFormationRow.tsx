@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import CombatUnitCard from './CombatUnitCard'
 import type { PresentationTrack } from '../hooks/combat/animation/presentationTimeline'
+import type { CombatEvent, TraitDefinition } from '../hooks/combat/types'
 
 export const FORMATION_SLOT_COUNT = 5
 
@@ -24,6 +25,9 @@ interface Props {
   activeTargetId?: string | null
   currentTime?: number
   presentationTracks?: PresentationTrack[]
+  synergies?: Record<string, { count: number; tier: number }>
+  traits?: TraitDefinition[]
+  replayEvents?: CombatEvent[]
   replayPaused?: boolean
   reducedMotion?: boolean
 }
@@ -38,6 +42,9 @@ export default function CombatFormationRow({
   activeTargetId,
   currentTime,
   presentationTracks = [],
+  synergies = {},
+  traits = [],
+  replayEvents = [],
   replayPaused = false,
   reducedMotion = false,
 }: Props) {
@@ -61,6 +68,9 @@ export default function CombatFormationRow({
               isActiveTarget={unit.id === activeTargetId}
               currentTime={currentTime}
               presentationTracks={presentationTracks}
+              synergies={synergies}
+              traits={traits}
+              replayEvents={replayEvents}
               replayPaused={replayPaused}
               reducedMotion={reducedMotion}
             />

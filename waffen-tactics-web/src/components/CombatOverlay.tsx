@@ -106,8 +106,8 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
                 onContinue={handleClose}
               />
             )}
-            opponentSlot={<OpponentUnits units={opponentUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} replayPaused={replayPaused} reducedMotion={reducedMotion} />}
-            playerSlot={<PlayerUnits units={playerUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} replayPaused={replayPaused} reducedMotion={reducedMotion} />}
+            opponentSlot={<OpponentUnits units={opponentUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} synergies={synergies} traits={traits} replayEvents={replayEvents} replayPaused={replayPaused} reducedMotion={reducedMotion} />}
+            playerSlot={<PlayerUnits units={playerUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} synergies={synergies} traits={traits} replayEvents={replayEvents} replayPaused={replayPaused} reducedMotion={reducedMotion} />}
             log={<CombatLogModal showLog={showLog} visible={combatPanelExpanded} setShowLog={setShowLog} combatLog={combatLog} logEndRef={logEndRef} />}
             replayControls={(
               <ReplayControls

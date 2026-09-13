@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import CombatFormationRow from './CombatFormationRow'
 import type { PresentationTrack } from '../hooks/combat/animation/presentationTimeline'
+import type { CombatEvent, TraitDefinition } from '../hooks/combat/types'
 
 interface Props {
   units: any[]
@@ -9,11 +10,14 @@ interface Props {
   activeTargetId?: string | null
   currentTime?: number
   presentationTracks?: PresentationTrack[]
+  synergies?: Record<string, { count: number; tier: number }>
+  traits?: TraitDefinition[]
+  replayEvents?: CombatEvent[]
   replayPaused?: boolean
   reducedMotion?: boolean
 }
 
-const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttackerId, activeTargetId, currentTime, presentationTracks = [], replayPaused = false, reducedMotion = false }: Props) {
+const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttackerId, activeTargetId, currentTime, presentationTracks = [], synergies = {}, traits = [], replayEvents = [], replayPaused = false, reducedMotion = false }: Props) {
   const frontUnits = units.filter(u => u.position === 'front')
   const backUnits = units.filter(u => u.position === 'back')
 
@@ -39,6 +43,9 @@ const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttac
           activeTargetId={activeTargetId}
           currentTime={currentTime}
           presentationTracks={presentationTracks}
+          synergies={synergies}
+          traits={traits}
+          replayEvents={replayEvents}
           replayPaused={replayPaused}
           reducedMotion={reducedMotion}
         />
@@ -56,6 +63,9 @@ const OpponentUnits = memo(function OpponentUnits({ units, regenMap, activeAttac
           activeTargetId={activeTargetId}
           currentTime={currentTime}
           presentationTracks={presentationTracks}
+          synergies={synergies}
+          traits={traits}
+          replayEvents={replayEvents}
           replayPaused={replayPaused}
           reducedMotion={reducedMotion}
         />

@@ -3,12 +3,13 @@ import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { getPassiveTitle, getUnit, type UnitPassive } from '../data/units'
 import { useUnitAnchors } from '../hooks/useUnitAnchors'
-import type { EffectSummary } from '../hooks/combat/types'
+import type { CombatEvent, EffectSummary, TraitDefinition } from '../hooks/combat/types'
 import type { PresentationTrack } from '../hooks/combat/animation/presentationTimeline'
 import { combatUnitCardOpponentSizingStyle, combatUnitCardSizingStyle } from './combatUnitCardLayout'
 import CombatEffectBadge from './CombatEffectBadge'
 import { getCombatTooltipPosition, type CombatTooltipPosition } from './combatTooltipPosition'
 import { getCombatImpactDirection } from './combatImpactDirection'
+import { getTraitColor, getTraitDescription, getTraitEffectPresentation } from '../hooks/combatOverlayUtils'
 
 interface Unit {
   id: string
@@ -21,6 +22,7 @@ interface Unit {
   cost?: number
   factions?: string[]
   classes?: string[]
+  traits?: string[]
   position?: string
   // avatar may be a string or an object like { url }
   avatar?: string | { url?: string }
@@ -51,6 +53,9 @@ interface Props {
   isActiveTarget?: boolean
   currentTime?: number
   presentationTracks?: PresentationTrack[]
+  synergies?: Record<string, { count: number; tier: number }>
+  traits?: TraitDefinition[]
+  replayEvents?: CombatEvent[]
   replayPaused?: boolean
   reducedMotion?: boolean
 }
@@ -80,7 +85,7 @@ const STATUS_PRESENTATION_INTENTS = new Set([
   'revive',
 ])
 
-export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget, currentTime, presentationTracks = [], replayPaused = false, reducedMotion = false }: Props) {
+export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttacker, isActiveTarget, currentTime, presentationTracks = [], synergies = {}, traits = [], replayEvents = [], replayPaused = false, reducedMotion = false }: Props) {
   const passiveTitle = getPassiveTitle(unit.passive)
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState<CombatTooltipPosition | null>(null)
@@ -123,6 +128,15 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   const displayHpRegen = unit.buffed_stats?.hp_regen_per_sec ?? 0
   const activeBorder = isActiveTarget ? '#fb923c' : isActiveAttacker ? '#fde047' : getRarityColor(unit.cost)
 
+  const unitTraitNames = Array.from(new Set([
+    ...(unit.traits || []),
+    ...(unit.factions || []),
+    ...(unit.classes || []),
+  ].filter((name): name is string => typeof name === 'string' && name.trim() !== '')))
+  const unitTraits = unitTraitNames
+    .map((name) => ({ name, definition: traits.find((trait) => trait.name === name), synergy: synergies[name] }))
+    .filter(({ definition }) => Boolean(definition))
+
   const unitTracks = presentationTracks.filter((track) => track.unitId === unit.id || track.targetId === unit.id)
   const attackTrack = unitTracks.find((track) => track.unitId === unit.id && (track.intent === 'melee_lunge' || track.intent === 'ranged_projectile'))
   const impactTrack = unitTracks.find((track) => track.targetId === unit.id && (track.intent === 'target_recoil' || track.intent === 'shield_hit' || track.intent === 'multi_hit' || track.intent === 'dodge'))
@@ -134,36 +148,24 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   const targetCenter = typeof getCenter === 'function' ? getCenter(unit.id) : null
   const impactFlashDirection = getCombatImpactDirection(impactSourceCenter, targetCenter, impactFallbackDirection)
 
-  let lungeOffset = { x: 0, y: 0 }
-  if (attackTrack && attackTrack.intent === 'melee_lunge' && typeof getCenter === 'function' && rootRef.current) {
-    const targetCenter = attackTrack.targetId ? getCenter(attackTrack.targetId) : null
-    const rootRect = rootRef.current.getBoundingClientRect()
-    if (targetCenter) {
-      const origin = { x: rootRect.left + rootRect.width / 2, y: rootRect.top + rootRect.height / 2 }
-      const dx = targetCenter.x - origin.x
-      const dy = targetCenter.y - origin.y
-      const distance = Math.max(1, Math.sqrt(dx * dx + dy * dy))
-      const amount = Math.min(84, Math.max(18, distance * 0.18))
-      lungeOffset = { x: (dx / distance) * amount, y: (dy / distance) * amount }
-    }
-  }
-
-  const recoilX = impactTrack?.intent === 'dodge' ? 0 : impactTrack ? -4 : 0
-  const recoilY = impactTrack?.intent === 'dodge' ? -3 : impactTrack ? 2 : 0
   const animationDuration = Math.max(0.12, attackTrack?.duration || impactTrack?.duration || statusTrack?.duration || 0.16)
   const presentationAnimation = reducedMotion || replayPaused
     ? { x: 0, y: 0, scale: 1, filter: 'brightness(1)' }
     : attackTrack
       ? {
-        x: [0, lungeOffset.x, lungeOffset.x + recoilX, 0],
-        y: [0, lungeOffset.y, lungeOffset.y + recoilY, 0],
-        scale: [1, 1.04, impactTrack ? 0.98 : 1.02, 1],
+        // The board owns card placement. Attack feedback must never translate
+        // the card itself: a lunge plus a layout transform made the tile look
+        // as if it moved twice. Direction is communicated by the arrow and
+        // the projectile/impact layers instead.
+        x: 0,
+        y: 0,
+        scale: [1, 1.03, impactTrack ? 0.99 : 1.02, 1],
         filter: impactTrack?.intent === 'shield_hit' ? ['brightness(1)', 'brightness(1.15)', 'brightness(1)', 'brightness(1)'] : 'brightness(1)',
       }
       : impactTrack
         ? {
-          x: [0, recoilX, 0],
-          y: [0, recoilY, 0],
+          x: 0,
+          y: 0,
           scale: impactTrack.intent === 'shield_hit' ? [1, 1.06, 1] : [1, 0.97, 1],
           filter: impactTrack.intent === 'shield_hit' ? ['brightness(1)', 'brightness(1.25)', 'brightness(1)'] : 'brightness(1)',
         }
@@ -385,6 +387,61 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
             <div className="mb-3 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-100">
               {passiveTitle && <div className="mb-1 font-semibold text-amber-300">{passiveTitle}</div>}
               <div>{unit.passive.description}</div>
+            </div>
+          )}
+          {unitTraits.length > 0 && (
+            <div
+              className="mb-3 rounded border border-slate-600 bg-slate-900/70 p-2 text-xs"
+              data-combat-unit-trait-effects={unit.id}
+            >
+              <div className="mb-2 font-semibold uppercase tracking-wide text-slate-300">Trait effects</div>
+              <div className="grid gap-2">
+                {unitTraits.map(({ name, definition, synergy }) => {
+                  if (!definition) return null
+                  const count = synergy?.count ?? 0
+                  const tier = synergy?.tier ?? 0
+                  const active = tier > 0
+                  const displayTier = active ? tier : 1
+                  const effectDetails = active ? getTraitEffectPresentation(definition, displayTier) : []
+                  const runtimeTriggers = replayEvents.filter((event) => (
+                    event.type === 'passive_triggered' &&
+                    event.unit_id === unit.id &&
+                    (event.passive_name === name || event.passive_id === `trait:${name}`)
+                  ))
+                  const firstThreshold = definition.thresholds?.[0]
+
+                  return (
+                    <div key={name} className="rounded border border-slate-700 bg-slate-950/60 p-2" data-combat-trait={name}>
+                      <div className="flex items-center justify-between gap-2">
+                        <strong style={{ color: getTraitColor(tier) }}>{name}</strong>
+                        <span className={active ? 'text-emerald-300' : 'text-slate-400'}>
+                          {active ? `✓ Aktywny T${tier}` : `✕ Nieaktywny (${count}/${firstThreshold ?? '?'})`}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-slate-300">{getTraitDescription(definition, displayTier)}</div>
+                      {active && effectDetails.length > 0 && (
+                        <div className="mt-2 grid gap-1 text-slate-400">
+                          {effectDetails.map((effect, effectIndex) => (
+                            <div key={`${name}-effect-${effectIndex}`} className="rounded bg-slate-900/80 p-1.5">
+                              <div><span className="text-slate-500">Trigger:</span> {effect.trigger} · <span className="text-slate-500">Cel:</span> {effect.target}</div>
+                              <div><span className="text-slate-500">Czas:</span> {effect.duration} · <span className="text-slate-500">Odświeżanie:</span> {effect.refresh}</div>
+                              <div><span className="text-slate-500">Stackowanie:</span> {effect.stacking}</div>
+                              {effect.conditions.length > 0 && <div><span className="text-slate-500">Warunek:</span> {effect.conditions.join(' · ')}</div>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {active && (
+                        <div className={runtimeTriggers.length > 0 ? 'mt-2 text-emerald-300' : 'mt-2 text-amber-200'}>
+                          {runtimeTriggers.length > 0
+                            ? `✓ Zadziałał w replayu: ${runtimeTriggers.length} trigger${runtimeTriggers.length === 1 ? '' : 'y'}`
+                            : '○ Aktywny — brak triggera w dotychczasowym replayu'}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
           <div className="grid grid-cols-3 gap-3 text-sm">

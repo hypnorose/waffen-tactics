@@ -198,6 +198,51 @@ describe('combat and table unit metric ownership', () => {
     expect(container.querySelector('[data-combat-vital="hp"]')?.textContent).toContain('80/100')
   })
 
+  it('shows the live trait effect contract and replay trigger evidence in the tooltip', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    act(() => {
+      root = createRoot(container)
+      root.render(createElement(CombatUnitCard as any, {
+        unit: { ...combatUnit, traits: ['Konfident'] },
+        synergies: { Konfident: { count: 2, tier: 1 } },
+        traits: [{
+          name: 'Konfident',
+          type: 'on_attack',
+          thresholds: [2],
+          threshold_descriptions: ['Przy ataku daje drużynie premię przez 3 s.'],
+          // `effects` is the alias used by the live units_init payload.
+          effects: [[{
+            trigger: 'on_attack',
+            target: 'team',
+            duration: 3,
+            limit: { stacking: 'none' },
+          }]],
+        }],
+        replayEvents: [{
+          type: 'passive_triggered',
+          unit_id: 'unit-1',
+          passive_id: 'trait:Konfident',
+          passive_name: 'Konfident',
+        }],
+      }))
+    })
+
+    const card = container.querySelector('.combat-unit-card') as HTMLElement
+    act(() => card.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+
+    const tooltip = document.body.querySelector('[data-combat-unit-tooltip="unit-1"]') as HTMLElement
+    expect(tooltip).not.toBeNull()
+    expect(tooltip.textContent).toContain('Konfident')
+    expect(tooltip.textContent).toContain('✓ Aktywny T1')
+    expect(tooltip.textContent).toContain('Przy ataku daje drużynie premię przez 3 s.')
+    expect(tooltip.textContent).toContain('Trigger: Przy ataku')
+    expect(tooltip.textContent).toContain('Cel: Cały zespół')
+    expect(tooltip.textContent).toContain('Czas: 3 s')
+    expect(tooltip.textContent).toContain('Zadziałał w replayu: 1 trigger')
+  })
+
   it('keeps the same metrics available on the between-battle table card', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)

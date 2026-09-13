@@ -41,6 +41,65 @@ describe('presentationTimeline', () => {
     expect(state.diagnostics).toEqual([])
   })
 
+  it('deduplicates repeated animation starts for the same attack window', () => {
+    let state = createPresentationTimeline()
+    state = reducePresentationTimeline(state, event({
+      type: 'animation_start',
+      event_id: 'combat:duplicate-animation-1',
+      seq: 10,
+      timestamp: 4,
+      animation_id: 'basic_attack',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'animation_start',
+      event_id: 'combat:duplicate-animation-2',
+      seq: 11,
+      timestamp: 4.04,
+      animation_id: 'basic_attack',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+    }))
+
+    expect(Object.values(state.tracks)).toHaveLength(1)
+    expect(Object.values(state.tracks)[0]).toEqual(expect.objectContaining({
+      sourceEventId: 'combat:duplicate-animation-1',
+      intent: 'melee_lunge',
+    }))
+  })
+
+  it('coalesces alias impact events and promotes a plain recoil to a shield hit', () => {
+    let state = createPresentationTimeline()
+    state = reducePresentationTimeline(state, event({
+      type: 'unit_attack',
+      event_id: 'combat:alias-unit-attack',
+      seq: 20,
+      timestamp: 5,
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+      shield_absorbed: 0,
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'damage',
+      event_id: 'combat:alias-damage',
+      seq: 21,
+      timestamp: 5.04,
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+      shield_absorbed: 8,
+    }))
+
+    const tracks = Object.values(state.tracks)
+    expect(tracks).toHaveLength(1)
+    expect(tracks[0]).toEqual(expect.objectContaining({
+      sourceEventId: 'combat:alias-unit-attack',
+      intent: 'shield_hit',
+      targetId: 'opp_0',
+      unitId: 'player_0',
+    }))
+  })
+
   it('classifies ranged attacks, shield impacts, dodges, and deaths', () => {
     let state = createPresentationTimeline()
     state = reducePresentationTimeline(state, event({

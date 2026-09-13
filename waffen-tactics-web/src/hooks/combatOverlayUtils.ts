@@ -105,6 +105,15 @@ const getTraitTierCount = (trait: any) => (
     : Array.isArray(trait.threshold_descriptions) ? trait.threshold_descriptions.length : 0
 )
 
+// Live units_init payloads expose the canonical tier effects as `effects`,
+// while older local fixtures use `modular_effects`. Keep one presentation
+// reader so the tooltip cannot silently lose trigger/duration information.
+const getTraitTierEffects = (trait: any): any[][] => {
+  if (Array.isArray(trait?.modular_effects)) return trait.modular_effects
+  if (Array.isArray(trait?.effects)) return trait.effects
+  return []
+}
+
 const getCanonicalTraitDescription = (trait: any, tier: number) => {
   const tierIndex = tier - 1
   const descriptions = Array.isArray(trait.threshold_descriptions) ? trait.threshold_descriptions : []
@@ -163,7 +172,8 @@ export interface TraitEffectPresentation {
 
 export function getTraitEffectPresentation(trait: any, tier: number): TraitEffectPresentation[] {
   const tierIndex = tier - 1
-  const tierEffects = Array.isArray(trait?.modular_effects?.[tierIndex]) ? trait.modular_effects[tierIndex] : []
+  const tierEffectsByTier = getTraitTierEffects(trait)
+  const tierEffects = Array.isArray(tierEffectsByTier[tierIndex]) ? tierEffectsByTier[tierIndex] : []
   const description = getCanonicalTraitDescription(trait, tier)
 
   return tierEffects.map((effect: any) => {
@@ -193,8 +203,9 @@ const getTraitDescription = (trait: any, tier: number) => {
 
   const template = getCanonicalTraitDescription(trait, tier) || trait.threshold_descriptions[tier - 1]
 
-  // modular_effects is an array of tiers -> arrays of effects
-  const tierEffects = trait.modular_effects && trait.modular_effects[tier - 1]
+  // Tier effects are an array of tiers -> arrays of effects.
+  const tierEffectsByTier = getTraitTierEffects(trait)
+  const tierEffects = tierEffectsByTier[tier - 1]
   if (!Array.isArray(tierEffects) || tierEffects.length === 0) {
     return template || trait.description || 'Brak opisu'
   }
