@@ -2,24 +2,20 @@ import { useRef, useState, useEffect } from 'react'
 import { useCombatOverlayLogic } from '../hooks/useCombatOverlayLogic'
 import { PlayerState } from '../store/gameStore'
 import GoldNotification from './GoldNotification'
-import CombatHeader from './CombatHeader'
 import PlayerUnits from './PlayerUnits'
 import OpponentUnits from './OpponentUnits'
-import CombatLog from './CombatLog'
 // import CombatFooter from './CombatFooter'
-import CombatSummaryPanel from './CombatSummaryPanel'
-import SynergiesPanel from './SynergiesPanel'
-import CombatSpeedPresets from './CombatSpeedPresets'
 import CombatLogModal from './CombatLogModal'
 import DesyncInspector from './DesyncInspector'
 import ReplayControls from './ReplayControls'
+import CombatControlPanel from './CombatControlPanel'
 import { CombatOverlayProps } from './CombatOverlayTypes'
 import { UnitAnchorsProvider } from '../hooks/useUnitAnchors'
 import { ProjectileProvider } from '../hooks/useProjectileSystem'
 import ProjectileLayer from './ProjectileLayer'
 import CombatFeedbackLayer from './CombatFeedbackLayer'
 import CombatActionQueue from './CombatActionQueue'
-import { combatOverlayBoardStyle, combatOverlayPanelStyle, combatOverlaySidebarStyle, shouldStartCombatPanelCollapsed } from './combatOverlayLayout'
+import { combatOverlayBoardStyle, combatOverlayPanelStyle, shouldStartCombatPanelCollapsed } from './combatOverlayLayout'
 import { Panel } from '../ui/primitives'
 
 export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
@@ -131,43 +127,22 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
       {!showMatchmakingOverlay && (
         <>
           <div className="combat-overlay-panel" style={combatOverlayPanelStyle}>
-            <div
-              className="combat-control-panel"
-              id="combat-control-panel"
-              aria-hidden={!combatPanelExpanded}
-              style={{ ...combatOverlaySidebarStyle, display: combatPanelExpanded ? 'flex' : 'none' }}
-            >
-              <div>
-                <CombatHeader opponentInfo={opponentInfo} />
-                <CombatSummaryPanel summary={combatSummary} synergies={synergies} />
-                <CombatActionQueue events={replayEvents} currentIndex={replayEventIndex} />
-                <details style={{ marginTop: 12, marginBottom: 12 }}>
-                  <summary style={{ cursor: 'pointer', color: '#cbd5e1', fontSize: 12, fontWeight: 700, listStyle: 'none' }}>
-                    Pokaż synergie
-                  </summary>
-                  <div style={{ marginTop: 8 }}>
-                    <SynergiesPanel synergies={synergies} traits={traits} />
-                  </div>
-                </details>
-                {isFinished && (
-                  <button
-                    onClick={() => {
-                      if (storedGoldBreakdown && !displayedGoldBreakdown) {
-                        setDisplayedGoldBreakdown(storedGoldBreakdown)
-                        return
-                      }
-                      handleClose()
-                    }}
-                    style={{ width: '100%', background: 'linear-gradient(to right, #2563eb, #3b82f6)', color: 'white', fontWeight: 'bold', padding: '12px 24px', borderRadius: 8, border: 'none', cursor: 'pointer', marginTop: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', transition: 'all 0.2s' }}
-                    onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                    onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                  >
-                    Kontynuuj
-                  </button>
-                )}
-              </div>
-              <CombatSpeedPresets combatSpeed={combatSpeed} setCombatSpeed={setCombatSpeed} />
-            </div>
+            <CombatControlPanel
+              expanded={combatPanelExpanded}
+              opponentInfo={opponentInfo}
+              combatSummary={combatSummary}
+              synergies={synergies}
+              traits={traits}
+              replayEvents={replayEvents}
+              replayEventIndex={replayEventIndex}
+              combatSpeed={combatSpeed}
+              setCombatSpeed={setCombatSpeed}
+              isFinished={isFinished}
+              storedGoldBreakdown={storedGoldBreakdown}
+              displayedGoldBreakdown={displayedGoldBreakdown}
+              setDisplayedGoldBreakdown={setDisplayedGoldBreakdown}
+              onContinue={handleClose}
+            />
 
             <div className="combat-overlay-board" style={combatOverlayBoardStyle}>
               <div className="combat-opponent-slot" style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
