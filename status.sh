@@ -39,8 +39,10 @@ else
     echo -e "   ${RED}❌ Backend API:${NC} zatrzymany"
 fi
 
-if [ ! -z "$FRONTEND_RUNNING" ]; then
-    echo -e "   ${GREEN}✅ Frontend:${NC} uruchomiony (PID: $FRONTEND_RUNNING)"
+if [ "$CADDY_SERVICE_ACTIVE" -eq 1 ] && [ -s "$WEB_DIR/dist/index.html" ]; then
+    echo -e "   ${GREEN}✅ Frontend:${NC} statyczny artefakt przez Caddy ($WEB_DIR/dist)"
+elif [ ! -z "$FRONTEND_RUNNING" ]; then
+    echo -e "   ${YELLOW}⚠️  Frontend:${NC} działa jako legacy preview (PID: $FRONTEND_RUNNING)"
 else
     echo -e "   ${RED}❌ Frontend:${NC} zatrzymany"
 fi
@@ -58,19 +60,12 @@ echo ""
 # Sprawdź porty
 echo -e "${CYAN}🌐 Porty:${NC}"
 PORT_8000=$(netstat -tulpn 2>/dev/null | grep ":8000" || ss -tulpn 2>/dev/null | grep ":8000" || echo "")
-PORT_3000=$(netstat -tulpn 2>/dev/null | grep ":3000" || ss -tulpn 2>/dev/null | grep ":3000" || echo "")
 PORT_443=$(netstat -tulpn 2>/dev/null | grep ":443" || ss -tulpn 2>/dev/null | grep ":443" || echo "")
 
 if [ ! -z "$PORT_8000" ]; then
     echo -e "   ${GREEN}✅ Port 8000 (Backend):${NC} aktywny"
 else
     echo -e "   ${RED}❌ Port 8000 (Backend):${NC} wolny"
-fi
-
-if [ ! -z "$PORT_3000" ]; then
-    echo -e "   ${GREEN}✅ Port 3000 (Frontend):${NC} aktywny"
-else
-    echo -e "   ${RED}❌ Port 3000 (Frontend):${NC} wolny"
 fi
 
 if [ ! -z "$PORT_443" ]; then
@@ -92,12 +87,12 @@ if command -v curl &> /dev/null; then
         echo -e "   ${RED}❌ Backend API:${NC} http://localhost:8000 (HTTP $HTTP_CODE)"
     fi
 
-    # Test local frontend
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null || echo "000")
+    # Test the static frontend through the managed local HTTPS listener.
+    HTTP_CODE=$(curl -k -s --resolve waffentactics.pl:443:127.0.0.1 -o /dev/null -w "%{http_code}" https://waffentactics.pl/ 2>/dev/null || echo "000")
     if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "304" ]; then
-        echo -e "   ${GREEN}✅ Frontend:${NC} http://localhost:3000 (HTTP $HTTP_CODE)"
+        echo -e "   ${GREEN}✅ Frontend:${NC} Caddy static HTTPS (HTTP $HTTP_CODE)"
     else
-        echo -e "   ${RED}❌ Frontend:${NC} http://localhost:3000 (HTTP $HTTP_CODE)"
+        echo -e "   ${RED}❌ Frontend:${NC} Caddy static HTTPS (HTTP $HTTP_CODE)"
     fi
 else
     echo -e "   ${YELLOW}⚠️  curl nie zainstalowany - pomiń testy connectivity${NC}"
@@ -117,11 +112,9 @@ fi
 
 echo ""
 
-if [ -f "$WEB_DIR/vite.log" ]; then
-    echo -e "${BLUE}Frontend:${NC}"
+if [ ! -z "$FRONTEND_RUNNING" ] && [ -f "$WEB_DIR/vite.log" ]; then
+    echo -e "${BLUE}Legacy frontend preview:${NC}"
     tail -n 5 "$WEB_DIR/vite.log" | sed 's/^/   /'
-else
-    echo -e "   ${YELLOW}Brak pliku vite.log${NC}"
 fi
 
 echo ""
@@ -130,7 +123,7 @@ echo ""
 echo -e "${CYAN}🌍 Dostępne endpointy:${NC}"
 echo "   • Production:     https://waffentactics.pl"
 echo "   • Backend:          http://localhost:8000"
-echo "   • Frontend preview: http://localhost:3000"
+echo "   • Frontend static:  Caddy -> waffen-tactics-web/dist"
 
 echo ""
 echo "════════════════════════════════════════════════════════"

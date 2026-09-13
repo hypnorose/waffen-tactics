@@ -79,4 +79,4 @@ Zmiana w `combat.py` automatycznie wpływa na obie wersje gry.
 - `/waffen-tactics-web/backend/combat.py` - shared combat logic
 - `/waffen-tactics-web/src/components/CombatOverlay.tsx` - UI walki
 - `/waffen-tactics-web/.env` - VITE_API_URL config
-- `/waffen-tactics-web/Caddyfile` - proxy: vite (port 3000) + backend (port 8000)
+- `/waffen-tactics-web/Caddyfile` - Caddy serves the built frontend `dist` and proxies the backend (port 8000); local development still uses Vite on port 3000

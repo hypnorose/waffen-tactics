@@ -165,6 +165,12 @@ if ! npm run build > frontend-build.log 2>&1; then
 fi
 log_success "Frontend production bundle ready"
 
+if [ ! -s "$WEB_DIR/dist/index.html" ]; then
+    log_error "Frontend production artifact is missing: $WEB_DIR/dist/index.html"
+    exit 1
+fi
+log_success "Frontend static artifact ready"
+
 log_info "Starting backend API on port 8000"
 cd "$BACKEND_DIR"
 source venv/bin/activate
@@ -193,18 +199,6 @@ else
     exit 1
 fi
 
-log_info "Starting frontend preview on port 3000"
-cd "$WEB_DIR"
-nohup npm run preview -- --host 127.0.0.1 --port 3000 > vite.log 2>&1 &
-FRONTEND_PID=$!
-sleep 5
-if ps -p "$FRONTEND_PID" > /dev/null; then
-    log_success "Frontend started pid=$FRONTEND_PID"
-else
-    log_error "Frontend failed to start"
-    exit 1
-fi
-
 log_info "Starting managed Caddy service=$CADDY_SERVICE"
 if ! sudo -n systemctl restart "$CADDY_SERVICE"; then
     log_error "Managed Caddy service failed to start"
@@ -223,13 +217,13 @@ log_success "Project started"
 echo "=============================================="
 echo "Production: https://waffentactics.pl"
 echo "Backend WSGI: http://localhost:8000"
-echo "Frontend preview: http://localhost:3000"
+echo "Frontend static: $WEB_DIR/dist"
 echo ""
 echo "Processes:"
 ps aux | grep -E "api.py|gunicorn|vite|caddy" | grep -v grep | awk '{printf "  PID %-6s %s\n", $2, $11}'
 echo ""
 echo "Logs:"
 echo "  Backend:  tail -f $BACKEND_DIR/api.log"
-echo "  Frontend: tail -f $WEB_DIR/vite.log"
-echo "  Caddy:    tail -f $WEB_DIR/caddy.log"
+echo "  Frontend: tail -f $WEB_DIR/frontend-build.log"
+echo "  Caddy:    journalctl -u $CADDY_SERVICE -f"
 echo ""

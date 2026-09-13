@@ -11,7 +11,7 @@ For the full planning artifact, see [vps-remote-dev-workflow](</C:/Users/yoss/Do
 - Flask backend lives in `waffen-tactics-web/backend/`.
 - Root scripts control startup, shutdown, and status.
 - The VPS project path is `/home/ubuntu/waffen-tactics-game`.
-- Public runtime is `https://waffentactics.pl`, proxied by Caddy to `localhost:8000` and `localhost:3000`.
+- Public runtime is `https://waffentactics.pl`; Caddy serves the built frontend artifact and proxies API requests to `localhost:8000`.
 - Discord is login-only here; we are not maintaining a Discord bot runtime.
 
 ## Machines
@@ -26,7 +26,7 @@ For the full planning artifact, see [vps-remote-dev-workflow](</C:/Users/yoss/Do
 2. Use the VPS for runtime validation, log inspection, and smoke testing.
 3. Keep runtime-only data out of git: `.env`, virtualenvs, `node_modules`, logs, caches, and local DB artifacts.
 4. Avoid leaving manual edits on the VPS; if you need an emergency fix there, capture it back into local git history quickly.
-5. Do not broaden scope into Docker/systemd refactors unless the task explicitly asks for that.
+5. Keep deployment changes explicit and versioned; do not make emergency VPS-only runtime edits.
 6. Do not add or revive Discord bot runtime support as part of this workflow.
 
 ## Standard Loop
@@ -60,7 +60,7 @@ ssh waffentactics-vps "cd ~/waffen-tactics-game && ./status.sh"
 ssh waffentactics-vps "cd ~/waffen-tactics-game && ./stop-all.sh"
 ssh waffentactics-vps "cd ~/waffen-tactics-game && ./start-all.sh"
 ssh waffentactics-vps "tail -n 120 ~/waffen-tactics-game/waffen-tactics-web/backend/api.log"
-ssh waffentactics-vps "tail -n 120 ~/waffen-tactics-game/waffen-tactics-web/vite.log"
+ssh waffentactics-vps "sudo journalctl -u waffentactics-caddy.service -n 120 --no-pager"
 ```
 
 ## Emergency VPS change reconciliation
