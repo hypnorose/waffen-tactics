@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getTraitColor, getTraitDescription, getTraitEffectPresentation } from '../hooks/combatOverlayUtils'
 import { getAllUnits, getCostBorderColor } from '../data/units'
 import { getCombatTooltipPosition, type CombatTooltipPosition } from './combatTooltipPosition'
+import TraitEffectDetails from './TraitEffectDetails'
 
 interface Props {
   traitName: string
@@ -101,7 +102,7 @@ export default function TraitSynergyTooltip({ traitName, data, traitData }: Prop
           className="p-3 rounded-md shadow-xl text-xs"
         >
           <div className="font-bold text-sm mb-1" style={{ color: color }}>{traitName}</div>
-          {traitData.description && (
+          {traitData.description && !Array.isArray(traitData.threshold_descriptions) && (
             <div className="text-gray-300 mb-2 text-xs leading-relaxed">{traitData.description}</div>
           )}
 
@@ -131,13 +132,8 @@ export default function TraitSynergyTooltip({ traitName, data, traitData }: Prop
                       {getTraitDescription(traitData, tierNum)}
                     </div>
                     {getTraitEffectPresentation(traitData, tierNum).map((effect, effectIndex) => (
-                      <div key={`${tierNum}-${effectIndex}`} data-trait-effect-details className="mt-1 rounded border border-gray-600/70 bg-black/10 p-1.5 text-[11px] leading-snug">
-                        <div><span className="text-gray-400">Trigger:</span> {effect.trigger}</div>
-                        <div><span className="text-gray-400">Cel:</span> {effect.target}</div>
-                        <div><span className="text-gray-400">Czas:</span> {effect.duration}</div>
-                        <div><span className="text-gray-400">Odświeżanie:</span> {effect.refresh}</div>
-                        <div><span className="text-gray-400">Stackowanie:</span> {effect.stacking}</div>
-                        {effect.conditions.map(condition => <div key={condition}><span className="text-gray-400">Warunek:</span> {condition}</div>)}
+                      <div key={`${tierNum}-${effectIndex}`} className="mt-1">
+                        <TraitEffectDetails effect={effect} compact />
                       </div>
                     ))}
                   </div>

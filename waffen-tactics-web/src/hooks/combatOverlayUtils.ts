@@ -139,7 +139,148 @@ const formatTraitCondition = (key: string, value: unknown) => {
   return `${key.replace(/_/g, ' ')}: ${String(value)}`
 }
 
+const lifecycleTypeNames: Record<string, string> = {
+  instant: 'Natychmiastowy',
+  timed: 'Czasowy',
+  permanent: 'Stały',
+  periodic: 'Okresowy',
+  event_based: 'Zdarzeniowy',
+}
+
+const lifecycleActivationNames: Record<string, string> = {
+  on_trigger: 'Po wyzwoleniu',
+  combat_start: 'Na starcie walki',
+  after_delay: 'Po opóźnieniu',
+  on_event: 'Po zdarzeniu',
+}
+
+const lifecycleRefreshNames: Record<string, string> = {
+  none: 'Brak odświeżania',
+  reset_duration: 'Resetuje czas trwania',
+  retarget: 'Przelicza cel',
+  reapply_without_stacking: 'Nakłada ponownie bez kumulacji',
+}
+
+const lifecycleRetriggerNames: Record<string, string> = {
+  none: 'Brak ponowienia',
+  once_per_combat: 'Raz na walkę',
+  on_attack: 'Przy każdym ataku',
+  on_bonus_attack: 'Przy każdym bonusowym ataku',
+  on_damage_received: 'Po każdym otrzymaniu obrażeń',
+  on_enemy_death: 'Po śmierci wroga',
+  on_ally_death: 'Po śmierci sojusznika',
+  on_trait_owner_death: 'Po śmierci właściciela traitu',
+  per_second: 'Co sekundę',
+}
+
+const lifecycleExpiryNames: Record<string, string> = {
+  event_resolved: 'Po rozpatrzeniu zdarzenia',
+  duration_elapsed: 'Po upływie czasu',
+  end_of_combat: 'Na końcu walki',
+}
+
+const valueDetailNames: Record<string, string> = {
+  mana_transfer: 'Przekazanie many',
+  attack_bonus: 'Atak',
+  defense_bonus: 'Obrona',
+  shield: 'Tarcza',
+  attack_speed_bonus: 'Szybkość ataku',
+  stun_duration: 'Ogłuszenie',
+  hp_regen: 'Regeneracja HP',
+  all_stats_bonus: 'Wszystkie statystyki',
+  heal: 'Leczenie',
+  frontline_shield: 'Tarcza pierwszej linii',
+  backline_bonus_damage: 'Obrażenia bonusowe tylnej linii',
+  mana_regen: 'Regeneracja many',
+  mana_grant: 'Przyznanie many',
+  damage_redirect: 'Przekierowanie obrażeń',
+}
+
+const formatTraitNumber = (value: unknown) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return String(value)
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, '').replace('.', ',')
+}
+
+const formatTraitValueDetail = (detail: any) => {
+  if (!detail || typeof detail !== 'object') return undefined
+  const value = detail.value
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
+
+  const formattedValue = formatTraitNumber(value)
+  const unit = detail.unit
+  const suffixes: Record<string, string> = {
+    percent: '%',
+    percent_of_max_hp: '% maks. HP',
+    percent_of_attack_mana: '% many z ataku',
+    percent_of_attacker_attack: '% ataku',
+    percent_of_bonus_attack_damage: '% obrażeń bonusowego ataku',
+    percent_of_damage: '% obrażeń',
+    percent_of_board_sale_value: '% wartości sprzedaży na planszy',
+    defense_points: ' pkt. obrony',
+    hp_per_second: ' HP/s',
+    mana_per_second: ' many/s',
+    mana: ' many',
+    seconds: ' s',
+  }
+  const suffix = suffixes[unit] || (typeof unit === 'string' && unit.trim() ? ` ${unit.replace(/_/g, ' ')}` : '')
+  const label = valueDetailNames[detail.key] || String(detail.key || 'Wartość').replace(/_/g, ' ')
+  const cap = typeof detail.cap === 'number' && Number.isFinite(detail.cap)
+    ? ` (limit ${formatTraitNumber(detail.cap)}%)`
+    : ''
+  return `${label}: ${formattedValue}${suffix}${cap}`
+}
+
+const formatTraitValues = (effect: any): string[] => {
+  const values = effect?.effect?.values
+  if (Array.isArray(values)) {
+    return values.map(formatTraitValueDetail).filter((value): value is string => Boolean(value))
+  }
+
+  const authoredValue = effect?.effect?.value
+  if (typeof authoredValue === 'number' && Number.isFinite(authoredValue)) {
+    const unit = typeof effect?.effect?.value_unit === 'string' ? effect.effect.value_unit : ''
+    return [`Wartość: ${formatTraitNumber(authoredValue)}${unit ? ` ${unit.replace(/_/g, ' ')}` : ''}`]
+  }
+
+  return []
+}
+
+const getLifecycle = (effect: any) => (
+  effect?.lifecycle && typeof effect.lifecycle === 'object' ? effect.lifecycle : undefined
+)
+
+const formatTraitLifecycleType = (effect: any) => {
+  const lifecycle = getLifecycle(effect)
+  if (lifecycle?.type && lifecycleTypeNames[lifecycle.type]) return lifecycleTypeNames[lifecycle.type]
+  if (typeof lifecycle?.type === 'string' && lifecycle.type.trim()) return lifecycle.type.replace(/_/g, ' ')
+  return 'Do review — brak jawnego typu lifecycle'
+}
+
+const formatTraitActivation = (effect: any) => {
+  const lifecycle = getLifecycle(effect)
+  if (lifecycle) {
+    const activation = lifecycleActivationNames[lifecycle.activation] || lifecycle.activation
+    if (typeof activation === 'string' && activation.trim()) {
+      if (typeof lifecycle.activation_delay === 'number' && Number.isFinite(lifecycle.activation_delay)) {
+        return `${activation} (${formatTraitNumber(lifecycle.activation_delay)} s)`
+      }
+      return activation
+    }
+  }
+  return 'Do review — brak jawnej aktywacji'
+}
+
 const formatTraitDuration = (effect: any, description?: string) => {
+  const lifecycle = getLifecycle(effect)
+  if (lifecycle) {
+    if (typeof lifecycle.duration === 'number' && Number.isFinite(lifecycle.duration)) {
+      return `${formatTraitNumber(lifecycle.duration)} s`
+    }
+    if (lifecycle.type === 'permanent' || lifecycle.type === 'periodic') return 'Do końca walki'
+    if (lifecycle.type === 'instant' || lifecycle.type === 'event_based') return 'Do rozpatrzenia zdarzenia'
+    return 'Do review — brak jawnego czasu trwania'
+  }
+
   const candidates = [
     effect?.duration,
     effect?.duration_seconds,
@@ -155,18 +296,60 @@ const formatTraitDuration = (effect: any, description?: string) => {
   return 'Do review — brak jawnego modelu czasu'
 }
 
-const formatTraitRefresh = (description?: string) => {
+const formatTraitRefresh = (effect: any, description?: string) => {
+  const lifecycle = getLifecycle(effect)
+  if (lifecycle) {
+    if (typeof lifecycle.refresh === 'string' && lifecycle.refresh.trim()) {
+      return lifecycleRefreshNames[lifecycle.refresh] || lifecycle.refresh.replace(/_/g, ' ')
+    }
+    return 'Do review — brak jawnej zasady odświeżania'
+  }
   if (description && /odśwież/i.test(description)) return 'Po ponownym wyzwoleniu'
   if (description && /powtarza/i.test(description)) return 'Powtarza się po wskazanym zdarzeniu'
   return 'Do review — brak jawnej zasady odświeżania'
 }
 
+const formatTraitRetrigger = (effect: any) => {
+  const lifecycle = getLifecycle(effect)
+  if (lifecycle) {
+    if (typeof lifecycle.retrigger === 'string' && lifecycle.retrigger.trim()) {
+      return lifecycleRetriggerNames[lifecycle.retrigger] || lifecycle.retrigger.replace(/_/g, ' ')
+    }
+    return 'Do review — brak jawnego ponowienia'
+  }
+  return 'Do review — brak jawnego ponowienia'
+}
+
+const formatTraitExpiry = (effect: any) => {
+  const lifecycle = getLifecycle(effect)
+  if (lifecycle) {
+    if (typeof lifecycle.expires_when === 'string' && lifecycle.expires_when.trim()) {
+      return lifecycleExpiryNames[lifecycle.expires_when] || lifecycle.expires_when.replace(/_/g, ' ')
+    }
+    return 'Do review — brak jawnego wygaśnięcia'
+  }
+  return 'Do review — brak jawnego wygaśnięcia'
+}
+
+const formatTraitStacking = (effect: any) => {
+  const lifecycle = getLifecycle(effect)
+  const stacking = lifecycle?.stacking || effect?.limit?.stacking
+  if (stacking === 'none') return 'Bez stackowania'
+  if (typeof stacking === 'string' && stacking.trim()) return stacking.replace(/_/g, ' ')
+  return 'Do review — brak jawnej zasady stackowania'
+}
+
 export interface TraitEffectPresentation {
   trigger: string
   target: string
+  values: string[]
+  lifecycle: string
+  activation: string
   duration: string
   refresh: string
+  retrigger: string
   stacking: string
+  expiresWhen: string
   conditions: string[]
 }
 
@@ -177,18 +360,23 @@ export function getTraitEffectPresentation(trait: any, tier: number): TraitEffec
   const description = getCanonicalTraitDescription(trait, tier)
 
   return tierEffects.map((effect: any) => {
-    const conditions = effect?.conditions && typeof effect.conditions === 'object'
-      ? Object.entries(effect.conditions)
+    const conditionData = effect?.conditions || effect?.condition
+    const conditions = conditionData && typeof conditionData === 'object'
+      ? Object.entries(conditionData)
         .filter(([, value]) => value !== undefined && value !== null && value !== false && value !== '')
         .map(([key, value]) => formatTraitCondition(key, value))
       : []
-    const stacking = effect?.limit?.stacking
     return {
       trigger: formatTraitTrigger(effect?.trigger),
       target: formatTraitTarget(effect?.target || trait?.target),
+      values: formatTraitValues(effect),
+      lifecycle: formatTraitLifecycleType(effect),
+      activation: formatTraitActivation(effect),
       duration: formatTraitDuration(effect, description),
-      refresh: formatTraitRefresh(description),
-      stacking: stacking === 'none' ? 'Bez stackowania' : stacking ? String(stacking) : 'Do review — brak jawnej zasady stackowania',
+      refresh: formatTraitRefresh(effect, description),
+      retrigger: formatTraitRetrigger(effect),
+      stacking: formatTraitStacking(effect),
+      expiresWhen: formatTraitExpiry(effect),
       conditions,
     }
   })
@@ -270,4 +458,4 @@ const getTraitDescription = (trait: any, tier: number) => {
   return out || trait.description || 'Brak opisu'
 }
 
-export { getRarityColor, getRarityGlow, getTraitColor, getTraitDescription }
+export { getRarityColor, getRarityGlow, getTraitColor, getTraitDescription, getCanonicalTraitDescription }
