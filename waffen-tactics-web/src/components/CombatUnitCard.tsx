@@ -261,6 +261,28 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
           transition={{ duration: reducedMotion ? 0.08 : Math.max(0.12, animationDuration), ease: 'easeOut' }}
         />
       )}
+      {attackTrack?.intent === 'melee_lunge' && !replayPaused && (
+        <motion.div
+          key={attackTrack.id}
+          className={`combat-unit-melee-sweep ${isOpponent ? 'combat-unit-melee-sweep-from-top' : 'combat-unit-melee-sweep-from-bottom'}`}
+          data-attack-intent="melee_lunge"
+          data-attack-direction={isOpponent ? 'toward-bottom' : 'toward-top'}
+          aria-hidden="true"
+          initial={reducedMotion
+            ? { opacity: 0.72, x: 0, y: 0, rotate: isOpponent ? 90 : -90, scaleX: 1 }
+            : { opacity: 0, x: 0, y: 0, rotate: isOpponent ? 90 : -90, scaleX: 0.55 }}
+          animate={reducedMotion
+            ? { opacity: 0.72, x: 0, y: 0, rotate: isOpponent ? 90 : -90, scaleX: 1 }
+            : {
+              opacity: [0, 0.95, 0],
+              x: isOpponent ? [0, 8, 2] : [0, -8, -2],
+              y: isOpponent ? [8, 22, 8] : [-8, -22, -8],
+              rotate: isOpponent ? [90, 72, 90] : [-90, -108, -90],
+              scaleX: [0.55, 1, 0.72],
+            }}
+          transition={{ duration: reducedMotion ? 0.08 : Math.max(0.12, attackTrack.duration), ease: 'easeOut' }}
+        />
+      )}
       {/* Old inline attack/skill/target visuals removed in favor of projectile VFX */}
 
       {/* Unit avatar (robust source resolution with fallback) */}

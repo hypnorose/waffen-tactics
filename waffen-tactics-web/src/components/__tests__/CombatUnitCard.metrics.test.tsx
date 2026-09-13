@@ -151,6 +151,36 @@ describe('combat and table unit metric ownership', () => {
     expect(flash?.getAttribute('aria-hidden')).toBe('true')
   })
 
+  it('renders melee attack feedback on a local layer without moving the card slot', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    act(() => {
+      root = createRoot(container)
+      root.render(createElement(CombatUnitCard as any, {
+        unit: combatUnit,
+        isOpponent: false,
+        presentationTracks: [{
+          id: 'combat:attack:melee',
+          intent: 'melee_lunge',
+          unitId: 'unit-1',
+          targetId: 'opponent-1',
+          sourceEventId: 'combat:attack',
+          sourceSeq: 15,
+          startedAt: 0,
+          duration: 0.2,
+          intensity: 'medium',
+        }],
+      }))
+    })
+
+    const sweep = container.querySelector('.combat-unit-melee-sweep')
+    expect(sweep?.getAttribute('data-attack-intent')).toBe('melee_lunge')
+    expect(sweep?.getAttribute('data-attack-direction')).toBe('toward-top')
+    expect(sweep?.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('.combat-unit-card')).not.toBeNull()
+  })
+
   it('uses the canonical source anchor when resolving impact direction', () => {
     mockGetCenter.mockImplementation((id: string) => id === 'source-unit'
       ? { x: 20, y: 100 }
