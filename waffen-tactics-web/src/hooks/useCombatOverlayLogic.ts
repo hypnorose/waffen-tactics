@@ -6,6 +6,7 @@ import { normalizeCombatSpeed } from './combat/replayTiming'
 import { createEmptyCombatState, getReplaySchedule, reconstructCombatState } from './combat/replayController'
 import { processReplayEvent } from './combat/replayEventProcessor'
 import { useCombatPresentation } from './combat/useCombatPresentation'
+import { useCombatReplayCompletion } from './combat/useCombatReplayCompletion'
 import { CombatState, CombatEvent, CombatUnitRoundStats, DesyncEntry } from './combat/types'
 
 interface UseCombatOverlayLogicProps {
@@ -39,7 +40,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
   const recentEventsRef = useRef<CombatEvent[]>([])
   const lastAppliedPlayheadRef = useRef<number>(-1)
   const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const presentationCleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const replayInitializedRef = useRef<boolean>(false)
   const prevReplayEnabledRef = useRef<boolean>(replayEnabled)
 
@@ -61,6 +61,14 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     clearTracks: clearPresentationTracks,
     reset: resetPresentation,
   } = useCombatPresentation({ currentTime: combatState.simTime, replayPaused })
+
+  const { cancelCleanup: cancelReplayCompletionCleanup } = useCombatReplayCompletion({
+    allEventsReplayed,
+    pendingVisuals,
+    clearPresentationTracks,
+    setCombatState,
+    combatStateRef,
+  })
 
   const scheduleNextEvent = (currentPlayhead: number) => {
     const schedule = getReplaySchedule(bufferedEvents, currentPlayhead, isBufferedComplete, combatSpeed)
@@ -88,10 +96,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
 
   const clearReplayTimerAndPause = () => {
     clearReplayTimer()
-    if (presentationCleanupTimerRef.current) {
-      clearTimeout(presentationCleanupTimerRef.current)
-      presentationCleanupTimerRef.current = null
-    }
+    cancelReplayCompletionCleanup()
     clearPresentationTracks()
     setReplayPaused(true)
   }
@@ -288,57 +293,8 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
   useEffect(() => {
     return () => {
       clearReplayTimer()
-      if (presentationCleanupTimerRef.current) clearTimeout(presentationCleanupTimerRef.current)
       replayInitializedRef.current = false
     }
-  }, [])
-
-  // Set isFinished when all events replayed and visual tracks/projectiles done
-  useEffect(() => {
-    if (allEventsReplayed && pendingVisuals === 0) {
-      setCombatState(prev => ({ ...prev, isFinished: true }))
-      combatStateRef.current = { ...combatStateRef.current, isFinished: true }
-
-      // Let the terminal impact/status flash render, then remove transient
-      // tracks even though simTime no longer advances after the final event.
-      if (presentationCleanupTimerRef.current) clearTimeout(presentationCleanupTimerRef.current)
-      presentationCleanupTimerRef.current = setTimeout(() => {
-        clearPresentationTracks()
-        presentationCleanupTimerRef.current = null
-      }, 500)
-    }
-    return () => {
-      if (presentationCleanupTimerRef.current) {
-        clearTimeout(presentationCleanupTimerRef.current)
-        presentationCleanupTimerRef.current = null
-      }
-    }
-  }, [allEventsReplayed, pendingVisuals, clearPresentationTracks])
-
-  // Regen cleanup only
-  // CRITICAL: DO NOT auto-expire effects here! Effects should ONLY be removed when
-  // effect_expired events arrive from backend. Auto-expiration causes desyncs because:
-  // 1. Client timing may differ from server by a few ms
-  // 2. Reverting stat changes (hp, attack, defense) conflicts with authoritative backend values
-  // 3. Backend already sends effect_expired events when effects truly expire
-  useEffect(() => {
-    const t = setInterval(() => {
-      const now = Date.now()
-      setCombatState(prev => {
-        let changed = false
-        const newRegenMap = { ...prev.regenMap }
-        for (const k of Object.keys(newRegenMap)) {
-          if (newRegenMap[k].expiresAt <= now) {
-            delete newRegenMap[k]
-            changed = true
-          }
-        }
-        if (!changed) return prev
-
-        return { ...prev, regenMap: newRegenMap }
-      })
-    }, 500)
-    return () => clearInterval(t)
   }, [])
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [combatState.combatLog])
