@@ -53,6 +53,8 @@ load_nvm() {
 PROJECT_ROOT="/home/ubuntu/waffen-tactics-game"
 WEB_DIR="$PROJECT_ROOT/waffen-tactics-web"
 BACKEND_DIR="$WEB_DIR/backend"
+API_HOST="127.0.0.1"
+API_PORT="8000"
 CADDY_SERVICE="${CADDY_SERVICE:-waffentactics-caddy.service}"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/runtime_process_scope.sh"
@@ -86,7 +88,7 @@ log_info "Stopping existing project processes"
 while IFS= read -r pid; do
     kill "$pid" 2>/dev/null || true
     log_info "Stopped backend pid=$pid"
-done < <(project_pids_for_cwd "api.py" "$BACKEND_DIR")
+done < <(project_backend_pids)
 while IFS= read -r pid; do
     kill "$pid" 2>/dev/null || true
     log_info "Stopped frontend pid=$pid"
@@ -166,7 +168,22 @@ log_success "Frontend production bundle ready"
 log_info "Starting backend API on port 8000"
 cd "$BACKEND_DIR"
 source venv/bin/activate
-nohup python3 api.py > api.log 2>&1 &
+if ! command -v gunicorn >/dev/null 2>&1; then
+    log_error "gunicorn is not installed in $BACKEND_DIR/venv"
+    log_error "Install backend requirements before starting production."
+    exit 1
+fi
+nohup gunicorn \
+    --chdir "$BACKEND_DIR" \
+    --bind "$API_HOST:$API_PORT" \
+    --workers 1 \
+    --threads 8 \
+    --timeout 180 \
+    --preload \
+    --capture-output \
+    --access-logfile - \
+    --error-logfile - \
+    wsgi:app > api.log 2>&1 &
 BACKEND_PID=$!
 sleep 3
 if ps -p "$BACKEND_PID" > /dev/null; then
@@ -205,11 +222,11 @@ echo "=============================================="
 log_success "Project started"
 echo "=============================================="
 echo "Production: https://waffentactics.pl"
-echo "Backend dev: http://localhost:8000"
+echo "Backend WSGI: http://localhost:8000"
 echo "Frontend preview: http://localhost:3000"
 echo ""
 echo "Processes:"
-ps aux | grep -E "api.py|vite|caddy" | grep -v grep | awk '{printf "  PID %-6s %s\n", $2, $11}'
+ps aux | grep -E "api.py|gunicorn|vite|caddy" | grep -v grep | awk '{printf "  PID %-6s %s\n", $2, $11}'
 echo ""
 echo "Logs:"
 echo "  Backend:  tail -f $BACKEND_DIR/api.log"

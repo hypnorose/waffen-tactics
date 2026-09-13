@@ -37,7 +37,7 @@ echo ""
 # Zatrzymaj Backend API - tylko ten projekt
 log_info "Zatrzymywanie Backend API..."
 _stopped=0
-for pid in $(project_pids_for_cwd "api.py" "$BACKEND_DIR"); do
+for pid in $(project_backend_pids); do
     kill "$pid" 2>/dev/null && _stopped=1 && log_info "Zatrzymano Backend PID=$pid"
 done
 [ "$_stopped" -eq 1 ] && log_success "Backend zatrzymany" || log_info "Backend nie był uruchomiony"

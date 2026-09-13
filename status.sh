@@ -25,7 +25,7 @@ echo ""
 
 # Sprawdź procesy
 echo -e "${CYAN}🔍 Procesy:${NC}"
-BACKEND_RUNNING=$(project_pids_for_cwd "python.*api.py" "$BACKEND_DIR")
+BACKEND_RUNNING=$(project_backend_pids)
 FRONTEND_RUNNING=$(project_pids_for_cwd "vite" "$WEB_DIR")
 CADDY_RUNNING=$(project_caddy_pids "$WEB_DIR" "Caddyfile")
 CADDY_SERVICE_ACTIVE=0

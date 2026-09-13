@@ -43,6 +43,11 @@ project_pids_for_cwd() {
     done < <(pgrep -f "$pattern" 2>/dev/null || true)
 }
 
+project_backend_pids() {
+    project_pids_for_cwd "api.py" "$BACKEND_DIR"
+    project_pids_for_cwd "gunicorn.*wsgi:app" "$BACKEND_DIR"
+}
+
 project_caddy_pids() {
     local expected_cwd="$1"
     local config_name="${2:-Caddyfile}"
@@ -83,7 +88,7 @@ project_process_report() {
         ps -p "$pid" -o pid=,args=
     done < <(
         {
-            project_pids_for_cwd "api.py" "$BACKEND_DIR"
+            project_backend_pids
             project_pids_for_cwd "vite" "$WEB_DIR"
             project_caddy_pids "$WEB_DIR" "Caddyfile"
         } | sort -n -u
