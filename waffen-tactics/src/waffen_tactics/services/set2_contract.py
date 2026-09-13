@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping, Sequence
+import math
 from typing import Any
 
 
@@ -17,6 +18,19 @@ SET2_ROSTER_SIZE = 32
 SET2_COST_DISTRIBUTION = {1: 6, 2: 7, 3: 8, 4: 6, 5: 5}
 SET2_TRAIT_COUNT = 12
 SET2_REMOVED_TRAIT_NAMES = frozenset({"Żołnierz mentora"})
+SET2_LIFECYCLE_TYPES = frozenset({"instant", "timed", "permanent", "periodic", "event_based"})
+SET2_LIFECYCLE_REQUIRED_FIELDS = (
+    "type",
+    "activation",
+    "duration",
+    "duration_unit",
+    "activation_delay",
+    "activation_delay_unit",
+    "refresh",
+    "retrigger",
+    "stacking",
+    "expires_when",
+)
 SET2_PASSIVE_NAMES = {
     "anamol04": "Linijka z notatnika",
     "fiko": "Jajcarz",
@@ -102,6 +116,10 @@ def _is_positive_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
+def _is_finite_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(float(value))
+
+
 def _non_empty_string(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
@@ -148,7 +166,101 @@ def _validate_active_set2_passive_names(records: Any) -> list[str]:
     return errors
 
 
-def _validate_modular_effect(effect: Any, path: str) -> list[str]:
+def _validate_trait_effect_metadata(effect: Any, path: str) -> list[str]:
+    """Validate the explicit lifecycle/value contract for active trait effects."""
+
+    if not _is_object(effect):
+        return []
+
+    errors: list[str] = []
+    lifecycle = effect.get("lifecycle")
+    if not _is_object(lifecycle):
+        errors.append(f"{path} missing required object 'lifecycle'")
+    else:
+        for field in SET2_LIFECYCLE_REQUIRED_FIELDS:
+            if field not in lifecycle:
+                errors.append(f"{path}.lifecycle missing required field '{field}'")
+
+        lifecycle_type = lifecycle.get("type")
+        if lifecycle_type not in SET2_LIFECYCLE_TYPES:
+            errors.append(
+                f"{path}.lifecycle.type must be one of {sorted(SET2_LIFECYCLE_TYPES)}"
+            )
+
+        for field in ("activation", "refresh", "retrigger", "stacking", "expires_when"):
+            if field in lifecycle and not _non_empty_string(lifecycle.get(field)):
+                errors.append(f"{path}.lifecycle.{field} must be a non-empty string")
+
+        duration = lifecycle.get("duration")
+        duration_unit = lifecycle.get("duration_unit")
+        if duration is not None and (not _is_finite_number(duration) or duration <= 0):
+            errors.append(f"{path}.lifecycle.duration must be null or a positive finite number")
+        if duration is None and duration_unit is not None:
+            errors.append(f"{path}.lifecycle.duration_unit must be null when duration is null")
+        if duration is not None and duration_unit != "seconds":
+            errors.append(f"{path}.lifecycle.duration_unit must be 'seconds' for a duration")
+        if lifecycle_type == "timed" and duration is None:
+            errors.append(f"{path}.lifecycle.duration is required for timed effects")
+
+        activation_delay = lifecycle.get("activation_delay")
+        activation_delay_unit = lifecycle.get("activation_delay_unit")
+        if activation_delay is not None and (not _is_finite_number(activation_delay) or activation_delay < 0):
+            errors.append(
+                f"{path}.lifecycle.activation_delay must be null or a non-negative finite number"
+            )
+        if activation_delay is None and activation_delay_unit is not None:
+            errors.append(
+                f"{path}.lifecycle.activation_delay_unit must be null when activation_delay is null"
+            )
+        if activation_delay is not None and activation_delay_unit != "seconds":
+            errors.append(
+                f"{path}.lifecycle.activation_delay_unit must be 'seconds' for an activation delay"
+            )
+
+    authored_effect = effect.get("effect")
+    if not _is_object(authored_effect):
+        return errors
+
+    value = authored_effect.get("value")
+    if not _is_finite_number(value):
+        errors.append(f"{path}.effect.value must be a finite number")
+
+    if not _non_empty_string(authored_effect.get("value_unit")):
+        errors.append(f"{path}.effect.value_unit must be a non-empty string")
+
+    values = authored_effect.get("values")
+    if not isinstance(values, list) or not values:
+        errors.append(f"{path}.effect.values must be a non-empty list")
+    else:
+        for value_index, value_detail in enumerate(values):
+            value_path = f"{path}.effect.values[{value_index}]"
+            if not _is_object(value_detail):
+                errors.append(f"{value_path} must be an object")
+                continue
+            for field in ("key", "unit"):
+                if not _non_empty_string(value_detail.get(field)):
+                    errors.append(f"{value_path}.{field} must be a non-empty string")
+            if not _is_finite_number(value_detail.get("value")):
+                errors.append(f"{value_path}.value must be a finite number")
+
+        first_value = values[0]
+        if _is_object(first_value):
+            if _is_finite_number(value) and first_value.get("value") != value:
+                errors.append(f"{path}.effect.values[0].value must match effect.value")
+            if (
+                _non_empty_string(authored_effect.get("value_unit"))
+                and first_value.get("unit") != authored_effect.get("value_unit")
+            ):
+                errors.append(f"{path}.effect.values[0].unit must match effect.value_unit")
+
+    if _is_object(lifecycle) and _is_object(effect.get("limit")):
+        if lifecycle.get("stacking") != effect["limit"].get("stacking"):
+            errors.append(f"{path}.lifecycle.stacking must match {path}.limit.stacking")
+
+    return errors
+
+
+def _validate_modular_effect(effect: Any, path: str, *, require_trait_metadata: bool = False) -> list[str]:
     """Validate one atomic ``trigger -> condition -> target -> effect -> limit`` node."""
 
     if not _is_object(effect):
@@ -183,6 +295,9 @@ def _validate_modular_effect(effect: Any, path: str) -> list[str]:
         errors.append(f"{path} missing required field 'limit'")
     elif not _is_object(effect["limit"]):
         errors.append(f"{path}.limit must be an object")
+
+    if require_trait_metadata:
+        errors.extend(_validate_trait_effect_metadata(effect, path))
 
     return errors
 
@@ -357,6 +472,7 @@ def validate_set2_traits(
                     _validate_modular_effect(
                         effect,
                         f"{tier_path}[{effect_index}]",
+                        require_trait_metadata=True,
                     )
                 )
 

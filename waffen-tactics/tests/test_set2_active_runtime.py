@@ -49,6 +49,44 @@ def test_active_set2_dataset_matches_plane_contract():
     ]
     assert [tier[0]["effect"]["value"] for tier in haxball["modular_effects"]] == [40, 60]
 
+    effects = [
+        effect
+        for trait in traits
+        for tier in trait["modular_effects"]
+        for effect in tier
+    ]
+    assert len(effects) == 32
+    required_lifecycle_fields = {
+        "type", "activation", "duration", "duration_unit",
+        "activation_delay", "activation_delay_unit", "refresh",
+        "retrigger", "stacking", "expires_when",
+    }
+    for effect in effects:
+        lifecycle = effect["lifecycle"]
+        authored = effect["effect"]
+        assert set(lifecycle) == required_lifecycle_fields
+        assert isinstance(authored["value_unit"], str) and authored["value_unit"]
+        assert authored["values"]
+        assert authored["values"][0]["value"] == authored["value"]
+        assert authored["values"][0]["unit"] == authored["value_unit"]
+        assert lifecycle["stacking"] == effect["limit"]["stacking"]
+
+    wierny = next(trait for trait in traits if trait["name"] == "Wierny widz")
+    assert wierny["modular_effects"][0][0]["lifecycle"]["activation_delay"] == 5
+    assert wierny["modular_effects"][0][0]["lifecycle"]["expires_when"] == "end_of_combat"
+
+    nowociota = next(trait for trait in traits if trait["name"] == "Nowociota")
+    assert all(
+        tier[0]["lifecycle"]["duration"] == 2
+        for tier in nowociota["modular_effects"]
+    )
+
+    figlarz_durations = [
+        tier[0]["lifecycle"]["duration"]
+        for tier in figlarz["modular_effects"]
+    ]
+    assert figlarz_durations == [1.0, 1.5, 2.0]
+
 
 def test_loader_uses_embedded_set2_passive_contract_without_legacy_lookup():
     data = load_game_data()

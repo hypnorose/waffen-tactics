@@ -71,7 +71,7 @@ TRAITS = [
     ("konfident", "Konfident", [3, 5, 7], "on_attack", "trait", [15, 25, 35], "Mana zdobyta z ataku jest przekazywana jednemu innemu żyjącemu Konfidentowi; bez samoprzepływu i rekurencji."),
     ("wierny_widz", "Wierny widz", [3, 5, 6], "per_second", "trait", [10, 15, 20], "Po 5 s: +10/15/20% ataku i obrony oraz tarcza 5/8/10% maks. HP; raz na walkę."),
     ("nowociota", "Nowociota", [3, 5, 7], "passive", "trait", [40, 60, 80], "Przez pierwsze 2 s +40/60/80% szybkości ataku; odświeżane po zabiciu, bez kumulacji."),
-    ("figlarz", "Figlarz", [2, 4, 6], "passive", "team", [1, 1, 1], "Na starcie ogłusza wszystkich wrogów na 1 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci."),
+    ("figlarz", "Figlarz", [2, 4, 6], "passive", "team", [1.0, 1.5, 2.0], "Na starcie ogłusza wszystkich wrogów na 1,0/1,5/2,0 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci."),
     ("weeb", "Weeb", [2, 4, 6], "passive", "trait", [15, 25, 35], "Najsilniejsza jednostka z tylnej linii otrzymuje +15/25/35% szybkości ataku; remisy rozstrzyga stabilne ID."),
     ("starociota", "Starociota", [2, 3, 5], "passive", "trait", [10, 20, 30], "+10/20/30 obrony i +2/4/6 HP/s; po śmierci Starocioty efekt odświeża się bez kumulacji."),
     ("inwestor", "Inwestor", [2, 3, 4], "passive", "team", [5, 10, 15], "Bonus do wszystkich statystyk wynosi 5/10/15% wartości sprzedaży jednostek na planszy, maks. 30%."),
@@ -79,19 +79,155 @@ TRAITS = [
     ("szachista", "Szachista", [2, 3], "passive", "trait", [10, 20], "Pierwsza linia zaczyna z tarczą 10/20% maks. HP, tylna zadaje +25/50% obrażeń bonusowego ataku."),
     ("tworca", "Twórca", [2, 3], "per_second", "team", [2, 4], "Cała drużyna regeneruje 2/4 many na sekundę."),
     ("muzyk", "Muzyk", [1, 2], "on_bonus_attack", "trait", [5, 10], "Bonusowy atak daje 5/10 many każdemu innemu żyjącemu sojusznikowi; Muzyk jest wykluczony."),
-    ("haxball", "Haxball", [2, 3], "on_damage_received", "trait", [50, 50], "50% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania."),
+    ("haxball", "Haxball", [2, 3], "on_damage_received", "trait", [40, 60], "40/60% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania."),
 ]
 
 
-def trait_record(trait_id: str, name: str, thresholds: list[int], trigger: str, target: str, values: list[int], description: str):
+# This is a presentation/data contract, not a second rules table. Values below
+# are the already-authored numbers represented in the trait descriptions and
+# consumed by Set 2 runtime. The runtime still reads the existing effect.value.
+def _trait_value_details(name: str, tier: int, value: int | float) -> list[dict]:
+    if name == "Konfident":
+        return [{"key": "mana_transfer", "value": value, "unit": "percent_of_attack_mana"}]
+    if name == "Wierny widz":
+        return [
+            {"key": "attack_bonus", "value": [10, 15, 20][tier - 1], "unit": "percent"},
+            {"key": "defense_bonus", "value": [10, 15, 20][tier - 1], "unit": "percent"},
+            {"key": "shield", "value": [5, 8, 10][tier - 1], "unit": "percent_of_max_hp"},
+        ]
+    if name == "Nowociota":
+        return [{"key": "attack_speed_bonus", "value": value, "unit": "percent"}]
+    if name == "Figlarz":
+        return [{"key": "stun_duration", "value": value, "unit": "seconds"}]
+    if name == "Weeb":
+        return [{"key": "attack_speed_bonus", "value": value, "unit": "percent"}]
+    if name == "Starociota":
+        return [
+            {"key": "defense_bonus", "value": value, "unit": "defense_points"},
+            {"key": "hp_regen", "value": [2, 4, 6][tier - 1], "unit": "hp_per_second"},
+        ]
+    if name == "Inwestor":
+        return [{"key": "all_stats_bonus", "value": value, "unit": "percent_of_board_sale_value", "cap": 30}]
+    if name == "Femboy":
+        return [{"key": "heal", "value": value, "unit": "percent_of_attacker_attack"}]
+    if name == "Szachista":
+        return [
+            {"key": "frontline_shield", "value": value, "unit": "percent_of_max_hp"},
+            {"key": "backline_bonus_damage", "value": [25, 50][tier - 1], "unit": "percent_of_bonus_attack_damage"},
+        ]
+    if name == "Twórca":
+        return [{"key": "mana_regen", "value": value, "unit": "mana_per_second"}]
+    if name == "Muzyk":
+        return [{"key": "mana_grant", "value": value, "unit": "mana"}]
+    if name == "Haxball":
+        return [{"key": "damage_redirect", "value": value, "unit": "percent_of_damage"}]
+    raise ValueError(f"Missing authored value units for Set 2 trait {name!r}")
+
+
+TRAIT_LIFECYCLES = {
+    "Konfident": {
+        "type": "instant", "activation": "on_trigger", "duration": None,
+        "duration_unit": None, "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "none", "retrigger": "on_attack", "stacking": "none",
+        "expires_when": "event_resolved",
+    },
+    "Wierny widz": {
+        "type": "permanent", "activation": "after_delay", "duration": None,
+        "duration_unit": None, "activation_delay": 5, "activation_delay_unit": "seconds",
+        "refresh": "none", "retrigger": "once_per_combat", "stacking": "none",
+        "expires_when": "end_of_combat",
+    },
+    "Nowociota": {
+        "type": "timed", "activation": "combat_start", "duration": 2,
+        "duration_unit": "seconds", "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "reset_duration", "retrigger": "on_enemy_death", "stacking": "none",
+        "expires_when": "duration_elapsed",
+    },
+    "Figlarz": {
+        "type": "timed", "activation": "combat_start", "duration": "from_value",
+        "duration_unit": "seconds", "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "none", "retrigger": "on_trait_owner_death", "stacking": "none",
+        "expires_when": "duration_elapsed",
+    },
+    "Weeb": {
+        "type": "permanent", "activation": "combat_start", "duration": None,
+        "duration_unit": None, "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "retarget", "retrigger": "on_ally_death", "stacking": "none",
+        "expires_when": "end_of_combat",
+    },
+    "Starociota": {
+        "type": "permanent", "activation": "combat_start", "duration": None,
+        "duration_unit": None, "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "reapply_without_stacking", "retrigger": "on_trait_owner_death", "stacking": "none",
+        "expires_when": "end_of_combat",
+    },
+    "Inwestor": {
+        "type": "permanent", "activation": "combat_start", "duration": None,
+        "duration_unit": None, "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "none", "retrigger": "once_per_combat", "stacking": "none",
+        "expires_when": "end_of_combat",
+    },
+    "Femboy": {
+        "type": "instant", "activation": "on_trigger", "duration": None,
+        "duration_unit": None, "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "none", "retrigger": "on_bonus_attack", "stacking": "none",
+        "expires_when": "event_resolved",
+    },
+    "Szachista": {
+        "type": "permanent", "activation": "combat_start", "duration": None,
+        "duration_unit": None, "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "none", "retrigger": "once_per_combat", "stacking": "none",
+        "expires_when": "end_of_combat",
+    },
+    "Twórca": {
+        "type": "periodic", "activation": "combat_start", "duration": None,
+        "duration_unit": None, "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "none", "retrigger": "per_second", "stacking": "none",
+        "expires_when": "end_of_combat",
+    },
+    "Muzyk": {
+        "type": "instant", "activation": "on_trigger", "duration": None,
+        "duration_unit": None, "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "none", "retrigger": "on_bonus_attack", "stacking": "none",
+        "expires_when": "event_resolved",
+    },
+    "Haxball": {
+        "type": "instant", "activation": "on_trigger", "duration": None,
+        "duration_unit": None, "activation_delay": None, "activation_delay_unit": None,
+        "refresh": "none", "retrigger": "on_damage_received", "stacking": "none",
+        "expires_when": "event_resolved",
+    },
+}
+
+
+def _threshold_descriptions(name: str, values: list[int | float], description: str) -> list[str]:
+    if name == "Figlarz":
+        return [
+            description.replace("1,0/1,5/2,0", f"{value:.1f}".replace(".", ","))
+            for value in values
+        ]
+    if name == "Haxball":
+        return [description.replace("40/60", str(value)) for value in values]
+    return [description for _ in values]
+
+
+def trait_record(trait_id: str, name: str, thresholds: list[int], trigger: str, target: str, values: list[int | float], description: str):
     tiers = []
     for tier, value in enumerate(values, start=1):
+        value_details = _trait_value_details(name, tier, value)
+        lifecycle = dict(TRAIT_LIFECYCLES[name])
+        if lifecycle["duration"] == "from_value":
+            lifecycle["duration"] = value
         tiers.append([
             {
                 "trigger": trigger,
                 "conditions": {},
                 "target": target,
-                "effect": {"type": "set2_trait", "trait": name, "tier": tier, "value": value},
+                "effect": {
+                    "type": "set2_trait", "trait": name, "tier": tier, "value": value,
+                    "value_unit": value_details[0]["unit"], "values": value_details,
+                },
+                "lifecycle": lifecycle,
                 "limit": {"stacking": "none"},
                 "rewards": [{"type": "special", "effect": "set2_trait", "trait": name, "tier": tier, "value": value}],
             }
@@ -103,7 +239,7 @@ def trait_record(trait_id: str, name: str, thresholds: list[int], trigger: str, 
         "description": description,
         "target": target,
         "thresholds": thresholds,
-        "threshold_descriptions": [description for _ in thresholds],
+        "threshold_descriptions": _threshold_descriptions(name, values, description),
         "modular_effects": tiers,
     }
 
@@ -136,9 +272,10 @@ def main() -> None:
 
     factions = sorted({trait for unit in units for trait in unit["factions"]})
     classes = sorted({trait for unit in units for trait in unit["classes"]})
-    (ROOT / "units.json").write_text(json.dumps({"units": units, "factions": factions, "classes": classes}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if "--traits-only" not in sys.argv:
+        (ROOT / "units.json").write_text(json.dumps({"units": units, "factions": factions, "classes": classes}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     traits = [trait_record(*definition) for definition in TRAITS]
-    (ROOT / "traits.json").write_text(json.dumps({"traits": traits}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (ROOT / "traits.json").write_text(json.dumps({"traits": traits}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 if __name__ == "__main__":

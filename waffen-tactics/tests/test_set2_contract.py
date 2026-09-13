@@ -20,6 +20,33 @@ def _passive():
     }
 
 
+def _trait_effect(value=10):
+    return {
+        "trigger": "on_bonus_attack",
+        "conditions": {},
+        "target": "self",
+        "effect": {
+            "type": "synthetic_effect",
+            "value": value,
+            "value_unit": "percent",
+            "values": [{"key": "bonus", "value": value, "unit": "percent"}],
+        },
+        "lifecycle": {
+            "type": "instant",
+            "activation": "on_trigger",
+            "duration": None,
+            "duration_unit": None,
+            "activation_delay": None,
+            "activation_delay_unit": None,
+            "refresh": "none",
+            "retrigger": "on_bonus_attack",
+            "stacking": "none",
+            "expires_when": "event_resolved",
+        },
+        "limit": {"stacking": "none"},
+    }
+
+
 def _roster():
     costs = [1] * 6 + [2] * 7 + [3] * 8 + [4] * 6 + [5] * 5
     return [
@@ -41,7 +68,7 @@ def _traits(count=13):
             "id": f"synthetic-trait-{index}",
             "name": f"Synthetic Trait {index}",
             "thresholds": [2, 4],
-            "modular_effects": [[_passive()], [_passive()]],
+            "modular_effects": [[_trait_effect()], [_trait_effect(20)]],
         }
         for index in range(count)
     ]
@@ -112,6 +139,28 @@ def test_set2_traits_contract_rejects_unsorted_thresholds_and_missing_effect_con
     assert "trait[0].modular_effects[0][0] missing required field 'target'" in errors
 
 
+def test_set2_traits_contract_rejects_missing_lifecycle_metadata():
+    traits = deepcopy(_traits(1))
+    del traits[0]["modular_effects"][0][0]["lifecycle"]
+
+    errors = validate_set2_traits(traits, expected_count=1)
+
+    assert "trait[0].modular_effects[0][0] missing required object 'lifecycle'" in errors
+
+
+def test_set2_traits_contract_rejects_mismatched_value_unit_and_duration():
+    traits = deepcopy(_traits(1))
+    effect = traits[0]["modular_effects"][0][0]
+    effect["effect"]["value_unit"] = ""
+    effect["lifecycle"]["type"] = "timed"
+    effect["lifecycle"]["duration"] = None
+
+    errors = validate_set2_traits(traits, expected_count=1)
+
+    assert any("effect.value_unit must be a non-empty string" in error for error in errors)
+    assert any("lifecycle.duration is required for timed effects" in error for error in errors)
+
+
 def test_set2_traits_contract_rejects_malformed_threshold_type_without_raising():
     traits = deepcopy(_traits(1))
     traits[0]["thresholds"] = {"not": "a list"}
@@ -127,9 +176,7 @@ def test_set2_traits_contract_rejects_repeated_adjacent_numeric_tier_values():
     traits[0]["thresholds"] = [2, 4, 6]
     tiers = []
     for value in (10, 10, 20):
-        effect = _passive()
-        effect["effect"]["value"] = value
-        tiers.append([effect])
+        tiers.append([_trait_effect(value)])
     traits[0]["modular_effects"] = tiers
 
     errors = validate_set2_traits(traits, expected_count=1)

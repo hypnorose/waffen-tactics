@@ -81,6 +81,21 @@ class TestCanonicalPlayerFacingData:
             ]
             assert not unresolved, f'{trait_name} has unresolved placeholders: {unresolved}'
 
+            effects = [
+                effect
+                for tier in trait['modular_effects']
+                for effect in tier
+            ]
+            assert effects, f'{trait_name} has no modular effects'
+            for effect in effects:
+                lifecycle = effect.get('lifecycle')
+                authored = effect.get('effect')
+                assert isinstance(lifecycle, dict), f'{trait_name} effect has no lifecycle'
+                assert isinstance(authored, dict), f'{trait_name} effect has no authored value'
+                assert isinstance(authored.get('value_unit'), str)
+                assert authored['value_unit'].strip()
+                assert isinstance(authored.get('values'), list) and authored['values']
+
 
 class TestGetLeaderboardData:
     """Test the get_leaderboard_data pure function"""
