@@ -22,6 +22,7 @@ from services.combat_service import (
 )
 from services.combat_snapshot_contract import (
     validate_combat_snapshot,
+    validate_attack_snapshot_coherence,
     validate_mana_update_snapshot_coherence,
 )
 from waffen_tactics.services.event_canonicalizer import validate_animation_start_payload
@@ -881,6 +882,14 @@ def map_event_to_sse_payload(event_type: str, data: dict):
 
     # Attach seq and event_id centrally so every SSE payload carries them when available
     if res is not None:
+        if event_type in ('attack', 'unit_attack', 'damage', 'damage_dodged'):
+            validate_attack_snapshot_coherence(
+                data,
+                context=(
+                    f"{event_type} game_state seq={data.get('seq', 'N/A')} "
+                    f"event_id={data.get('event_id', 'N/A')}"
+                ),
+            )
         _preserve_item_event_context(res, data, event_type)
         _preserve_player_facing_context(res, data)
         # Prefer existing seq on the mapped payload, but fall back to provided data

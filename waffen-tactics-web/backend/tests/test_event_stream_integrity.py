@@ -5,6 +5,8 @@ and required fields so the UI doesn't display `null` in messages.
 import json
 import os
 import re
+import contextlib
+import io
 from pathlib import Path
 import sys
 import pytest
@@ -16,6 +18,7 @@ from services.combat_service import (
     _validate_attack_animation_outcomes,
     run_combat_simulation,
 )
+from services.combat_snapshot_contract import CombatSnapshotContractError
 from waffen_tactics.services.combat_errors import CombatExecutionError
 from waffen_tactics.services.combat_unit import CombatUnit
 import routes.game_combat as gc
@@ -260,3 +263,49 @@ def test_animation_start_transport_preserves_explicit_multi_target_contract():
     )
     assert payload['target_ids'] == ['opponent', 'opponent-2']
     assert payload.get('target_id') is None
+
+
+def test_attack_transport_rejects_target_hp_that_disagrees_with_embedded_snapshot():
+    with pytest.raises(CombatSnapshotContractError, match=r"target_id=opponent.*target_hp"):
+        gc.map_event_to_sse_payload(
+            'unit_attack',
+            _animation_payload(
+                target_hp=70,
+                post_hp=70,
+                game_state={
+                    'player_units': [
+                        {'id': 'player', 'hp': 100, 'max_hp': 100, 'current_mana': 0, 'max_mana': 100, 'shield': 0, 'effects': []},
+                    ],
+                    'opponent_units': [
+                        {'id': 'opponent', 'hp': 80, 'max_hp': 100, 'current_mana': 0, 'max_mana': 100, 'shield': 0, 'effects': []},
+                    ],
+                },
+            ),
+        )
+
+
+def test_simulated_attack_outcomes_match_each_embedded_post_state():
+    attacker = make_unit('player', 'Player', hp=200)
+    target = make_unit('opponent', 'Opponent', hp=200)
+    attacker.attack = 30
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        result = run_combat_simulation(
+            [attacker],
+            [target],
+            skip_per_round_buffs=True,
+            skip_per_second_buffs=True,
+            attach_game_state=True,
+        )
+
+    mapped = [
+        gc.map_event_to_sse_payload(event_type, payload)
+        for event_type, payload in result['events']
+    ]
+    outcomes = [
+        payload
+        for payload in mapped
+        if payload and payload.get('type') in {'unit_attack', 'damage', 'damage_dodged'}
+    ]
+    assert outcomes
+    assert all('game_state' in payload for payload in outcomes)

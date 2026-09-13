@@ -163,6 +163,65 @@ def validate_mana_update_snapshot_coherence(
             )
 
 
+def validate_attack_snapshot_coherence(
+    event: Any,
+    *,
+    context: str = "attack",
+) -> None:
+    """Require an attack outcome to agree with its embedded post-state.
+
+    Attack events are delivered after the authoritative HP/shield mutation.
+    When a producer attaches ``game_state`` to the event, the target's
+    checkpoint must therefore equal the explicit event fields.  Missing
+    optional legacy fields are left to the event-specific contract; this
+    validator only rejects a value that is present but contradicts the
+    snapshot.  It never repairs either side.
+    """
+    if not isinstance(event, dict):
+        _fail(context, "event", "an object", event)
+
+    snapshot = event.get("game_state")
+    if snapshot is None:
+        return
+    validate_combat_snapshot(snapshot, context=context)
+
+    target_id = event.get("target_id") or event.get("unit_id")
+    if not isinstance(target_id, str) or not target_id.strip():
+        raise CombatSnapshotContractError(
+            f"Invalid {context}: missing target_id/unit_id"
+        )
+
+    matching_units = [
+        unit
+        for side in ("player_units", "opponent_units")
+        for unit in snapshot[side]
+        if unit.get("id") == target_id
+    ]
+    if len(matching_units) != 1:
+        raise CombatSnapshotContractError(
+            f"Invalid {context}: target_id={target_id} must identify exactly one "
+            f"unit in game_state, found={len(matching_units)}"
+        )
+    target = matching_units[0]
+
+    for field in ("target_hp", "post_hp", "unit_hp"):
+        value = event.get(field)
+        if value is not None and value != target["hp"]:
+            raise CombatSnapshotContractError(
+                f"Invalid {context}: target_id={target_id} field={field}; "
+                f"event={value!r}, game_state.hp={target['hp']!r}"
+            )
+
+    shield_value = event.get("post_shield")
+    if shield_value is None:
+        shield_value = event.get("unit_shield")
+    if shield_value is not None and shield_value != target["shield"]:
+        raise CombatSnapshotContractError(
+            f"Invalid {context}: target_id={target_id} shield; "
+            f"event={shield_value!r}, game_state.shield={target['shield']!r}"
+        )
+
+
 def dumps_combat_snapshot(snapshot: Any, *, context: str = "snapshot") -> str:
     """Validate, serialize, and validate the JSON round-trip."""
     validate_combat_snapshot(snapshot, context=context)
