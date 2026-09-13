@@ -25,8 +25,8 @@ describe('combat overlay layout contract', () => {
     expect(shouldStartCombatPanelCollapsed(899)).toBe(true)
   })
 
-  it('uses CSS sizing variables so short viewports can compact combat cards only', () => {
-    expect(combatUnitCardSizingStyle.width).toBe('var(--combat-unit-card-width, 8.25rem)')
+  it('uses CSS sizing variables so combat cards can compact across viewports', () => {
+    expect(combatUnitCardSizingStyle.width).toBe('var(--combat-unit-card-width, 6.5rem)')
     expect(combatUnitCardSizingStyle.padding).toBe('var(--combat-unit-card-padding, 0.4rem)')
     expect(combatUnitCardSizingStyle.avatarHeight).toBe('var(--combat-unit-avatar-height, auto)')
     expect(combatUnitCardSizingStyle.barHeight).toBe('var(--combat-unit-bar-height, 0.5rem)')

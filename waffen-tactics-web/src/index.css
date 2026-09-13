@@ -263,7 +263,10 @@ input:focus-visible {
 /* Combat cards are deliberately glanceable: identity, HP, mana, and only the
    status icons that need attention. Everything else belongs in the tooltip. */
 .combat-unit-card {
-  --combat-unit-card-width: 8.25rem;
+  /* Keep both formations inside their half of the combat viewport. The
+     tooltip still carries the detailed stats, so the board card can stay
+     glanceable and compact at the default desktop size. */
+  --combat-unit-card-width: 6.5rem;
   --combat-unit-card-padding: 0.4rem;
   --combat-unit-card-padding-opponent: 0.4rem;
   --combat-unit-avatar-height: auto;
@@ -898,7 +901,7 @@ input:focus-visible {
   align-items: flex-start;
   justify-content: center;
   min-width: 0;
-  min-height: var(--combat-unit-card-slot-height, 10.5rem);
+  min-height: var(--combat-unit-card-slot-height, 8.75rem);
 }
 
 .combat-unit-grid-slot-placeholder {

@@ -1,5 +1,5 @@
 export const combatUnitCardSizingStyle = {
-  width: 'var(--combat-unit-card-width, 8.25rem)',
+  width: 'var(--combat-unit-card-width, 6.5rem)',
   padding: 'var(--combat-unit-card-padding, 0.4rem)',
   avatarHeight: 'var(--combat-unit-avatar-height, auto)',
   barHeight: 'var(--combat-unit-bar-height, 0.5rem)',
