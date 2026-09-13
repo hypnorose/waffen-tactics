@@ -91,6 +91,7 @@ $remoteCommand = @(
     "git fetch $RemoteName $Branch"
     "git reset --hard $RemoteName/$Branch"
     "cd $RemotePath/waffen-tactics-web/backend && source venv/bin/activate && python -m pip install --disable-pip-version-check --no-input -r requirements.txt"
+    "cd $RemotePath"
     "./stop-all.sh"
     "./start-all.sh"
     "./status.sh"
