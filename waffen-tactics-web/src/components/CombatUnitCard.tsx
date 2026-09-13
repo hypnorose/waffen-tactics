@@ -151,24 +151,17 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
   const animationDuration = Math.max(0.12, attackTrack?.duration || impactTrack?.duration || statusTrack?.duration || 0.16)
   const presentationAnimation = reducedMotion || replayPaused
     ? { x: 0, y: 0, scale: 1, filter: 'brightness(1)' }
-    : attackTrack
+    : attackTrack || impactTrack
       ? {
-        // The board owns card placement. Attack feedback must never translate
-        // the card itself: a lunge plus a layout transform made the tile look
-        // as if it moved twice. Direction is communicated by the arrow and
-        // the projectile/impact layers instead.
+        // Attack and impact feedback live in their own layers. Keeping the
+        // card transform static prevents the attack track from restarting as
+        // soon as its impact alias arrives, which previously looked like a
+        // second attack/recoil animation on the same tile.
         x: 0,
         y: 0,
-        scale: [1, 1.03, impactTrack ? 0.99 : 1.02, 1],
-        filter: impactTrack?.intent === 'shield_hit' ? ['brightness(1)', 'brightness(1.15)', 'brightness(1)', 'brightness(1)'] : 'brightness(1)',
+        scale: 1,
+        filter: 'brightness(1)',
       }
-      : impactTrack
-        ? {
-          x: 0,
-          y: 0,
-          scale: impactTrack.intent === 'shield_hit' ? [1, 1.06, 1] : [1, 0.97, 1],
-          filter: impactTrack.intent === 'shield_hit' ? ['brightness(1)', 'brightness(1.25)', 'brightness(1)'] : 'brightness(1)',
-        }
         : statusTrack?.intent === 'death'
           ? { x: [0, -3, 0], y: [0, 2, 0], scale: [1, 0.96, 1], filter: 'brightness(1)' }
           : statusTrack
