@@ -191,12 +191,12 @@ export function formatCombatLogEntry(event: CombatEvent): string | null {
     case 'damage': {
       const damage = formatAmount(event.applied_damage ?? event.damage)
       const attacker = event.attacker_name || event.attacker_id || 'Unknown'
-      const target = event.target_name || event.unit_name || event.target_id || event.unit_id || 'Unknown'
+      const target = event.target_name || event.target_id || 'Unknown'
       return tag('REDIRECT', `${attacker} -> ${target} za ${damage}${formatEventContext(event)}`)
     }
     case 'damage_dodged': {
       const attacker = event.attacker_name || event.attacker_id || 'Unknown'
-      const target = event.target_name || event.unit_name || event.target_id || event.unit_id || 'Unknown'
+      const target = event.target_name || event.target_id || 'Unknown'
       return tag('DODGE', `${target} unika obrażeń od ${attacker}${formatEventContext(event)}`)
     }
     case 'skill_cast': {
@@ -298,7 +298,7 @@ export function updateCombatSummary(summary: CombatSummary, event: CombatEvent):
   if (event.type === 'unit_attack' || event.type === 'damage') {
     const damage = Math.max(0, Number(event.applied_damage ?? event.damage ?? 0))
     const attackerId = event.attacker_id || event.caster_id || event.unit_id
-    const targetId = event.target_id || event.unit_id
+    const targetId = event.target_id
 
     markActivity(next, attackerId, event.attacker_name, eventTimestamp)
     markActivity(next, targetId, event.target_name, eventTimestamp)

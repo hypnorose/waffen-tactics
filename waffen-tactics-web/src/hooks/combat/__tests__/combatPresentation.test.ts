@@ -142,6 +142,25 @@ describe('combatPresentation', () => {
     expect(summary.lastAction?.type).toBe('damage')
   })
 
+  it('does not attribute damage received to unit_id when target_id is missing', () => {
+    const event: CombatEvent = {
+      type: 'damage',
+      attacker_id: 'unit_a',
+      unit_id: 'unit_b',
+      damage: 40,
+      applied_damage: 40,
+      seq: 86,
+      timestamp: 4.4,
+    }
+
+    const summary = updateCombatSummary(createCombatSummary(), event)
+
+    expect(summary.totalDamageByUnit.unit_a.damage).toBe(40)
+    expect(summary.unitStatsByUnit.unit_a.damage_dealt).toBe(40)
+    expect(summary.unitStatsByUnit.unit_b).toBeUndefined()
+    expect(formatCombatLogEntry(event)).toBe('[REDIRECT] unit_a -> Unknown za 40')
+  })
+
   it('presents shield removal as a distinct SHIELD BREAK outcome', () => {
     expect(formatCombatLogEntry({
       type: 'shield_broken',
