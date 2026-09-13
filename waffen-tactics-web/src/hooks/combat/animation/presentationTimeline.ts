@@ -1,5 +1,9 @@
 import type { CombatEvent } from '../types'
-import { isRangedCombatAnimation } from '../combatPresentation'
+import {
+  COMBAT_PRESENTATION_DEDUPE_WINDOW_SECONDS,
+  isEquivalentCombatAnimationStart,
+  isRangedCombatAnimation,
+} from '../combatPresentation'
 
 export type PresentationIntent =
   | 'melee_lunge'
@@ -134,7 +138,6 @@ const PRESENTATION_INTENSITY_RANK: Record<PresentationIntensity, number> = {
   large: 2,
 }
 
-const PRESENTATION_DEDUPE_WINDOW_SECONDS = 0.08
 const IMPACT_INTENT_RANK: Record<Extract<PresentationIntent, 'target_recoil' | 'shield_hit' | 'shield_break' | 'multi_hit' | 'dodge'>, number> = {
   target_recoil: 0,
   multi_hit: 1,
@@ -182,12 +185,23 @@ function addTrack(
 
   const dedupeWindow = options.dedupeWindow
   if (dedupeWindow !== undefined) {
-    const startedAt = eventTime(event)
     const duplicate = Object.values(state.tracks).some((track) => (
       track.intent === intent &&
-      track.unitId === options.unitId &&
-      track.targetId === options.targetId &&
-      Math.abs(track.startedAt - startedAt) <= dedupeWindow
+      isEquivalentCombatAnimationStart(
+        {
+          event_id: track.sourceEventId,
+          attacker_id: track.unitId,
+          target_id: track.targetId,
+          timestamp: track.startedAt,
+        },
+        {
+          event_id: event.event_id,
+          attacker_id: options.unitId,
+          target_id: options.targetId,
+          timestamp: eventTime(event),
+        },
+      ) &&
+      Math.abs(track.startedAt - eventTime(event)) <= dedupeWindow
     ))
     if (duplicate) return state
   }
@@ -376,7 +390,7 @@ function addTargetImpact(
       track.targetId === targetId &&
       track.unitId === sourceId &&
       Object.prototype.hasOwnProperty.call(IMPACT_INTENT_RANK, track.intent) &&
-      Math.abs(track.startedAt - eventTime(event)) <= PRESENTATION_DEDUPE_WINDOW_SECONDS
+      Math.abs(track.startedAt - eventTime(event)) <= COMBAT_PRESENTATION_DEDUPE_WINDOW_SECONDS
     ))
     if (equivalent) {
       const currentRank = IMPACT_INTENT_RANK[equivalent.intent as keyof typeof IMPACT_INTENT_RANK] ?? 0
@@ -461,7 +475,7 @@ export function reducePresentationTimeline(
         duration: event.duration ?? DEFAULT_LUNGE_DURATION_SECONDS,
         intensity: event.bonus_attack ? 'large' : 'medium',
         role: 'attack',
-        dedupeWindow: PRESENTATION_DEDUPE_WINDOW_SECONDS,
+        dedupeWindow: COMBAT_PRESENTATION_DEDUPE_WINDOW_SECONDS,
       })
     }
 

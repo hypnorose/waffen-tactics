@@ -16,6 +16,39 @@ export function hasCanonicalAnimationIdentity(
     && Number.isFinite(event.timestamp)
 }
 
+/**
+ * Animation starts are canonical presentation inputs, but a reconnect or a
+ * legacy alias can still deliver the same attack more than once. Keep the
+ * dedupe rule shared by the timeline and the imperative projectile bridge so
+ * the two projections cannot disagree about how many visuals to create.
+ */
+export const COMBAT_PRESENTATION_DEDUPE_WINDOW_SECONDS = 0.08
+
+export function isEquivalentCombatAnimationStart(
+  left: Pick<CombatEvent, 'event_id' | 'attacker_id' | 'target_id' | 'timestamp'>,
+  right: Pick<CombatEvent, 'event_id' | 'attacker_id' | 'target_id' | 'timestamp'>,
+): boolean {
+  if (
+    typeof left.event_id === 'string' &&
+    left.event_id.trim() !== '' &&
+    left.event_id === right.event_id
+  ) {
+    return true
+  }
+
+  return Boolean(
+    left.attacker_id &&
+    left.attacker_id === right.attacker_id &&
+    left.target_id &&
+    left.target_id === right.target_id &&
+    typeof left.timestamp === 'number' &&
+    Number.isFinite(left.timestamp) &&
+    typeof right.timestamp === 'number' &&
+    Number.isFinite(right.timestamp) &&
+    Math.abs(left.timestamp - right.timestamp) <= COMBAT_PRESENTATION_DEDUPE_WINDOW_SECONDS,
+  )
+}
+
 export function getCombatAttackProjectileEmoji(event: Pick<CombatEvent, 'bonus_attack'>): string {
   return event.bonus_attack ? '⚡' : '🗡️'
 }

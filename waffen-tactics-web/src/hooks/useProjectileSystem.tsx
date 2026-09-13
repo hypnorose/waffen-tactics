@@ -32,6 +32,10 @@ export function ProjectileProvider({ children }: { children: React.ReactNode }) 
 
   const spawnProjectile = useCallback(({ id: requestedId, fromId, toId, emoji = '💥', duration = 350, sourceEventId, sourceSeq, onComplete }: { id?: string; fromId: string; toId: string; emoji?: string; duration?: number; sourceEventId?: string; sourceSeq?: number; onComplete?: () => void }) => {
     const id = requestedId || `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`
+    if (Object.prototype.hasOwnProperty.call(timers.current, id)) {
+      console.debug('[PROJECTILE] duplicate ignored', { id, fromId, toId })
+      return
+    }
     const p: Projectile = { id, emoji, fromId, toId, duration, createdAt: Date.now(), sourceEventId, sourceSeq, onComplete }
     setProjectiles(prev => [...prev, p])
     console.debug('[PROJECTILE] spawn', { id, fromId, toId, emoji, duration })

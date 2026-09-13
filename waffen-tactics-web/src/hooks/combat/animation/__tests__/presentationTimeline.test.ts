@@ -69,6 +69,34 @@ describe('presentationTimeline', () => {
     }))
   })
 
+  it('deduplicates repeated ranged animation starts before the projectile bridge runs', () => {
+    let state = createPresentationTimeline()
+    state = reducePresentationTimeline(state, event({
+      type: 'animation_start',
+      event_id: 'combat:duplicate-ranged-1',
+      seq: 12,
+      timestamp: 4,
+      animation_id: 'ranged_projectile',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'animation_start',
+      event_id: 'combat:duplicate-ranged-2',
+      seq: 13,
+      timestamp: 4.04,
+      animation_id: 'ranged_projectile',
+      attacker_id: 'player_0',
+      target_id: 'opp_0',
+    }))
+
+    expect(Object.values(state.tracks)).toHaveLength(1)
+    expect(Object.values(state.tracks)[0]).toEqual(expect.objectContaining({
+      sourceEventId: 'combat:duplicate-ranged-1',
+      intent: 'ranged_projectile',
+    }))
+  })
+
   it('coalesces alias impact events and promotes a plain recoil to a shield hit', () => {
     let state = createPresentationTimeline()
     state = reducePresentationTimeline(state, event({
