@@ -124,6 +124,46 @@ describe('presentationTimeline', () => {
     ])
   })
 
+  it.each([
+    ['animation_start', { animation_id: 'basic_attack', attacker_id: 'player_0', target_id: 'opp_0' }, 'melee_lunge'],
+    ['attack', { attacker_id: 'player_0', target_id: 'opp_0' }, 'target_recoil'],
+    ['unit_attack', { attacker_id: 'player_0', target_id: 'opp_0' }, 'target_recoil'],
+    ['damage', { attacker_id: 'player_0', target_id: 'opp_0' }, 'target_recoil'],
+    ['damage_dodged', { attacker_id: 'player_0', target_id: 'opp_0' }, 'dodge'],
+    ['attack_missed', { attacker_id: 'player_0', target_id: 'opp_0' }, 'dodge'],
+    ['miss', { attacker_id: 'player_0', target_id: 'opp_0' }, 'dodge'],
+    ['multi_hit', { attacker_id: 'player_0', target_ids: ['opp_0'] }, 'multi_hit'],
+    ['unit_died', { unit_id: 'opp_0' }, 'death'],
+    ['unit_revived', { unit_id: 'opp_0' }, 'revive'],
+    ['revive', { unit_id: 'opp_0' }, 'revive'],
+    ['shield_applied', { unit_id: 'opp_0' }, 'shield'],
+    ['shield_broken', { unit_id: 'opp_0' }, 'shield_break'],
+    ['damage_over_time_applied', { unit_id: 'opp_0' }, 'damage_over_time'],
+    ['damage_over_time_tick', { unit_id: 'opp_0' }, 'target_recoil'],
+    ['damage_over_time_expired', { unit_id: 'opp_0' }, 'damage_over_time'],
+    ['effect_applied', { unit_id: 'opp_0' }, 'effect'],
+    ['effect_expired', { unit_id: 'opp_0' }, 'effect'],
+    ['stat_buff', { unit_id: 'opp_0' }, 'buff'],
+    ['passive_triggered', { unit_id: 'opp_0' }, 'passive'],
+    ['unit_stunned', { unit_id: 'opp_0' }, 'stun'],
+    ['unit_heal', { unit_id: 'opp_0' }, 'heal'],
+    ['heal', { unit_id: 'opp_0' }, 'heal'],
+    ['hp_regen', { unit_id: 'opp_0' }, 'heal'],
+    ['regen_gain', { unit_id: 'opp_0' }, 'heal'],
+    ['formation_changed', { unit_id: 'opp_0' }, 'formation_change'],
+  ] as const)('maps canonical %s to one presentation intent', (type, fields, intent) => {
+    const state = reducePresentationTimeline(createPresentationTimeline(), event({
+      ...fields,
+      type,
+      event_id: `combat:mapped:${type}`,
+      seq: 2,
+      timestamp: 1,
+    }))
+
+    expect(state.diagnostics).toEqual([])
+    expect(Object.values(state.tracks).map((track) => track.intent)).toEqual([intent])
+  })
+
   it('reports missing actor or target ids without creating a track', () => {
     const state = reducePresentationTimeline(createPresentationTimeline(), event({
       type: 'animation_start',
