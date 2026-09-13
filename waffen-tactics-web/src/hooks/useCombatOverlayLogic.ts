@@ -3,10 +3,11 @@ import { PlayerState } from '../store/gameStore'
 import { useAuthStore } from '../store/authStore'
 import { useCombatSSEBuffer } from './combat/useCombatSSEBuffer'
 import { normalizeCombatSpeed } from './combat/replayTiming'
-import { createEmptyCombatState, getReplaySchedule, reconstructCombatState } from './combat/replayController'
+import { createEmptyCombatState, getReplaySchedule } from './combat/replayController'
 import { processReplayEvent } from './combat/replayEventProcessor'
 import { useCombatPresentation } from './combat/useCombatPresentation'
 import { useCombatReplayCompletion } from './combat/useCombatReplayCompletion'
+import { useCombatReplayControls } from './combat/useCombatReplayControls'
 import { CombatState, CombatEvent, CombatUnitRoundStats, DesyncEntry } from './combat/types'
 
 interface UseCombatOverlayLogicProps {
@@ -112,41 +113,21 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     setReplaySeekError(null)
   }, [combatError])
 
-  const seekReplay = (targetIndex: number) => {
-    clearReplayTimerAndPause()
-
-    try {
-      const reconstructed = reconstructCombatState(bufferedEvents, targetIndex)
-      setReplaySeekError(null)
-      setCombatState(reconstructed)
-      combatStateRef.current = reconstructed
-      rebuildPresentation(bufferedEvents, targetIndex)
-      recentEventsRef.current = bufferedEvents.slice(0, targetIndex + 1).slice(-50)
-      lastAppliedPlayheadRef.current = targetIndex
-      setPlayhead(Math.max(0, targetIndex))
-      setAllEventsReplayed(isBufferedComplete && targetIndex === bufferedEvents.length - 1)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie udało się odtworzyć wybranego stanu replayu.'
-      setReplaySeekError(message)
-    }
-  }
-
-  const restartReplay = () => {
-    if (bufferedEvents.length === 0) {
-      setReplaySeekError('Replay nie ma jeszcze żadnych zdarzeń do odtworzenia.')
-      return
-    }
-    seekReplay(0)
-  }
-
-  const toggleReplay = () => {
-    if (replayPaused) {
-      setReplaySeekError(null)
-      setReplayPaused(false)
-      return
-    }
-    clearReplayTimerAndPause()
-  }
+  const { restartReplay, toggleReplay, seekReplay } = useCombatReplayControls({
+    bufferedEvents,
+    isBufferedComplete,
+    replayPaused,
+    clearReplayTimerAndPause,
+    rebuildPresentation,
+    combatStateRef,
+    recentEventsRef,
+    lastAppliedPlayheadRef,
+    setCombatState,
+    setPlayhead,
+    setAllEventsReplayed,
+    setReplaySeekError,
+    setReplayPaused,
+  })
 
   const exportDesyncJSON = () => {
     try {
