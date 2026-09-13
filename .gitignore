@@ -80,3 +80,6 @@ waffen_tactics_game.db
 
 # Backend venv
 waffen-tactics-web/backend/venv/
+
+# Local MCP server config (contains API tokens)
+.mcp.json
