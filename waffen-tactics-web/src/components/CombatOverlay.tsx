@@ -14,8 +14,8 @@ import { UnitAnchorsProvider } from '../hooks/useUnitAnchors'
 import { ProjectileProvider } from '../hooks/useProjectileSystem'
 import ProjectileLayer from './ProjectileLayer'
 import CombatFeedbackLayer from './CombatFeedbackLayer'
-import CombatActionQueue from './CombatActionQueue'
-import { combatOverlayBoardStyle, combatOverlayPanelStyle, shouldStartCombatPanelCollapsed } from './combatOverlayLayout'
+import { shouldStartCombatPanelCollapsed } from './combatOverlayLayout'
+import CombatWindowShell from './CombatWindowShell'
 import { Panel } from '../ui/primitives'
 
 export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
@@ -126,63 +126,33 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     <div className="combat-overlay-root" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
       {!showMatchmakingOverlay && (
         <>
-          <div className="combat-overlay-panel" style={combatOverlayPanelStyle}>
-            <CombatControlPanel
-              expanded={combatPanelExpanded}
-              opponentInfo={opponentInfo}
-              combatSummary={combatSummary}
-              synergies={synergies}
-              traits={traits}
-              replayEvents={replayEvents}
-              replayEventIndex={replayEventIndex}
-              combatSpeed={combatSpeed}
-              setCombatSpeed={setCombatSpeed}
-              isFinished={isFinished}
-              storedGoldBreakdown={storedGoldBreakdown}
-              displayedGoldBreakdown={displayedGoldBreakdown}
-              setDisplayedGoldBreakdown={setDisplayedGoldBreakdown}
-              onContinue={handleClose}
-            />
-
-            <div className="combat-overlay-board" style={combatOverlayBoardStyle}>
-              <div className="combat-opponent-slot" style={{ flex: 1, marginBottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
-                <OpponentUnits units={opponentUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} replayPaused={replayPaused} reducedMotion={reducedMotion} />
-              </div>
-              <div className="combat-player-slot" style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-                <PlayerUnits units={playerUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} replayPaused={replayPaused} reducedMotion={reducedMotion} />
-              </div>
-
-              <button
-                type="button"
-                className="combat-panel-toggle"
-                aria-controls="combat-control-panel"
-                aria-expanded={combatPanelExpanded}
-                aria-label={combatPanelExpanded ? 'Zwiń panel walki' : 'Rozwiń panel walki'}
-                onClick={() => setCombatPanelExpanded((expanded) => !expanded)}
-                style={{ position: 'absolute', top: 16, left: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.55)', borderRadius: 6, padding: '6px 12px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-              >
-                {combatPanelExpanded ? 'Zwiń panel' : 'Rozwiń panel'}
-              </button>
-
-              <button
-                type="button"
-                className="combat-log-toggle"
-                aria-controls="combat-log-modal"
-                aria-expanded={showLog}
-                aria-label={showLog ? 'Hide combat log' : 'Show combat log'}
-                onClick={() => setShowLog(!showLog)}
-                style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-              >
-                {showLog && combatPanelExpanded ? 'Ukryj log walki' : 'Pokaż log walki'}
-              </button>
-
-              {import.meta.env.DEV && (
-                <button type="button" onClick={() => setShowDesyncInspector((s) => !s)} style={{ position: 'absolute', top: 56, right: 16, zIndex: 100, background: '#1f2937', color: '#7dd3fc', border: 'none', borderRadius: 6, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-                  {showDesyncInspector ? 'Ukryj Desync Inspector' : 'Pokaż Desync Inspector'}
-                </button>
-              )}
-
-              <CombatLogModal showLog={showLog} visible={combatPanelExpanded} setShowLog={setShowLog} combatLog={combatLog} logEndRef={logEndRef} />
+          <CombatWindowShell
+            expanded={combatPanelExpanded}
+            showLog={showLog}
+            onTogglePanel={() => setCombatPanelExpanded((expanded) => !expanded)}
+            onToggleLog={() => setShowLog(!showLog)}
+            combatPanel={(
+              <CombatControlPanel
+                expanded={combatPanelExpanded}
+                opponentInfo={opponentInfo}
+                combatSummary={combatSummary}
+                synergies={synergies}
+                traits={traits}
+                replayEvents={replayEvents}
+                replayEventIndex={replayEventIndex}
+                combatSpeed={combatSpeed}
+                setCombatSpeed={setCombatSpeed}
+                isFinished={isFinished}
+                storedGoldBreakdown={storedGoldBreakdown}
+                displayedGoldBreakdown={displayedGoldBreakdown}
+                setDisplayedGoldBreakdown={setDisplayedGoldBreakdown}
+                onContinue={handleClose}
+              />
+            )}
+            opponentSlot={<OpponentUnits units={opponentUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} replayPaused={replayPaused} reducedMotion={reducedMotion} />}
+            playerSlot={<PlayerUnits units={playerUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} replayPaused={replayPaused} reducedMotion={reducedMotion} />}
+            log={<CombatLogModal showLog={showLog} visible={combatPanelExpanded} setShowLog={setShowLog} combatLog={combatLog} logEndRef={logEndRef} />}
+            replayControls={(
               <ReplayControls
                 eventCount={replayEvents.length}
                 currentIndex={replayEventIndex}
@@ -195,8 +165,8 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
                 onSeek={seekReplay}
                 visible={combatPanelExpanded}
               />
-            </div>
-          </div>
+            )}
+          />
 
           <ProjectileLayer onDiagnostic={reportPresentationDiagnostic} />
           <CombatFeedbackLayer
