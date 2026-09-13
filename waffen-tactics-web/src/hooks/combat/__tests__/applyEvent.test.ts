@@ -562,6 +562,37 @@ describe('applyCombatEvent - Effect Handling', () => {
       expect(state.playerUnits[0].effects).toEqual([])
     })
 
+    it('should refresh an existing effect by ID instead of duplicating it', () => {
+      state.playerUnits[0].effects = [{
+        id: 'refresh-effect',
+        type: 'buff',
+        stat: 'defense',
+        value: 8,
+        duration: 1,
+        expiresAt: 1,
+      }]
+
+      const next = applyCombatEvent(state, {
+        type: 'effect_applied',
+        unit_id: 'player_0',
+        effect_id: 'refresh-effect',
+        effect: {
+          id: 'refresh-effect',
+          type: 'buff',
+          stat: 'defense',
+          value: 8,
+          duration: 1,
+          expires_at: 2,
+        },
+        seq: 2,
+        timestamp: 1,
+      }, { simTime: 1 })
+
+      expect(next.playerUnits[0].effects).toEqual([
+        expect.objectContaining({ id: 'refresh-effect', expiresAt: 2 }),
+      ])
+    })
+
     it('rejects an effect without canonical type even when effect_type is present', () => {
       expect(() => applyCombatEvent(state, {
         type: 'effect_applied',

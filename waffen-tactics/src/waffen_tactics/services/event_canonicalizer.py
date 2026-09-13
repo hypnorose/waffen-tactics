@@ -230,16 +230,32 @@ def emit_effect_applied(
     had_effects_attr = hasattr(recipient, 'effects')
     effects = list(getattr(recipient, 'effects', []) or [])
     previous_effects = list(effects)
-    replaced = [
-        existing for existing in effects
-        if not (
-            isinstance(existing, dict)
+    # A timed refresh deliberately reuses the existing effect identity. It is
+    # an in-place update, not an expiration followed by a new application.
+    # Emitting effect_expired for that identity would make the replay remove
+    # the refreshed effect while the authoritative snapshot still contains it.
+    removed = []
+    final_effects = []
+    installed_same_id = False
+    for existing in effects:
+        existing_is_dict = isinstance(existing, dict)
+        if existing_is_dict and existing.get('id') == effect_id:
+            if not installed_same_id:
+                final_effects.append(canonical_effect)
+                installed_same_id = True
+            # Collapse any duplicate copies of the same identity without
+            # publishing another lifecycle event for that identity.
+            continue
+        if (
+            existing_is_dict
             and existing.get('source') == canonical_effect.get('source')
             and existing.get('passive_effect') == canonical_effect.get('passive_effect')
-        )
-    ]
-    removed = [existing for existing in effects if existing not in replaced]
-    final_effects = replaced + [canonical_effect]
+        ):
+            removed.append(existing)
+            continue
+        final_effects.append(existing)
+    if not installed_same_id:
+        final_effects.append(canonical_effect)
 
     def _rollback_partial_mutation():
         """Restore the exact pre-emission effect collection."""
@@ -1351,6 +1367,17 @@ def emit_unit_stunned(
     ts = timestamp if timestamp is not None else _now_ts()
     if getattr(target, '_dead', False):
         return None
+    try:
+        target_hp = getattr(target, 'hp', None)
+    except Exception:
+        target_hp = None
+    try:
+        if target_hp is not None and float(target_hp) <= 0:
+            return None
+    except (TypeError, ValueError):
+        # Objects without a numeric HP value retain the existing _dead-based
+        # guard; canonical combat units always expose numeric HP.
+        pass
 
     try:
         previous_stunned = getattr(target, '_stunned', False)
@@ -1419,8 +1446,6 @@ def emit_unit_stunned(
         'effect_id': effect_id,  # CRITICAL: Include effect_id for frontend tracking
         'caster_name': getattr(source, 'name', None) if source is not None else None,
     }
-    if getattr(target, '_dead', False):
-        return None
     _deliver_canonical_event(event_callback, 'unit_stunned', payload)
     return payload
 def emit_shield_applied(

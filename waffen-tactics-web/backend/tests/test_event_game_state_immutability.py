@@ -1,4 +1,6 @@
+import contextlib
 import copy
+import io
 
 from routes.game_combat import map_event_to_sse_payload
 
@@ -168,3 +170,80 @@ def test_buffered_bonus_attack_events_keep_per_event_snapshots():
     # the following bonus-attack mana reset event.
     assert bonus_state['player_units'][0]['current_mana'] == 100
     assert bonus_state['opponent_units'][0]['hp'] == 20
+
+
+def test_timed_effect_refresh_does_not_emit_expiration_for_the_refreshed_identity():
+    """A refresh snapshot must never show an effect after its own expiry event."""
+    from services.combat_service import run_combat_simulation
+    from waffen_tactics.models.unit import CombatUnitStats
+    from waffen_tactics.services.combat_unit import CombatUnit
+
+    attacker_stats = CombatUnitStats(
+        hp=5000,
+        attack=80,
+        defense=0,
+        max_mana=100,
+        attack_speed=1.0,
+        mana_on_attack=0,
+    )
+    attacker = CombatUnit(
+        id='refresh-attacker',
+        name='Refresh attacker',
+        hp=5000,
+        attack=80,
+        defense=0,
+        attack_speed=1.0,
+        max_mana=100,
+        stats=attacker_stats,
+    )
+    target = CombatUnit(
+        id='refresh-target',
+        name='Refresh target',
+        hp=5000,
+        attack=1,
+        defense=10,
+        attack_speed=0.2,
+        max_mana=100,
+        stats=CombatUnitStats(
+            hp=5000,
+            attack=1,
+            defense=10,
+            max_mana=100,
+            attack_speed=0.2,
+            mana_on_attack=0,
+        ),
+        passive={'runtime': {'type': 'defense_on_hit'}},
+    )
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        result = run_combat_simulation([attacker], [target], attach_game_state=True)
+
+    effect_ids = {
+        payload['effect_id']
+        for event_type, payload in result['events']
+        if event_type == 'effect_applied'
+        and payload.get('unit_id') == target.id
+        and isinstance(payload.get('effect'), dict)
+        and payload['effect'].get('set2_refresh_key')
+    }
+    assert effect_ids, 'expected defense_on_hit to create a refreshable timed effect'
+
+    for effect_id in effect_ids:
+        lifecycle = [
+            event_type
+            for event_type, payload in result['events']
+            if payload.get('effect_id') == effect_id
+        ]
+        assert lifecycle
+        assert 'effect_expired' not in lifecycle
+
+    for event_type, payload in result['events']:
+        if event_type != 'effect_applied' or payload.get('effect_id') not in effect_ids:
+            continue
+        snapshot_effects = [
+            effect for unit in payload['game_state']['opponent_units']
+            if unit['id'] == target.id
+            for effect in unit.get('effects', [])
+            if effect.get('id') == payload['effect_id']
+        ]
+        assert len(snapshot_effects) == 1

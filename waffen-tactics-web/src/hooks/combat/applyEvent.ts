@@ -937,10 +937,22 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
           expiresAt: event.effect.expires_at,
           caster_name: event.caster_name,
         }
-        const updateFn = (u: Unit) => ({
-          ...u,
-          effects: [...(u.effects || []), canonicalEffect],
-        })
+        const updateFn = (u: Unit) => {
+          let installed = false
+          const effects = (u.effects || []).reduce<EffectSummary[]>((next, existing) => {
+            if (existing.id !== appliedEffectId) {
+              next.push(existing)
+              return next
+            }
+            if (!installed) {
+              next.push(canonicalEffect)
+              installed = true
+            }
+            return next
+          }, [])
+          if (!installed) effects.push(canonicalEffect)
+          return { ...u, effects }
+        }
         updateKnownUnitById(newState, event, event.unit_id, updateFn)
       }
       break

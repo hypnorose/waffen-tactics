@@ -480,6 +480,16 @@ def test_emit_unit_stunned_does_not_mutate_dead_target():
     assert events == []
 
 
+def test_emit_unit_stunned_does_not_mutate_zero_hp_target_when_dead_flag_is_stale():
+    u = DummyUnit(hp=0)
+    events = []
+
+    assert emit_unit_stunned(lambda event_type, payload: events.append((event_type, payload)), u) is None
+    assert getattr(u, '_stunned', False) is False
+    assert u.effects == []
+    assert events == []
+
+
 def test_emit_regen_gain_fails_closed_when_mutation_is_rejected():
     u = RejectingRegenUnit(regen=1.0)
     events = []
@@ -627,6 +637,36 @@ def test_emit_effect_applied_preserves_valid_supplied_identity_in_state_and_payl
     )
 
     assert payload['effect_id'] == 'valid-effect'
+    assert u.effects == [payload['effect']]
+    assert events == [('effect_applied', payload)]
+
+
+def test_emit_effect_applied_refreshes_same_identity_without_expiration_event():
+    u = DummyUnit()
+    u.effects = [{
+        'id': 'refresh-effect',
+        'type': 'buff',
+        'source': 'caster',
+        'passive_effect': 'defense_on_hit',
+        'duration': 1.0,
+        'expires_at': 1.0,
+    }]
+    events = []
+
+    payload = emit_effect_applied(
+        lambda event_type, event_payload: events.append((event_type, event_payload)),
+        u,
+        {
+            'id': 'refresh-effect',
+            'type': 'buff',
+            'source': 'caster',
+            'passive_effect': 'defense_on_hit',
+            'duration': 1.0,
+            'expires_at': 2.0,
+        },
+        timestamp=1.0,
+    )
+
     assert u.effects == [payload['effect']]
     assert events == [('effect_applied', payload)]
 
