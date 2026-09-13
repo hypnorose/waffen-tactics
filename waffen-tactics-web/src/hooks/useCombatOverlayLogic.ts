@@ -10,6 +10,7 @@ import { useCombatReplayControls } from './combat/useCombatReplayControls'
 import { useCombatReplayLoop } from './combat/useCombatReplayLoop'
 import { CombatState, CombatEvent, CombatUnitRoundStats, DesyncEntry } from './combat/types'
 import { gameAPI } from '../services/api'
+import type { PresentationDiagnostic } from './combat/animation/presentationTimeline'
 
 interface UseCombatOverlayLogicProps {
   onClose: (newState?: PlayerState, roundStatsByUnit?: Record<string, CombatUnitRoundStats>) => void
@@ -32,7 +33,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     const saved = localStorage.getItem('combatSpeed')
     return normalizeCombatSpeed(saved)
   })
-  const [desyncLogs, setDesyncLogs] = useState<DesyncEntry[]>([])
   const replaySessionIdRef = useRef<string>(
     typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
@@ -67,18 +67,7 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     combatStateRef,
   })
 
-  const pushDesync = useCallback((entry: DesyncEntry) => {
-    const recent_events = recentEventsRef.current.slice(-25)
-    const report = {
-      ...entry,
-      pending_events: entry.pending_events.slice(0, 50),
-      recent_events,
-      replay_session_id: replaySessionIdRef.current,
-    }
-    setDesyncLogs(prev => {
-      return [{ ...entry, recent_events }, ...prev].slice(0, 200)
-    })
-
+  const reportDesync = useCallback((report: DesyncEntry) => {
     const reportKey = JSON.stringify([
       report.replay_session_id,
       report.event_id || null,
@@ -97,7 +86,40 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     })
   }, [])
 
-  const clearDesyncLogs = () => setDesyncLogs([])
+  const pushDesync = useCallback((entry: DesyncEntry) => {
+    reportDesync({
+      ...entry,
+      pending_events: entry.pending_events.slice(0, 50),
+      recent_events: recentEventsRef.current.slice(-25),
+      replay_session_id: replaySessionIdRef.current,
+    })
+  }, [reportDesync])
+
+  const reportPresentationDesync = useCallback((diagnostic: PresentationDiagnostic) => {
+    const eventIndex = Math.min(playhead, Math.max(0, bufferedEvents.length - 1))
+    const relatedEvent = bufferedEvents[eventIndex]
+    reportDesync({
+      unit_id: diagnostic.unitId || 'presentation',
+      unit_name: relatedEvent?.unit_name,
+      seq: diagnostic.seq ?? relatedEvent?.seq ?? null,
+      event_id: diagnostic.eventId || relatedEvent?.event_id,
+      timestamp: relatedEvent?.timestamp ?? combatStateRef.current.simTime,
+      diff: {
+        presentation: {
+          ui: 'presentation timeline',
+          server: diagnostic.code,
+        },
+      },
+      pending_events: bufferedEvents.slice(eventIndex + 1, eventIndex + 26),
+      recent_events: recentEventsRef.current.slice(-25),
+      note: diagnostic.message,
+      replay_session_id: replaySessionIdRef.current,
+    })
+  }, [bufferedEvents, playhead, reportDesync])
+
+  useEffect(() => {
+    presentationDiagnostics.forEach(reportPresentationDesync)
+  }, [presentationDiagnostics, reportPresentationDesync])
 
   const { clearReplayTimer } = useCombatReplayLoop({
     bufferedEvents,
@@ -143,15 +165,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     setReplaySeekError,
     setReplayPaused,
   })
-
-  const exportDesyncJSON = () => {
-    try {
-      return JSON.stringify(desyncLogs, null, 2)
-    } catch (err) {
-      console.error('Failed to stringify desyncLogs', err)
-      return '[]'
-    }
-  }
 
   // Persist settings
   useEffect(() => {
@@ -213,9 +226,6 @@ export function useCombatOverlayLogic({ onClose, logEndRef, replayEnabled = true
     seekReplay,
     activeAttackerId: combatState.combatSummary?.focus?.attacker_id ?? null,
     activeTargetId: combatState.combatSummary?.focus?.target_id ?? null,
-    desyncLogs,
-    clearDesyncLogs,
-    exportDesyncJSON,
     isSearchingOpponent
   }
 }

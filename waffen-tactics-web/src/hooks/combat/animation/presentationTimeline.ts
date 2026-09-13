@@ -245,6 +245,14 @@ function liveActorDiagnostic(
   })
 }
 
+function isCancelledDamageDodge(event: CombatEvent): boolean {
+  return event.type === 'damage_dodged' && (
+    event.cancelled === true ||
+    event.cause === 'target_dead_before_impact' ||
+    event.cause === 'attacker_dead_before_impact'
+  )
+}
+
 function animationContractDiagnostic(
   state: PresentationTimelineState,
   event: CombatEvent,
@@ -414,6 +422,10 @@ export function reducePresentationTimeline(
     }
 
     case 'damage_dodged': {
+      // A delayed animation can resolve after either participant has died.
+      // The backend emits an explicit cancelled no-op in that case; it is a
+      // valid terminal outcome, not a malformed visual target.
+      if (isCancelledDamageDodge(event)) return next
       next = liveActorDiagnostic(next, event, event.target_id, 'target')
       const targetId = event.target_id
       if (!targetId) return next

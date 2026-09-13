@@ -324,6 +324,7 @@ def map_event_to_sse_payload(event_type: str, data: dict):
             'dodged': True,
             'side': data.get('side'),
             'cause': data.get('cause'),
+            'cancelled': data.get('cancelled', False),
             'timestamp': data.get('timestamp', time.time()),
             'seq': data.get('seq'),
         }

@@ -66,6 +66,7 @@ def test_wft191_maps_canonical_noop_state_and_item_context():
         "shield_absorbed": 0,
         "damage_type": "physical",
         "cause": "set2_dodge",
+        "cancelled": True,
         "bonus_attack": False,
         "item_id": "item-1",
         "item_effect_id": "item-effect-1",
@@ -81,6 +82,7 @@ def test_wft191_maps_canonical_noop_state_and_item_context():
     assert mapped["post_hp"] == 100
     assert mapped["post_shield"] == 7
     assert mapped["cause"] == "set2_dodge"
+    assert mapped["cancelled"] is True
     assert mapped["item_id"] == "item-1"
     assert mapped["item_effect_id"] == "item-effect-1"
 

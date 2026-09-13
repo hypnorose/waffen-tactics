@@ -339,6 +339,37 @@ describe('presentationTimeline', () => {
     expect(Object.values(state.tracks).map((track) => track.intent)).toEqual(['death', 'revive', 'target_recoil'])
   })
 
+  it('accepts an explicit delayed damage_dodged cancellation after target death', () => {
+    let state = reducePresentationTimeline(createPresentationTimeline(), event({
+      type: 'units_init',
+      event_id: 'combat:cancelled-init',
+      seq: 1,
+      timestamp: 0,
+      player_units: [{ id: 'player_0' } as any],
+      opponent_units: [{ id: 'opp_2' } as any],
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'unit_died',
+      event_id: 'combat:cancelled-death',
+      seq: 2,
+      timestamp: 1,
+      unit_id: 'opp_2',
+    }))
+    state = reducePresentationTimeline(state, event({
+      type: 'damage_dodged',
+      event_id: 'a6ef77ffd662f91770d6074d0780e846:1247',
+      seq: 1246,
+      timestamp: 2,
+      attacker_id: 'player_0',
+      target_id: 'opp_2',
+      cancelled: true,
+      cause: 'target_dead_before_impact',
+    }))
+
+    expect(state.diagnostics).toEqual([])
+    expect(Object.values(state.tracks).map((track) => track.intent)).toEqual(['death'])
+  })
+
   it('rebuilds only through the requested replay index and exposes active tracks', () => {
     const events = [
       event({ type: 'animation_start', event_id: 'combat:10', animation_id: 'basic_attack', attacker_id: 'player_0', target_id: 'opp_0', timestamp: 1 }),

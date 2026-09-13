@@ -393,8 +393,8 @@ export function applyCombatEvent(state: CombatState, event: CombatEvent, ctx: Ap
       // 2. Overwriting masks bugs where events are missing or incorrect
       // 3. Validation comparison happens AFTER this handler in the combat loop
       //
-      // If desyncs are detected, they will be logged by DesyncInspector, surfacing the
-      // root cause (missing events, wrong event data, etc.) so it can be fixed properly.
+      // If desyncs are detected, the overlay reports them to the server with
+      // the surrounding replay context so the root cause can be fixed.
       // ==================================================================================
 
       // Update metadata that doesn't come from events (synergies, traits, opponent info)

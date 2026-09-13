@@ -7,7 +7,6 @@ import PlayerUnits from './PlayerUnits'
 import OpponentUnits from './OpponentUnits'
 // import CombatFooter from './CombatFooter'
 import CombatLogModal from './CombatLogModal'
-import DesyncInspector from './DesyncInspector'
 import ReplayControls from './ReplayControls'
 import CombatControlPanel from './CombatControlPanel'
 import { CombatOverlayProps } from './CombatOverlayTypes'
@@ -72,11 +71,7 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
     restartReplay,
     toggleReplay,
     seekReplay,
-    desyncLogs,
-    clearDesyncLogs,
-    exportDesyncJSON
   } = useCombatOverlayLogic({ onClose, logEndRef, replayEnabled: replayGateOpen })
-  const [showDesyncInspector, setShowDesyncInspector] = useState(false)
 
   useEffect(() => {
     if (victory !== null && isFinished) {
@@ -118,9 +113,6 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
             opponentSlot={<OpponentUnits units={opponentUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} replayPaused={replayPaused} reducedMotion={reducedMotion} />}
             playerSlot={<PlayerUnits units={playerUnits} regenMap={regenMap} activeAttackerId={activeAttackerId} activeTargetId={activeTargetId} currentTime={simTime} presentationTracks={presentationTracks} replayPaused={replayPaused} reducedMotion={reducedMotion} />}
             log={<CombatLogModal showLog={showLog} visible={combatPanelExpanded} setShowLog={setShowLog} combatLog={combatLog} logEndRef={logEndRef} />}
-            showDesyncInspector={showDesyncInspector}
-            desyncCount={desyncLogs?.length ?? 0}
-            onToggleDesyncInspector={() => setShowDesyncInspector((visible) => !visible)}
             replayControls={(
               <ReplayControls
                 eventCount={replayEvents.length}
@@ -155,7 +147,6 @@ export function CombatOverlayContent({ onClose }: CombatOverlayProps) {
             </div>
           )}
           <GoldNotification breakdown={displayedGoldBreakdown} onDismiss={handleGoldDismiss} />
-          {showDesyncInspector && <DesyncInspector desyncLogs={desyncLogs || []} onClear={clearDesyncLogs || (() => {})} onExport={exportDesyncJSON || (() => '[]')} />}
         </>
       )}
 

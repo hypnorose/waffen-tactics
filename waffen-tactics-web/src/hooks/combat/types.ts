@@ -83,6 +83,7 @@ export interface CombatEvent {
   damage?: number
   applied_damage?: number
   dodged?: boolean
+  cancelled?: boolean
   bonus_attack?: boolean
   unit_hp?: number
   unit_max_hp?: number

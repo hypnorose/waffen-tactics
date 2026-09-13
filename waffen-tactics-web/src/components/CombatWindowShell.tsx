@@ -9,11 +9,8 @@ interface CombatWindowShellProps {
   playerSlot: ReactNode
   log: ReactNode
   replayControls: ReactNode
-  showDesyncInspector: boolean
-  desyncCount: number
   onTogglePanel: () => void
   onToggleLog: () => void
-  onToggleDesyncInspector: () => void
 }
 
 /**
@@ -29,11 +26,8 @@ export default function CombatWindowShell({
   playerSlot,
   log,
   replayControls,
-  showDesyncInspector,
-  desyncCount,
   onTogglePanel,
   onToggleLog,
-  onToggleDesyncInspector,
 }: CombatWindowShellProps) {
   return (
     <div className="combat-overlay-panel" style={combatOverlayPanelStyle}>
@@ -75,18 +69,6 @@ export default function CombatWindowShell({
           style={{ position: 'absolute', top: 16, right: 16, zIndex: 100, background: '#334155', color: '#fbbf24', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
         >
           {showLog && expanded ? 'Ukryj log walki' : 'Pokaż log walki'}
-        </button>
-
-        <button
-          type="button"
-          className="combat-desync-toggle"
-          aria-controls="desync-inspector"
-          aria-expanded={showDesyncInspector}
-          aria-label={showDesyncInspector ? 'Hide desync log' : 'Show desync log'}
-          onClick={onToggleDesyncInspector}
-          style={{ position: 'absolute', top: 52, right: 16, zIndex: 100, maxWidth: 'calc(100% - 32px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: showDesyncInspector ? '#7f1d1d' : '#334155', color: '#fecaca', border: '1px solid rgba(248,113,113,0.65)', borderRadius: 6, padding: '6px 12px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-        >
-          {showDesyncInspector ? 'Hide desync log' : `Desync log${desyncCount > 0 ? ` (${desyncCount})` : ''}`}
         </button>
 
         {log}

@@ -27,7 +27,6 @@ vi.mock('../CombatSpeedSlider', () => ({ default: () => null }))
 vi.mock('../ProjectileLayer', () => ({ default: () => null }))
 vi.mock('../CombatFeedbackLayer', () => ({ default: () => null }))
 vi.mock('../CombatActionQueue', () => ({ default: () => null }))
-vi.mock('../DesyncInspector', () => ({ default: () => null }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -65,9 +64,6 @@ const mockLogic = {
   restartReplay: vi.fn(),
   toggleReplay: vi.fn(),
   seekReplay: vi.fn(),
-  desyncLogs: [],
-  clearDesyncLogs: vi.fn(),
-  exportDesyncJSON: vi.fn(() => '[]'),
   isSearchingOpponent: false,
 }
 
@@ -139,17 +135,9 @@ describe('CombatOverlay panel collapse', () => {
     expect(container.querySelector('#combat-control-panel')?.getAttribute('aria-hidden')).toBe('true')
   })
 
-  it('exposes the desync log toggle in the production-shaped overlay', () => {
+  it('does not expose a local desync log when diagnostics report automatically', () => {
     const container = renderOverlay()
-    const toggle = container.querySelector('.combat-desync-toggle') as HTMLButtonElement
-
-    expect(toggle).not.toBeNull()
-    expect(toggle.getAttribute('aria-controls')).toBe('desync-inspector')
-    expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    expect(toggle.textContent).toContain('Desync log')
-
-    act(() => toggle.click())
-
-    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(container.querySelector('.combat-desync-toggle')).toBeNull()
+    expect(container.querySelector('#desync-inspector')).toBeNull()
   })
 })
