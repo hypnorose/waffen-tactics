@@ -95,6 +95,7 @@ def _validate_attack_animation_outcomes(events: List[Tuple[str, Dict[str, Any]]]
                 pending.append({
                     'index': index,
                     'seq': payload.get('seq'),
+                    'event_id': payload.get('event_id'),
                     'attacker_id': attacker_id,
                     'target_id': target_id,
                 })
@@ -129,12 +130,14 @@ def _validate_attack_animation_outcomes(events: List[Tuple[str, Dict[str, Any]]]
             raise CombatExecutionError(
                 'Combat event stream has a canonical attack outcome without a '
                 f'pending animation: event_index={index} seq={payload.get("seq")} '
+                f'event_id={payload.get("event_id")} '
                 f'pair={attacker_id}->{target_id} event_type={event_type}'
             )
 
     if pending:
         details = ', '.join(
             f"animation_index={item['index']} seq={item['seq']} "
+            f"event_id={item['event_id']} "
             f"pair={item['attacker_id']}->{item['target_id']}"
             for item in pending
         )

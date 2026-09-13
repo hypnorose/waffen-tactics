@@ -2,7 +2,10 @@
 Tests to ensure mapped SSE payloads include human-readable names
 and required fields so the UI doesn't display `null` in messages.
 """
+import json
 import os
+import re
+from pathlib import Path
 import sys
 import pytest
 
@@ -16,6 +19,9 @@ from services.combat_service import (
 from waffen_tactics.services.combat_errors import CombatExecutionError
 from waffen_tactics.services.combat_unit import CombatUnit
 import routes.game_combat as gc
+
+
+WFT202_FIXTURE = Path(__file__).parent / "fixtures" / "wft202_desync_windows.json"
 
 
 class SimpleStats:
@@ -105,6 +111,23 @@ def test_animation_outcome_validator_fails_closed_on_missing_result():
                 'seq': 12,
             }),
         ])
+
+
+def test_wft202_diagnostic_windows_fail_closed_with_event_identity():
+    """Real desync windows must not be accepted as complete attack streams."""
+    cases = json.loads(WFT202_FIXTURE.read_text(encoding="utf-8"))
+
+    for case in cases:
+        missing = case["missing_animation"]
+        events = [(event["type"], event) for event in case["recent_events"]]
+        pattern = (
+            rf"seq={missing['seq']}.*"
+            rf"event_id={re.escape(missing['event_id'])}.*"
+            rf"pair={re.escape(missing['attacker_id'])}->{re.escape(missing['target_id'])}"
+        )
+
+        with pytest.raises(CombatExecutionError, match=pattern):
+            _validate_attack_animation_outcomes(events)
 
 
 def test_same_timestamp_lethal_attacks_have_one_canonical_outcome_each():
