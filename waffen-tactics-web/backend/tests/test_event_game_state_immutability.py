@@ -247,3 +247,53 @@ def test_timed_effect_refresh_does_not_emit_expiration_for_the_refreshed_identit
             if effect.get('id') == payload['effect_id']
         ]
         assert len(snapshot_effects) == 1
+
+
+def test_stale_expiration_for_active_refreshed_identity_is_discarded():
+    """A queued old expiration must not remove a refreshed effect in replay."""
+    from waffen_tactics.models.unit import CombatUnitStats
+    from waffen_tactics.services.combat_unit import CombatUnit
+    from waffen_tactics.services.event_canonicalizer import emit_effect_expired
+
+    target = CombatUnit(
+        id='stale-expiration-target',
+        name='Stale expiration target',
+        hp=100,
+        attack=1,
+        defense=10,
+        attack_speed=1.0,
+        max_mana=100,
+        stats=CombatUnitStats(
+            hp=100,
+            attack=1,
+            defense=10,
+            max_mana=100,
+            attack_speed=1.0,
+            mana_on_attack=0,
+        ),
+    )
+    target.effects = [{
+        'id': 'refreshed-effect',
+        'type': 'buff',
+        'stat': 'defense',
+        'value': 8,
+        'applied_delta': 8,
+        'duration': 1,
+        'expires_at': 3.0,
+    }]
+    emitted = []
+
+    result = emit_effect_expired(
+        emitted.append,
+        target,
+        'refreshed-effect',
+        unit_hp=100,
+        timestamp=2.0,
+        effect_type='buff',
+        stat='defense',
+        applied_delta=8,
+    )
+
+    assert result is None
+    assert emitted == []
+    assert target.effects[0]['id'] == 'refreshed-effect'

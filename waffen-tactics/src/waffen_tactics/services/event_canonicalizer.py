@@ -1771,6 +1771,20 @@ def emit_effect_expired(
     detect problems early (no silent fallbacks).
     """
     effect_id = _require_non_empty_effect_id(effect_id, 'effect_expired')
+
+    # A timed effect can be refreshed while an older expiration callback is
+    # still in the scheduler.  In that case the identity is active again and
+    # publishing an expiration would make replay remove the refreshed effect
+    # even though the authoritative snapshot still contains it.  Expiration
+    # is therefore idempotent for an active identity: discard the stale
+    # lifecycle callback and keep the refreshed effect authoritative.
+    active_effects = getattr(target, 'effects', []) or []
+    if any(
+        isinstance(effect, dict) and effect.get('id') == effect_id
+        for effect in active_effects
+    ):
+        return None
+
     ts = timestamp if timestamp is not None else _now_ts()
 
     payload = {
