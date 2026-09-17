@@ -36,16 +36,16 @@ def test_active_set2_dataset_matches_plane_contract():
 
     figlarz = next(trait for trait in traits if trait["name"] == "Figlarz")
     assert figlarz["threshold_descriptions"] == [
-        "Na starcie ogłusza wszystkich wrogów na 1,0 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
-        "Na starcie ogłusza wszystkich wrogów na 1,5 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
-        "Na starcie ogłusza wszystkich wrogów na 2,0 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
+        "Na starcie ogłusza wrogów na 1,0 s; powtarza się przy śmierci Figlarza.",
+        "Na starcie ogłusza wrogów na 1,5 s; powtarza się przy śmierci Figlarza.",
+        "Na starcie ogłusza wrogów na 2,0 s; powtarza się przy śmierci Figlarza.",
     ]
     assert [tier[0]["effect"]["value"] for tier in figlarz["modular_effects"]] == [1.0, 1.5, 2.0]
 
     haxball = next(trait for trait in traits if trait["name"] == "Haxball")
     assert haxball["threshold_descriptions"] == [
-        "40% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania.",
-        "60% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania.",
+        "40% obrażeń Haxballa rozkłada się równo na innych żywych Haxballów.",
+        "60% obrażeń Haxballa rozkłada się równo na innych żywych Haxballów.",
     ]
     assert [tier[0]["effect"]["value"] for tier in haxball["modular_effects"]] == [40, 60]
 

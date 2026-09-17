@@ -4,7 +4,7 @@
       "id": "set2.trait.konfident",
       "name": "Konfident",
       "type": "trait",
-      "description": "Mana zdobyta z ataku jest przekazywana jednemu innemu żyjącemu Konfidentowi; bez samoprzepływu i rekurencji.",
+      "description": "Mana z ataku trafia do innego żywego Konfidenta (nie wraca do siebie).",
       "target": "trait",
       "thresholds": [
         3,
@@ -12,9 +12,9 @@
         7
       ],
       "threshold_descriptions": [
-        "Mana zdobyta z ataku jest przekazywana jednemu innemu żyjącemu Konfidentowi; bez samoprzepływu i rekurencji.",
-        "Mana zdobyta z ataku jest przekazywana jednemu innemu żyjącemu Konfidentowi; bez samoprzepływu i rekurencji.",
-        "Mana zdobyta z ataku jest przekazywana jednemu innemu żyjącemu Konfidentowi; bez samoprzepływu i rekurencji."
+        "Mana z ataku trafia do innego żywego Konfidenta (nie wraca do siebie).",
+        "Mana z ataku trafia do innego żywego Konfidenta (nie wraca do siebie).",
+        "Mana z ataku trafia do innego żywego Konfidenta (nie wraca do siebie)."
       ],
       "modular_effects": [
         [
@@ -158,7 +158,7 @@
       "id": "set2.trait.wierny_widz",
       "name": "Wierny widz",
       "type": "trait",
-      "description": "Po 5 s: +10/15/20% ataku i obrony oraz tarcza 5/8/10% maks. HP; raz na walkę.",
+      "description": "Po 5 s (raz na walkę): +10/15/20% ataku i obrony, tarcza 5/8/10% maks. HP.",
       "target": "trait",
       "thresholds": [
         3,
@@ -166,9 +166,9 @@
         6
       ],
       "threshold_descriptions": [
-        "Po 5 s: +10/15/20% ataku i obrony oraz tarcza 5/8/10% maks. HP; raz na walkę.",
-        "Po 5 s: +10/15/20% ataku i obrony oraz tarcza 5/8/10% maks. HP; raz na walkę.",
-        "Po 5 s: +10/15/20% ataku i obrony oraz tarcza 5/8/10% maks. HP; raz na walkę."
+        "Po 5 s (raz na walkę): +10/15/20% ataku i obrony, tarcza 5/8/10% maks. HP.",
+        "Po 5 s (raz na walkę): +10/15/20% ataku i obrony, tarcza 5/8/10% maks. HP.",
+        "Po 5 s (raz na walkę): +10/15/20% ataku i obrony, tarcza 5/8/10% maks. HP."
       ],
       "modular_effects": [
         [
@@ -342,7 +342,7 @@
       "id": "set2.trait.nowociota",
       "name": "Nowociota",
       "type": "trait",
-      "description": "Przez pierwsze 2 s +40/60/80% szybkości ataku; odświeżane po zabiciu, bez kumulacji.",
+      "description": "Pierwsze 2 s walki: +40/60/80% szybkości ataku (odświeża się po zabiciu).",
       "target": "trait",
       "thresholds": [
         3,
@@ -350,9 +350,9 @@
         7
       ],
       "threshold_descriptions": [
-        "Przez pierwsze 2 s +40/60/80% szybkości ataku; odświeżane po zabiciu, bez kumulacji.",
-        "Przez pierwsze 2 s +40/60/80% szybkości ataku; odświeżane po zabiciu, bez kumulacji.",
-        "Przez pierwsze 2 s +40/60/80% szybkości ataku; odświeżane po zabiciu, bez kumulacji."
+        "Pierwsze 2 s walki: +40/60/80% szybkości ataku (odświeża się po zabiciu).",
+        "Pierwsze 2 s walki: +40/60/80% szybkości ataku (odświeża się po zabiciu).",
+        "Pierwsze 2 s walki: +40/60/80% szybkości ataku (odświeża się po zabiciu)."
       ],
       "modular_effects": [
         [
@@ -496,7 +496,7 @@
       "id": "set2.trait.figlarz",
       "name": "Figlarz",
       "type": "trait",
-      "description": "Na starcie ogłusza wszystkich wrogów na 1,0/1,5/2,0 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
+      "description": "Na starcie ogłusza wrogów na 1,0/1,5/2,0 s; powtarza się przy śmierci Figlarza.",
       "target": "team",
       "thresholds": [
         2,
@@ -504,9 +504,9 @@
         6
       ],
       "threshold_descriptions": [
-        "Na starcie ogłusza wszystkich wrogów na 1,0 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
-        "Na starcie ogłusza wszystkich wrogów na 1,5 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci.",
-        "Na starcie ogłusza wszystkich wrogów na 2,0 s; powtarza po śmierci Figlarza, raz na zdarzenie śmierci."
+        "Na starcie ogłusza wrogów na 1,0 s; powtarza się przy śmierci Figlarza.",
+        "Na starcie ogłusza wrogów na 1,5 s; powtarza się przy śmierci Figlarza.",
+        "Na starcie ogłusza wrogów na 2,0 s; powtarza się przy śmierci Figlarza."
       ],
       "modular_effects": [
         [
@@ -650,7 +650,7 @@
       "id": "set2.trait.weeb",
       "name": "Weeb",
       "type": "trait",
-      "description": "Najsilniejsza jednostka z tylnej linii otrzymuje +15/25/35% szybkości ataku; remisy rozstrzyga stabilne ID.",
+      "description": "Najsilniejsza jednostka w tylnej linii: +15/25/35% szybkości ataku.",
       "target": "trait",
       "thresholds": [
         2,
@@ -658,9 +658,9 @@
         6
       ],
       "threshold_descriptions": [
-        "Najsilniejsza jednostka z tylnej linii otrzymuje +15/25/35% szybkości ataku; remisy rozstrzyga stabilne ID.",
-        "Najsilniejsza jednostka z tylnej linii otrzymuje +15/25/35% szybkości ataku; remisy rozstrzyga stabilne ID.",
-        "Najsilniejsza jednostka z tylnej linii otrzymuje +15/25/35% szybkości ataku; remisy rozstrzyga stabilne ID."
+        "Najsilniejsza jednostka w tylnej linii: +15/25/35% szybkości ataku.",
+        "Najsilniejsza jednostka w tylnej linii: +15/25/35% szybkości ataku.",
+        "Najsilniejsza jednostka w tylnej linii: +15/25/35% szybkości ataku."
       ],
       "modular_effects": [
         [
@@ -804,7 +804,7 @@
       "id": "set2.trait.starociota",
       "name": "Starociota",
       "type": "trait",
-      "description": "+10/20/30 obrony i +2/4/6 HP/s; po śmierci Starocioty efekt odświeża się bez kumulacji.",
+      "description": "+10/20/30 obrony, +2/4/6 HP/s (odświeża się po śmierci Starocioty).",
       "target": "trait",
       "thresholds": [
         2,
@@ -812,9 +812,9 @@
         5
       ],
       "threshold_descriptions": [
-        "+10/20/30 obrony i +2/4/6 HP/s; po śmierci Starocioty efekt odświeża się bez kumulacji.",
-        "+10/20/30 obrony i +2/4/6 HP/s; po śmierci Starocioty efekt odświeża się bez kumulacji.",
-        "+10/20/30 obrony i +2/4/6 HP/s; po śmierci Starocioty efekt odświeża się bez kumulacji."
+        "+10/20/30 obrony, +2/4/6 HP/s (odświeża się po śmierci Starocioty).",
+        "+10/20/30 obrony, +2/4/6 HP/s (odświeża się po śmierci Starocioty).",
+        "+10/20/30 obrony, +2/4/6 HP/s (odświeża się po śmierci Starocioty)."
       ],
       "modular_effects": [
         [
@@ -973,7 +973,7 @@
       "id": "set2.trait.inwestor",
       "name": "Inwestor",
       "type": "trait",
-      "description": "Bonus do wszystkich statystyk wynosi 5/10/15% wartości sprzedaży jednostek na planszy, maks. 30%.",
+      "description": "+5/10/15% wszystkich statystyk za wartość sprzedaży jednostek na planszy (maks. 30%).",
       "target": "team",
       "thresholds": [
         2,
@@ -981,9 +981,9 @@
         4
       ],
       "threshold_descriptions": [
-        "Bonus do wszystkich statystyk wynosi 5/10/15% wartości sprzedaży jednostek na planszy, maks. 30%.",
-        "Bonus do wszystkich statystyk wynosi 5/10/15% wartości sprzedaży jednostek na planszy, maks. 30%.",
-        "Bonus do wszystkich statystyk wynosi 5/10/15% wartości sprzedaży jednostek na planszy, maks. 30%."
+        "+5/10/15% wszystkich statystyk za wartość sprzedaży jednostek na planszy (maks. 30%).",
+        "+5/10/15% wszystkich statystyk za wartość sprzedaży jednostek na planszy (maks. 30%).",
+        "+5/10/15% wszystkich statystyk za wartość sprzedaży jednostek na planszy (maks. 30%)."
       ],
       "modular_effects": [
         [
@@ -1130,7 +1130,7 @@
       "id": "set2.trait.femboy",
       "name": "Femboy",
       "type": "trait",
-      "description": "Bonusowy atak leczy wszystkich sojuszników za 10/15/20% ataku Femboya; bez overhealu.",
+      "description": "Bonusowy atak leczy sojuszników za 10/15/20% ataku Femboya.",
       "target": "trait",
       "thresholds": [
         2,
@@ -1138,9 +1138,9 @@
         5
       ],
       "threshold_descriptions": [
-        "Bonusowy atak leczy wszystkich sojuszników za 10/15/20% ataku Femboya; bez overhealu.",
-        "Bonusowy atak leczy wszystkich sojuszników za 10/15/20% ataku Femboya; bez overhealu.",
-        "Bonusowy atak leczy wszystkich sojuszników za 10/15/20% ataku Femboya; bez overhealu."
+        "Bonusowy atak leczy sojuszników za 10/15/20% ataku Femboya.",
+        "Bonusowy atak leczy sojuszników za 10/15/20% ataku Femboya.",
+        "Bonusowy atak leczy sojuszników za 10/15/20% ataku Femboya."
       ],
       "modular_effects": [
         [
@@ -1284,15 +1284,15 @@
       "id": "set2.trait.szachista",
       "name": "Szachista",
       "type": "trait",
-      "description": "Pierwsza linia zaczyna z tarczą 10/20% maks. HP, tylna zadaje +25/50% obrażeń bonusowego ataku.",
+      "description": "Front: tarcza 10/20% maks. HP na start. Tył: +25/50% obrażeń bonusowego ataku.",
       "target": "trait",
       "thresholds": [
         2,
         3
       ],
       "threshold_descriptions": [
-        "Pierwsza linia zaczyna z tarczą 10/20% maks. HP, tylna zadaje +25/50% obrażeń bonusowego ataku.",
-        "Pierwsza linia zaczyna z tarczą 10/20% maks. HP, tylna zadaje +25/50% obrażeń bonusowego ataku."
+        "Front: tarcza 10/20% maks. HP na start. Tył: +25/50% obrażeń bonusowego ataku.",
+        "Front: tarcza 10/20% maks. HP na start. Tył: +25/50% obrażeń bonusowego ataku."
       ],
       "modular_effects": [
         [
@@ -1401,15 +1401,15 @@
       "id": "set2.trait.tworca",
       "name": "Twórca",
       "type": "trait",
-      "description": "Cała drużyna regeneruje 2/4 many na sekundę.",
+      "description": "+2/4 many/s całej drużynie.",
       "target": "team",
       "thresholds": [
         2,
         3
       ],
       "threshold_descriptions": [
-        "Cała drużyna regeneruje 2/4 many na sekundę.",
-        "Cała drużyna regeneruje 2/4 many na sekundę."
+        "+2/4 many/s całej drużynie.",
+        "+2/4 many/s całej drużynie."
       ],
       "modular_effects": [
         [
@@ -1508,15 +1508,15 @@
       "id": "set2.trait.muzyk",
       "name": "Muzyk",
       "type": "trait",
-      "description": "Bonusowy atak daje 5/10 many każdemu innemu żyjącemu sojusznikowi; Muzyk jest wykluczony.",
+      "description": "Bonusowy atak daje 5/10 many pozostałym żyjącym sojusznikom.",
       "target": "trait",
       "thresholds": [
         1,
         2
       ],
       "threshold_descriptions": [
-        "Bonusowy atak daje 5/10 many każdemu innemu żyjącemu sojusznikowi; Muzyk jest wykluczony.",
-        "Bonusowy atak daje 5/10 many każdemu innemu żyjącemu sojusznikowi; Muzyk jest wykluczony."
+        "Bonusowy atak daje 5/10 many pozostałym żyjącym sojusznikom.",
+        "Bonusowy atak daje 5/10 many pozostałym żyjącym sojusznikom."
       ],
       "modular_effects": [
         [
@@ -1615,15 +1615,15 @@
       "id": "set2.trait.haxball",
       "name": "Haxball",
       "type": "trait",
-      "description": "40/60% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania.",
+      "description": "40/60% obrażeń Haxballa rozkłada się równo na innych żywych Haxballów.",
       "target": "trait",
       "thresholds": [
         2,
         3
       ],
       "threshold_descriptions": [
-        "40% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania.",
-        "60% obrażeń otrzymywanych przez Haxballa dzieli się równo między innych żyjących Haxballów; brak odbiorcy oznacza brak przekierowania."
+        "40% obrażeń Haxballa rozkłada się równo na innych żywych Haxballów.",
+        "60% obrażeń Haxballa rozkłada się równo na innych żywych Haxballów."
       ],
       "modular_effects": [
         [
