@@ -49,6 +49,26 @@ def test_default_targeting_uses_frontline_then_reaches_backline():
     ) == 1
 
 
+def test_default_targeting_never_reaches_backline_while_front_alive_in_random_mode(monkeypatch):
+    # Regression test: WAFFEN_DETERMINISTIC_TARGETING=1 is forced on for the
+    # whole suite in conftest.py, which hid a bug where the default
+    # (no-preference) random.choice() branch picked from front+back combined
+    # instead of front-only, letting attacks land on a living backline while
+    # the front row was still alive. Production runs with this flag unset
+    # (random mode), so it must be exercised explicitly here.
+    monkeypatch.setenv('WAFFEN_DETERMINISTIC_TARGETING', '0')
+    simulator = CombatSimulator()
+
+    for _ in range(200):
+        attacker = _unit('attacker')
+        front = _unit('front', position='front')
+        back = _unit('back', position='back')
+        assert simulator._select_target(
+            [attacker], [front, back], [100], [100, 100], 0
+        ) == 0
+        attacker.focus_target_id = None
+
+
 def test_revive_protection_removes_a_target_until_exact_expiry():
     attacker = _unit('attacker')
     protected = _unit(

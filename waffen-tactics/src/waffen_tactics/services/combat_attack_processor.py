@@ -1168,7 +1168,13 @@ class CombatAttackProcessor:
             chooser = min if preference == 'lowest_hp' else max
             target_idx = chooser([t[0] for t in targets], key=lambda idx: defending_hp[idx])
         else:
-            candidate_list = targets
+            # Default (no explicit preference): front row must be exhausted
+            # before back row is targetable at all. Falling back to the
+            # combined `targets` list here would let attacks land on the
+            # back row purely by random.choice() even while front-row
+            # units are alive, breaking the "front line first" rule this
+            # function documents.
+            candidate_list = front_targets if front_targets else back_targets
             if preference == 'backline':
                 candidate_list = back_targets if back_targets else front_targets
             elif preference == 'frontline':
