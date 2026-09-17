@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react'
 import { gameAPI } from '../services/api'
 import { getCostColor } from '../data/units'
 import { getTraitThresholdDescription } from '../data/traits'
-import { getCanonicalTraitDescription, getTraitEffectPresentation } from '../hooks/combatOverlayUtils'
+import { getCanonicalTraitDescription } from '../hooks/combatOverlayUtils'
 import { getUnitsForTrait } from './traitMembers'
 import { Button, Panel } from '../ui/primitives'
-import TraitEffectDetails from './TraitEffectDetails'
 
 interface TraitsInfoModalProps {
   isOpen: boolean
@@ -115,7 +114,6 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
                     <h4 className="font-semibold text-text/90">Poziomy:</h4>
                     {trait.thresholds.map((threshold: number, index: number) => {
                       const tier = index + 1
-                      const effects = getTraitEffectPresentation(trait, tier)
                       return (
                       <div key={index} className="flex items-start gap-3 text-sm">
                         <span className="font-mono bg-primary/10 px-2 py-1 rounded min-w-[3rem] text-center">
@@ -124,13 +122,6 @@ export default function TraitsInfoModal({ isOpen, onClose }: TraitsInfoModalProp
                         </span>
                         <div className="min-w-0 flex-1 text-text/80">
                           <div>{getCanonicalTraitDescription(trait, tier) || getTraitThresholdDescription(trait, index)}</div>
-                          {effects.length > 0 && (
-                            <div className="mt-2 grid gap-2">
-                              {effects.map((effect, effectIndex) => (
-                                <TraitEffectDetails key={`${trait.name}-${tier}-${effectIndex}`} effect={effect} />
-                              ))}
-                            </div>
-                          )}
                         </div>
                       </div>
                       )

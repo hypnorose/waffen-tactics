@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { getTraitDescription, getTraitEffectPresentation } from '../../hooks/combatOverlayUtils'
+import { getTraitDescription } from '../../hooks/combatOverlayUtils'
 
 // Mock the API and store for any component tests we might add later
 vi.mock('../../services/api', () => ({
@@ -390,73 +390,6 @@ describe('Trait Display Logic', () => {
           expect(getTraitDescription({ ...example, threshold_descriptions: [example.description], modular_effects: [] }, tier)).not.toContain('/')
         }
       }
-    })
-  })
-
-  describe('getTraitEffectPresentation', () => {
-    it('exposes trigger, target, lifetime, refresh, stacking, and conditions', () => {
-      const [effect] = getTraitEffectPresentation({
-        thresholds: [2],
-        threshold_descriptions: ['Po śmierci odświeża się do końca walki.'],
-        target: 'team',
-        modular_effects: [[{
-          trigger: 'on_enemy_death',
-          target: 'team',
-          conditions: { trigger_once: true },
-          duration: 3,
-          limit: { stacking: 'none' },
-        }]],
-      }, 1)
-
-      expect(effect).toMatchObject({
-        trigger: 'Po śmierci wroga',
-        target: 'Cały zespół',
-        duration: '3 s',
-        refresh: 'Po ponownym wyzwoleniu',
-        stacking: 'Bez stackowania',
-        conditions: ['Jednorazowo'],
-      })
-    })
-
-    it('reads canonical value and lifecycle metadata instead of parsing descriptions', () => {
-      const [effect] = getTraitEffectPresentation({
-        thresholds: [3],
-        threshold_descriptions: ['Przez pierwsze 2 s otrzymuje +40% szybkości ataku.'],
-        modular_effects: [[{
-          trigger: 'passive',
-          target: 'trait',
-          effect: {
-            value: 40,
-            value_unit: 'percent',
-            values: [{ key: 'attack_speed_bonus', value: 40, unit: 'percent' }],
-          },
-          lifecycle: {
-            type: 'timed',
-            activation: 'combat_start',
-            duration: 2,
-            duration_unit: 'seconds',
-            activation_delay: null,
-            activation_delay_unit: null,
-            refresh: 'reset_duration',
-            retrigger: 'on_enemy_death',
-            stacking: 'none',
-            expires_when: 'duration_elapsed',
-          },
-          limit: { stacking: 'none' },
-        }]],
-      }, 1)
-
-      expect(effect).toMatchObject({
-        values: ['Szybkość ataku: 40%'],
-        lifecycle: 'Czasowy',
-        activation: 'Na starcie walki',
-        duration: '2 s',
-        refresh: 'Resetuje czas trwania',
-        retrigger: 'Po śmierci wroga',
-        stacking: 'Bez stackowania',
-        expiresWhen: 'Po upływie czasu',
-      })
-      expect(Object.values(effect).some(value => typeof value === 'string' && value.includes('Do review'))).toBe(false)
     })
   })
 

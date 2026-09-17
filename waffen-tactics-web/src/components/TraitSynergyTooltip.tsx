@@ -1,8 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useRef, useState } from 'react'
-import { getTraitColor, getTraitDescription, getTraitEffectPresentation } from '../hooks/combatOverlayUtils'
+import { getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
 import { getAllUnits, getCostBorderColor } from '../data/units'
-import TraitEffectDetails from './TraitEffectDetails'
 import { useViewportTooltipPosition } from '../ui/useViewportTooltipPosition'
 
 interface Props {
@@ -113,11 +112,6 @@ export default function TraitSynergyTooltip({ traitName, data, traitData }: Prop
                     <div className="text-xs mt-0.5" style={{ color: tierIsActive ? '#d1d5db' : '#9ca3af' }}>
                       {getTraitDescription(traitData, tierNum)}
                     </div>
-                    {getTraitEffectPresentation(traitData, tierNum).map((effect, effectIndex) => (
-                      <div key={`${tierNum}-${effectIndex}`} className="mt-1">
-                        <TraitEffectDetails effect={effect} compact />
-                      </div>
-                    ))}
                   </div>
                 </div>
               )

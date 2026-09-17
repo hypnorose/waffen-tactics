@@ -238,7 +238,7 @@ describe('combat and table unit metric ownership', () => {
     expect(container.querySelector('[data-combat-vital="hp"] .combat-unit-card-vital-heading')).toBeNull()
   })
 
-  it('shows the live trait effect contract and replay trigger evidence in the tooltip', () => {
+  it('shows the plain-language trait description and replay trigger evidence in the tooltip', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
 
@@ -277,9 +277,8 @@ describe('combat and table unit metric ownership', () => {
     expect(tooltip.textContent).toContain('Konfident')
     expect(tooltip.textContent).toContain('✓ Aktywny T1')
     expect(tooltip.textContent).toContain('Przy ataku daje drużynie premię przez 3 s.')
-    expect(tooltip.textContent).toContain('Trigger: Przy ataku')
-    expect(tooltip.textContent).toContain('Cel: Cały zespół')
-    expect(tooltip.textContent).toContain('Czas: 3 s')
+    expect(tooltip.textContent).not.toContain('Trigger:')
+    expect(tooltip.textContent).not.toContain('Odświeżanie:')
     expect(tooltip.textContent).toContain('Zadziałał w replayu: 1 trigger')
   })
 

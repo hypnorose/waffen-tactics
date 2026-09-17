@@ -80,11 +80,6 @@ describe('TraitsInfoModal canonical descriptions', () => {
       await new Promise(resolve => setTimeout(resolve, 0))
     })
 
-    const expectedEffectCount = canonicalTraits.reduce(
-      (count, trait) => count + trait.modular_effects.flat().length,
-      0,
-    )
-    expect(container.querySelectorAll('[data-trait-effect-details]')).toHaveLength(expectedEffectCount)
     expect(container.textContent).not.toContain('Do review')
     expect(container.textContent).not.toMatch(/\d[.,]?\d*\/\d/)
     expect(container.querySelectorAll('.traits-modal-content > div > div')).toHaveLength(canonicalTraits.length)

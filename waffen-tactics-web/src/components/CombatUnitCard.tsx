@@ -8,7 +8,7 @@ import type { PresentationTrack } from '../hooks/combat/animation/presentationTi
 import { combatUnitCardOpponentSizingStyle, combatUnitCardSizingStyle } from './combatUnitCardLayout'
 import CombatEffectBadge from './CombatEffectBadge'
 import { getCombatImpactDirection } from './combatImpactDirection'
-import { getTraitColor, getTraitDescription, getTraitEffectPresentation } from '../hooks/combatOverlayUtils'
+import { getTraitColor, getTraitDescription } from '../hooks/combatOverlayUtils'
 import { useViewportTooltipPosition } from '../ui/useViewportTooltipPosition'
 
 interface Unit {
@@ -390,7 +390,6 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
                   const tier = synergy?.tier ?? 0
                   const active = tier > 0
                   const displayTier = active ? tier : 1
-                  const effectDetails = active ? getTraitEffectPresentation(definition, displayTier) : []
                   const runtimeTriggers = replayEvents.filter((event) => (
                     event.type === 'passive_triggered' &&
                     event.unit_id === unit.id &&
@@ -407,18 +406,6 @@ export default function CombatUnitCard({ unit, isOpponent, regen, isActiveAttack
                         </span>
                       </div>
                       <div className="mt-1 text-slate-300">{getTraitDescription(definition, displayTier)}</div>
-                      {active && effectDetails.length > 0 && (
-                        <div className="mt-2 grid gap-1 text-slate-400">
-                          {effectDetails.map((effect, effectIndex) => (
-                            <div key={`${name}-effect-${effectIndex}`} className="rounded bg-slate-900/80 p-1.5">
-                              <div><span className="text-slate-500">Trigger:</span> {effect.trigger} · <span className="text-slate-500">Cel:</span> {effect.target}</div>
-                              <div><span className="text-slate-500">Czas:</span> {effect.duration} · <span className="text-slate-500">Odświeżanie:</span> {effect.refresh}</div>
-                              <div><span className="text-slate-500">Stackowanie:</span> {effect.stacking}</div>
-                              {effect.conditions.length > 0 && <div><span className="text-slate-500">Warunek:</span> {effect.conditions.join(' · ')}</div>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
                       {active && (
                         <div className={runtimeTriggers.length > 0 ? 'mt-2 text-emerald-300' : 'mt-2 text-amber-200'}>
                           {runtimeTriggers.length > 0
