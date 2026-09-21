@@ -15,6 +15,12 @@ describe('content-data', () => {
     expect(getTagDefs().length).toBeGreaterThan(0);
   });
 
+  it('every unit has its own distinct attack projectile emoji', () => {
+    const units = getUnitList();
+    const emojiSet = new Set(units.map((u) => u.emoji));
+    expect(emojiSet.size).toBe(units.length);
+  });
+
   it('applies hand-authored overrides on top of ported base stats', () => {
     const units = getUnitDefs();
     expect(units.chessowy_mentos.startOfCombat?.[0]?.trigger).toBe('start_of_combat');

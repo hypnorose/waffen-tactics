@@ -36,7 +36,7 @@ export const unitsData = [
     "tags": [
       "konfident"
     ],
-    "emoji": "⚔️",
+    "emoji": "🪓",
     "avatar": "/avatars/set2/uhla.png",
     "baseStats": {
       "attack": 40,
@@ -79,7 +79,7 @@ export const unitsData = [
       "figlarz",
       "starociota"
     ],
-    "emoji": "🗡️",
+    "emoji": "🔪",
     "avatar": "/avatars/set2/yossarian.png",
     "baseStats": {
       "attack": 60,
@@ -93,7 +93,7 @@ export const unitsData = [
     "tags": [
       "konfident"
     ],
-    "emoji": "⚔️",
+    "emoji": "🔨",
     "avatar": "/avatars/set2/galanonimpl-avatar-1024.png",
     "baseStats": {
       "attack": 40,
@@ -107,7 +107,7 @@ export const unitsData = [
     "tags": [
       "konfident"
     ],
-    "emoji": "🔮",
+    "emoji": "❄️",
     "avatar": "/avatars/set2/_pytl-avatar-1024.png",
     "baseStats": {
       "attack": 30,
@@ -122,7 +122,7 @@ export const unitsData = [
       "szachista",
       "starociota"
     ],
-    "emoji": "🛡️",
+    "emoji": "💣",
     "avatar": "/avatars/set2/sofronow960-avatar-1024.png",
     "baseStats": {
       "attack": 30,
@@ -136,7 +136,7 @@ export const unitsData = [
     "tags": [
       "starociota"
     ],
-    "emoji": "🗡️",
+    "emoji": "🎯",
     "avatar": "/avatars/set2/alyson.jpg",
     "baseStats": {
       "attack": 60,
@@ -150,7 +150,7 @@ export const unitsData = [
     "tags": [
       "nowociota"
     ],
-    "emoji": "🗡️",
+    "emoji": "💫",
     "avatar": "/avatars/set2/skibidi.png",
     "baseStats": {
       "attack": 60,
@@ -164,7 +164,7 @@ export const unitsData = [
     "tags": [
       "nowociota"
     ],
-    "emoji": "🔮",
+    "emoji": "🔥",
     "avatar": "/avatars/set2/ausher.png",
     "baseStats": {
       "attack": 30,
@@ -178,7 +178,7 @@ export const unitsData = [
     "tags": [
       "figlarz"
     ],
-    "emoji": "🔮",
+    "emoji": "☄️",
     "avatar": "/avatars/set2/szalwia.png",
     "baseStats": {
       "attack": 30,
@@ -192,7 +192,7 @@ export const unitsData = [
     "tags": [
       "nowociota"
     ],
-    "emoji": "🔮",
+    "emoji": "🌈",
     "avatar": "/avatars/set2/mroczeq.png",
     "baseStats": {
       "attack": 30,
@@ -206,7 +206,7 @@ export const unitsData = [
     "tags": [
       "konfident"
     ],
-    "emoji": "⚔️",
+    "emoji": "🏹",
     "avatar": "/avatars/set2/optimusprime67676767-avatar-1024.png",
     "baseStats": {
       "attack": 40,
@@ -220,7 +220,7 @@ export const unitsData = [
     "tags": [
       "figlarz"
     ],
-    "emoji": "🗡️",
+    "emoji": "⚡",
     "avatar": "/avatars/set2/marcek_heban-avatar-1024.png",
     "baseStats": {
       "attack": 60,
@@ -235,7 +235,7 @@ export const unitsData = [
       "nowociota",
       "konfident"
     ],
-    "emoji": "🛡️",
+    "emoji": "🧨",
     "avatar": "/avatars/set2/bbobel.png",
     "baseStats": {
       "attack": 30,
@@ -249,7 +249,7 @@ export const unitsData = [
     "tags": [
       "nowociota"
     ],
-    "emoji": "⚔️",
+    "emoji": "🥊",
     "avatar": "/avatars/set2/fallensmok.png",
     "baseStats": {
       "attack": 40,
@@ -264,7 +264,7 @@ export const unitsData = [
       "nowociota",
       "figlarz"
     ],
-    "emoji": "🛡️",
+    "emoji": "🌊",
     "avatar": "/avatars/set2/jaeger.png",
     "baseStats": {
       "attack": 30,
@@ -278,7 +278,7 @@ export const unitsData = [
     "tags": [
       "konfident"
     ],
-    "emoji": "⚔️",
+    "emoji": "🔱",
     "avatar": "/avatars/set2/kaktusekmatusek-avatar-1024.png",
     "baseStats": {
       "attack": 40,
@@ -292,7 +292,7 @@ export const unitsData = [
     "tags": [
       "srebrna-gwardia"
     ],
-    "emoji": "🛡️",
+    "emoji": "⚙️",
     "avatar": "/avatars/set2/melancholykillsme-avatar-1024.png",
     "baseStats": {
       "attack": 30,
@@ -306,7 +306,7 @@ export const unitsData = [
     "tags": [
       "figlarz"
     ],
-    "emoji": "🗡️",
+    "emoji": "🌪️",
     "avatar": "/avatars/set2/4tune.png",
     "baseStats": {
       "attack": 60,
@@ -320,7 +320,7 @@ export const unitsData = [
     "tags": [
       "figlarz"
     ],
-    "emoji": "🗡️",
+    "emoji": "🍃",
     "avatar": "/avatars/set2/xkuba.h-avatar-1024.png",
     "baseStats": {
       "attack": 60,
@@ -334,7 +334,7 @@ export const unitsData = [
     "tags": [
       "konfident"
     ],
-    "emoji": "🛡️",
+    "emoji": "💥",
     "avatar": "/avatars/set2/vmwu-avatar-1024.png",
     "baseStats": {
       "attack": 30,
@@ -348,7 +348,7 @@ export const unitsData = [
     "tags": [
       "starociota"
     ],
-    "emoji": "🗡️",
+    "emoji": "🔫",
     "avatar": "/avatars/set2/nos.gov-avatar-1024.png",
     "baseStats": {
       "attack": 60,
@@ -362,7 +362,7 @@ export const unitsData = [
     "tags": [
       "nowociota"
     ],
-    "emoji": "🔮",
+    "emoji": "💎",
     "avatar": "/avatars/set2/marcelgaladotka-avatar-1024.png",
     "baseStats": {
       "attack": 30,
@@ -376,7 +376,7 @@ export const unitsData = [
     "tags": [
       "figlarz"
     ],
-    "emoji": "🔮",
+    "emoji": "🌀",
     "avatar": "/avatars/set2/klemens.png",
     "baseStats": {
       "attack": 30,
@@ -390,7 +390,7 @@ export const unitsData = [
     "tags": [
       "konfident"
     ],
-    "emoji": "🛡️",
+    "emoji": "🎆",
     "avatar": "/avatars/set2/niko_official-avatar-1024.png",
     "baseStats": {
       "attack": 30,
@@ -404,7 +404,7 @@ export const unitsData = [
     "tags": [
       "figlarz"
     ],
-    "emoji": "🗡️",
+    "emoji": "💢",
     "avatar": "/avatars/set2/knauff.png",
     "baseStats": {
       "attack": 60,
@@ -419,7 +419,7 @@ export const unitsData = [
       "figlarz",
       "starociota"
     ],
-    "emoji": "🗡️",
+    "emoji": "🎇",
     "avatar": "/avatars/set2/vitas.png",
     "baseStats": {
       "attack": 60,
@@ -433,7 +433,7 @@ export const unitsData = [
     "tags": [
       "szachista"
     ],
-    "emoji": "🔮",
+    "emoji": "⭐",
     "avatar": "/avatars/set2/szachowymentor.1996-avatar-1024.png",
     "baseStats": {
       "attack": 30,
@@ -447,7 +447,7 @@ export const unitsData = [
     "tags": [
       "konfident"
     ],
-    "emoji": "🗡️",
+    "emoji": "✨",
     "avatar": "/avatars/set2/9wojtaz9.png",
     "baseStats": {
       "attack": 60,
