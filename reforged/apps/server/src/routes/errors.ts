@@ -3,6 +3,7 @@ import { RunForbiddenError, RunNotFoundError } from '../services/runService.js';
 import { BenchFullError, InsufficientGoldError, InvalidShopOfferError, UnitInstanceNotFoundError as ShopUnitNotFoundError } from '../services/shopService.js';
 import { BoardCapacityError, SlotOccupiedError, UnitInstanceNotFoundError as BoardUnitNotFoundError } from '../services/boardService.js';
 import { InvalidAugmentChoiceError, NoAugmentPendingError } from '../services/augmentService.js';
+import { AugmentPendingError, EmptyBoardError, RunNotActiveError } from '../services/combatOrchestrator.js';
 
 const NOT_FOUND = [RunNotFoundError, ShopUnitNotFoundError, BoardUnitNotFoundError];
 const FORBIDDEN = [RunForbiddenError];
@@ -14,6 +15,9 @@ const BAD_REQUEST = [
   BoardCapacityError,
   NoAugmentPendingError,
   InvalidAugmentChoiceError,
+  RunNotActiveError,
+  AugmentPendingError,
+  EmptyBoardError,
 ];
 
 export function handleServiceError(reply: FastifyReply, err: unknown): void {

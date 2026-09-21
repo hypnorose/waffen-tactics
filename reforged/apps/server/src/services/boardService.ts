@@ -1,4 +1,4 @@
-import { samePosition, type BoardPosition, type RunState } from '@reforged/schema';
+import { emptyBoard, samePosition, type Board, type BoardPosition, type RunState } from '@reforged/schema';
 import { maxBoardUnits } from './economyService.js';
 
 export class UnitInstanceNotFoundError extends Error {}
@@ -28,6 +28,15 @@ export function place(run: RunState, unitInstanceId: string, position: BoardPosi
       return slot;
     }),
   };
+}
+
+/** Fills a fresh board row-major, used to seat a bot opponent's roster for combat. */
+export function autoPlaceOnBoard(instanceIds: string[]): Board {
+  const board = emptyBoard();
+  instanceIds.slice(0, board.length).forEach((instanceId, i) => {
+    board[i].unitInstanceId = instanceId;
+  });
+  return board;
 }
 
 export function bench(run: RunState, unitInstanceId: string): RunState {

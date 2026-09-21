@@ -9,6 +9,7 @@ import { registerRunRoutes } from './routes/run.routes.js';
 import { registerShopRoutes } from './routes/shop.routes.js';
 import { registerBoardRoutes } from './routes/board.routes.js';
 import { registerAugmentRoutes } from './routes/augment.routes.js';
+import { registerCombatRoutes } from './routes/combat.routes.js';
 import { registerContentRoutes } from './routes/content.routes.js';
 import { registerLeaderboardRoutes } from './routes/leaderboard.routes.js';
 
@@ -25,6 +26,7 @@ export function buildApp(db: Db = createDb(config.dbFile)) {
   registerShopRoutes(app, db);
   registerBoardRoutes(app, db);
   registerAugmentRoutes(app, db);
+  registerCombatRoutes(app, db);
   registerContentRoutes(app);
   registerLeaderboardRoutes(app, db);
 
