@@ -1,6 +1,9 @@
 import type { AugmentDef, BoardPosition, CombatLog, RunState, Side, Tag, UnitDef } from '@reforged/schema';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
+// Relative by default: works unmodified once deployed same-origin behind
+// Caddy. Dev proxies /api through Vite (see vite.config.ts) instead of
+// needing an absolute VITE_API_BASE override.
+const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
 export class ApiError extends Error {
   constructor(
