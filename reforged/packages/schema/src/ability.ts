@@ -20,14 +20,27 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
     // flat non-decaying shield (e.g. a one-time start-of-combat cushion).
     decayPercentPerSec: z.number().min(0).max(100).optional(),
   }),
-  // Self-only: modifies only the triggering unit's own attack/speed.
+  // Ticking damage on the enemy pool — stacks additively with every other
+  // active poison source, ticks once per second independent of anyone's
+  // attack cadence. See combat-engine's MAX_POISON_DPS for the stack cap.
+  z.object({ kind: z.literal('poison_enemy_pool'), damagePerSec: z.number().positive() }),
+  // Self-only: modifies only the triggering unit's own attack/speed. Stacks
+  // are additive and clamped — see combat-engine's MAX_*_PERCENT constants
+  // ("haste"/buff stacking needs a ceiling, or a support firing every
+  // cooldown for 120s would break the game).
   z.object({ kind: z.literal('buff_attack'), percent: z.number() }),
   z.object({ kind: z.literal('buff_attack_speed'), percent: z.number() }),
   // Team-wide: modifies every OTHER allied unit's attack/speed for the rest
   // of the fight. Intentionally stackable — a support unit with no attack of
-  // its own can fire this every cooldown, ramping the team up over time.
+  // its own can fire this every cooldown, ramping the team up over time
+  // (up to the same clamp as the self-only version).
   z.object({ kind: z.literal('buff_team_attack'), percent: z.number() }),
   z.object({ kind: z.literal('buff_team_attack_speed'), percent: z.number() }),
+  // Mirror image of the two above, but hits every unit on the OTHER side —
+  // "slow"/"weaken" debuffs. `percent` is a positive magnitude (how much to
+  // reduce), not a signed delta.
+  z.object({ kind: z.literal('weaken_enemy_team_attack'), percent: z.number().positive() }),
+  z.object({ kind: z.literal('slow_enemy_team_attack_speed'), percent: z.number().positive() }),
 ]);
 export type AbilityEffect = z.infer<typeof AbilityEffectSchema>;
 

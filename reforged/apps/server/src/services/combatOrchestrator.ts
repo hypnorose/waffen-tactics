@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { runCombat, type CombatParticipantInput } from '@reforged/combat-engine';
-import { getUnitDefs } from '@reforged/content-data';
+import { augmentDefs, getUnitDefs } from '@reforged/content-data';
 import type { CombatLog, RunState, Side, UnitDef } from '@reforged/schema';
 import { unitHpContribution } from '@reforged/schema';
 import type { Db } from '../db/client.js';
@@ -57,6 +57,11 @@ export function runCombatForRun(db: Db, run: RunState): CombatResult {
     .filter((slot) => slot.unitInstanceId !== null)
     .map((slot, i) => ({ instanceId: slot.unitInstanceId!, unitId: opponent.unitIds[i], position: slot.position }));
 
+  const playerAugmentEffects = run.augmentsPicked
+    .map((id) => augmentDefs.find((a) => a.id === id))
+    .filter((a): a is NonNullable<typeof a> => !!a)
+    .map((a) => ({ effect: a.effect, tagFilter: a.tagFilter }));
+
   const combatLog = runCombat({
     combatId: randomUUID(),
     seed: Math.floor(Math.random() * 2 ** 31),
@@ -64,6 +69,7 @@ export function runCombatForRun(db: Db, run: RunState): CombatResult {
       side: 'player',
       units: playerParticipants,
       hpMax: computeTeamHpMax(playerParticipants.map((p) => p.unitId), unitDefs),
+      augmentEffects: playerAugmentEffects,
     },
     enemy: {
       side: 'enemy',

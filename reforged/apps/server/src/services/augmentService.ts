@@ -1,4 +1,5 @@
-import { tierForPickIndex, type RunState } from '@reforged/schema';
+import { randomUUID } from 'node:crypto';
+import { tierForPickIndex, type RunState, type UnitInstance } from '@reforged/schema';
 import { augmentDefs } from '@reforged/content-data';
 
 export class NoAugmentPendingError extends Error {}
@@ -26,8 +27,14 @@ export function pick(run: RunState, augmentId: string): RunState {
   if (!run.augmentPending || !run.augmentOffers) throw new NoAugmentPendingError();
   if (!run.augmentOffers.includes(augmentId)) throw new InvalidAugmentChoiceError();
 
+  const augment = augmentDefs.find((a) => a.id === augmentId);
+  const grantedUnits: UnitInstance[] = augment?.grantUnitId
+    ? [{ instanceId: randomUUID(), unitId: augment.grantUnitId, starLevel: 1 }]
+    : [];
+
   return {
     ...run,
+    units: [...run.units, ...grantedUnits],
     augmentsPicked: [...run.augmentsPicked, augmentId],
     augmentPending: false,
     augmentOffers: undefined,

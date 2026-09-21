@@ -168,4 +168,77 @@ describe('runCombat', () => {
     const firstPlayerDamage = log.events.find((e) => e.type === 'team_pool_damage' && e.side === 'player');
     expect(firstPlayerDamage).toBeDefined();
   });
+
+  it('a tag-filtered augment only buffs units carrying that tag', () => {
+    const mystic: UnitDef = { ...skirmisher, id: 'mystic', tags: ['mystic'] };
+    const augmentUnitDefs = { ...unitDefs, mystic };
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 500,
+      units: [
+        { instanceId: 'p-skirmisher', unitId: 'skirmisher', position: { row: 0, col: 0 } },
+        { instanceId: 'p-mystic', unitId: 'mystic', position: { row: 0, col: 1 } },
+      ],
+      augmentEffects: [{ effect: { kind: 'buff_team_attack', percent: 20 }, tagFilter: ['mystic'] }],
+    };
+    const log = runCombat({ combatId: 'c6', seed: 11, player, enemy: team('enemy'), unitDefs: augmentUnitDefs, timeoutSec: 1 });
+
+    const buffs = log.events.filter((e) => e.type === 'unit_buff_applied' && e.stat === 'attack');
+    expect(buffs.some((e) => e.type === 'unit_buff_applied' && e.instanceId === 'p-mystic')).toBe(true);
+    expect(buffs.some((e) => e.type === 'unit_buff_applied' && e.instanceId === 'p-skirmisher')).toBe(false);
+  });
+
+  it('an untagged augment shield applies to the whole pool regardless of unit tags', () => {
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 200,
+      units: team('player').units,
+      augmentEffects: [{ effect: { kind: 'shield_own_pool', amount: 50 } }],
+    };
+    const log = runCombat({ combatId: 'c7', seed: 13, player, enemy: team('enemy'), unitDefs, timeoutSec: 1 });
+    const shieldEvent = log.events.find((e) => e.type === 'team_pool_shield_applied');
+    expect(shieldEvent && shieldEvent.type === 'team_pool_shield_applied' && shieldEvent.amount).toBe(50);
+  });
+
+  it('haste stacking is clamped at the max percent instead of compounding forever', () => {
+    const relentlessHaste: UnitDef = {
+      id: 'relentless_haste',
+      name: 'Relentless Haste',
+      cost: 3,
+      tags: ['support'],
+      emoji: '💨',
+      baseStats: { attacksPerSecond: 10 }, // fires very often so it stacks many times fast
+      onTrigger: [
+        {
+          id: 'relentless_haste.rally',
+          trigger: 'on_attack',
+          effect: { kind: 'buff_team_attack_speed', percent: 20 },
+          description: 'Co cykl zwiększa szybkość ataku sojuszników o 20%.',
+        },
+      ],
+    };
+    const capUnitDefs = { ...unitDefs, [relentlessHaste.id]: relentlessHaste };
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 500,
+      units: [
+        { instanceId: 'p-haste', unitId: 'relentless_haste', position: { row: 0, col: 0 } },
+        { instanceId: 'p-fighter', unitId: 'skirmisher', position: { row: 1, col: 1 } },
+      ],
+    };
+    // huge enemy pool so the fight runs the full 10s instead of ending early
+    const durableEnemy: CombatTeamInput = { side: 'enemy', hpMax: 1_000_000, units: team('enemy').units };
+    const log = runCombat({ combatId: 'c8', seed: 17, player, enemy: durableEnemy, unitDefs: capUnitDefs, timeoutSec: 10 });
+
+    const fighterBuffs = log.events.filter((e) => e.type === 'unit_buff_applied' && e.instanceId === 'p-fighter' && e.stat === 'attackSpeed');
+    // many stacks fired (the support's cadence is very fast) — without a cap,
+    // compounding +20% dozens of times would shrink the fighter's interval
+    // toward zero and produce an enormous number of attacks in 10s.
+    expect(fighterBuffs.length).toBeGreaterThan(10);
+
+    const fighterAttacks = log.events.filter((e) => e.type === 'unit_attack_fired' && e.instanceId === 'p-fighter');
+    // base attacksPerSecond is 1; the +100% cap means at most 2/sec, so over
+    // ~10s the fighter cannot have fired dramatically more than ~20 times.
+    expect(fighterAttacks.length).toBeLessThan(25);
+  });
 });

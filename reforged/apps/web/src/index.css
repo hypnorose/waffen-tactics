@@ -548,6 +548,10 @@ button.active {
   border-color: var(--gold-tier);
   background: color-mix(in srgb, var(--gold-tier) 15%, var(--panel-alt));
 }
+.augment-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
 .augment-tier {
   font-size: 0.65rem;
   opacity: 0.7;

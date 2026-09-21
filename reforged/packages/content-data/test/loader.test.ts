@@ -32,9 +32,18 @@ describe('content-data', () => {
     }
   });
 
-  it('has 3 augments per tier', () => {
+  it('has 10 augments per tier', () => {
     const perTier = { bronze: 0, silver: 0, gold: 0 };
     for (const augment of augmentDefs) perTier[augment.tier]++;
-    expect(perTier).toEqual({ bronze: 3, silver: 3, gold: 3 });
+    expect(perTier).toEqual({ bronze: 10, silver: 10, gold: 10 });
+  });
+
+  it('every augment grantUnitId resolves to a real unit', () => {
+    const units = getUnitDefs();
+    for (const augment of augmentDefs) {
+      if (augment.grantUnitId) {
+        expect(units[augment.grantUnitId], `augment "${augment.id}" grants unknown unit "${augment.grantUnitId}"`).toBeDefined();
+      }
+    }
   });
 });
