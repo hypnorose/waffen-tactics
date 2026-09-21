@@ -1,0 +1,24 @@
+# Reforged runs on the SAME Caddy process as the live site (only one process
+# can bind :80/:443) — this is a SITE BLOCK to append to the existing
+# production Caddyfile (waffen-tactics-web/Caddyfile on `main`), not a
+# standalone config. Mirrors that file's shape (strip /api, serve dist/,
+# gzip, its own log file) so the two sites are operated the same way.
+
+reforged.waffentactics.pl {
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy localhost:8091
+    }
+
+    handle {
+        root * /home/ubuntu/waffen-tactics-reforged/apps/web/dist
+        try_files {path} /index.html
+        file_server
+    }
+
+    encode gzip
+
+    log {
+        output file /var/log/caddy/reforged.waffentactics.pl.log
+    }
+}
