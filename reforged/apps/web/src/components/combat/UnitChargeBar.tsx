@@ -1,5 +1,6 @@
 import type { UnitDef } from '@reforged/schema';
 import type { UnitRuntimeSnapshot } from '../../hooks/combat/useCombatSnapshot.js';
+import { rarityClass } from '../../lib/unitStyle.js';
 
 interface Props {
   unit: UnitRuntimeSnapshot;
@@ -14,6 +15,7 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
   const fraction = unit.attackIntervalSec > 0 ? Math.max(0, Math.min(1, elapsed / unit.attackIntervalSec)) : 1;
 
   const classes = ['unit-charge'];
+  if (unitDef) classes.push(rarityClass(unitDef.cost));
   if (justAttacked) classes.push('pulse-attack');
   if (justTriggeredAbility) classes.push('pulse-ability');
 

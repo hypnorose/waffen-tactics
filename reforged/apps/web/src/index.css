@@ -249,7 +249,10 @@ button.active {
   user-select: none;
   touch-action: none;
   border-radius: 10px;
-  transition: background 0.15s ease;
+  border: 2px solid transparent;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 .unit-token:hover {
   background: var(--panel-alt);
@@ -282,10 +285,55 @@ button.active {
 }
 .unit-tag {
   font-size: 0.62rem;
-  background: var(--panel-alt);
   border-radius: 4px;
   padding: 1px 5px;
+  font-weight: 600;
+  background: var(--panel-alt);
   color: var(--text-dim);
+}
+
+/* One color per tag: background tint + matching text, not just a border accent. */
+.unit-tag.tag-figlarz {
+  background: color-mix(in srgb, #e8863a 28%, var(--panel-alt));
+  color: #ffb877;
+}
+.unit-tag.tag-nowociota {
+  background: color-mix(in srgb, #35b8b0 28%, var(--panel-alt));
+  color: #7fe3dc;
+}
+.unit-tag.tag-srebrna-gwardia {
+  background: color-mix(in srgb, #97a3b5 28%, var(--panel-alt));
+  color: #d6dde8;
+}
+.unit-tag.tag-starociota {
+  background: color-mix(in srgb, #9c6b3e 28%, var(--panel-alt));
+  color: #d9a86c;
+}
+.unit-tag.tag-szachista {
+  background: color-mix(in srgb, #4c5fd6 28%, var(--panel-alt));
+  color: #a6b1ff;
+}
+.unit-tag.tag-konfident {
+  background: color-mix(in srgb, #c14fc2 28%, var(--panel-alt));
+  color: #ec9bed;
+}
+
+/* Rarity (cost tier) border on the unit card itself — TFT-style cost colors. */
+.rarity-1 {
+  border-color: #8a8f9c !important;
+}
+.rarity-2 {
+  border-color: #3fb950 !important;
+}
+.rarity-3 {
+  border-color: #4aa3ff !important;
+}
+.rarity-4 {
+  border-color: #a371f7 !important;
+}
+.rarity-5 {
+  border-color: #e0a634 !important;
+  box-shadow: 0 0 10px color-mix(in srgb, #e0a634 45%, transparent);
 }
 
 /* Ability tooltip — shown on hover of the enclosing card (.unit-token / .shop-offer, both position:relative) */
@@ -396,14 +444,13 @@ button.active {
   align-items: center;
   gap: 4px;
   min-height: 150px;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   transition:
     transform 0.12s ease,
     border-color 0.12s ease;
 }
 .shop-offer:hover {
   transform: translateY(-2px);
-  border-color: var(--accent);
 }
 .shop-offer.is-empty {
   opacity: 0.3;
@@ -539,6 +586,7 @@ button.active {
   gap: 8px;
   background: var(--panel-alt);
   border-radius: 8px;
+  border: 2px solid var(--border);
   padding: 4px 8px;
   transition: box-shadow 0.15s ease;
 }

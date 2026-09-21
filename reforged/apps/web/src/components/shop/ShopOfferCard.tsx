@@ -1,4 +1,5 @@
 import type { UnitDef } from '@reforged/schema';
+import { rarityClass, tagClass } from '../../lib/unitStyle.js';
 import { UnitAbilityTooltip } from '../board/UnitAbilityTooltip.js';
 
 interface Props {
@@ -13,7 +14,7 @@ export function ShopOfferCard({ unitDef, onBuy, disabled }: Props) {
   }
 
   return (
-    <div className="shop-offer">
+    <div className={`shop-offer ${rarityClass(unitDef.cost)}`}>
       {unitDef.avatar ? (
         <img className="unit-avatar" src={unitDef.avatar} alt="" />
       ) : (
@@ -22,7 +23,7 @@ export function ShopOfferCard({ unitDef, onBuy, disabled }: Props) {
       <div className="unit-name">{unitDef.name}</div>
       <div className="unit-tags">
         {unitDef.tags.map((tag) => (
-          <span key={tag} className="unit-tag">
+          <span key={tag} className={`unit-tag ${tagClass(tag)}`}>
             {tag}
           </span>
         ))}

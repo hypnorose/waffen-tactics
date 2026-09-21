@@ -1,5 +1,6 @@
 import { useDraggable } from '@dnd-kit/core';
 import type { UnitDef } from '@reforged/schema';
+import { rarityClass, tagClass } from '../../lib/unitStyle.js';
 import { UnitAbilityTooltip } from './UnitAbilityTooltip.js';
 
 interface Props {
@@ -22,7 +23,7 @@ export function UnitToken({ instanceId, unitDef, onMouseEnter, onMouseLeave }: P
       style={style}
       {...listeners}
       {...attributes}
-      className={`unit-token${isDragging ? ' is-dragging' : ''}`}
+      className={`unit-token ${rarityClass(unitDef.cost)}${isDragging ? ' is-dragging' : ''}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       title={unitDef.name}
@@ -35,7 +36,7 @@ export function UnitToken({ instanceId, unitDef, onMouseEnter, onMouseLeave }: P
       <div className="unit-name">{unitDef.name}</div>
       <div className="unit-tags">
         {unitDef.tags.map((tag) => (
-          <span key={tag} className="unit-tag">
+          <span key={tag} className={`unit-tag ${tagClass(tag)}`}>
             {tag}
           </span>
         ))}

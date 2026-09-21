@@ -1,4 +1,5 @@
 import type { UnitDef } from '@reforged/schema';
+import { tagClass } from '../../lib/unitStyle.js';
 
 export function UnitAbilityTooltip({ unitDef }: { unitDef: UnitDef }) {
   const abilities = [...(unitDef.startOfCombat ?? []), ...(unitDef.onTrigger ?? [])];
@@ -8,7 +9,7 @@ export function UnitAbilityTooltip({ unitDef }: { unitDef: UnitDef }) {
       <div className="unit-tooltip-title">{unitDef.name}</div>
       <div className="unit-tooltip-tags">
         {unitDef.tags.map((tag) => (
-          <span key={tag} className="unit-tag">
+          <span key={tag} className={`unit-tag ${tagClass(tag)}`}>
             {tag}
           </span>
         ))}
