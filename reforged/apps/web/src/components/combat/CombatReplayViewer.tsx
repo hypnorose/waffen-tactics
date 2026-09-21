@@ -2,6 +2,7 @@ import type { CombatLog, UnitDef } from '@reforged/schema';
 import { useCombatPlayback } from '../../hooks/combat/useCombatPlayback.js';
 import { useCombatSnapshot } from '../../hooks/combat/useCombatSnapshot.js';
 import { AbilityBanner } from './AbilityBanner.js';
+import { CombatantHeader } from './CombatantHeader.js';
 import { ProjectileLayer, type Projectile } from './ProjectileLayer.js';
 import { ReplayControls } from './ReplayControls.js';
 import { TeamHpBar } from './TeamHpBar.js';
@@ -10,10 +11,13 @@ import { UnitChargeBar } from './UnitChargeBar.js';
 interface Props {
   combatLog: CombatLog;
   units: Record<string, UnitDef>;
+  playerName: string;
+  playerAvatarUrl: string | null;
+  opponentName: string;
   onClose: () => void;
 }
 
-export function CombatReplayViewer({ combatLog, units, onClose }: Props) {
+export function CombatReplayViewer({ combatLog, units, playerName, playerAvatarUrl, opponentName, onClose }: Props) {
   const playback = useCombatPlayback(combatLog.events);
   const snapshot = useCombatSnapshot(combatLog.events, playback.currentTime);
   const allUnits = [...snapshot.player, ...snapshot.enemy];
@@ -31,6 +35,11 @@ export function CombatReplayViewer({ combatLog, units, onClose }: Props) {
   return (
     <div className="modal-backdrop">
       <div className="combat-replay-viewer">
+        <div className="combatant-headers">
+          <CombatantHeader name={playerName} avatarUrl={playerAvatarUrl} align="left" />
+          <CombatantHeader name={opponentName} avatarUrl={null} align="right" />
+        </div>
+
         <div className="combat-hp-bars">
           <TeamHpBar label="Ty" current={snapshot.playerHp.current} max={snapshot.playerHp.max} align="left" />
           <TeamHpBar label="Wróg" current={snapshot.enemyHp.current} max={snapshot.enemyHp.max} align="right" />
@@ -46,6 +55,7 @@ export function CombatReplayViewer({ combatLog, units, onClose }: Props) {
                 currentTime={playback.currentTime}
                 justAttacked={snapshot.recentAttacks.some((a) => a.instanceId === unit.instanceId)}
                 justTriggeredAbility={snapshot.recentAbilities.some((a) => a.instanceId === unit.instanceId)}
+                buffs={snapshot.unitBuffs[unit.instanceId]}
               />
             ))}
           </div>
@@ -59,6 +69,7 @@ export function CombatReplayViewer({ combatLog, units, onClose }: Props) {
                 currentTime={playback.currentTime}
                 justAttacked={snapshot.recentAttacks.some((a) => a.instanceId === unit.instanceId)}
                 justTriggeredAbility={snapshot.recentAbilities.some((a) => a.instanceId === unit.instanceId)}
+                buffs={snapshot.unitBuffs[unit.instanceId]}
               />
             ))}
           </div>

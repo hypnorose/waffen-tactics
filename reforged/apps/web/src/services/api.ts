@@ -63,5 +63,5 @@ export const api = {
   pickAugment: (runId: string, augmentId: string) => request<RunState>('POST', `/api/run/${runId}/augment/pick`, { augmentId }),
 
   startCombat: (runId: string) =>
-    request<{ run: RunState; combatLog: CombatLog; winner: Side }>('POST', `/api/run/${runId}/combat/start`),
+    request<{ run: RunState; combatLog: CombatLog; winner: Side; opponentName: string }>('POST', `/api/run/${runId}/combat/start`),
 };

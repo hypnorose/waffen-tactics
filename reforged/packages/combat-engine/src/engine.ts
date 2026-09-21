@@ -32,11 +32,20 @@ interface RuntimeUnit {
   unitId: string;
   side: Side;
   position: BoardPosition;
-  attackIntervalSec: number;
+  /** null = this unit has no attacksPerSecond stat and never acts on a cadence at all. */
+  attackIntervalSec: number | null;
+  /** 0 = this unit has no attack stat — it can still act on its cadence (on_attack abilities), it just deals no pool damage. */
   attackDamage: number;
   lastAttackAt: number;
   abilityCooldowns: Record<string, number>;
   lowHpAbilitiesFired: Set<string>;
+}
+
+interface Pool {
+  hpMax: number;
+  hpCurrent: number;
+  shield: number;
+  shieldDecayPercentPerSec: number;
 }
 
 function otherSide(side: Side): Side {
@@ -47,26 +56,25 @@ function otherSide(side: Side): Side {
  * Runs a full deterministic combat and returns the complete event log for the
  * client to replay. There is no targeting subsystem: HP is a shared team pool,
  * so every attack/ability effect only ever touches "own pool" or "enemy pool".
- * Units never die mid-fight — they attack for the whole timeout window, and the
+ * Units never die mid-fight — they act for the whole timeout window, and the
  * pool that first reaches 0 loses (or, at timeout, whichever pool has the
  * higher remaining percentage).
+ *
+ * No defense stat exists — damage is never mitigated. attack/attacksPerSecond
+ * are both optional per unit: a unit with attacksPerSecond but no attack
+ * still triggers its on_attack abilities on schedule (a pure support unit
+ * that casts a buff/heal/shield every cooldown instead of dealing damage); a
+ * unit with neither only acts through start_of_combat/periodic/low_team_hp.
  */
 export function runCombat(input: RunCombatInput): CombatLog {
   const dt = input.dt ?? 0.1;
   const timeoutSec = input.timeoutSec ?? 120;
   const log = new EventLogBuilder();
 
-  const pools: Record<Side, { hpMax: number; hpCurrent: number; shield: number }> = {
-    player: { hpMax: input.player.hpMax, hpCurrent: input.player.hpMax, shield: 0 },
-    enemy: { hpMax: input.enemy.hpMax, hpCurrent: input.enemy.hpMax, shield: 0 },
+  const pools: Record<Side, Pool> = {
+    player: { hpMax: input.player.hpMax, hpCurrent: input.player.hpMax, shield: 0, shieldDecayPercentPerSec: 0 },
+    enemy: { hpMax: input.enemy.hpMax, hpCurrent: input.enemy.hpMax, shield: 0, shieldDecayPercentPerSec: 0 },
   };
-
-  const defenseSum: Record<Side, number> = { player: 0, enemy: 0 };
-  for (const team of [input.player, input.enemy]) {
-    for (const p of team.units) {
-      defenseSum[team.side] += input.unitDefs[p.unitId]?.baseStats.defense ?? 0;
-    }
-  }
 
   const positionalMods = {
     player: resolvePositionalBonuses(input.player.units, input.unitDefs),
@@ -82,14 +90,16 @@ export function runCombat(input: RunCombatInput): CombatLog {
         attackSpeedPercent: 0,
         appliedBonusIds: [],
       };
-      const attacksPerSecond = def.baseStats.attacksPerSecond * (1 + mod.attackSpeedPercent / 100);
+      const attacksPerSecond = def.baseStats.attacksPerSecond
+        ? def.baseStats.attacksPerSecond * (1 + mod.attackSpeedPercent / 100)
+        : null;
       return {
         instanceId: p.instanceId,
         unitId: p.unitId,
         side: team.side,
         position: p.position,
-        attackIntervalSec: 1 / attacksPerSecond,
-        attackDamage: def.baseStats.attack * (1 + mod.attackPercent / 100),
+        attackIntervalSec: attacksPerSecond ? 1 / attacksPerSecond : null,
+        attackDamage: def.baseStats.attack ? def.baseStats.attack * (1 + mod.attackPercent / 100) : 0,
         lastAttackAt: 0,
         abilityCooldowns: {},
         lowHpAbilitiesFired: new Set<string>(),
@@ -99,20 +109,9 @@ export function runCombat(input: RunCombatInput): CombatLog {
 
   const units: RuntimeUnit[] = [...buildRuntimeUnits(input.player), ...buildRuntimeUnits(input.enemy)];
 
-  function applyDamageToPool(
-    side: Side,
-    amount: number,
-    cause: 'attack' | 'ability',
-    sourceInstanceId: string | undefined,
-    simTime: number,
-    mitigate: boolean,
-  ) {
+  function applyDamageToPool(side: Side, amount: number, cause: 'attack' | 'ability', sourceInstanceId: string | undefined, simTime: number) {
     const pool = pools[side];
     let effective = amount;
-    if (mitigate) {
-      const mitigation = defenseSum[side] / (defenseSum[side] + 100);
-      effective = amount * (1 - mitigation);
-    }
     if (pool.shield > 0) {
       const absorbed = Math.min(pool.shield, effective);
       pool.shield -= absorbed;
@@ -128,8 +127,9 @@ export function runCombat(input: RunCombatInput): CombatLog {
     log.push({ simTime, type: 'team_pool_heal', side, amount, postHp: pool.hpCurrent, sourceInstanceId });
   }
 
-  function applyShieldToPool(side: Side, amount: number, sourceInstanceId: string | undefined, simTime: number) {
+  function applyShieldToPool(side: Side, amount: number, decayPercentPerSec: number, sourceInstanceId: string | undefined, simTime: number) {
     pools[side].shield += amount;
+    pools[side].shieldDecayPercentPerSec = decayPercentPerSec;
     log.push({ simTime, type: 'team_pool_shield_applied', side, amount, sourceInstanceId });
   }
 
@@ -138,19 +138,39 @@ export function runCombat(input: RunCombatInput): CombatLog {
     const effect: AbilityEffect = ability.effect;
     switch (effect.kind) {
       case 'damage_enemy_pool':
-        applyDamageToPool(otherSide(unit.side), effect.amount, 'ability', unit.instanceId, simTime, false);
+        applyDamageToPool(otherSide(unit.side), effect.amount, 'ability', unit.instanceId, simTime);
         break;
       case 'heal_own_pool':
         applyHealToPool(unit.side, effect.amount, unit.instanceId, simTime);
         break;
       case 'shield_own_pool':
-        applyShieldToPool(unit.side, effect.amount, unit.instanceId, simTime);
+        applyShieldToPool(unit.side, effect.amount, effect.decayPercentPerSec ?? 0, unit.instanceId, simTime);
         break;
       case 'buff_attack':
         unit.attackDamage *= 1 + effect.percent / 100;
+        log.push({ simTime, type: 'unit_buff_applied', instanceId: unit.instanceId, stat: 'attack', percent: effect.percent, sourceInstanceId: unit.instanceId });
         break;
       case 'buff_attack_speed':
-        unit.attackIntervalSec /= 1 + effect.percent / 100;
+        if (unit.attackIntervalSec !== null) {
+          unit.attackIntervalSec /= 1 + effect.percent / 100;
+          log.push({ simTime, type: 'unit_buff_applied', instanceId: unit.instanceId, stat: 'attackSpeed', percent: effect.percent, sourceInstanceId: unit.instanceId });
+        }
+        break;
+      case 'buff_team_attack':
+        for (const ally of units) {
+          if (ally.side === unit.side && ally.instanceId !== unit.instanceId) {
+            ally.attackDamage *= 1 + effect.percent / 100;
+            log.push({ simTime, type: 'unit_buff_applied', instanceId: ally.instanceId, stat: 'attack', percent: effect.percent, sourceInstanceId: unit.instanceId });
+          }
+        }
+        break;
+      case 'buff_team_attack_speed':
+        for (const ally of units) {
+          if (ally.side === unit.side && ally.instanceId !== unit.instanceId && ally.attackIntervalSec !== null) {
+            ally.attackIntervalSec /= 1 + effect.percent / 100;
+            log.push({ simTime, type: 'unit_buff_applied', instanceId: ally.instanceId, stat: 'attackSpeed', percent: effect.percent, sourceInstanceId: unit.instanceId });
+          }
+        }
         break;
     }
   }
@@ -190,10 +210,12 @@ export function runCombat(input: RunCombatInput): CombatLog {
     for (const unit of units) {
       const def = input.unitDefs[unit.unitId];
 
-      if (simTime - unit.lastAttackAt >= unit.attackIntervalSec) {
+      if (unit.attackIntervalSec !== null && simTime - unit.lastAttackAt >= unit.attackIntervalSec) {
         unit.lastAttackAt = simTime;
         log.push({ simTime, type: 'unit_attack_fired', instanceId: unit.instanceId, emoji: def.emoji });
-        applyDamageToPool(otherSide(unit.side), unit.attackDamage, 'attack', unit.instanceId, simTime, true);
+        if (unit.attackDamage > 0) {
+          applyDamageToPool(otherSide(unit.side), unit.attackDamage, 'attack', unit.instanceId, simTime);
+        }
 
         for (const ability of def.onTrigger ?? []) {
           if (ability.trigger === 'on_attack') applyAbilityEffect(unit, ability, simTime);
@@ -216,6 +238,13 @@ export function runCombat(input: RunCombatInput): CombatLog {
             applyAbilityEffect(unit, ability, simTime);
           }
         }
+      }
+    }
+
+    for (const side of ['player', 'enemy'] as const) {
+      const pool = pools[side];
+      if (pool.shield > 0 && pool.shieldDecayPercentPerSec > 0) {
+        pool.shield = Math.max(0, pool.shield * (1 - (pool.shieldDecayPercentPerSec / 100) * dt));
       }
     }
 

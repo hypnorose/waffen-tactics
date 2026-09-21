@@ -11,8 +11,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/anamol04.png",
     "baseStats": {
       "attack": 40,
-      "attacksPerSecond": 1,
-      "defense": 20
+      "attacksPerSecond": 1
     }
   },
   {
@@ -27,8 +26,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/fiko.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   },
   {
@@ -42,8 +40,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/uhla.png",
     "baseStats": {
       "attack": 40,
-      "attacksPerSecond": 1,
-      "defense": 20
+      "attacksPerSecond": 1
     }
   },
   {
@@ -57,8 +54,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/kantor.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.8,
-      "defense": 30
+      "attacksPerSecond": 0.8
     }
   },
   {
@@ -72,8 +68,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/chessowymentos.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.9,
-      "defense": 10
+      "attacksPerSecond": 0.9
     }
   },
   {
@@ -88,8 +83,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/yossarian.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   },
   {
@@ -103,8 +97,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/galanonimpl-avatar-1024.png",
     "baseStats": {
       "attack": 40,
-      "attacksPerSecond": 1,
-      "defense": 20
+      "attacksPerSecond": 1
     }
   },
   {
@@ -118,8 +111,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/_pytl-avatar-1024.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.9,
-      "defense": 10
+      "attacksPerSecond": 0.9
     }
   },
   {
@@ -134,8 +126,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/sofronow960-avatar-1024.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.8,
-      "defense": 30
+      "attacksPerSecond": 0.8
     }
   },
   {
@@ -149,8 +140,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/alyson.jpg",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   },
   {
@@ -164,8 +154,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/skibidi.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   },
   {
@@ -179,8 +168,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/ausher.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.9,
-      "defense": 10
+      "attacksPerSecond": 0.9
     }
   },
   {
@@ -194,8 +182,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/szalwia.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.9,
-      "defense": 10
+      "attacksPerSecond": 0.9
     }
   },
   {
@@ -209,8 +196,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/mroczeq.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.9,
-      "defense": 10
+      "attacksPerSecond": 0.9
     }
   },
   {
@@ -224,8 +210,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/optimusprime67676767-avatar-1024.png",
     "baseStats": {
       "attack": 40,
-      "attacksPerSecond": 1,
-      "defense": 20
+      "attacksPerSecond": 1
     }
   },
   {
@@ -239,8 +224,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/marcek_heban-avatar-1024.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   },
   {
@@ -255,8 +239,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/bbobel.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.8,
-      "defense": 30
+      "attacksPerSecond": 0.8
     }
   },
   {
@@ -270,8 +253,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/fallensmok.png",
     "baseStats": {
       "attack": 40,
-      "attacksPerSecond": 1,
-      "defense": 20
+      "attacksPerSecond": 1
     }
   },
   {
@@ -286,8 +268,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/jaeger.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.8,
-      "defense": 30
+      "attacksPerSecond": 0.8
     }
   },
   {
@@ -301,8 +282,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/kaktusekmatusek-avatar-1024.png",
     "baseStats": {
       "attack": 40,
-      "attacksPerSecond": 1,
-      "defense": 20
+      "attacksPerSecond": 1
     }
   },
   {
@@ -316,8 +296,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/melancholykillsme-avatar-1024.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.8,
-      "defense": 30
+      "attacksPerSecond": 0.8
     }
   },
   {
@@ -331,8 +310,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/4tune.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   },
   {
@@ -346,8 +324,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/xkuba.h-avatar-1024.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   },
   {
@@ -361,8 +338,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/vmwu-avatar-1024.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.8,
-      "defense": 30
+      "attacksPerSecond": 0.8
     }
   },
   {
@@ -376,8 +352,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/nos.gov-avatar-1024.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   },
   {
@@ -391,8 +366,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/marcelgaladotka-avatar-1024.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.9,
-      "defense": 10
+      "attacksPerSecond": 0.9
     }
   },
   {
@@ -406,8 +380,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/klemens.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.9,
-      "defense": 10
+      "attacksPerSecond": 0.9
     }
   },
   {
@@ -421,8 +394,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/niko_official-avatar-1024.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.8,
-      "defense": 30
+      "attacksPerSecond": 0.8
     }
   },
   {
@@ -436,8 +408,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/knauff.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   },
   {
@@ -452,8 +423,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/vitas.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   },
   {
@@ -467,8 +437,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/szachowymentor.1996-avatar-1024.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.9,
-      "defense": 10
+      "attacksPerSecond": 0.9
     }
   },
   {
@@ -482,8 +451,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/9wojtaz9.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2,
-      "defense": 15
+      "attacksPerSecond": 1.2
     }
   }
 ] as const;

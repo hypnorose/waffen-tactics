@@ -1,11 +1,15 @@
-import type { BotProfile } from '@reforged/content-data';
+import type { RunStatus } from '@reforged/schema';
 
-const BASE_ELO_GAIN = 15;
-const ELO_GAIN_PER_BOT_LEVEL = 3;
-const ELO_LOSS = 15;
+// Elo only changes once a run actually concludes (10 wins or 5 losses), not
+// after every match — placeholder balance, like the rest of the economy
+// tables. Finishing the gauntlet is worth a flat bonus; busting out early is
+// worth less the fewer wins were banked first.
+const RUN_WIN_BONUS = 150;
+const ELO_PER_WIN_ON_LOSS = 15;
+const RUN_LOSS_BASE_PENALTY = 75;
 
-/** Beating a harder bot on the ladder is worth more elo; losing always costs the same flat amount. */
-export function eloDelta(won: boolean, opponent: BotProfile): number {
-  if (!won) return -ELO_LOSS;
-  return BASE_ELO_GAIN + opponent.level * ELO_GAIN_PER_BOT_LEVEL;
+/** Only call this when `status` is 'won' or 'lost' (i.e. the run just ended) — never for 'active'. */
+export function runEloDelta(status: Exclude<RunStatus, 'active'>, wins: number): number {
+  if (status === 'won') return RUN_WIN_BONUS;
+  return wins * ELO_PER_WIN_ON_LOSS - RUN_LOSS_BASE_PENALTY;
 }

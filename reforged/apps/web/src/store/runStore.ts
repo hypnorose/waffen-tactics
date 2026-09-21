@@ -7,7 +7,7 @@ interface RunStoreState {
   run: RunState | null;
   units: Record<string, UnitDef>;
   tags: Record<string, Tag>;
-  lastCombat: { combatLog: CombatLog; winner: Side } | null;
+  lastCombat: { combatLog: CombatLog; winner: Side; opponentName: string } | null;
   loading: boolean;
   error: string | null;
 
@@ -115,7 +115,11 @@ export const useRunStore = create<RunStoreState>((set, get) => ({
     set({ loading: true });
     try {
       const result = await api.startCombat(current.runId);
-      set({ run: result.run, lastCombat: { combatLog: result.combatLog, winner: result.winner }, loading: false });
+      set({
+        run: result.run,
+        lastCombat: { combatLog: result.combatLog, winner: result.winner, opponentName: result.opponentName },
+        loading: false,
+      });
       useAuthStore.getState().refreshProfile(); // elo changed server-side
     } catch (err) {
       set({ error: err instanceof Error ? err.message : String(err), loading: false });

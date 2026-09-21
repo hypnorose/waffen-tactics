@@ -1,4 +1,5 @@
-import type { RunState, UnitDef } from '@reforged/schema';
+import { xpToNextLevel, type RunState, type UnitDef } from '@reforged/schema';
+import { RarityLegend } from './RarityLegend.js';
 import { ShopOfferCard } from './ShopOfferCard.js';
 
 interface Props {
@@ -11,11 +12,15 @@ interface Props {
 }
 
 export function ShopPanel({ run, units, onBuy, onReroll, onToggleLock, onBuyXp }: Props) {
+  const xpMax = xpToNextLevel(run.level);
+
   return (
     <div className="shop-panel">
       <div className="shop-header">
         <span className="gold">💰 {run.gold}</span>
-        <span>Poziom {run.level}</span>
+        <span>
+          Poziom {run.level} {xpMax !== null ? `(${run.xp}/${xpMax} XP)` : '(MAX)'}
+        </span>
         <button onClick={onBuyXp} disabled={run.gold < 4}>
           Kup XP (4g)
         </button>
@@ -39,6 +44,7 @@ export function ShopPanel({ run, units, onBuy, onReroll, onToggleLock, onBuyXp }
           );
         })}
       </div>
+      <RarityLegend level={run.level} />
     </div>
   );
 }

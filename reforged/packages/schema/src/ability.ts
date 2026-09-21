@@ -2,6 +2,10 @@ import { z } from 'zod';
 
 // MVP trigger taxonomy — see plan decision #5. on_kill / on_bonus_attack have
 // no equivalent in Reforged (no individual death, no bonus-attack layer).
+// `on_attack` fires whenever a unit's own action cadence (1/attacksPerSecond)
+// elapses — this is true whether or not the unit actually deals damage, so a
+// unit with attacksPerSecond but no attack stat still triggers on_attack
+// abilities on schedule (e.g. "cast a buff every cooldown" support units).
 export const AbilityTriggerSchema = z.enum(['start_of_combat', 'on_attack', 'periodic', 'low_team_hp']);
 export type AbilityTrigger = z.infer<typeof AbilityTriggerSchema>;
 
@@ -11,10 +15,19 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('shield_own_pool'),
     amount: z.number().positive(),
-    durationSec: z.number().positive().optional(),
+    // Shields aren't permanent — they decay by this % of their current value
+    // every second until consumed by damage or fully decayed. Omit for a
+    // flat non-decaying shield (e.g. a one-time start-of-combat cushion).
+    decayPercentPerSec: z.number().min(0).max(100).optional(),
   }),
+  // Self-only: modifies only the triggering unit's own attack/speed.
   z.object({ kind: z.literal('buff_attack'), percent: z.number() }),
   z.object({ kind: z.literal('buff_attack_speed'), percent: z.number() }),
+  // Team-wide: modifies every OTHER allied unit's attack/speed for the rest
+  // of the fight. Intentionally stackable — a support unit with no attack of
+  // its own can fire this every cooldown, ramping the team up over time.
+  z.object({ kind: z.literal('buff_team_attack'), percent: z.number() }),
+  z.object({ kind: z.literal('buff_team_attack_speed'), percent: z.number() }),
 ]);
 export type AbilityEffect = z.infer<typeof AbilityEffectSchema>;
 

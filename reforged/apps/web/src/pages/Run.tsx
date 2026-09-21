@@ -1,4 +1,5 @@
 import { DndContext, type DragEndEvent } from '@dnd-kit/core';
+import { useAuthStore } from '../store/authStore.js';
 import { useRunStore } from '../store/runStore.js';
 import { Board3x3 } from '../components/board/Board3x3.js';
 import { BenchPanel } from '../components/shop/BenchPanel.js';
@@ -12,6 +13,7 @@ const CELL_ID_PATTERN = /^cell-(\d)-(\d)$/;
 export function Run() {
   const { run, units, buy, sell, reroll, toggleLock, buyXp, place, bench, pickAugment, startCombat, loadOrCreateRun, lastCombat, loading, error } =
     useRunStore();
+  const profile = useAuthStore((s) => s.profile);
 
   if (!run) return <p className="loading">Ładowanie rozgrywki...</p>;
 
@@ -52,10 +54,13 @@ export function Run() {
 
       {run.augmentPending && <AugmentPicker runId={run.runId} onPick={pickAugment} />}
 
-      {lastCombat && (
+      {lastCombat && profile && (
         <CombatReplayViewer
           combatLog={lastCombat.combatLog}
           units={units}
+          playerName={profile.username}
+          playerAvatarUrl={profile.avatarUrl}
+          opponentName={lastCombat.opponentName}
           onClose={() => useRunStore.setState({ lastCombat: null })}
         />
       )}

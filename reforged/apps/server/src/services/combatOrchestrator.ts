@@ -8,7 +8,7 @@ import { insertCombatLog } from '../db/combatLogRepository.js';
 import { findUserById, updateElo } from '../db/userRepository.js';
 import { autoPlaceOnBoard } from './boardService.js';
 import { findOpponent } from './matchmakingService.js';
-import { eloDelta } from './rankService.js';
+import { runEloDelta } from './rankService.js';
 import { advanceRound, applyMatchResult, persistRun } from './runService.js';
 
 function computeTeamHpMax(unitIds: string[], unitDefs: Record<string, UnitDef>): number {
@@ -19,6 +19,7 @@ export interface CombatResult {
   run: RunState;
   combatLog: CombatLog;
   winner: Side;
+  opponentName: string;
 }
 
 export class RunNotActiveError extends Error {}
@@ -81,8 +82,12 @@ export function runCombatForRun(db: Db, run: RunState): CombatResult {
   persistRun(db, finalRun);
   insertCombatLog(db, run.runId, combatLog, winner);
 
-  const user = findUserById(db, run.userId);
-  if (user) updateElo(db, user.id, user.elo + eloDelta(winner === 'player', opponent));
+  // Elo only moves once the run actually concludes (10 wins or 5 losses),
+  // not after every individual match — see rankService.
+  if (finalRun.status !== 'active') {
+    const user = findUserById(db, run.userId);
+    if (user) updateElo(db, user.id, user.elo + runEloDelta(finalRun.status, finalRun.wins));
+  }
 
-  return { run: finalRun, combatLog, winner };
+  return { run: finalRun, combatLog, winner, opponentName: opponent.name };
 }

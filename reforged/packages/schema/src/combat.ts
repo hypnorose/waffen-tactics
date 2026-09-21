@@ -20,7 +20,7 @@ export const UnitCombatStateSchema = z.object({
   unitId: z.string(),
   side: SideSchema,
   position: BoardPositionSchema,
-  attackIntervalSec: z.number().positive(),
+  attackIntervalSec: z.number().positive().nullable(), // null = this unit never attacks/acts on a cadence
   lastAttackAt: z.number().nonnegative(),
   abilityCooldowns: z.record(z.string(), z.number()),
   positionalBonusesApplied: z.array(z.string()),
@@ -81,6 +81,16 @@ export const CombatEventSchema = z.discriminatedUnion('type', [
     instanceId: z.string(),
     abilityId: z.string(),
     trigger: z.string(),
+  }),
+  // Drives the "buff/debuff icon under the unit" UI — percent is signed
+  // (negative = a slow/weaken-style debuff, if content ever adds one).
+  z.object({
+    ...baseEventFields,
+    type: z.literal('unit_buff_applied'),
+    instanceId: z.string(),
+    stat: z.enum(['attack', 'attackSpeed']),
+    percent: z.number(),
+    sourceInstanceId: z.string().optional(),
   }),
   z.object({ ...baseEventFields, type: z.literal('victory'), winner: SideSchema }),
   z.object({ ...baseEventFields, type: z.literal('end') }),

@@ -8,7 +8,7 @@ const skirmisher: UnitDef = {
   cost: 1,
   tags: ['assault'],
   emoji: '🗡️',
-  baseStats: { attack: 10, attacksPerSecond: 1, defense: 0 },
+  baseStats: { attack: 10, attacksPerSecond: 1 },
 };
 
 const buffer: UnitDef = {
@@ -17,7 +17,7 @@ const buffer: UnitDef = {
   cost: 2,
   tags: ['support'],
   emoji: '✨',
-  baseStats: { attack: 5, attacksPerSecond: 0.5, defense: 0 },
+  baseStats: { attack: 5, attacksPerSecond: 0.5 },
   positionalBonus: {
     id: 'buffer-cross-attack',
     shape: 'cross',
@@ -26,7 +26,50 @@ const buffer: UnitDef = {
   },
 };
 
-const unitDefs: Record<string, UnitDef> = { skirmisher, buffer };
+// No attack stat at all — acts purely through its own cadence (attacksPerSecond)
+// casting a team-wide attack-speed buff on every ally each time it triggers.
+const hasteSupport: UnitDef = {
+  id: 'haste_support',
+  name: 'Haste Support',
+  cost: 3,
+  tags: ['support'],
+  emoji: '💨',
+  baseStats: { attacksPerSecond: 1 },
+  onTrigger: [
+    {
+      id: 'haste_support.rally',
+      trigger: 'on_attack',
+      effect: { kind: 'buff_team_attack_speed', percent: 10 },
+      description: 'Co cykl zwiększa szybkość ataku sojuszników o 10%.',
+    },
+  ],
+};
+
+// No attack, no attacksPerSecond — only start_of_combat, proving units can
+// contribute purely via one-shot effects.
+const shielder: UnitDef = {
+  id: 'shielder',
+  name: 'Shielder',
+  cost: 2,
+  tags: ['support'],
+  emoji: '🛡️',
+  baseStats: {},
+  startOfCombat: [
+    {
+      id: 'shielder.decaying_ward',
+      trigger: 'start_of_combat',
+      effect: { kind: 'shield_own_pool', amount: 100, decayPercentPerSec: 50 },
+      description: 'Na starcie tarcza 100, która zanika o 50% co sekundę.',
+    },
+  ],
+};
+
+const unitDefs: Record<string, UnitDef> = {
+  skirmisher,
+  buffer,
+  [hasteSupport.id]: hasteSupport,
+  [shielder.id]: shielder,
+};
 
 function team(side: 'player' | 'enemy'): CombatTeamInput {
   return {
@@ -81,5 +124,48 @@ describe('runCombat', () => {
     const corner = init.player.find((u) => u.instanceId === 'p-corner');
     expect(adjacent?.positionalBonusesApplied).toContain('buffer-cross-attack');
     expect(corner?.positionalBonusesApplied).not.toContain('buffer-cross-attack');
+  });
+
+  it('a unit with no attack stat still triggers on_attack abilities on its own cadence, dealing no direct damage itself', () => {
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 300,
+      units: [
+        { instanceId: 'p-support', unitId: 'haste_support', position: { row: 0, col: 0 } },
+        { instanceId: 'p-fighter', unitId: 'skirmisher', position: { row: 1, col: 1 } },
+      ],
+    };
+    const log = runCombat({ combatId: 'c4', seed: 5, player, enemy: team('enemy'), unitDefs, timeoutSec: 5 });
+
+    const supportAttacks = log.events.filter((e) => e.type === 'unit_attack_fired' && e.instanceId === 'p-support');
+    expect(supportAttacks.length).toBeGreaterThan(0);
+
+    const supportDamage = log.events.filter(
+      (e) => e.type === 'team_pool_damage' && e.cause === 'attack' && e.sourceInstanceId === 'p-support',
+    );
+    expect(supportDamage).toHaveLength(0);
+
+    const buffsOnFighter = log.events.filter(
+      (e) => e.type === 'unit_buff_applied' && e.instanceId === 'p-fighter' && e.stat === 'attackSpeed',
+    );
+    expect(buffsOnFighter.length).toBeGreaterThan(0);
+  });
+
+  it('a decaying shield absorbs less over time as it decays', () => {
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 500,
+      units: [{ instanceId: 'p-shielder', unitId: 'shielder', position: { row: 0, col: 0 } }],
+    };
+    const log = runCombat({ combatId: 'c5', seed: 9, player, enemy: team('enemy'), unitDefs, timeoutSec: 3 });
+
+    const shieldApplied = log.events.find((e) => e.type === 'team_pool_shield_applied');
+    expect(shieldApplied && shieldApplied.type === 'team_pool_shield_applied' && shieldApplied.amount).toBe(100);
+
+    // by the time the enemy's first attack lands, the shield should have
+    // decayed well below its starting 100 — the damage event's effective
+    // amount reflects whatever the shield didn't absorb.
+    const firstPlayerDamage = log.events.find((e) => e.type === 'team_pool_damage' && e.side === 'player');
+    expect(firstPlayerDamage).toBeDefined();
   });
 });

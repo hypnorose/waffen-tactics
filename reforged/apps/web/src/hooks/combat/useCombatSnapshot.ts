@@ -6,7 +6,7 @@ export interface UnitRuntimeSnapshot {
   unitId: string;
   side: Side;
   position: BoardPosition;
-  attackIntervalSec: number;
+  attackIntervalSec: number | null;
   lastAttackAt: number;
 }
 
@@ -22,6 +22,11 @@ export interface RecentAbility {
   simTime: number;
 }
 
+export interface UnitBuffState {
+  attackPercent: number;
+  attackSpeedPercent: number;
+}
+
 export interface CombatSnapshot {
   player: UnitRuntimeSnapshot[];
   enemy: UnitRuntimeSnapshot[];
@@ -29,6 +34,8 @@ export interface CombatSnapshot {
   enemyHp: { current: number; max: number };
   recentAttacks: RecentAttack[];
   recentAbilities: RecentAbility[];
+  /** Cumulative buff/debuff % per unit, accrued from every unit_buff_applied event up to currentTime. */
+  unitBuffs: Record<string, UnitBuffState>;
   finished: boolean;
   winner: Side | null;
 }
@@ -46,6 +53,15 @@ function toSnapshot(u: UnitCombatState): UnitRuntimeSnapshot {
   };
 }
 
+function buffFor(unitBuffs: Record<string, UnitBuffState>, instanceId: string): UnitBuffState {
+  let entry = unitBuffs[instanceId];
+  if (!entry) {
+    entry = { attackPercent: 0, attackSpeedPercent: 0 };
+    unitBuffs[instanceId] = entry;
+  }
+  return entry;
+}
+
 /** Replays the event log up to `currentTime` into a point-in-time snapshot for rendering. */
 export function useCombatSnapshot(events: CombatEvent[], currentTime: number): CombatSnapshot {
   return useMemo(() => {
@@ -55,6 +71,7 @@ export function useCombatSnapshot(events: CombatEvent[], currentTime: number): C
     let enemyHp = { current: 0, max: 0 };
     const recentAttacks: RecentAttack[] = [];
     const recentAbilities: RecentAbility[] = [];
+    const unitBuffs: Record<string, UnitBuffState> = {};
     let finished = false;
     let winner: Side | null = null;
 
@@ -86,6 +103,12 @@ export function useCombatSnapshot(events: CombatEvent[], currentTime: number): C
             recentAbilities.push({ instanceId: event.instanceId, abilityId: event.abilityId, simTime: event.simTime });
           }
           break;
+        case 'unit_buff_applied': {
+          const entry = buffFor(unitBuffs, event.instanceId);
+          if (event.stat === 'attack') entry.attackPercent += event.percent;
+          else entry.attackSpeedPercent += event.percent;
+          break;
+        }
         case 'victory':
           finished = true;
           winner = event.winner;
@@ -93,6 +116,6 @@ export function useCombatSnapshot(events: CombatEvent[], currentTime: number): C
       }
     }
 
-    return { player, enemy, playerHp, enemyHp, recentAttacks, recentAbilities, finished, winner };
+    return { player, enemy, playerHp, enemyHp, recentAttacks, recentAbilities, unitBuffs, finished, winner };
   }, [events, currentTime]);
 }

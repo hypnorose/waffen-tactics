@@ -220,6 +220,7 @@ button.active {
   gap: 6px;
   width: 100%;
   max-width: 600px;
+  margin: 0 auto;
 }
 .board-cell {
   background: var(--panel);
@@ -473,6 +474,25 @@ button.active {
   font-size: 0.8rem;
 }
 
+.rarity-legend {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+.rarity-chip {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--panel-alt);
+}
+.rarity-chip.is-unavailable {
+  opacity: 0.35;
+}
+
 .run-actions {
   display: flex;
   align-items: center;
@@ -551,6 +571,38 @@ button.active {
   flex-direction: column;
   gap: 1rem;
 }
+.combatant-headers {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.combatant-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.combatant-header.align-right {
+  flex-direction: row-reverse;
+}
+.combatant-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+.combatant-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel-alt);
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.combatant-name {
+  font-weight: 700;
+}
+
 .combat-hp-bars {
   display: flex;
   justify-content: space-between;
@@ -593,6 +645,11 @@ button.active {
   gap: 8px;
   width: 45%;
 }
+.unit-charge-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 .unit-charge {
   display: flex;
   align-items: center;
@@ -602,6 +659,26 @@ button.active {
   border: 2px solid var(--border);
   padding: 4px 8px;
   transition: box-shadow 0.15s ease;
+}
+.unit-buff-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-left: 4px;
+}
+.unit-buff-chip {
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.unit-buff-chip.is-buff {
+  background: color-mix(in srgb, #3fb950 30%, var(--panel-alt));
+  color: #7ee08a;
+}
+.unit-buff-chip.is-debuff {
+  background: color-mix(in srgb, var(--hp) 30%, var(--panel-alt));
+  color: #ff9aa6;
 }
 .unit-charge.pulse-attack {
   box-shadow: 0 0 0 2px var(--accent);
