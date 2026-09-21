@@ -1,85 +1,34 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.pyc
-env/
-venv/
-env.bak/
-venv.bak/
-*.sqlite3
-waffen-tactics/waffen_tactics_game.db
-
-# Node / frontend
+# Dependencies
 node_modules/
+.pnpm-store/
+
+# Build output
 dist/
 build/
-waffen-tactics-web/node_modules/
-waffen-tactics-web/dist/
+.turbo/
 
-# Editor files
+# Env
+.env
+.env.local
+.env.*.local
+
+# Local databases
+*.sqlite3
+*.sqlite
+*.db
+
+# Editor / OS
 .vscode/
 .idea/
 .DS_Store
+Thumbs.db
 
 # Logs
 *.log
-backend.log
 
-# OS files
-Thumbs.db
-
-# Virtualenv inside project
-waffen-tactics/bot_venv/
-
-# dotenv
-.env
-.env.local
-
-# Other
+# Coverage
 coverage/
-*.egg-info/
 
-
-# Test / tool caches and coverage
-.pytest_cache/
-.mypy_cache/
-.pytype/
-.cache/
-.tox/
-.coverage
-coverage.xml
-htmlcov/
-
-# Temporary replay dumps and debug artifacts
-tmp_replay_runs/
-tmp_replay_runs/*.jsonl
-desync-logs/
-sim_with_skills.jsonl
-tmp_*.py
-*.old
-*.bak
-
-# IDE / editor state
-.idea/
-.vscode/
-
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Misc
-.python-version
+# Claude / MCP local config
 .claude/
-pip-wheel-metadata/
-
-# Database files (local dev)
-waffen_tactics_game.db
-
-# Backend venv
-waffen-tactics-web/backend/venv/
-
-# Local MCP server config (contains API tokens)
 .mcp.json

@@ -1,0 +1,93 @@
+import { z } from 'zod';
+import { BoardPositionSchema } from './board.js';
+
+export const SideSchema = z.enum(['player', 'enemy']);
+export type Side = z.infer<typeof SideSchema>;
+
+// One shared HP pool per team — units never die individually, they attack for
+// the whole fight; only the pool determines the win condition. See plan decision
+// "wspólne HP drużyny".
+export const TeamPoolStateSchema = z.object({
+  side: SideSchema,
+  hpMax: z.number().positive(),
+  hpCurrent: z.number(),
+  shield: z.number().nonnegative().default(0),
+});
+export type TeamPoolState = z.infer<typeof TeamPoolStateSchema>;
+
+export const UnitCombatStateSchema = z.object({
+  instanceId: z.string(),
+  unitId: z.string(),
+  side: SideSchema,
+  position: BoardPositionSchema,
+  attackIntervalSec: z.number().positive(),
+  lastAttackAt: z.number().nonnegative(),
+  abilityCooldowns: z.record(z.string(), z.number()),
+  positionalBonusesApplied: z.array(z.string()),
+});
+export type UnitCombatState = z.infer<typeof UnitCombatStateSchema>;
+
+const baseEventFields = {
+  seq: z.number().int().nonnegative(),
+  simTime: z.number().nonnegative(),
+};
+
+// No targeting fields anywhere in this log — a direct consequence of shared-pool
+// HP. Attacks/abilities only ever touch "own pool" or "enemy pool", never a
+// specific enemy unit. See plan decision #4.
+export const CombatEventSchema = z.discriminatedUnion('type', [
+  z.object({
+    ...baseEventFields,
+    type: z.literal('units_init'),
+    player: z.array(UnitCombatStateSchema),
+    enemy: z.array(UnitCombatStateSchema),
+  }),
+  z.object({ ...baseEventFields, type: z.literal('start') }),
+  z.object({
+    ...baseEventFields,
+    type: z.literal('unit_attack_fired'),
+    instanceId: z.string(),
+    emoji: z.string(),
+  }),
+  z.object({
+    ...baseEventFields,
+    type: z.literal('team_pool_damage'),
+    side: SideSchema,
+    amount: z.number().positive(),
+    postHp: z.number(),
+    cause: z.enum(['attack', 'ability']),
+    sourceInstanceId: z.string().optional(),
+  }),
+  z.object({
+    ...baseEventFields,
+    type: z.literal('team_pool_heal'),
+    side: SideSchema,
+    amount: z.number().positive(),
+    postHp: z.number(),
+    sourceInstanceId: z.string().optional(),
+  }),
+  z.object({
+    ...baseEventFields,
+    type: z.literal('team_pool_shield_applied'),
+    side: SideSchema,
+    amount: z.number().positive(),
+    sourceInstanceId: z.string().optional(),
+  }),
+  z.object({
+    ...baseEventFields,
+    type: z.literal('ability_triggered'),
+    instanceId: z.string(),
+    abilityId: z.string(),
+    trigger: z.string(),
+  }),
+  z.object({ ...baseEventFields, type: z.literal('victory'), winner: SideSchema }),
+  z.object({ ...baseEventFields, type: z.literal('end') }),
+]);
+export type CombatEvent = z.infer<typeof CombatEventSchema>;
+
+export const CombatLogSchema = z.object({
+  combatId: z.string(),
+  seed: z.number().int(),
+  events: z.array(CombatEventSchema),
+});
+export type CombatLog = z.infer<typeof CombatLogSchema>;
