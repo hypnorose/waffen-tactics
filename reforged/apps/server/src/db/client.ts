@@ -32,6 +32,17 @@ CREATE TABLE IF NOT EXISTS runs (
   updated_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS run_snapshots (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  username TEXT NOT NULL,
+  elo INTEGER NOT NULL,
+  round_number INTEGER NOT NULL,
+  units_json TEXT NOT NULL,
+  augments_picked_json TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS combat_logs (
   id TEXT PRIMARY KEY,
   run_id TEXT NOT NULL,
@@ -43,6 +54,7 @@ CREATE TABLE IF NOT EXISTS combat_logs (
 
 CREATE INDEX IF NOT EXISTS idx_runs_user_id ON runs (user_id);
 CREATE INDEX IF NOT EXISTS idx_combat_logs_run_id ON combat_logs (run_id);
+CREATE INDEX IF NOT EXISTS idx_run_snapshots_user_id ON run_snapshots (user_id);
 `;
 
 export type Db = ReturnType<typeof createDb>;

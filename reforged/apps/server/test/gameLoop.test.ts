@@ -29,7 +29,7 @@ describe('full round loop: shop -> board -> reroll -> level -> augment', () => {
   it('walks a run through the whole economy + augment cycle', async () => {
     const run = await createRun();
     expect(run.status).toBe('active');
-    expect(run.gold).toBe(10);
+    expect(run.gold).toBe(50);
 
     // buy the first shop offer onto the bench
     const buyRes = await app.inject({
@@ -41,7 +41,7 @@ describe('full round loop: shop -> board -> reroll -> level -> augment', () => {
     expect(buyRes.statusCode).toBe(200);
     const afterBuy = buyRes.json() as RunState;
     expect(afterBuy.units).toHaveLength(1);
-    expect(afterBuy.gold).toBeLessThan(10);
+    expect(afterBuy.gold).toBeLessThan(run.gold);
     const unitInstanceId = afterBuy.units[0].instanceId;
 
     // place it on the 3x3 board

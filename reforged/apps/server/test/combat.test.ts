@@ -78,6 +78,48 @@ describe('combat orchestration', () => {
     expect(fetchRes.json().combatId).toBe(body.combatLog.combatId);
   });
 
+  it('prefers a snapshot of another real player at the same round over the bot ladder', async () => {
+    // Seed a snapshot: user A fights once at round 1.
+    const runIdA = await createRunWithBoardedUnit();
+    const startResA = await app.inject({
+      method: 'POST',
+      url: `/api/run/${runIdA}/combat/start`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(startResA.statusCode).toBe(200);
+
+    // User B's very first fight (also round 1, same starting elo) should be
+    // matched against A's snapshot instead of a bot.
+    const otherToken = await loginTestUser(app, db, `discord-other-${Math.random()}`);
+    const runRes = await app.inject({
+      method: 'POST',
+      url: '/api/run',
+      headers: { authorization: `Bearer ${otherToken}` },
+    });
+    const run = runRes.json() as RunState;
+    const buyRes = await app.inject({
+      method: 'POST',
+      url: `/api/run/${run.runId}/buy`,
+      headers: { authorization: `Bearer ${otherToken}` },
+      payload: { offerIndex: 0 },
+    });
+    const unitInstanceId = (buyRes.json() as RunState).units[0].instanceId;
+    await app.inject({
+      method: 'POST',
+      url: `/api/run/${run.runId}/board/place`,
+      headers: { authorization: `Bearer ${otherToken}` },
+      payload: { unitInstanceId, position: { row: 1, col: 1 } },
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/run/${run.runId}/combat/start`,
+      headers: { authorization: `Bearer ${otherToken}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().opponentName).toMatch(/^player-discord-fighter-/);
+  });
+
   it('rejects fetching another user\'s combat log', async () => {
     const runId = await createRunWithBoardedUnit();
     const startRes = await app.inject({

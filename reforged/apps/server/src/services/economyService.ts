@@ -1,6 +1,6 @@
 import { shopOddsForLevel, xpToNextLevel, type UnitDef } from '@reforged/schema';
 
-export const STARTING_GOLD = 10;
+export const STARTING_GOLD = 50;
 export const REROLL_COST = 2;
 export const BUY_XP_COST = 4;
 export const BUY_XP_AMOUNT = 4;
@@ -26,10 +26,10 @@ export function applyXp(level: number, xp: number, xpGained: number): { level: n
   return { level: nextLevel, xp: nextXp };
 }
 
-/** Flat base income + savings interest (1 gold per 10 gold saved, capped at 5). */
+/** Flat base income + savings interest (1 gold per 10 gold saved, capped at 25) — 5x the original economy. */
 export function roundIncome(gold: number): number {
-  const interest = Math.min(5, Math.floor(gold / 10));
-  return 5 + interest;
+  const interest = Math.min(25, Math.floor(gold / 10));
+  return 25 + interest;
 }
 
 function pickWeighted<T>(items: T[], weights: number[]): T {

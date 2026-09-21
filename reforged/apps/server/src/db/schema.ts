@@ -29,6 +29,17 @@ export const runs = sqliteTable('runs', {
   updatedAt: integer('updated_at').notNull(),
 });
 
+export const runSnapshots = sqliteTable('run_snapshots', {
+  id: text('id').primaryKey(), // `${userId}:${roundNumber}` — one snapshot per user per round, overwritten as they replay
+  userId: text('user_id').notNull(),
+  username: text('username').notNull(),
+  elo: integer('elo').notNull(),
+  roundNumber: integer('round_number').notNull(),
+  unitsJson: text('units_json').notNull(), // { position, unitId }[], board layout at this round
+  augmentsPickedJson: text('augments_picked_json').notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+
 export const combatLogs = sqliteTable('combat_logs', {
   id: text('id').primaryKey(),
   runId: text('run_id').notNull(),
