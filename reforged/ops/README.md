@@ -27,7 +27,7 @@ Create `apps/server/.env.production` (never commit this):
 ```
 PORT=8091
 HOST=127.0.0.1
-DB_FILE=/home/ubuntu/waffen-tactics-reforged/reforged.sqlite3
+DB_FILE=/home/ubuntu/waffen-tactics-reforged/reforged/apps/server/reforged.sqlite3
 JWT_SECRET=<generate with: openssl rand -base64 48>
 ```
 
