@@ -2,6 +2,7 @@ import { useDraggable } from '@dnd-kit/core';
 import type { UnitDef } from '@reforged/schema';
 import { rarityClass, tagClass } from '../../lib/unitStyle.js';
 import { UnitAbilityTooltip } from './UnitAbilityTooltip.js';
+import { UnitStatRow } from './UnitStatRow.js';
 
 interface Props {
   instanceId: string;
@@ -41,6 +42,7 @@ export function UnitToken({ instanceId, unitDef, onMouseEnter, onMouseLeave }: P
           </span>
         ))}
       </div>
+      <UnitStatRow unitDef={unitDef} />
       <UnitAbilityTooltip unitDef={unitDef} />
     </div>
   );

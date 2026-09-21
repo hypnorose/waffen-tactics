@@ -1,6 +1,7 @@
 import type { UnitDef } from '@reforged/schema';
 import { rarityClass, tagClass } from '../../lib/unitStyle.js';
 import { UnitAbilityTooltip } from '../board/UnitAbilityTooltip.js';
+import { UnitStatRow } from '../board/UnitStatRow.js';
 
 interface Props {
   unitDef?: UnitDef;
@@ -28,6 +29,7 @@ export function ShopOfferCard({ unitDef, onBuy, disabled }: Props) {
           </span>
         ))}
       </div>
+      <UnitStatRow unitDef={unitDef} />
       <div className="shop-offer-cost">{unitDef.cost}g</div>
       <button onClick={onBuy} disabled={disabled}>
         Kup

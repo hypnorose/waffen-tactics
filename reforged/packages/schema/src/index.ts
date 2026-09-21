@@ -9,3 +9,4 @@ export * from './augment.js';
 export * from './combat.js';
 export * from './rank.js';
 export * from './user.js';
+export * from './balance.js';

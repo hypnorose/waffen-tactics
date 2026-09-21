@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { runCombat, type CombatParticipantInput } from '@reforged/combat-engine';
 import { getUnitDefs } from '@reforged/content-data';
 import type { CombatLog, RunState, Side, UnitDef } from '@reforged/schema';
+import { unitHpContribution } from '@reforged/schema';
 import type { Db } from '../db/client.js';
 import { insertCombatLog } from '../db/combatLogRepository.js';
 import { findUserById, updateElo } from '../db/userRepository.js';
@@ -10,16 +11,8 @@ import { findOpponent } from './matchmakingService.js';
 import { eloDelta } from './rankService.js';
 import { advanceRound, applyMatchResult, persistRun } from './runService.js';
 
-// Placeholder balance (like economyService's odds/xp tables): each unit on
-// the board contributes a flat + cost-scaled slice of its team's shared HP
-// pool. Defense (see combat-engine's mitigation formula) is the only stat
-// that reduces incoming damage — pool size is purely "how much roster you
-// committed to this fight".
-const BASE_UNIT_HP = 50;
-const HP_PER_COST = 20;
-
 function computeTeamHpMax(unitIds: string[], unitDefs: Record<string, UnitDef>): number {
-  return unitIds.reduce((sum, unitId) => sum + BASE_UNIT_HP + (unitDefs[unitId]?.cost ?? 1) * HP_PER_COST, 0);
+  return unitIds.reduce((sum, unitId) => sum + unitHpContribution(unitDefs[unitId]?.cost ?? 1), 0);
 }
 
 export interface CombatResult {
