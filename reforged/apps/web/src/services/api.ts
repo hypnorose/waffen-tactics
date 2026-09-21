@@ -1,0 +1,64 @@
+import type { AugmentDef, BoardPosition, CombatLog, RunState, Side, Tag, UnitDef } from '@reforged/schema';
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+let token: string | null = null;
+export function setToken(next: string | null): void {
+  token = next;
+}
+
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, payload.error ?? res.statusText);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+export const api = {
+  register: (email: string, password: string) => request<{ token: string }>('POST', '/api/auth/register', { email, password }),
+  login: (email: string, password: string) => request<{ token: string }>('POST', '/api/auth/login', { email, password }),
+
+  getUnits: () => request<UnitDef[]>('GET', '/api/content/units'),
+  getTags: () => request<Tag[]>('GET', '/api/content/tags'),
+
+  getCurrentRun: () => request<RunState>('GET', '/api/run/current'),
+  createRun: () => request<RunState>('POST', '/api/run'),
+  getRunState: (runId: string) => request<RunState>('GET', `/api/run/${runId}/state`),
+  surrender: (runId: string) => request<RunState>('POST', `/api/run/${runId}/surrender`),
+
+  reroll: (runId: string) => request<RunState>('POST', `/api/run/${runId}/shop/reroll`),
+  toggleLock: (runId: string) => request<RunState>('POST', `/api/run/${runId}/shop/toggle-lock`),
+  buy: (runId: string, offerIndex: number) => request<RunState>('POST', `/api/run/${runId}/buy`, { offerIndex }),
+  sell: (runId: string, unitInstanceId: string) => request<RunState>('POST', `/api/run/${runId}/sell`, { unitInstanceId }),
+  buyXp: (runId: string) => request<RunState>('POST', `/api/run/${runId}/buy-xp`),
+
+  place: (runId: string, unitInstanceId: string, position: BoardPosition) =>
+    request<RunState>('POST', `/api/run/${runId}/board/place`, { unitInstanceId, position }),
+  bench: (runId: string, unitInstanceId: string) => request<RunState>('POST', `/api/run/${runId}/board/bench`, { unitInstanceId }),
+
+  getAugmentOffers: (runId: string) => request<AugmentDef[]>('GET', `/api/run/${runId}/augment/offers`),
+  pickAugment: (runId: string, augmentId: string) => request<RunState>('POST', `/api/run/${runId}/augment/pick`, { augmentId }),
+
+  startCombat: (runId: string) =>
+    request<{ run: RunState; combatLog: CombatLog; winner: Side }>('POST', `/api/run/${runId}/combat/start`),
+};

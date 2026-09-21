@@ -171,6 +171,8 @@ export function runCombat(input: RunCombatInput): CombatLog {
     type: 'units_init',
     player: combatUnitStates.filter((u) => u.side === 'player'),
     enemy: combatUnitStates.filter((u) => u.side === 'enemy'),
+    playerHpMax: pools.player.hpMax,
+    enemyHpMax: pools.enemy.hpMax,
   });
   log.push({ simTime: 0, type: 'start' });
 

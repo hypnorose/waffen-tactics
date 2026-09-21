@@ -41,6 +41,8 @@ export const CombatEventSchema = z.discriminatedUnion('type', [
     type: z.literal('units_init'),
     player: z.array(UnitCombatStateSchema),
     enemy: z.array(UnitCombatStateSchema),
+    playerHpMax: z.number().positive(),
+    enemyHpMax: z.number().positive(),
   }),
   z.object({ ...baseEventFields, type: z.literal('start') }),
   z.object({
