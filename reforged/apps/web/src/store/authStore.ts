@@ -1,7 +1,13 @@
 import { create } from 'zustand';
-import { api, setToken } from '../services/api.js';
+import type { UserProfile } from '@reforged/schema';
+import { api, ApiError, setToken } from '../services/api.js';
 
 const STORAGE_KEY = 'reforged.token';
+const DISCORD_CLIENT_ID = import.meta.env.VITE_DISCORD_CLIENT_ID ?? '';
+
+function redirectUri(): string {
+  return `${window.location.origin}/auth/callback`;
+}
 
 function readStoredToken(): string | null {
   try {
@@ -22,10 +28,12 @@ function writeStoredToken(token: string | null): void {
 
 interface AuthState {
   token: string | null;
+  profile: UserProfile | null;
   error: string | null;
   loading: boolean;
-  register: (email: string, password: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  loginWithDiscord: () => void;
+  completeDiscordCallback: (code: string) => Promise<void>;
+  refreshProfile: () => Promise<void>;
   logout: () => void;
 }
 
@@ -34,36 +42,43 @@ setToken(initialToken);
 
 export const useAuthStore = create<AuthState>((set) => ({
   token: initialToken,
+  profile: null,
   error: null,
   loading: false,
 
-  register: async (email, password) => {
+  loginWithDiscord: () => {
+    if (!DISCORD_CLIENT_ID) {
+      set({ error: 'Brak skonfigurowanego VITE_DISCORD_CLIENT_ID' });
+      return;
+    }
+    const url = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri())}&response_type=code&scope=identify`;
+    window.location.href = url;
+  },
+
+  completeDiscordCallback: async (code) => {
     set({ loading: true, error: null });
     try {
-      const { token } = await api.register(email, password);
+      const { token, profile } = await api.exchangeDiscordCode(code);
       setToken(token);
       writeStoredToken(token);
-      set({ token, loading: false });
+      set({ token, profile, loading: false });
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : String(err), loading: false });
+      set({ error: err instanceof ApiError ? err.message : String(err), loading: false });
     }
   },
 
-  login: async (email, password) => {
-    set({ loading: true, error: null });
+  refreshProfile: async () => {
     try {
-      const { token } = await api.login(email, password);
-      setToken(token);
-      writeStoredToken(token);
-      set({ token, loading: false });
-    } catch (err) {
-      set({ error: err instanceof Error ? err.message : String(err), loading: false });
+      const profile = await api.getMe();
+      set({ profile });
+    } catch {
+      // non-fatal — header just won't update until the next successful refresh
     }
   },
 
   logout: () => {
     setToken(null);
     writeStoredToken(null);
-    set({ token: null });
+    set({ token: null, profile: null });
   },
 }));

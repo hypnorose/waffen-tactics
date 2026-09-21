@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { BoardPosition, CombatLog, RunState, Side, Tag, UnitDef } from '@reforged/schema';
 import { api, ApiError } from '../services/api.js';
+import { useAuthStore } from './authStore.js';
 
 interface RunStoreState {
   run: RunState | null;
@@ -115,6 +116,7 @@ export const useRunStore = create<RunStoreState>((set, get) => ({
     try {
       const result = await api.startCombat(current.runId);
       set({ run: result.run, lastCombat: { combatLog: result.combatLog, winner: result.winner }, loading: false });
+      useAuthStore.getState().refreshProfile(); // elo changed server-side
     } catch (err) {
       set({ error: err instanceof Error ? err.message : String(err), loading: false });
     }

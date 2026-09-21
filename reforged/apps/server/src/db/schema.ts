@@ -1,9 +1,10 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-  email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
+  id: text('id').primaryKey(), // Discord user id (snowflake)
+  username: text('username').notNull(),
+  avatarHash: text('avatar_hash'), // nullable — Discord users can have no custom avatar
+  elo: integer('elo').notNull(),
   createdAt: integer('created_at').notNull(),
 });
 

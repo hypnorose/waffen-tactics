@@ -5,8 +5,9 @@ import * as schema from './schema.js';
 const DDL = `
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
+  username TEXT NOT NULL,
+  avatar_hash TEXT,
+  elo INTEGER NOT NULL,
   created_at INTEGER NOT NULL
 );
 

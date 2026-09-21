@@ -4,19 +4,11 @@ import type { RunState } from '@reforged/schema';
 import { buildApp } from '../src/app.js';
 import { createDb, type Db } from '../src/db/client.js';
 import { advanceRound, persistRun } from '../src/services/runService.js';
+import { loginTestUser } from './testAuth.js';
 
 let app: FastifyInstance;
 let db: Db;
 let token: string;
-
-async function register(email: string) {
-  const res = await app.inject({
-    method: 'POST',
-    url: '/api/auth/register',
-    payload: { email, password: 'hunter2hunter2' },
-  });
-  return res.json().token as string;
-}
 
 async function createRun() {
   const res = await app.inject({
@@ -30,7 +22,7 @@ async function createRun() {
 beforeEach(async () => {
   db = createDb(':memory:');
   app = buildApp(db);
-  token = await register(`player-${Math.random()}@example.com`);
+  token = await loginTestUser(app, db, `discord-${Math.random()}`);
 });
 
 describe('full round loop: shop -> board -> reroll -> level -> augment', () => {
@@ -119,7 +111,7 @@ describe('full round loop: shop -> board -> reroll -> level -> augment', () => {
 
   it('rejects acting on another user\'s run', async () => {
     const run = await createRun();
-    const otherToken = await register(`other-${Math.random()}@example.com`);
+    const otherToken = await loginTestUser(app, db, `discord-other-${Math.random()}`);
     const res = await app.inject({
       method: 'GET',
       url: `/api/run/${run.runId}/state`,

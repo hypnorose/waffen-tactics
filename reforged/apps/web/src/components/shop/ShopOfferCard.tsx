@@ -1,4 +1,5 @@
 import type { UnitDef } from '@reforged/schema';
+import { UnitAbilityTooltip } from '../board/UnitAbilityTooltip.js';
 
 interface Props {
   unitDef?: UnitDef;
@@ -30,6 +31,7 @@ export function ShopOfferCard({ unitDef, onBuy, disabled }: Props) {
       <button onClick={onBuy} disabled={disabled}>
         Kup
       </button>
+      <UnitAbilityTooltip unitDef={unitDef} />
     </div>
   );
 }

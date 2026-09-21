@@ -4,8 +4,10 @@ import { getUnitDefs } from '@reforged/content-data';
 import type { CombatLog, RunState, Side, UnitDef } from '@reforged/schema';
 import type { Db } from '../db/client.js';
 import { insertCombatLog } from '../db/combatLogRepository.js';
+import { findUserById, updateElo } from '../db/userRepository.js';
 import { autoPlaceOnBoard } from './boardService.js';
 import { findOpponent } from './matchmakingService.js';
+import { eloDelta } from './rankService.js';
 import { advanceRound, applyMatchResult, persistRun } from './runService.js';
 
 // Placeholder balance (like economyService's odds/xp tables): each unit on
@@ -85,6 +87,9 @@ export function runCombatForRun(db: Db, run: RunState): CombatResult {
 
   persistRun(db, finalRun);
   insertCombatLog(db, run.runId, combatLog, winner);
+
+  const user = findUserById(db, run.userId);
+  if (user) updateElo(db, user.id, user.elo + eloDelta(winner === 'player', opponent));
 
   return { run: finalRun, combatLog, winner };
 }

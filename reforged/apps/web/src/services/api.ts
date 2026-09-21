@@ -1,4 +1,4 @@
-import type { AugmentDef, BoardPosition, CombatLog, RunState, Side, Tag, UnitDef } from '@reforged/schema';
+import type { AugmentDef, BoardPosition, CombatLog, RunState, Side, Tag, UnitDef, UserProfile } from '@reforged/schema';
 
 // Relative by default: works unmodified once deployed same-origin behind
 // Caddy. Dev proxies /api through Vite (see vite.config.ts) instead of
@@ -38,8 +38,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 export const api = {
-  register: (email: string, password: string) => request<{ token: string }>('POST', '/api/auth/register', { email, password }),
-  login: (email: string, password: string) => request<{ token: string }>('POST', '/api/auth/login', { email, password }),
+  exchangeDiscordCode: (code: string) => request<{ token: string; profile: UserProfile }>('POST', '/api/auth/discord/exchange', { code }),
+  getMe: () => request<UserProfile>('GET', '/api/me'),
 
   getUnits: () => request<UnitDef[]>('GET', '/api/content/units'),
   getTags: () => request<Tag[]>('GET', '/api/content/tags'),

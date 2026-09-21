@@ -11,6 +11,10 @@
   --bronze: #a9713f;
   --silver: #b9c0cc;
   --gold-tier: #e0b93f;
+  --platinum: #4fd8c4;
+  --diamond: #6fb3ff;
+  --master: #d477ff;
+  --discord: #5865f2;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
@@ -81,9 +85,29 @@ button.active {
   border: none;
   color: var(--accent);
 }
+.auth-subtitle {
+  color: var(--text-dim);
+}
+.discord-login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  background: var(--discord);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+}
+.discord-login-button:hover {
+  filter: brightness(1.1);
+}
 
-/* Run page */
-.run-page {
+/* App shell / player header */
+.app-shell {
   max-width: 900px;
   margin: 0 auto;
   padding: 1rem;
@@ -91,10 +115,102 @@ button.active {
   flex-direction: column;
   gap: 1rem;
 }
-.run-header {
+.player-header {
   display: flex;
-  gap: 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+.player-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.player-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent);
+}
+.player-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel-alt);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.player-identity-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.player-username {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
   font-weight: 600;
+  width: fit-content;
+  border: 1px solid var(--border);
+}
+.rank-badge .rank-elo {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.rank-badge.tier-bronze {
+  border-color: var(--bronze);
+  color: var(--bronze);
+}
+.rank-badge.tier-silver {
+  border-color: var(--silver);
+  color: var(--silver);
+}
+.rank-badge.tier-gold {
+  border-color: var(--gold-tier);
+  color: var(--gold-tier);
+}
+.rank-badge.tier-platinum {
+  border-color: var(--platinum);
+  color: var(--platinum);
+}
+.rank-badge.tier-diamond {
+  border-color: var(--diamond);
+  color: var(--diamond);
+}
+.rank-badge.tier-master {
+  border-color: var(--master);
+  color: var(--master);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--master) 40%, transparent);
+}
+.run-stats {
+  display: flex;
+  gap: 1.25rem;
+  font-weight: 600;
+}
+.run-stat-win {
+  color: var(--gold);
+}
+.run-stat-loss {
+  color: var(--hp);
+}
+
+/* Run page */
+.run-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 /* Board */
@@ -123,45 +239,101 @@ button.active {
 }
 
 .unit-token {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 4px;
+  gap: 4px;
+  padding: 6px;
   cursor: grab;
   user-select: none;
   touch-action: none;
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+.unit-token:hover {
+  background: var(--panel-alt);
 }
 .unit-token.is-dragging {
   opacity: 0.6;
 }
 .unit-emoji {
-  font-size: 1.8rem;
+  font-size: 2.4rem;
   line-height: 1;
 }
 .unit-avatar {
-  width: 40px;
-  height: 40px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 .unit-name {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--text-dim);
 }
 .unit-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: 3px;
   justify-content: center;
 }
 .unit-tag {
-  font-size: 0.6rem;
+  font-size: 0.62rem;
   background: var(--panel-alt);
   border-radius: 4px;
-  padding: 1px 4px;
+  padding: 1px 5px;
   color: var(--text-dim);
+}
+
+/* Ability tooltip — shown on hover of the enclosing card (.unit-token / .shop-offer, both position:relative) */
+.unit-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: 220px;
+  background: #0c0e15;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+  z-index: 50;
+}
+.unit-token:hover .unit-tooltip,
+.shop-offer:hover .unit-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.unit-tooltip-title {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.unit-tooltip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+.unit-tooltip-ability {
+  font-size: 0.75rem;
+  color: var(--text);
+  margin: 4px 0;
+  line-height: 1.35;
+}
+.unit-tooltip-ability.muted {
+  color: var(--text-dim);
+  font-style: italic;
 }
 
 /* Bench */
@@ -215,14 +387,23 @@ button.active {
   gap: 0.5rem;
 }
 .shop-offer {
+  position: relative;
   background: var(--panel-alt);
-  border-radius: 8px;
-  padding: 0.5rem;
+  border-radius: 10px;
+  padding: 0.6rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-height: 110px;
+  min-height: 150px;
+  border: 1px solid var(--border);
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease;
+}
+.shop-offer:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
 }
 .shop-offer.is-empty {
   opacity: 0.3;
@@ -371,11 +552,12 @@ button.active {
   font-size: 1.3rem;
 }
 .unit-charge-avatar {
-  width: 28px;
-  height: 28px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+  border: 1px solid var(--border);
 }
 .unit-charge-track {
   flex: 1;

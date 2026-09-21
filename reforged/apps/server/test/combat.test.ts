@@ -3,24 +3,16 @@ import type { FastifyInstance } from 'fastify';
 import type { RunState } from '@reforged/schema';
 import { buildApp } from '../src/app.js';
 import { createDb, type Db } from '../src/db/client.js';
+import { loginTestUser } from './testAuth.js';
 
 let app: FastifyInstance;
 let db: Db;
 let token: string;
 
-async function register(email: string) {
-  const res = await app.inject({
-    method: 'POST',
-    url: '/api/auth/register',
-    payload: { email, password: 'hunter2hunter2' },
-  });
-  return res.json().token as string;
-}
-
 beforeEach(async () => {
   db = createDb(':memory:');
   app = buildApp(db);
-  token = await register(`fighter-${Math.random()}@example.com`);
+  token = await loginTestUser(app, db, `discord-fighter-${Math.random()}`);
 });
 
 async function createRunWithBoardedUnit() {
@@ -95,7 +87,7 @@ describe('combat orchestration', () => {
     });
     const { combatLog } = startRes.json();
 
-    const otherToken = await register(`other-${Math.random()}@example.com`);
+    const otherToken = await loginTestUser(app, db, `discord-other-${Math.random()}`);
     const res = await app.inject({
       method: 'GET',
       url: `/api/combat/${combatLog.combatId}`,

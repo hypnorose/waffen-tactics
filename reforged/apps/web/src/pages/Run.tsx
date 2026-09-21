@@ -36,12 +36,6 @@ export function Run() {
 
   return (
     <div className="run-page">
-      <header className="run-header">
-        <span>Runda {run.roundNumber}</span>
-        <span>🏆 {run.wins} / 10</span>
-        <span>💀 {run.losses} / 5</span>
-      </header>
-
       <DndContext onDragEnd={handleDragEnd}>
         <Board3x3 run={run} units={units} />
         <BenchPanel run={run} units={units} onSell={sell} />

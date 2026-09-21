@@ -1,39 +1,34 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { hashPassword, verifyPassword } from '../auth/password.js';
+import { getRankInfo } from '@reforged/schema';
+import { discordAvatarUrl, exchangeDiscordCode, DiscordAuthError } from '../auth/discord.js';
 import type { Db } from '../db/client.js';
-import { createUser, findUserByEmail } from '../db/userRepository.js';
+import { upsertDiscordUser } from '../db/userRepository.js';
 
-const CredentialsSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
+const ExchangeSchema = z.object({ code: z.string().min(1) });
 
 export function registerAuthRoutes(app: FastifyInstance, db: Db): void {
-  app.post('/api/auth/register', async (request, reply) => {
-    const parsed = CredentialsSchema.safeParse(request.body);
-    if (!parsed.success) return reply.code(400).send({ error: 'invalid_credentials' });
+  app.post('/api/auth/discord/exchange', async (request, reply) => {
+    const parsed = ExchangeSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'missing_code' });
 
-    const { email, password } = parsed.data;
-    if (findUserByEmail(db, email)) return reply.code(409).send({ error: 'email_taken' });
+    try {
+      const discordUser = await exchangeDiscordCode(parsed.data.code);
+      const user = upsertDiscordUser(db, discordUser);
+      const token = app.jwt.sign({ userId: user.id });
 
-    const passwordHash = await hashPassword(password);
-    const user = createUser(db, email, passwordHash);
-    const token = app.jwt.sign({ userId: user.id });
-    return reply.code(201).send({ token });
-  });
-
-  app.post('/api/auth/login', async (request, reply) => {
-    const parsed = CredentialsSchema.safeParse(request.body);
-    if (!parsed.success) return reply.code(400).send({ error: 'invalid_credentials' });
-
-    const { email, password } = parsed.data;
-    const user = findUserByEmail(db, email);
-    if (!user || !(await verifyPassword(password, user.passwordHash))) {
-      return reply.code(401).send({ error: 'invalid_credentials' });
+      return reply.send({
+        token,
+        profile: {
+          discordId: user.id,
+          username: user.username,
+          avatarUrl: discordAvatarUrl({ id: user.id, avatarHash: user.avatarHash }),
+          rank: getRankInfo(user.elo),
+        },
+      });
+    } catch (err) {
+      if (err instanceof DiscordAuthError) return reply.code(401).send({ error: err.message });
+      throw err;
     }
-
-    const token = app.jwt.sign({ userId: user.id });
-    return reply.send({ token });
   });
 }

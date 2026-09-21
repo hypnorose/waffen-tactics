@@ -12,6 +12,7 @@ import { registerAugmentRoutes } from './routes/augment.routes.js';
 import { registerCombatRoutes } from './routes/combat.routes.js';
 import { registerContentRoutes } from './routes/content.routes.js';
 import { registerLeaderboardRoutes } from './routes/leaderboard.routes.js';
+import { registerProfileRoutes } from './routes/profile.routes.js';
 
 export function buildApp(db: Db = createDb(config.dbFile)) {
   const app = Fastify({ logger: true });
@@ -29,6 +30,7 @@ export function buildApp(db: Db = createDb(config.dbFile)) {
   registerCombatRoutes(app, db);
   registerContentRoutes(app);
   registerLeaderboardRoutes(app, db);
+  registerProfileRoutes(app, db);
 
   return app;
 }

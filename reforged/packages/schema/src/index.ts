@@ -7,3 +7,5 @@ export * from './unit.js';
 export * from './run.js';
 export * from './augment.js';
 export * from './combat.js';
+export * from './rank.js';
+export * from './user.js';
