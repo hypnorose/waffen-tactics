@@ -37,8 +37,9 @@ export const BUY_XP_COST = 4;
 export const BUY_XP_AMOUNT = 4;
 export const MAX_BENCH_SIZE = 9;
 
-export function maxBoardUnits(level: number): number {
-  return Math.min(level, 9);
+/** Board capacity is fixed at the full 3x3 grid from round 1 — it does not scale with level. */
+export function maxBoardUnits(_level: number): number {
+  return 9;
 }
 
 export function xpToNextLevel(level: number): number | null {

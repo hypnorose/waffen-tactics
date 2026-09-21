@@ -26,7 +26,11 @@ export function UnitToken({ instanceId, unitDef, onMouseEnter, onMouseLeave }: P
       onMouseLeave={onMouseLeave}
       title={unitDef.name}
     >
-      <div className="unit-emoji">{unitDef.emoji}</div>
+      {unitDef.avatar ? (
+        <img className="unit-avatar" src={unitDef.avatar} alt="" />
+      ) : (
+        <div className="unit-emoji">{unitDef.emoji}</div>
+      )}
       <div className="unit-name">{unitDef.name}</div>
       <div className="unit-tags">
         {unitDef.tags.map((tag) => (

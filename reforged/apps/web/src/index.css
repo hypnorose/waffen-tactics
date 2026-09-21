@@ -139,6 +139,13 @@ button.active {
   font-size: 1.8rem;
   line-height: 1;
 }
+.unit-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
 .unit-name {
   font-size: 0.7rem;
   color: var(--text-dim);
@@ -362,6 +369,13 @@ button.active {
 }
 .unit-charge-emoji {
   font-size: 1.3rem;
+}
+.unit-charge-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 .unit-charge-track {
   flex: 1;

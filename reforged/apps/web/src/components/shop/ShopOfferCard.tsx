@@ -13,7 +13,11 @@ export function ShopOfferCard({ unitDef, onBuy, disabled }: Props) {
 
   return (
     <div className="shop-offer">
-      <div className="unit-emoji">{unitDef.emoji}</div>
+      {unitDef.avatar ? (
+        <img className="unit-avatar" src={unitDef.avatar} alt="" />
+      ) : (
+        <div className="unit-emoji">{unitDef.emoji}</div>
+      )}
       <div className="unit-name">{unitDef.name}</div>
       <div className="unit-tags">
         {unitDef.tags.map((tag) => (

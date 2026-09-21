@@ -51,8 +51,7 @@ export const unitsData = [
     "name": "Szanowny Kantor",
     "cost": 4,
     "tags": [
-      "tworca",
-      "femboy"
+      "srebrna-gwardia"
     ],
     "emoji": "🛡️",
     "avatar": "/avatars/set2/kantor.png",
@@ -67,8 +66,7 @@ export const unitsData = [
     "name": "Chessowy Mentos",
     "cost": 2,
     "tags": [
-      "tworca",
-      "muzyk"
+      "szachista"
     ],
     "emoji": "🔮",
     "avatar": "/avatars/set2/chessowymentos.png",
@@ -99,8 +97,7 @@ export const unitsData = [
     "name": "GalAnonim",
     "cost": 5,
     "tags": [
-      "muzyk",
-      "femboy"
+      "konfident"
     ],
     "emoji": "⚔️",
     "avatar": "/avatars/set2/galanonimpl-avatar-1024.png",
@@ -115,8 +112,7 @@ export const unitsData = [
     "name": "Pytl",
     "cost": 4,
     "tags": [
-      "konfident",
-      "inwestor"
+      "konfident"
     ],
     "emoji": "🔮",
     "avatar": "/avatars/set2/_pytl-avatar-1024.png",
@@ -147,7 +143,6 @@ export const unitsData = [
     "name": "AlysonStark",
     "cost": 4,
     "tags": [
-      "weeb",
       "starociota"
     ],
     "emoji": "🗡️",
@@ -178,7 +173,6 @@ export const unitsData = [
     "name": "auSSher",
     "cost": 3,
     "tags": [
-      "weeb",
       "nowociota"
     ],
     "emoji": "🔮",
@@ -194,8 +188,7 @@ export const unitsData = [
     "name": "szalwia",
     "cost": 3,
     "tags": [
-      "figlarz",
-      "femboy"
+      "figlarz"
     ],
     "emoji": "🔮",
     "avatar": "/avatars/set2/szalwia.png",
@@ -210,8 +203,7 @@ export const unitsData = [
     "name": "mr0czeq1",
     "cost": 2,
     "tags": [
-      "nowociota",
-      "femboy"
+      "nowociota"
     ],
     "emoji": "🔮",
     "avatar": "/avatars/set2/mroczeq.png",
@@ -226,8 +218,7 @@ export const unitsData = [
     "name": "OptimusPrime",
     "cost": 3,
     "tags": [
-      "haxball",
-      "muzyk"
+      "konfident"
     ],
     "emoji": "⚔️",
     "avatar": "/avatars/set2/optimusprime67676767-avatar-1024.png",
@@ -242,8 +233,7 @@ export const unitsData = [
     "name": "KotMarcek",
     "cost": 2,
     "tags": [
-      "femboy",
-      "haxball"
+      "figlarz"
     ],
     "emoji": "🗡️",
     "avatar": "/avatars/set2/marcek_heban-avatar-1024.png",
@@ -274,8 +264,7 @@ export const unitsData = [
     "name": "FallenSmokk",
     "cost": 2,
     "tags": [
-      "nowociota",
-      "weeb"
+      "nowociota"
     ],
     "emoji": "⚔️",
     "avatar": "/avatars/set2/fallensmok.png",
@@ -306,8 +295,7 @@ export const unitsData = [
     "name": "Kaktusek",
     "cost": 2,
     "tags": [
-      "wierny-widz",
-      "weeb"
+      "konfident"
     ],
     "emoji": "⚔️",
     "avatar": "/avatars/set2/kaktusekmatusek-avatar-1024.png",
@@ -322,8 +310,7 @@ export const unitsData = [
     "name": "EmptyMelancholy",
     "cost": 3,
     "tags": [
-      "wierny-widz",
-      "weeb"
+      "srebrna-gwardia"
     ],
     "emoji": "🛡️",
     "avatar": "/avatars/set2/melancholykillsme-avatar-1024.png",
@@ -338,8 +325,7 @@ export const unitsData = [
     "name": "4Tune",
     "cost": 4,
     "tags": [
-      "figlarz",
-      "inwestor"
+      "figlarz"
     ],
     "emoji": "🗡️",
     "avatar": "/avatars/set2/4tune.png",
@@ -354,8 +340,7 @@ export const unitsData = [
     "name": "JaDlaInwestycji",
     "cost": 3,
     "tags": [
-      "wierny-widz",
-      "inwestor"
+      "figlarz"
     ],
     "emoji": "🗡️",
     "avatar": "/avatars/set2/xkuba.h-avatar-1024.png",
@@ -370,7 +355,6 @@ export const unitsData = [
     "name": "boczek",
     "cost": 1,
     "tags": [
-      "wierny-widz",
       "konfident"
     ],
     "emoji": "🛡️",
@@ -386,7 +370,6 @@ export const unitsData = [
     "name": "merex",
     "cost": 5,
     "tags": [
-      "femboy",
       "starociota"
     ],
     "emoji": "🗡️",
@@ -402,7 +385,6 @@ export const unitsData = [
     "name": "Marcel Galadotka",
     "cost": 2,
     "tags": [
-      "wierny-widz",
       "nowociota"
     ],
     "emoji": "🔮",
@@ -418,8 +400,7 @@ export const unitsData = [
     "name": "Klemens Żydosławski",
     "cost": 4,
     "tags": [
-      "figlarz",
-      "tworca"
+      "figlarz"
     ],
     "emoji": "🔮",
     "avatar": "/avatars/set2/klemens.png",
@@ -434,8 +415,7 @@ export const unitsData = [
     "name": "Nicość",
     "cost": 4,
     "tags": [
-      "konfident",
-      "wierny-widz"
+      "konfident"
     ],
     "emoji": "🛡️",
     "avatar": "/avatars/set2/niko_official-avatar-1024.png",
@@ -450,8 +430,7 @@ export const unitsData = [
     "name": "Knauff",
     "cost": 3,
     "tags": [
-      "haxball",
-      "inwestor"
+      "figlarz"
     ],
     "emoji": "🗡️",
     "avatar": "/avatars/set2/knauff.png",
@@ -482,7 +461,6 @@ export const unitsData = [
     "name": "SzachowyMentor",
     "cost": 5,
     "tags": [
-      "weeb",
       "szachista"
     ],
     "emoji": "🔮",
@@ -498,7 +476,6 @@ export const unitsData = [
     "name": "9wojtaz9",
     "cost": 1,
     "tags": [
-      "wierny-widz",
       "konfident"
     ],
     "emoji": "🗡️",

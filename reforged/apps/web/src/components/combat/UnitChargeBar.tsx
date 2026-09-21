@@ -19,7 +19,11 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
 
   return (
     <div className={classes.join(' ')} title={unitDef?.name}>
-      <div className="unit-charge-emoji">{unitDef?.emoji ?? '❔'}</div>
+      {unitDef?.avatar ? (
+        <img className="unit-charge-avatar" src={unitDef.avatar} alt="" />
+      ) : (
+        <div className="unit-charge-emoji">{unitDef?.emoji ?? '❔'}</div>
+      )}
       <div className="unit-charge-track">
         <div className="unit-charge-fill" style={{ width: `${fraction * 100}%` }} />
       </div>
