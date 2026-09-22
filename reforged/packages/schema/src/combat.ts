@@ -69,8 +69,14 @@ export const CombatEventSchema = z.discriminatedUnion('type', [
     ...baseEventFields,
     type: z.literal('team_pool_damage'),
     side: SideSchema,
-    amount: z.number().positive(),
+    // 0 is valid — a hit fully absorbed by shield still fires this event so
+    // postShield is always current (see below).
+    amount: z.number().nonnegative(),
     postHp: z.number(),
+    // Shield remaining on this side right after this hit resolved — the only
+    // way the UI can track shield accurately, since a hit consumes shield
+    // before HP and the raw pre-shield damage isn't logged anywhere else.
+    postShield: z.number().nonnegative(),
     cause: z.enum(['attack', 'ability']),
     sourceInstanceId: z.string().optional(),
   }),
@@ -89,6 +95,7 @@ export const CombatEventSchema = z.discriminatedUnion('type', [
     // Negative = shield removed by steal_buff landing on the victim side —
     // every other source only ever grants (positive).
     amount: z.number(),
+    postShield: z.number().nonnegative(),
     sourceInstanceId: z.string().optional(),
   }),
   z.object({

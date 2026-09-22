@@ -7,36 +7,28 @@ import type { Ability, PositionalBonus } from '@reforged/schema';
  * `(effect kind, trigger)` pair) or one PositionalBonus, never both and never
  * two of either.
  *
- * The effect KIND itself (not just kind+trigger) is spread thin on purpose —
- * no ability kind is used by more than 3 units, most by 1-2. This is why the
- * palette below is wide: damage/heal/shield/poison/regen plus four kinds
- * that aren't just "a number on a pool" — execute_enemy_pool (scales with
- * the enemy's *current* HP), lifesteal_own_pool (scales with the caster's
- * own attack), cleanse_own_pool (removes poison, no number at all) and
- * shred_enemy_shield (anti-shield counterplay).
+ * Units are grouped by their PRIMARY tag (first tag listed) into 6 themes —
+ * within a theme, effect KIND may repeat (poison showing up on three
+ * different nowociota... no, konfident units via three different triggers is
+ * the point: multiple sources feeding one growing status, not duplication),
+ * but no two units anywhere share the same (kind, trigger) pair:
  *
- * 6 of the 32 units carry a PositionalBonus instead — ally board shape + tag
- * synergy is a first-class identity, not a bonus bolted onto an ability.
- * Positional bonuses only ever buff the caster's own team (they can't reach
- * the enemy side at all — see positionalBonus.ts) and can only move a
- * unit's own attack/speed stat or grant double_trigger, so shape + tagFilter
- * carry the variety there instead of effect kind. 4 of the 6 are
- * tag-filtered (figlarz, konfident, szachista, starociota,
- * srebrna-gwardia — 5 of the 6 roster tags; nowociota has no dedicated
- * positional unit currently).
+ * - szachista  (Stratedzy)      — control: weaken/slow the enemy, no direct damage.
+ * - figlarz    (Figlarze)       — tempo: haste (self/team/adjacency-scaled), on_attack procs.
+ * - konfident  (Konfidenci)     — poison/assassin: poison, lifesteal, comeback burst finishers.
+ * - starociota (Weterani)       — sustain: shield/regen, built to outlast.
+ * - srebrna-gwardia (Gwardia)   — defensive formation: shields, protective coordination.
+ * - nowociota  (Nowociotowie)   — raw power: flat/execute damage, nothing fancy.
  *
- * Enemy-side debuffs (weaken_enemy_team_attack, slow_enemy_team_attack_speed)
- * are team-wide, not positional — they hit every unit on the other side
- * regardless of board position, and are meant to visibly stack: multiple
- * units contributing the same debuff kind via different triggers is the
- * intended design (see e.g. weaken_enemy_team_attack used by anamol04 on
- * on_attack, kaktusek on start_of_combat, and klemens_zydoslawski on
- * periodic — three different sources feeding one growing debuff, not
- * duplication).
+ * A unit with no `attack` in baseStats deals no direct damage at all — its
+ * card shows its effect's icon instead of a damage number (see
+ * apps/web/src/lib/unitStyle.ts's unitEffectIcon). galanonim is the
+ * flagship example: pure support, no attack stat at all.
  *
  * Never use heal_own_pool on start_of_combat (instant heal at t=0 just reads
  * as bigger max HP) — use regen_own_pool instead, a persistent heal-per-
- * second status mirroring poison_enemy_pool.
+ * second status mirroring poison_enemy_pool. Shields never decay on their
+ * own now (see ability.ts) — only combat damage consumes them.
  */
 export interface UnitOverride {
   startOfCombat?: Ability[];
@@ -44,11 +36,17 @@ export interface UnitOverride {
   positionalBonus?: PositionalBonus;
 }
 
+function dmgOnAttack(id: string, amount: number, desc: string): Ability {
+  return { id, trigger: 'on_attack', effect: { kind: 'damage_enemy_pool', amount }, description: desc };
+}
+function dmgPeriodic(id: string, amount: number, periodSec: number, desc: string): Ability {
+  return { id, trigger: 'periodic', periodSec, effect: { kind: 'damage_enemy_pool', amount }, description: desc };
+}
+function dmgLowHp(id: string, amount: number, thresholdPercent: number, desc: string): Ability {
+  return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'damage_enemy_pool', amount }, description: desc };
+}
 function openingBlast(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'damage_enemy_pool', amount }, description: desc };
-}
-function healPeriodic(id: string, amount: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'heal_own_pool', amount }, description: desc };
 }
 function shieldOnAttack(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'on_attack', effect: { kind: 'shield_own_pool', amount }, description: desc };
@@ -59,17 +57,20 @@ function shieldOpening(id: string, amount: number, desc: string): Ability {
 function shieldLowHp(id: string, amount: number, thresholdPercent: number, desc: string): Ability {
   return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'shield_own_pool', amount }, description: desc };
 }
+function shieldPeriodic(id: string, amount: number, periodSec: number, desc: string): Ability {
+  return { id, trigger: 'periodic', periodSec, effect: { kind: 'shield_own_pool', amount }, description: desc };
+}
 function poisonOnAttack(id: string, damagePerSec: number, desc: string): Ability {
   return { id, trigger: 'on_attack', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
 }
-function poisonPeriodic(id: string, damagePerSec: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
+function poisonOpening(id: string, damagePerSec: number, desc: string): Ability {
+  return { id, trigger: 'start_of_combat', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
 }
 function poisonLowHp(id: string, damagePerSec: number, thresholdPercent: number, desc: string): Ability {
   return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
 }
-function regenOnAttack(id: string, amountPerSec: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'regen_own_pool', amountPerSec }, description: desc };
+function regenOpening(id: string, amountPerSec: number, desc: string): Ability {
+  return { id, trigger: 'start_of_combat', effect: { kind: 'regen_own_pool', amountPerSec }, description: desc };
 }
 function selfPowerOnAttack(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'on_attack', effect: { kind: 'buff_attack', percent }, description: desc };
@@ -77,8 +78,8 @@ function selfPowerOnAttack(id: string, percent: number, desc: string): Ability {
 function hasteSelfOnAttack(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'on_attack', effect: { kind: 'buff_attack_speed', percent }, description: desc };
 }
-function weakenOpening(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'start_of_combat', effect: { kind: 'weaken_enemy_team_attack', percent }, description: desc };
+function hasteSelfPeriodic(id: string, percent: number, periodSec: number, desc: string): Ability {
+  return { id, trigger: 'periodic', periodSec, effect: { kind: 'buff_attack_speed', percent }, description: desc };
 }
 function weakenOnAttack(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'on_attack', effect: { kind: 'weaken_enemy_team_attack', percent }, description: desc };
@@ -89,12 +90,6 @@ function weakenPeriodic(id: string, percent: number, periodSec: number, desc: st
 function slowOpening(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'slow_enemy_team_attack_speed', percent }, description: desc };
 }
-function slowOnAttack(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'slow_enemy_team_attack_speed', percent }, description: desc };
-}
-function slowPeriodic(id: string, percent: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'slow_enemy_team_attack_speed', percent }, description: desc };
-}
 function teamAttackOnAttack(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'on_attack', effect: { kind: 'buff_team_attack', percent }, description: desc };
 }
@@ -104,8 +99,14 @@ function teamAttackLowHp(id: string, percent: number, thresholdPercent: number, 
 function teamHasteOpening(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'buff_team_attack_speed', percent }, description: desc };
 }
+function teamHasteOnAttack(id: string, percent: number, desc: string): Ability {
+  return { id, trigger: 'on_attack', effect: { kind: 'buff_team_attack_speed', percent }, description: desc };
+}
 function teamHastePeriodic(id: string, percent: number, periodSec: number, desc: string): Ability {
   return { id, trigger: 'periodic', periodSec, effect: { kind: 'buff_team_attack_speed', percent }, description: desc };
+}
+function teamHastePerAdjacentAllyOnAttack(id: string, percentPerAlly: number, tagFilter: string[], desc: string): Ability {
+  return { id, trigger: 'on_attack', effect: { kind: 'buff_team_attack_speed_per_adjacent_ally', percentPerAlly, tagFilter }, description: desc };
 }
 function executePeriodic(id: string, percentOfCurrentHp: number, periodSec: number, desc: string): Ability {
   return { id, trigger: 'periodic', periodSec, effect: { kind: 'execute_enemy_pool', percentOfCurrentHp }, description: desc };
@@ -113,63 +114,45 @@ function executePeriodic(id: string, percentOfCurrentHp: number, periodSec: numb
 function lifestealOnAttack(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'on_attack', effect: { kind: 'lifesteal_own_pool', percent }, description: desc };
 }
-function cleansePeriodic(id: string, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'cleanse_own_pool' }, description: desc };
-}
-function cleanseLowHp(id: string, thresholdPercent: number, desc: string): Ability {
-  return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'cleanse_own_pool' }, description: desc };
-}
 function shredOpening(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'shred_enemy_shield', amount }, description: desc };
 }
 
 export const unitOverrides: Record<string, UnitOverride> = {
-  // --- cost 1 ---
-  sofronow: {
-    onTrigger: [healPeriodic('sofronow.field_medic', 10, 5, 'Co 5 s leczy własną pulę HP o 10.')],
-  },
-  skibidi_kubus: {
-    startOfCombat: [shieldOpening('skibidi_kubus.evasive', 20, 'Na starcie zyskuje tarczę 20.')],
-  },
-  bbobel: {
-    onTrigger: [cleanseLowHp('bbobel.second_wind', 0.3, 'Gdy drużyna spadnie poniżej 30% HP, raz oczyszcza ją z trucizny.')],
-  },
-  jaeger: {
-    onTrigger: [shieldOnAttack('jaeger.bulwark', 4, 'Każdy atak dodaje tarczę 4 własnej puli.')],
-  },
-  boczek: {
-    onTrigger: [shieldLowHp('boczek.last_stand', 60, 0.25, 'Gdy drużyna spadnie poniżej 25% HP, raz zyskuje tarczę 60.')],
-  },
-  '9wojtaz9': {
-    onTrigger: [slowOnAttack('9wojtaz9.jolt', 4, 'Każdy atak spowalnia szybkość ataku wroga o 4% (stackuje się).')],
-  },
-
-  // --- cost 2 ---
+  // ============================================================
+  // SZACHISTA — Stratedzy: control, no direct damage
+  // ============================================================
   anamol04: {
     onTrigger: [weakenOnAttack('anamol04.discipline', 4, 'Każdy atak osłabia atak całej drużyny wroga o 4% (stackuje się).')],
   },
-  mr0czeq1: {
-    startOfCombat: [slowOpening('mr0czeq1.flicker', 15, 'Na starcie walki spowalnia atak całej drużyny wroga o 15%.')],
-  },
   chessowy_mentos: {
-    startOfCombat: [openingBlast('chessowy_mentos.opening_barrage', 30, 'Na starcie walki zadaje 30 obrażeń puli wroga.')],
+    startOfCombat: [slowOpening('chessowy_mentos.opening_gambit', 18, 'Na starcie walki spowalnia atak całej drużyny wroga o 18%.')],
   },
-  kotmarcek: {
-    onTrigger: [selfPowerOnAttack('kotmarcek.warmup', 5, 'Każdy atak zwiększa własne obrażenia o 5% (stackuje się do końca walki).')],
+  sofronow: {
+    onTrigger: [weakenPeriodic('sofronow.calculated_pressure', 6, 5, 'Co 5 s osłabia atak wroga o 6% (stackuje się).')],
   },
-  fallensmokk: {
-    onTrigger: [executePeriodic('fallensmokk.rally', 4, 5, 'Co 5 s zadaje obrażenia równe 4% aktualnego HP wroga.')],
-  },
-  kaktusek: {
-    startOfCombat: [weakenOpening('kaktusek.rally_cry', 15, 'Na starcie walki osłabia atak całej drużyny wroga o 15%.')],
-  },
-  marcel_galadotka: {
-    onTrigger: [poisonOnAttack('marcel_galadotka.residual', 3, 'Każdy atak nakłada 3 obrażenia trucizny na sekundę (stackuje się).')],
+  szachowymentor: {
+    positionalBonus: {
+      id: 'szachowymentor.mentor_lesson',
+      shape: 'row',
+      tagFilter: ['szachista'],
+      effect: { kind: 'buff_attack', percent: 22 },
+      description: '+22% ataku sojusznikom z tagiem "szachista" w tym samym rzędzie.',
+    },
   },
 
-  // --- cost 3 ---
-  uhla: {
-    onTrigger: [regenOnAttack('uhla.transfer', 3, 'Każdy atak przelewa energię: drużyna zyskuje +3 regeneracji na sekundę (stackuje się do końca walki).')],
+  // ============================================================
+  // FIGLARZ — Figlarze: tempo, haste, on-attack procs
+  // ============================================================
+  fiko: {
+    onTrigger: [
+      teamHastePerAdjacentAllyOnAttack(
+        'fiko.crowd_pleaser',
+        2,
+        ['figlarz'],
+        'Każdy atak dodaje całej drużynie +2% szybkości ataku za każdego sąsiadującego figlarza (stackuje się do końca walki).',
+      ),
+    ],
   },
   yossarian: {
     positionalBonus: {
@@ -180,68 +163,75 @@ export const unitOverrides: Record<string, UnitOverride> = {
       description: 'Sąsiedni figlarze uruchamiają swoje efekty podwójnie.',
     },
   },
-  aus_sher: {
-    onTrigger: [teamAttackOnAttack('aus_sher.rally_the_strongest', 6, 'Każdy atak dodaje całej drużynie +6% obrażeń (stackuje się do końca walki).')],
-  },
   szalwia: {
-    onTrigger: [slowPeriodic('szalwia.chill_wave', 10, 6, 'Co 6 s spowalnia atak wroga o 10% (stackuje się).')],
+    onTrigger: [hasteSelfOnAttack('szalwia.quickstep', 8, 'Każdy atak zwiększa własną szybkość ataku o 8% (stackuje się do końca walki).')],
   },
-  optimusprime: {
-    onTrigger: [lifestealOnAttack('optimusprime.overload', 25, 'Każdy atak leczy własną pulę o 25% zadanych obrażeń.')],
+  kotmarcek: {
+    onTrigger: [selfPowerOnAttack('kotmarcek.warmup', 5, 'Każdy atak zwiększa własne obrażenia o 5% (stackuje się do końca walki).')],
   },
-  empty_melancholy: {
-    onTrigger: [cleansePeriodic('empty_melancholy.harden', 6, 'Co 6 s oczyszcza własną pulę z trucizny.')],
+  '4tune': {
+    startOfCombat: [teamHasteOpening('4tune.lucky_start', 16, 'Na starcie walki drużyna zyskuje +16% szybkości ataku.')],
   },
   jadlainwestycji: {
-    onTrigger: [poisonPeriodic('jadlainwestycji.appraisal', 4, 8, 'Co 8 s nakłada 4 obrażenia trucizny na sekundę (stackuje się).')],
+    onTrigger: [hasteSelfPeriodic('jadlainwestycji.quick_math', 8, 8, 'Co 8 s zwiększa własną szybkość ataku o 8% (stackuje się).')],
+  },
+  klemens_zydoslawski: {
+    onTrigger: [teamHastePeriodic('klemens_zydoslawski.hype_man', 8, 6, 'Co 6 s drużyna zyskuje +8% szybkości ataku (stackuje się do końca walki).')],
   },
   knauff: {
     positionalBonus: {
-      id: 'knauff.syndicate',
+      id: 'knauff.trickster_circle',
       shape: 'adjacent',
-      tagFilter: ['konfident'],
+      tagFilter: ['figlarz'],
       effect: { kind: 'buff_attack', percent: 25 },
-      description: '+25% ataku sąsiadującym sojusznikom z tagiem "konfident".',
+      description: '+25% ataku sąsiadującym sojusznikom z tagiem "figlarz".',
     },
   },
+  vitas: {
+    onTrigger: [teamHasteOnAttack('vitas.backline_tempo', 4, 'Każdy atak dodaje całej drużynie +4% szybkości ataku (stackuje się do końca walki).')],
+  },
 
-  // --- cost 4 ---
-  szanowny_kantor: {
-    positionalBonus: {
-      id: 'szanowny_kantor.formation',
-      shape: 'column',
-      tagFilter: ['srebrna-gwardia'],
-      effect: { kind: 'buff_attack_speed', percent: 20 },
-      description: '+20% szybkości ataku sojusznikom z tagiem "srebrna gwardia" w tej samej kolumnie.',
-    },
+  // ============================================================
+  // KONFIDENT — Konfidenci: poison, lifesteal, comeback finishers
+  // ============================================================
+  uhla: {
+    onTrigger: [poisonOnAttack('uhla.whisper', 3, 'Każdy atak nakłada 3 obrażenia trucizny na sekundę (stackuje się).')],
+  },
+  galanonim: {
+    // Pure support — no attack stat at all (see units.data.ts). Its card
+    // shows this effect's icon instead of a damage number.
+    startOfCombat: [regenOpening('galanonim.deep_cover', 10, 'Na starcie walki drużyna zyskuje regenerację: leczy 10 HP na sekundę do końca walki.')],
   },
   pytl: {
     positionalBonus: {
       id: 'pytl.tactical_calls',
       shape: 'cross',
-      effect: { kind: 'buff_attack', percent: 20 },
-      description: '+20% ataku sojusznikom w układzie krzyża.',
+      tagFilter: ['konfident'],
+      effect: { kind: 'buff_attack', percent: 22 },
+      description: '+22% ataku sojusznikom z tagiem "konfident" w układzie krzyża.',
     },
   },
-  alyson_stark: {
-    startOfCombat: [teamHasteOpening('alyson_stark.catch_up', 14, 'Na starcie walki drużyna zyskuje +14% szybkości ataku.')],
+  optimusprime: {
+    onTrigger: [lifestealOnAttack('optimusprime.blackmail', 25, 'Każdy atak leczy własną pulę o 25% zadanych obrażeń.')],
   },
-  '4tune': {
-    startOfCombat: [shredOpening('4tune.lucky_strike', 25, 'Na starcie walki zrywa wrogowi 25 punktów tarczy.')],
+  kaktusek: {
+    startOfCombat: [poisonOpening('kaktusek.parting_gift', 8, 'Na starcie walki nakłada 8 obrażeń trucizny na sekundę.')],
   },
-  klemens_zydoslawski: {
-    onTrigger: [weakenPeriodic('klemens_zydoslawski.frontline_pressure', 8, 6, 'Co 6 s osłabia atak wroga o 8% (stackuje się).')],
+  boczek: {
+    onTrigger: [shieldLowHp('boczek.escape_plan', 60, 0.25, 'Gdy drużyna spadnie poniżej 25% HP, raz zyskuje tarczę 60.')],
   },
   nicosc: {
-    onTrigger: [teamAttackLowHp('nicosc.second_life', 15, 0.2, 'Gdy drużyna spadnie poniżej 20% HP, raz zyskuje +15% obrażeń całej drużyny.')],
+    onTrigger: [teamAttackLowHp('nicosc.last_resort', 15, 0.2, 'Gdy drużyna spadnie poniżej 20% HP, raz zyskuje +15% obrażeń całej drużyny.')],
+  },
+  '9wojtaz9': {
+    onTrigger: [poisonLowHp('9wojtaz9.final_favor', 10, 0.35, 'Gdy drużyna spadnie poniżej 35% HP, raz nakłada 10 obrażeń trucizny na sekundę.')],
   },
 
-  // --- cost 5 ---
-  fiko: {
-    onTrigger: [hasteSelfOnAttack('fiko.tempo', 5, 'Każdy atak zwiększa własną szybkość ataku o 5% (stackuje się do końca walki).')],
-  },
-  galanonim: {
-    onTrigger: [teamHastePeriodic('galanonim.support_aura', 10, 6, 'Co 6 s drużyna zyskuje +10% szybkości ataku (stackuje się do końca walki).')],
+  // ============================================================
+  // STAROCIOTA — Weterani: shield/regen, built to outlast
+  // ============================================================
+  alyson_stark: {
+    startOfCombat: [shieldOpening('alyson_stark.veteran_guard', 50, 'Na starcie walki drużyna zyskuje tarczę 50.')],
   },
   merex: {
     positionalBonus: {
@@ -252,18 +242,45 @@ export const unitOverrides: Record<string, UnitOverride> = {
       description: '+20% szybkości ataku sojusznikom z tagiem "starociota" w układzie krzyża.',
     },
   },
-  vitas: {
-    onTrigger: [
-      poisonLowHp('vitas.backline_pressure', 12, 0.3, 'Gdy drużyna spadnie poniżej 30% HP, raz nakłada 12 obrażeń trucizny na sekundę.'),
-    ],
-  },
-  szachowymentor: {
+
+  // ============================================================
+  // SREBRNA-GWARDIA — Gwardia: shields, defensive formation
+  // ============================================================
+  szanowny_kantor: {
     positionalBonus: {
-      id: 'szachowymentor.mentor_lesson',
-      shape: 'row',
-      tagFilter: ['szachista'],
-      effect: { kind: 'buff_attack', percent: 22 },
-      description: '+22% ataku sojusznikom z tagiem "szachista" w tym samym rzędzie.',
+      id: 'szanowny_kantor.formation',
+      shape: 'column',
+      tagFilter: ['srebrna-gwardia'],
+      effect: { kind: 'buff_attack_speed', percent: 20 },
+      description: '+20% szybkości ataku sojusznikom z tagiem "srebrna gwardia" w tej samej kolumnie.',
     },
+  },
+  empty_melancholy: {
+    onTrigger: [shieldPeriodic('empty_melancholy.harden', 8, 6, 'Co 6 s zyskuje tarczę 8.')],
+  },
+
+  // ============================================================
+  // NOWOCIOTA — Nowociotowie: raw power, no frills
+  // ============================================================
+  skibidi_kubus: {
+    startOfCombat: [shredOpening('skibidi_kubus.rookie_smash', 15, 'Na starcie walki zrywa wrogowi 15 punktów tarczy.')],
+  },
+  aus_sher: {
+    onTrigger: [teamAttackOnAttack('aus_sher.rally_the_strongest', 6, 'Każdy atak dodaje całej drużynie +6% obrażeń (stackuje się do końca walki).')],
+  },
+  mr0czeq1: {
+    onTrigger: [dmgOnAttack('mr0czeq1.wild_swing', 10, 'Każdy atak dodatkowo zadaje 10 obrażeń puli wroga.')],
+  },
+  bbobel: {
+    onTrigger: [dmgPeriodic('bbobel.rookie_rage', 6, 5, 'Co 5 s zadaje 6 obrażeń puli wroga.')],
+  },
+  fallensmokk: {
+    onTrigger: [executePeriodic('fallensmokk.rally', 4, 5, 'Co 5 s zadaje obrażenia równe 4% aktualnego HP wroga.')],
+  },
+  jaeger: {
+    startOfCombat: [openingBlast('jaeger.opening_charge', 18, 'Na starcie walki zadaje 18 obrażeń puli wroga.')],
+  },
+  marcel_galadotka: {
+    onTrigger: [dmgLowHp('marcel_galadotka.last_stand_swing', 30, 0.3, 'Gdy drużyna spadnie poniżej 30% HP, raz zadaje 30 obrażeń puli wroga.')],
   },
 };

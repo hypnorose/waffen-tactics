@@ -329,17 +329,22 @@ describe('runCombat', () => {
     expect(log.events.some((e) => e.type === 'team_pool_dodge_proc' && e.side === 'enemy')).toBe(true);
   });
 
-  it('execution instantly zeroes a pool once both its HP% and mark thresholds are crossed', () => {
+  it('execution instantly zeroes a pool once both its (absolute) HP and mark thresholds are crossed', () => {
     const player: CombatTeamInput = {
       side: 'player',
       hpMax: 100,
       units: team('player').units,
       augmentEffects: [
         { effect: { kind: 'execution_mark_enemy_pool', stacks: 10 } },
-        { effect: { kind: 'execution_empower_enemy_pool', hpThresholdPercentBonus: 88, stacksRequiredReduction: 0 } },
+        { effect: { kind: 'execution_empower_enemy_pool', hpThresholdBonus: 20, stacksRequiredReduction: 0 } },
       ],
     };
-    const log = runCombat({ combatId: 'c-exec', seed: 5, player, enemy: team('enemy'), unitDefs, timeoutSec: 5 });
+    // Enemy hpMax (20) sits at or below the boosted absolute threshold (3
+    // default + 20 bonus = 23), so the very first point of damage taken —
+    // still leaving hpCurrent > 0 — already satisfies the execution check,
+    // deterministic without needing to grind the pool down first.
+    const enemy: CombatTeamInput = { side: 'enemy', hpMax: 20, units: team('enemy').units };
+    const log = runCombat({ combatId: 'c-exec', seed: 5, player, enemy, unitDefs, timeoutSec: 5 });
     expect(log.events.some((e) => e.type === 'team_pool_executed' && e.side === 'enemy')).toBe(true);
   });
 

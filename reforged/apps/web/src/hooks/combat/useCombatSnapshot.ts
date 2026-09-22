@@ -28,11 +28,27 @@ export interface UnitBuffState {
   attackSpeedPercent: number;
 }
 
+/** Team-pool-wide status, current as of `currentTime` — see team_pool_shield_applied / team_pool_stat_applied. */
+export interface TeamStatus {
+  shield: number;
+  hasteStacks: number;
+  dodgeStacks: number;
+  fragilityPercent: number;
+  thornsPercent: number;
+  executionStacks: number;
+}
+
+function emptyTeamStatus(): TeamStatus {
+  return { shield: 0, hasteStacks: 0, dodgeStacks: 0, fragilityPercent: 0, thornsPercent: 0, executionStacks: 0 };
+}
+
 export interface CombatSnapshot {
   player: UnitRuntimeSnapshot[];
   enemy: UnitRuntimeSnapshot[];
   playerHp: { current: number; max: number };
   enemyHp: { current: number; max: number };
+  playerStatus: TeamStatus;
+  enemyStatus: TeamStatus;
   recentAttacks: RecentAttack[];
   recentAbilities: RecentAbility[];
   /** Cumulative buff/debuff % per unit, accrued from every unit_buff_applied event up to currentTime. */
@@ -71,6 +87,8 @@ export function useCombatSnapshot(events: CombatEvent[], currentTime: number): C
     let enemy: UnitRuntimeSnapshot[] = [];
     let playerHp = { current: 0, max: 0 };
     let enemyHp = { current: 0, max: 0 };
+    const playerStatus = emptyTeamStatus();
+    const enemyStatus = emptyTeamStatus();
     const recentAttacks: RecentAttack[] = [];
     const recentAbilities: RecentAbility[] = [];
     const unitBuffs: Record<string, UnitBuffState> = {};
@@ -96,10 +114,32 @@ export function useCombatSnapshot(events: CombatEvent[], currentTime: number): C
           break;
         }
         case 'team_pool_damage':
+          if (event.side === 'player') {
+            playerHp = { ...playerHp, current: event.postHp };
+            playerStatus.shield = event.postShield;
+          } else {
+            enemyHp = { ...enemyHp, current: event.postHp };
+            enemyStatus.shield = event.postShield;
+          }
+          break;
         case 'team_pool_heal':
           if (event.side === 'player') playerHp = { ...playerHp, current: event.postHp };
           else enemyHp = { ...enemyHp, current: event.postHp };
           break;
+        case 'team_pool_shield_applied': {
+          const status = event.side === 'player' ? playerStatus : enemyStatus;
+          status.shield = event.postShield;
+          break;
+        }
+        case 'team_pool_stat_applied': {
+          const status = event.side === 'player' ? playerStatus : enemyStatus;
+          if (event.stat === 'haste') status.hasteStacks = event.total;
+          else if (event.stat === 'dodge') status.dodgeStacks = event.total;
+          else if (event.stat === 'fragility') status.fragilityPercent = event.total;
+          else if (event.stat === 'thorns') status.thornsPercent = event.total;
+          else if (event.stat === 'execution') status.executionStacks = event.total;
+          break;
+        }
         case 'ability_triggered':
           if (currentTime - event.simTime <= RECENT_WINDOW_SEC) {
             recentAbilities.push({ instanceId: event.instanceId, abilityId: event.abilityId, simTime: event.simTime });
@@ -118,6 +158,6 @@ export function useCombatSnapshot(events: CombatEvent[], currentTime: number): C
       }
     }
 
-    return { player, enemy, playerHp, enemyHp, recentAttacks, recentAbilities, unitBuffs, finished, winner };
+    return { player, enemy, playerHp, enemyHp, playerStatus, enemyStatus, recentAttacks, recentAbilities, unitBuffs, finished, winner };
   }, [events, currentTime]);
 }

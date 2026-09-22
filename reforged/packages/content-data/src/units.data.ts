@@ -95,10 +95,7 @@ export const unitsData = [
     ],
     "emoji": "🔨",
     "avatar": "/avatars/set2/galanonimpl-avatar-1024.png",
-    "baseStats": {
-      "attack": 40,
-      "attacksPerSecond": 1
-    }
+    "baseStats": {}
   },
   {
     "id": "pytl",

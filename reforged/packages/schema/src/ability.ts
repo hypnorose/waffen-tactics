@@ -53,6 +53,16 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // abilities and existing content.
   z.object({ kind: z.literal('buff_team_attack'), percent: z.number() }),
   z.object({ kind: z.literal('buff_team_attack_speed'), percent: z.number() }),
+  // Team-wide speed buff scaled by how many allies adjacent to the caster's
+  // (frozen) board position carry a tag in tagFilter — e.g. "give the team
+  // haste per adjacent figlarz". Resolved fresh each time the ability fires
+  // (not cached), but positions never change mid-fight so the count is
+  // constant for the whole combat.
+  z.object({
+    kind: z.literal('buff_team_attack_speed_per_adjacent_ally'),
+    percentPerAlly: z.number().positive(),
+    tagFilter: z.array(z.string()).min(1),
+  }),
   z.object({ kind: z.literal('weaken_enemy_team_attack'), percent: z.number().positive() }),
   z.object({ kind: z.literal('slow_enemy_team_attack_speed'), percent: z.number().positive() }),
   // Damage scaled to the enemy's CURRENT pool, not a flat amount — hits
@@ -92,11 +102,15 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // Egzekucja: marks the enemy pool. See execution_empower_enemy_pool for
   // the two knobs (HP threshold, stacks required) that decide when marks
   // actually kill — a pool with marks but no augment that lowered the
-  // requirement just sits there inert.
+  // requirement just sits there inert. The HP threshold is a small ABSOLUTE
+  // amount (default 3 HP, capped at MAX_EXECUTION_HP_THRESHOLD in
+  // combat-engine), not a percentage of max HP — this is a finisher for a
+  // pool that's already a sliver from dead, never a way to instakill a team
+  // still sitting on a real chunk of health.
   z.object({ kind: z.literal('execution_mark_enemy_pool'), stacks: z.number().positive() }),
   z.object({
     kind: z.literal('execution_empower_enemy_pool'),
-    hpThresholdPercentBonus: z.number().nonnegative().default(0),
+    hpThresholdBonus: z.number().nonnegative().default(0),
     stacksRequiredReduction: z.number().nonnegative().default(0),
   }),
   // Persistent, own-side debuff: every future shield_own_pool grant (any

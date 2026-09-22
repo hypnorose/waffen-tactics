@@ -637,6 +637,38 @@ button.active {
   transition: width 0.1s linear;
 }
 
+.combat-status-rows {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+.team-status-row {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.team-status-row.align-right {
+  justify-content: flex-end;
+}
+.team-status-chip {
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+.team-status-chip.is-buff {
+  background: color-mix(in srgb, #3fb950 30%, var(--panel-alt));
+  color: #7ee08a;
+}
+.team-status-chip.is-debuff {
+  background: color-mix(in srgb, var(--hp) 30%, var(--panel-alt));
+  color: #ff9aa6;
+}
+
 .combat-field {
   position: relative;
   display: flex;

@@ -369,7 +369,7 @@ const raw: AugmentDef[] = [
     description: 'Nakłada 5 stacków egzekucji na wroga na starcie walki i obniża próg wymaganych stacków o 2.',
     effects: [
       { kind: 'execution_mark_enemy_pool', stacks: 5 },
-      { kind: 'execution_empower_enemy_pool', hpThresholdPercentBonus: 0, stacksRequiredReduction: 2 },
+      { kind: 'execution_empower_enemy_pool', hpThresholdBonus: 0, stacksRequiredReduction: 2 },
     ],
   },
   {
@@ -377,8 +377,8 @@ const raw: AugmentDef[] = [
     name: 'Niska Tolerancja',
     tier: 'silver',
     icon: '☠️',
-    description: 'Wróg ginie od egzekucji już przy 18% HP zamiast 12%, jeśli nosi wystarczająco stacków.',
-    effects: [{ kind: 'execution_empower_enemy_pool', hpThresholdPercentBonus: 6, stacksRequiredReduction: 0 }],
+    description: 'Wróg ginie od egzekucji już przy 6 HP zamiast 3 HP, jeśli nosi wystarczająco stacków.',
+    effects: [{ kind: 'execution_empower_enemy_pool', hpThresholdBonus: 3, stacksRequiredReduction: 0 }],
   },
   {
     id: 'silver-disarm',
@@ -615,7 +615,7 @@ const raw: AugmentDef[] = [
     icon: '💀',
     description: 'Obniża próg wymaganych stacków egzekucji o 4 i nakłada 5 stacków na wroga na starcie walki.',
     effects: [
-      { kind: 'execution_empower_enemy_pool', hpThresholdPercentBonus: 0, stacksRequiredReduction: 4 },
+      { kind: 'execution_empower_enemy_pool', hpThresholdBonus: 0, stacksRequiredReduction: 4 },
       { kind: 'execution_mark_enemy_pool', stacks: 5 },
     ],
   },

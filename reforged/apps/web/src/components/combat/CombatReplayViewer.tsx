@@ -6,6 +6,7 @@ import { CombatantHeader } from './CombatantHeader.js';
 import { ProjectileLayer, type Projectile } from './ProjectileLayer.js';
 import { ReplayControls } from './ReplayControls.js';
 import { TeamHpBar } from './TeamHpBar.js';
+import { TeamStatusRow } from './TeamStatusRow.js';
 import { UnitChargeBar } from './UnitChargeBar.js';
 
 interface Props {
@@ -44,6 +45,10 @@ export function CombatReplayViewer({ combatLog, units, playerName, playerAvatarU
         <div className="combat-hp-bars">
           <TeamHpBar label="Ty" current={snapshot.playerHp.current} max={snapshot.playerHp.max} align="left" />
           <TeamHpBar label="Wróg" current={snapshot.enemyHp.current} max={snapshot.enemyHp.max} align="right" />
+        </div>
+        <div className="combat-status-rows">
+          <TeamStatusRow status={snapshot.playerStatus} align="left" />
+          <TeamStatusRow status={snapshot.enemyStatus} align="right" />
         </div>
 
         <div className="combat-field">

@@ -45,9 +45,15 @@ const MAX_DODGE_STACKS = 70;
 const MAX_FRAGILITY_PERCENT = 150;
 const MAX_THORNS_PERCENT = 100;
 const MAX_EXECUTION_STACKS = 30;
+// Absolute HP, not a percentage — execution is a finisher for a pool that's
+// already a sliver from HP away from dead, not a build-around instakill on a
+// team still sitting on a real chunk of health. Even fully invested (every
+// execution_empower_enemy_pool augment picked) this caps out at a fraction
+// of any real team pool's size.
+const MAX_EXECUTION_HP_THRESHOLD = 20;
 const MAX_MULTICAST_EXTRA_HITS = 5;
 const MAX_SHRED_ON_HIT_STACKS = 10;
-const EXECUTION_DEFAULT_HP_THRESHOLD_PERCENT = 12;
+const EXECUTION_DEFAULT_HP_THRESHOLD = 3; // absolute HP, not a percentage
 const EXECUTION_DEFAULT_STACKS_REQUIRED = 10;
 const MULTICAST_HIT_DELAY_SEC = 0.15;
 const MAX_REACTION_DEPTH = 4; // guards against a reaction whose own effect re-triggers itself
@@ -118,7 +124,7 @@ interface Pool {
   fragilityPercent: number; // % more damage taken from every source
   thornsPercent: number; // % of own HP loss reflected back at the enemy pool
   executionStacks: number;
-  executionHpThresholdPercent: number;
+  executionHpThreshold: number; // absolute HP, not a percentage
   executionStacksRequired: number;
   momentumHasteStacksPerSec: number;
   momentumAttackPercentPerSec: number;
@@ -141,7 +147,7 @@ function makePool(hpMax: number): Pool {
     fragilityPercent: 0,
     thornsPercent: 0,
     executionStacks: 0,
-    executionHpThresholdPercent: EXECUTION_DEFAULT_HP_THRESHOLD_PERCENT,
+    executionHpThreshold: EXECUTION_DEFAULT_HP_THRESHOLD,
     executionStacksRequired: EXECUTION_DEFAULT_STACKS_REQUIRED,
     momentumHasteStacksPerSec: 0,
     momentumAttackPercentPerSec: 0,
@@ -172,8 +178,10 @@ function uniqueAbilities(abilities: Ability[] | undefined): Ability[] {
  * mid-fight — they act for the whole timeout window, and the pool that first
  * reaches 0 loses (or, at timeout, whichever pool has the higher remaining
  * percentage). Egzekucja (execution) is the one exception: it sets a pool's
- * HP straight to 0 outside the normal damage pipeline once both its HP% and
- * mark count cross their thresholds.
+ * HP straight to 0 outside the normal damage pipeline once its current HP
+ * drops to a sliver (a few absolute HP, not a percentage of max) AND its
+ * mark count crosses the required threshold — a finisher for a pool that's
+ * already effectively dead, not a build-around instakill.
  *
  * No defense stat exists — damage is never mitigated except by shield, dodge
  * and fragility, all team-pool-wide statuses (never per-unit — see the note
@@ -274,7 +282,10 @@ export function runCombat(input: RunCombatInput): CombatLog {
   function finalizeDamage(side: Side, amount: number, cause: 'attack' | 'ability', sourceInstanceId: string | undefined, simTime: number, allowThornsReflection: boolean) {
     const pool = pools[side];
     pool.hpCurrent = Math.max(0, pool.hpCurrent - amount);
-    if (amount > 0) log.push({ simTime, type: 'team_pool_damage', side, amount, postHp: pool.hpCurrent, cause, sourceInstanceId });
+    // Always push, even at amount 0 (a hit fully absorbed by shield) — the
+    // client needs postShield to stay current on every hit, not just ones
+    // that broke through to HP.
+    log.push({ simTime, type: 'team_pool_damage', side, amount, postHp: pool.hpCurrent, postShield: pool.shield, cause, sourceInstanceId });
     if (allowThornsReflection && amount > 0 && pool.thornsPercent > 0) {
       const reflect = amount * (pool.thornsPercent / 100);
       if (reflect > 0) applyDamageToPool(otherSide(side), reflect, 'ability', undefined, simTime, true);
@@ -285,8 +296,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
   function checkExecution(side: Side, simTime: number) {
     const pool = pools[side];
     if (pool.hpCurrent <= 0) return;
-    const hpPercent = (pool.hpCurrent / pool.hpMax) * 100;
-    if (hpPercent <= pool.executionHpThresholdPercent && pool.executionStacks >= pool.executionStacksRequired) {
+    if (pool.hpCurrent <= pool.executionHpThreshold && pool.executionStacks >= pool.executionStacksRequired) {
       pool.hpCurrent = 0;
       log.push({ simTime, type: 'team_pool_executed', side });
     }
@@ -336,7 +346,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
     const wasZero = pool.shield <= 0;
     const granted = pool.shieldGainReductionPercent > 0 ? amount * (1 - Math.min(100, pool.shieldGainReductionPercent) / 100) : amount;
     pool.shield += granted;
-    if (granted !== 0) log.push({ simTime, type: 'team_pool_shield_applied', side, amount: granted, sourceInstanceId });
+    if (granted !== 0) log.push({ simTime, type: 'team_pool_shield_applied', side, amount: granted, postShield: pool.shield, sourceInstanceId });
     if (wasZero && pool.shield > 0) fireReactions(side, 'shield_gained', simTime);
   }
 
@@ -348,7 +358,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
     const wasPositive = pool.shield > 0;
     const removed = Math.min(pool.shield, amount);
     pool.shield -= removed;
-    if (removed > 0) log.push({ simTime, type: 'team_pool_shield_applied', side, amount: -removed });
+    if (removed > 0) log.push({ simTime, type: 'team_pool_shield_applied', side, amount: -removed, postShield: pool.shield });
     if (wasPositive && pool.shield <= 0) fireReactions(side, 'shield_depleted', simTime);
     return removed;
   }
@@ -472,6 +482,10 @@ export function runCombat(input: RunCombatInput): CombatLog {
     return tagFilter.some((tag) => tags.includes(tag));
   }
 
+  function isAdjacentPosition(a: BoardPosition, b: BoardPosition): boolean {
+    return !(a.row === b.row && a.col === b.col) && Math.abs(a.row - b.row) <= 1 && Math.abs(a.col - b.col) <= 1;
+  }
+
   /**
    * Applies one effect as if cast from `side`. `excludeUnit`, when given, is
    * skipped by team-wide effects (a unit's own team-wide buff hits every
@@ -517,6 +531,17 @@ export function runCombat(input: RunCombatInput): CombatLog {
           if (ally.side === side && ally !== excludeUnit && hasAnyTag(ally, tagFilter)) buffAttackSpeed(ally, effect.percent, sourceInstanceId, simTime);
         }
         break;
+      case 'buff_team_attack_speed_per_adjacent_ally': {
+        if (!excludeUnit) break;
+        const adjacentCount = units.filter(
+          (u) => u.side === side && u !== excludeUnit && isAdjacentPosition(u.position, excludeUnit.position) && hasAnyTag(u, effect.tagFilter),
+        ).length;
+        const totalPercent = adjacentCount * effect.percentPerAlly;
+        if (totalPercent > 0) {
+          for (const ally of units) if (ally.side === side && ally !== excludeUnit) buffAttackSpeed(ally, totalPercent, sourceInstanceId, simTime);
+        }
+        break;
+      }
       case 'weaken_enemy_team_attack':
         for (const foe of units) if (foe.side === otherSide(side) && hasAnyTag(foe, tagFilter)) buffAttack(foe, -effect.percent, sourceInstanceId, simTime);
         break;
@@ -559,7 +584,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         break;
       case 'execution_empower_enemy_pool': {
         const enemyPool = pools[otherSide(side)];
-        enemyPool.executionHpThresholdPercent += effect.hpThresholdPercentBonus;
+        enemyPool.executionHpThreshold = clamp(enemyPool.executionHpThreshold + effect.hpThresholdBonus, 0, MAX_EXECUTION_HP_THRESHOLD);
         enemyPool.executionStacksRequired = Math.max(1, enemyPool.executionStacksRequired - effect.stacksRequiredReduction);
         break;
       }
