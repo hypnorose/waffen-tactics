@@ -701,7 +701,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         fireAttack(unit, def, simTime, false);
 
         for (const ability of unit.onTriggerAbilities) {
-          if (ability.trigger === 'on_attack') triggerAbility(unit, ability, simTime);
+          if (ability.trigger === 'on_trigger') triggerAbility(unit, ability, simTime);
         }
 
         if (unit.attackDamage > 0 && unit.multicastExtraHits > 0) {

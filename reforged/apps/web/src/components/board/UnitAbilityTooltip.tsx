@@ -18,7 +18,7 @@ export function UnitAbilityTooltip({ unitDef }: { unitDef: UnitDef }) {
       {abilities.map((ability) => (
         <p key={ability.id} className="unit-tooltip-ability">
           {ability.trigger === 'start_of_combat' && '⚡ '}
-          {ability.trigger === 'on_attack' && '🗡️ '}
+          {ability.trigger === 'on_trigger' && '🗡️ '}
           {ability.trigger === 'periodic' && '🔁 '}
           {ability.trigger === 'low_team_hp' && '🩸 '}
           {ability.description}

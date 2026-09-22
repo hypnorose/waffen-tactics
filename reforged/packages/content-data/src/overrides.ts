@@ -39,7 +39,7 @@ export interface UnitOverride {
 }
 
 function dmgOnAttack(id: string, amount: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'damage_enemy_pool', amount }, description: desc };
+  return { id, trigger: 'on_trigger', effect: { kind: 'damage_enemy_pool', amount }, description: desc };
 }
 function dmgPeriodic(id: string, amount: number, periodSec: number, desc: string): Ability {
   return { id, trigger: 'periodic', periodSec, effect: { kind: 'damage_enemy_pool', amount }, description: desc };
@@ -51,7 +51,7 @@ function openingBlast(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'damage_enemy_pool', amount }, description: desc };
 }
 function shieldOnAttack(id: string, amount: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'shield_own_pool', amount }, description: desc };
+  return { id, trigger: 'on_trigger', effect: { kind: 'shield_own_pool', amount }, description: desc };
 }
 function shieldOpening(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'shield_own_pool', amount }, description: desc };
@@ -63,7 +63,7 @@ function shieldPeriodic(id: string, amount: number, periodSec: number, desc: str
   return { id, trigger: 'periodic', periodSec, effect: { kind: 'shield_own_pool', amount }, description: desc };
 }
 function poisonOnAttack(id: string, damagePerSec: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
+  return { id, trigger: 'on_trigger', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
 }
 function poisonOpening(id: string, damagePerSec: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
@@ -75,7 +75,7 @@ function regenOpening(id: string, amountPerSec: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'regen_own_pool', amountPerSec }, description: desc };
 }
 function weakenOnAttack(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'weaken_enemy_team_attack', percent }, description: desc };
+  return { id, trigger: 'on_trigger', effect: { kind: 'weaken_enemy_team_attack', percent }, description: desc };
 }
 function weakenPeriodic(id: string, percent: number, periodSec: number, desc: string): Ability {
   return { id, trigger: 'periodic', periodSec, effect: { kind: 'weaken_enemy_team_attack', percent }, description: desc };
@@ -84,13 +84,13 @@ function slowOpening(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'slow_enemy_team_attack_speed', percent }, description: desc };
 }
 function teamAttackOnAttack(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'buff_team_attack', percent }, description: desc };
+  return { id, trigger: 'on_trigger', effect: { kind: 'buff_team_attack', percent }, description: desc };
 }
 function teamAttackLowHp(id: string, percent: number, thresholdPercent: number, desc: string): Ability {
   return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'buff_team_attack', percent }, description: desc };
 }
 function teamHastePerAdjacentAllyOnAttack(id: string, percentPerAlly: number, tagFilter: string[], desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'buff_team_attack_speed_per_adjacent_ally', percentPerAlly, tagFilter }, description: desc };
+  return { id, trigger: 'on_trigger', effect: { kind: 'buff_team_attack_speed_per_adjacent_ally', percentPerAlly, tagFilter }, description: desc };
 }
 function hasteStacksOpening(id: string, stacks: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'haste_stacks_own_pool', stacks }, description: desc };
@@ -102,22 +102,22 @@ function dodgeStacksOpening(id: string, stacks: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'dodge_stacks_own_pool', stacks }, description: desc };
 }
 function dodgeStacksOnAttack(id: string, stacks: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'dodge_stacks_own_pool', stacks }, description: desc };
+  return { id, trigger: 'on_trigger', effect: { kind: 'dodge_stacks_own_pool', stacks }, description: desc };
 }
 function stealHasteOnAttack(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'steal_buff', buff: 'haste', percent }, description: desc };
+  return { id, trigger: 'on_trigger', effect: { kind: 'steal_buff', buff: 'haste', percent }, description: desc };
 }
-function stealDodgePeriodic(id: string, percent: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'steal_buff', buff: 'dodge', percent }, description: desc };
+function stealDodgeOnTrigger(id: string, percent: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'steal_buff', buff: 'dodge', percent }, description: desc };
 }
-function shredEnemyHasteStacksPeriodic(id: string, stacks: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'shred_enemy_haste_stacks', stacks }, description: desc };
+function shredEnemyHasteStacksOnTrigger(id: string, stacks: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'shred_enemy_haste_stacks', stacks }, description: desc };
 }
 function executePeriodic(id: string, percentOfCurrentHp: number, periodSec: number, desc: string): Ability {
   return { id, trigger: 'periodic', periodSec, effect: { kind: 'execute_enemy_pool', percentOfCurrentHp }, description: desc };
 }
 function lifestealOnAttack(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'lifesteal_own_pool', percent }, description: desc };
+  return { id, trigger: 'on_trigger', effect: { kind: 'lifesteal_own_pool', percent }, description: desc };
 }
 function shredOpening(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'shred_enemy_shield', amount }, description: desc };
@@ -169,7 +169,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
     },
   },
   szalwia: {
-    onTrigger: [hasteStacksPeriodic('szalwia.fey_pulse', 8, 6, 'Co 6 s drużyna zyskuje 8 stacków haste (stackuje się do końca walki).')],
+    startOfCombat: [hasteStacksOpening('szalwia.fey_pulse', 15, 'Na starcie walki drużyna zyskuje 15 stacków haste.')],
   },
   kotmarcek: {
     startOfCombat: [dodgeStacksOpening('kotmarcek.warmup', 15, 'Na starcie walki drużyna zyskuje 15 stacków uniku.')],
@@ -180,15 +180,15 @@ export const unitOverrides: Record<string, UnitOverride> = {
     onTrigger: [stealHasteOnAttack('4tune.pickpocket', 30, 'Każdy atak kradnie 30% aktualnych stacków haste wroga.')],
   },
   jadlainwestycji: {
-    onTrigger: [stealDodgePeriodic('jadlainwestycji.hostile_takeover', 30, 6, 'Co 6 s kradnie 30% aktualnych stacków uniku wroga.')],
+    onTrigger: [stealDodgeOnTrigger('jadlainwestycji.hostile_takeover', 10, 'Każdy atak kradnie 10% aktualnych stacków uniku wroga.')],
   },
   // Pure support — no attack stat at all (see units.data.ts). A saboteur who
   // only ever grinds the enemy's tempo down, never swings a weapon.
   klemens_zydoslawski: {
-    onTrigger: [shredEnemyHasteStacksPeriodic('klemens_zydoslawski.sand_in_gears', 10, 6, 'Co 6 s zdejmuje wrogowi 10 stacków haste.')],
+    onTrigger: [shredEnemyHasteStacksOnTrigger('klemens_zydoslawski.sand_in_gears', 2, 'Każdy atak zdejmuje wrogowi 2 stacki haste.')],
   },
   knauff: {
-    startOfCombat: [hasteStacksOpening('knauff.syndicate_charge', 15, 'Na starcie walki drużyna zyskuje 15 stacków haste.')],
+    onTrigger: [hasteStacksPeriodic('knauff.syndicate_charge', 6, 6, 'Co 6 s drużyna zyskuje 6 stacków haste (stackuje się do końca walki).')],
   },
   vitas: {
     onTrigger: [dodgeStacksOnAttack('vitas.evasive_pressure', 4, 'Każdy atak dodaje drużynie 4 stacki uniku (stackuje się do końca walki).')],

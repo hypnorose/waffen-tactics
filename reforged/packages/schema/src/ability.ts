@@ -2,11 +2,12 @@ import { z } from 'zod';
 
 // MVP trigger taxonomy — see plan decision #5. on_kill / on_bonus_attack have
 // no equivalent in Reforged (no individual death, no bonus-attack layer).
-// `on_attack` fires whenever a unit's own action cadence (1/attacksPerSecond)
-// elapses — this is true whether or not the unit actually deals damage, so a
-// unit with attacksPerSecond but no attack stat still triggers on_attack
-// abilities on schedule (e.g. "cast a buff every cooldown" support units).
-export const AbilityTriggerSchema = z.enum(['start_of_combat', 'on_attack', 'periodic', 'low_team_hp']);
+// `on_trigger` fires whenever a unit's own action cadence (1/attacksPerSecond)
+// elapses — deliberately NOT named "on_attack": this is true whether or not
+// the unit actually deals damage, so a unit with attacksPerSecond but no
+// attack stat still fires it on schedule (e.g. "cast a buff every cooldown"
+// support units) — one shared cadence trigger for fighters and supports alike.
+export const AbilityTriggerSchema = z.enum(['start_of_combat', 'on_trigger', 'periodic', 'low_team_hp']);
 export type AbilityTrigger = z.infer<typeof AbilityTriggerSchema>;
 
 // The handful of things a shield/haste/dodge/damage "reaction" is allowed to

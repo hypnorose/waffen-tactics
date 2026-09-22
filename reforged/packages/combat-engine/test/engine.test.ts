@@ -38,7 +38,7 @@ const hasteSupport: UnitDef = {
   onTrigger: [
     {
       id: 'haste_support.rally',
-      trigger: 'on_attack',
+      trigger: 'on_trigger',
       effect: { kind: 'buff_team_attack_speed', percent: 10 },
       description: 'Co cykl zwiększa szybkość ataku sojuszników o 10%.',
     },
@@ -236,13 +236,13 @@ describe('runCombat', () => {
       onTrigger: [
         {
           id: 'repeated-definition.pulse',
-          trigger: 'on_attack',
+          trigger: 'on_trigger',
           effect: { kind: 'damage_enemy_pool', amount: 2 },
           description: 'test',
         },
         {
           id: 'repeated-definition.pulse',
-          trigger: 'on_attack',
+          trigger: 'on_trigger',
           effect: { kind: 'damage_enemy_pool', amount: 2 },
           description: 'test duplicate',
         },
@@ -457,7 +457,7 @@ describe('runCombat', () => {
       onTrigger: [
         {
           id: 'relentless_haste.rally',
-          trigger: 'on_attack',
+          trigger: 'on_trigger',
           effect: { kind: 'buff_team_attack_speed', percent: 20 },
           description: 'Co cykl zwiększa szybkość ataku sojuszników o 20%.',
         },
