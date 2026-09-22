@@ -54,6 +54,27 @@ button.active {
   color: var(--text-dim);
 }
 
+.run-recovery {
+  width: min(560px, 100%);
+  margin: 4rem auto;
+  padding: 2rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-align: center;
+}
+.run-recovery h1 {
+  margin-top: 0;
+  font-size: 1.35rem;
+}
+.run-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
 .error {
   color: var(--hp);
 }
@@ -503,6 +524,13 @@ button.active {
   color: white;
   font-weight: 700;
   padding: 10px 20px;
+}
+.surrender-button {
+  color: var(--hp);
+  border-color: color-mix(in srgb, var(--hp) 55%, var(--border));
+}
+.surrender-button:hover {
+  background: color-mix(in srgb, var(--hp) 15%, var(--panel-alt));
 }
 
 /* Augments */

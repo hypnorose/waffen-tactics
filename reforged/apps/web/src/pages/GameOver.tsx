@@ -7,7 +7,7 @@ export function GameOver({ run, onNewRun }: { run: RunState; onNewRun: () => voi
       <p>
         Wygrane: {run.wins} · Porażki: {run.losses}
       </p>
-      <button onClick={onNewRun}>Zacznij nowy run</button>
+      <button type="button" onClick={onNewRun}>Zacznij nowy run</button>
     </div>
   );
 }

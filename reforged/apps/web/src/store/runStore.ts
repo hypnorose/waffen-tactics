@@ -20,6 +20,8 @@ interface RunStoreState {
 
   loadContent: () => Promise<void>;
   loadOrCreateRun: () => Promise<void>;
+  startNewRun: () => Promise<void>;
+  surrenderRun: () => Promise<void>;
   buy: (offerIndex: number) => Promise<void>;
   sell: (unitInstanceId: string) => Promise<void>;
   reroll: () => Promise<void>;
@@ -56,7 +58,7 @@ export const useRunStore = create<RunStoreState>((set, get) => ({
   },
 
   loadOrCreateRun: async () => {
-    set({ loading: true });
+    set({ loading: true, error: null });
     try {
       const run = await api.getCurrentRun();
       set({ run, loading: false });
@@ -67,6 +69,37 @@ export const useRunStore = create<RunStoreState>((set, get) => ({
       } else {
         set({ error: err instanceof Error ? err.message : String(err), loading: false });
       }
+    }
+  },
+
+  startNewRun: async () => {
+    set({ loading: true, error: null });
+    try {
+      let current = get().run;
+      if (!current) {
+        try {
+          current = await api.getCurrentRun();
+        } catch (err) {
+          if (!(err instanceof ApiError && err.status === 404)) throw err;
+        }
+      }
+      if (current?.status === 'active') await api.surrender(current.runId);
+      const run = await api.createRun();
+      set({ run, lastCombat: null, loading: false, error: null });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err), loading: false });
+    }
+  },
+
+  surrenderRun: async () => {
+    const current = get().run;
+    if (!current || current.status !== 'active') return;
+    set({ loading: true, error: null });
+    try {
+      const run = await api.surrender(current.runId);
+      set({ run, lastCombat: null, loading: false, error: null });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err), loading: false });
     }
   },
 

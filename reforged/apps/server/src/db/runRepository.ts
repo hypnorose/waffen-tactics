@@ -36,6 +36,9 @@ function runStateToRow(run: RunState) {
     roundNumber: run.roundNumber,
     gold: run.gold,
     level: run.level,
+    // Legacy production databases still require this column. XP is no longer
+    // part of the gameplay contract, so keep the compatibility value at zero.
+    xp: 0,
     unitsJson: JSON.stringify(run.units),
     boardJson: JSON.stringify(run.board),
     augmentsPickedJson: JSON.stringify(run.augmentsPicked),

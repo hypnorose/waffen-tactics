@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS runs (
   round_number INTEGER NOT NULL,
   gold INTEGER NOT NULL,
   level INTEGER NOT NULL,
+  xp INTEGER NOT NULL DEFAULT 0,
   units_json TEXT NOT NULL,
   board_json TEXT NOT NULL,
   augments_picked_json TEXT NOT NULL,

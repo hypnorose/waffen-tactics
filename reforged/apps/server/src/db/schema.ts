@@ -17,6 +17,9 @@ export const runs = sqliteTable('runs', {
   roundNumber: integer('round_number').notNull(),
   gold: integer('gold').notNull(),
   level: integer('level').notNull(),
+  // Kept for compatibility with databases created before XP-based leveling
+  // was removed from the RunState contract.
+  xp: integer('xp').notNull().default(0),
   unitsJson: text('units_json').notNull(),
   boardJson: text('board_json').notNull(),
   augmentsPickedJson: text('augments_picked_json').notNull(),

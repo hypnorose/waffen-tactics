@@ -26,16 +26,41 @@ export function Run() {
     pickAugment,
     startCombat,
     loadOrCreateRun,
+    startNewRun,
+    surrenderRun,
     lastCombat,
     loading,
     error,
   } = useRunStore();
   const profile = useAuthStore((s) => s.profile);
 
-  if (!run) return <p className="loading">Ładowanie rozgrywki...</p>;
+  function handleStartNewRun() {
+    if (window.confirm('Czy na pewno chcesz zacząć od nowa? Obecna rozgrywka zostanie poddana.')) {
+      startNewRun();
+    }
+  }
+
+  if (!run) {
+    if (loading) return <p className="loading">Ładowanie rozgrywki...</p>;
+
+    return (
+      <section className="run-recovery" aria-live="polite">
+        <h1>Nie udało się załadować rozgrywki</h1>
+        {error && <p className="error">{error}</p>}
+        <div className="run-recovery-actions">
+          <button type="button" onClick={loadOrCreateRun} disabled={loading}>
+            Spróbuj ponownie
+          </button>
+          <button type="button" className="fight-button" onClick={handleStartNewRun} disabled={loading}>
+            Zacznij od nowa
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   if (run.status !== 'active' && !lastCombat) {
-    return <GameOver run={run} onNewRun={loadOrCreateRun} />;
+    return <GameOver run={run} onNewRun={startNewRun} />;
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -68,6 +93,18 @@ export function Run() {
         <button className="fight-button" onClick={startCombat} disabled={loading}>
           ⚔️ Rozpocznij walkę
         </button>
+        {run.status === 'active' && (
+          <button
+            type="button"
+            className="surrender-button"
+            onClick={() => {
+              if (window.confirm('Czy na pewno chcesz poddać tę rozgrywkę?')) surrenderRun();
+            }}
+            disabled={loading}
+          >
+            Poddaj rozgrywkę
+          </button>
+        )}
         {error && <p className="error">{error}</p>}
       </div>
 
