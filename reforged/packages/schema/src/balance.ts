@@ -13,6 +13,16 @@ export function unitHpContribution(cost: number): number {
   return BASE_UNIT_HP + cost * HP_PER_COST;
 }
 
+// Both team pools grow by this much per round the run has advanced past the
+// first, on top of their unit-based HP — augments/levels compound fight over
+// fight, so without this the pool total stays flat while damage output
+// keeps climbing and late-run fights end almost instantly.
+export const ROUND_HP_BONUS = 200;
+
+export function roundHpBonus(roundNumber: number): number {
+  return ROUND_HP_BONUS * Math.max(0, roundNumber - 1);
+}
+
 // Only 5 player levels — no XP, leveling is a direct gold purchase (see
 // LEVEL_UP_BASE_COST below). Shop rarity odds by level — index 0..4 = cost
 // tier 1..5, values are percentage weights (don't need to sum to 100, only

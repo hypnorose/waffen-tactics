@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { BoardPosition, CombatLog, RunState, Side, Tag, UnitDef } from '@reforged/schema';
+import type { AugmentDef, BoardPosition, CombatLog, RunState, Side, Tag, UnitDef } from '@reforged/schema';
 import { api, ApiError } from '../services/api.js';
 import { useAuthStore } from './authStore.js';
 
@@ -7,7 +7,14 @@ interface RunStoreState {
   run: RunState | null;
   units: Record<string, UnitDef>;
   tags: Record<string, Tag>;
-  lastCombat: { combatLog: CombatLog; winner: Side; opponentName: string; opponentAvatarUrl: string | null } | null;
+  augments: Record<string, AugmentDef>;
+  lastCombat: {
+    combatLog: CombatLog;
+    winner: Side;
+    opponentName: string;
+    opponentAvatarUrl: string | null;
+    opponentAugmentsPicked: string[];
+  } | null;
   loading: boolean;
   error: string | null;
 
@@ -34,15 +41,17 @@ export const useRunStore = create<RunStoreState>((set, get) => ({
   run: null,
   units: {},
   tags: {},
+  augments: {},
   lastCombat: null,
   loading: false,
   error: null,
 
   loadContent: async () => {
-    const [units, tags] = await Promise.all([api.getUnits(), api.getTags()]);
+    const [units, tags, augments] = await Promise.all([api.getUnits(), api.getTags(), api.getAugmentDefs()]);
     set({
       units: Object.fromEntries(units.map((u) => [u.id, u])),
       tags: Object.fromEntries(tags.map((t) => [t.id, t])),
+      augments: Object.fromEntries(augments.map((a) => [a.id, a])),
     });
   },
 
@@ -122,6 +131,7 @@ export const useRunStore = create<RunStoreState>((set, get) => ({
           winner: result.winner,
           opponentName: result.opponentName,
           opponentAvatarUrl: result.opponentAvatarUrl,
+          opponentAugmentsPicked: result.opponentAugmentsPicked,
         },
         loading: false,
       });

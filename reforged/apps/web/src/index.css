@@ -565,6 +565,93 @@ button.active {
   color: var(--text-dim);
 }
 
+/* Picked-augment chips — small icon with hover tooltip, used on the run page and in combat replay */
+.augment-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.augment-row.align-right {
+  flex-direction: row-reverse;
+}
+.augment-row-label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.augment-row-icons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.augment-chip {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: default;
+}
+.augment-chip.tier-bronze {
+  border-color: var(--bronze);
+  background: color-mix(in srgb, var(--bronze) 20%, var(--panel-alt));
+}
+.augment-chip.tier-silver {
+  border-color: var(--silver);
+  background: color-mix(in srgb, var(--silver) 20%, var(--panel-alt));
+}
+.augment-chip.tier-gold {
+  border-color: var(--gold-tier);
+  background: color-mix(in srgb, var(--gold-tier) 20%, var(--panel-alt));
+}
+.augment-chip-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.augment-chip-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: 200px;
+  background: #0c0e15;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+  z-index: 50;
+}
+.augment-chip:hover .augment-chip-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.augment-chip-tooltip-title {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.augment-chip-tooltip-tier {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.augment-chip-tooltip-desc {
+  font-size: 0.75rem;
+  color: var(--text);
+  line-height: 1.35;
+  margin: 0;
+}
+
 /* Combat replay */
 .combat-replay-viewer {
   background: var(--panel);
@@ -578,7 +665,15 @@ button.active {
 .combatant-headers {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+}
+.combatant-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.combatant-column.align-right {
+  align-items: flex-end;
 }
 .combatant-header {
   display: flex;

@@ -1,4 +1,5 @@
-import type { CombatLog, UnitDef } from '@reforged/schema';
+import type { AugmentDef, CombatLog, UnitDef } from '@reforged/schema';
+import { AugmentRow } from '../augment/AugmentRow.js';
 import { useCombatPlayback } from '../../hooks/combat/useCombatPlayback.js';
 import { useCombatSnapshot } from '../../hooks/combat/useCombatSnapshot.js';
 import { AbilityBanner } from './AbilityBanner.js';
@@ -12,14 +13,28 @@ import { UnitChargeBar } from './UnitChargeBar.js';
 interface Props {
   combatLog: CombatLog;
   units: Record<string, UnitDef>;
+  augments: Record<string, AugmentDef>;
   playerName: string;
   playerAvatarUrl: string | null;
+  playerAugmentIds: string[];
   opponentName: string;
   opponentAvatarUrl: string | null;
+  opponentAugmentIds: string[];
   onClose: () => void;
 }
 
-export function CombatReplayViewer({ combatLog, units, playerName, playerAvatarUrl, opponentName, opponentAvatarUrl, onClose }: Props) {
+export function CombatReplayViewer({
+  combatLog,
+  units,
+  augments,
+  playerName,
+  playerAvatarUrl,
+  playerAugmentIds,
+  opponentName,
+  opponentAvatarUrl,
+  opponentAugmentIds,
+  onClose,
+}: Props) {
   const playback = useCombatPlayback(combatLog.events);
   const snapshot = useCombatSnapshot(combatLog.events, playback.currentTime);
   const allUnits = [...snapshot.player, ...snapshot.enemy];
@@ -38,8 +53,14 @@ export function CombatReplayViewer({ combatLog, units, playerName, playerAvatarU
     <div className="modal-backdrop">
       <div className="combat-replay-viewer">
         <div className="combatant-headers">
-          <CombatantHeader name={playerName} avatarUrl={playerAvatarUrl} align="left" />
-          <CombatantHeader name={opponentName} avatarUrl={opponentAvatarUrl} align="right" />
+          <div className="combatant-column">
+            <CombatantHeader name={playerName} avatarUrl={playerAvatarUrl} align="left" />
+            <AugmentRow augmentIds={playerAugmentIds} augments={augments} align="left" />
+          </div>
+          <div className="combatant-column align-right">
+            <CombatantHeader name={opponentName} avatarUrl={opponentAvatarUrl} align="right" />
+            <AugmentRow augmentIds={opponentAugmentIds} augments={augments} align="right" />
+          </div>
         </div>
 
         <div className="combat-hp-bars">
