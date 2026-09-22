@@ -6,8 +6,8 @@ import { z } from 'zod';
 // elapses — deliberately NOT named "on_attack": this is true whether or not
 // the unit actually deals damage, so a unit with attacksPerSecond but no
 // attack stat still fires it on schedule (e.g. "cast a buff every cooldown"
-// support units) — one shared cadence trigger for fighters and supports alike.
-export const AbilityTriggerSchema = z.enum(['start_of_combat', 'on_trigger', 'periodic', 'low_team_hp']);
+// support units) — one shared cooldown trigger for fighters and supports alike.
+export const AbilityTriggerSchema = z.enum(['start_of_combat', 'on_trigger', 'low_team_hp']);
 export type AbilityTrigger = z.infer<typeof AbilityTriggerSchema>;
 
 // The handful of things a shield/haste/dodge/damage "reaction" is allowed to
@@ -201,14 +201,9 @@ export const AbilitySchema = z
   .object({
     id: z.string(),
     trigger: AbilityTriggerSchema,
-    periodSec: z.number().positive().optional(),
     hpThresholdPercent: z.number().min(0).max(1).optional(),
     effect: AbilityEffectSchema,
     description: z.string(),
-  })
-  .refine((ability) => ability.trigger !== 'periodic' || ability.periodSec !== undefined, {
-    message: 'periodic abilities require periodSec',
-    path: ['periodSec'],
   })
   .refine((ability) => ability.trigger !== 'low_team_hp' || ability.hpThresholdPercent !== undefined, {
     message: 'low_team_hp abilities require hpThresholdPercent',

@@ -2,10 +2,15 @@ import { unitHpContribution, type UnitDef } from '@reforged/schema';
 import { unitEffectIcon } from '../../lib/unitStyle.js';
 
 /**
- * No mana, no defense in Reforged. Attack/attack speed are optional — a pure
+ * No mana, no defense in Reforged. Attack/cadence are optional — a pure
  * support unit (no attack stat) shows its one effect's icon in place of the
- * damage number, and only its cooldown (attacksPerSecond) alongside it.
+ * damage number, and the action cooldown alongside it.
  */
+function formatCooldown(attacksPerSecond: number): string {
+  const cooldown = 1 / attacksPerSecond;
+  return `${cooldown.toFixed(2).replace(/\.?(0+)$/, '')} s`;
+}
+
 export function UnitStatRow({ unitDef }: { unitDef: UnitDef }) {
   const supportIcon = unitDef.baseStats.attack === undefined ? unitEffectIcon(unitDef) : null;
 
@@ -22,8 +27,8 @@ export function UnitStatRow({ unitDef }: { unitDef: UnitDef }) {
         </span>
       )}
       {unitDef.baseStats.attacksPerSecond !== undefined && (
-        <span className="unit-stat" title="Ataki (lub aktywacje) na sekundę">
-          ⏱️ {unitDef.baseStats.attacksPerSecond}
+        <span className="unit-stat" title="Cooldown ataku lub aktywacji">
+          ⏱️ {formatCooldown(unitDef.baseStats.attacksPerSecond)}
         </span>
       )}
       <span className="unit-stat" title="Wkład w pulę HP drużyny">

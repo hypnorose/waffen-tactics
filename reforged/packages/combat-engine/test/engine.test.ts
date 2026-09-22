@@ -699,14 +699,13 @@ describe('runCombat', () => {
       cost: 4,
       tags: ['konfident'],
       emoji: '☠️',
-      baseStats: {},
+      baseStats: { attacksPerSecond: 1 },
       onTrigger: [
         {
           id: 'poison_payoff.cashout',
-          trigger: 'periodic',
-          periodSec: 1,
+          trigger: 'on_trigger',
           effect: { kind: 'damage_enemy_pool_scaled_by_enemy_poison', multiplier: 2 },
-          description: 'Co sekundę zamienia truciznę w obrażenia.',
+          description: 'Co 1 s zamienia truciznę w obrażenia.',
         },
       ],
     };

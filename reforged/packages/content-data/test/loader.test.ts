@@ -57,7 +57,6 @@ describe('content-data', () => {
   it('uses on_trigger with unit cooldowns for every roster proc', () => {
     const units = getUnitList();
     const abilities = units.flatMap((unit) => [...(unit.startOfCombat ?? []), ...(unit.onTrigger ?? [])]);
-    expect(abilities.filter((ability) => ability.trigger === 'periodic')).toHaveLength(0);
     expect(abilities.filter((ability) => ability.trigger === 'low_team_hp')).toHaveLength(0);
     expect(getUnitDefs().galanonim.baseStats.attacksPerSecond).toBe(0.2);
     expect(getUnitDefs().bbobel.baseStats.attacksPerSecond).toBe(0.2);

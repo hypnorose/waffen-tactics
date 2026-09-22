@@ -816,13 +816,6 @@ export function runCombat(input: RunCombatInput): CombatLog {
       }
 
       for (const ability of unit.onTriggerAbilities) {
-        if (ability.trigger === 'periodic' && ability.periodSec) {
-          const last = unit.abilityCooldowns[ability.id] ?? 0;
-          if (simTime - last >= ability.periodSec) {
-            unit.abilityCooldowns[ability.id] = simTime;
-            triggerAbility(unit, ability, simTime);
-          }
-        }
         if (ability.trigger === 'low_team_hp' && ability.hpThresholdPercent !== undefined) {
           const pool = pools[unit.side];
           const pct = pool.hpCurrent / pool.hpMax;
