@@ -38,10 +38,17 @@ describe('content-data', () => {
     }
   });
 
-  it('has 10 augments per tier', () => {
+  it('has at least 10 augments per tier', () => {
     const perTier = { bronze: 0, silver: 0, gold: 0 };
     for (const augment of augmentDefs) perTier[augment.tier]++;
-    expect(perTier).toEqual({ bronze: 10, silver: 10, gold: 10 });
+    expect(perTier.bronze).toBeGreaterThanOrEqual(10);
+    expect(perTier.silver).toBeGreaterThanOrEqual(10);
+    expect(perTier.gold).toBeGreaterThanOrEqual(10);
+  });
+
+  it('every augment id is unique', () => {
+    const ids = augmentDefs.map((a) => a.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('every augment grantUnitId resolves to a real unit', () => {

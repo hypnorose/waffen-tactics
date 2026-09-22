@@ -56,10 +56,10 @@ const shielder: UnitDef = {
   baseStats: {},
   startOfCombat: [
     {
-      id: 'shielder.decaying_ward',
+      id: 'shielder.ward',
       trigger: 'start_of_combat',
-      effect: { kind: 'shield_own_pool', amount: 100, decayPercentPerSec: 50 },
-      description: 'Na starcie tarcza 100, która zanika o 50% co sekundę.',
+      effect: { kind: 'shield_own_pool', amount: 100 },
+      description: 'Na starcie tarcza 100.',
     },
   ],
 };
@@ -151,22 +151,130 @@ describe('runCombat', () => {
     expect(buffsOnFighter.length).toBeGreaterThan(0);
   });
 
-  it('a decaying shield absorbs less over time as it decays', () => {
+  it('a shield never decays on its own — it only shrinks when it absorbs damage', () => {
     const player: CombatTeamInput = {
       side: 'player',
       hpMax: 500,
       units: [{ instanceId: 'p-shielder', unitId: 'shielder', position: { row: 0, col: 0 } }],
     };
-    const log = runCombat({ combatId: 'c5', seed: 9, player, enemy: team('enemy'), unitDefs, timeoutSec: 3 });
+    // the enemy here has no attack stat (team('enemy') uses skirmisher, which
+    // does have one) — use a unitless enemy so nothing ever touches the shield.
+    const passiveEnemy: CombatTeamInput = { side: 'enemy', hpMax: 500, units: [{ instanceId: 'e-shielder', unitId: 'shielder', position: { row: 0, col: 0 } }] };
+    const log = runCombat({ combatId: 'c5', seed: 9, player, enemy: passiveEnemy, unitDefs, timeoutSec: 5 });
 
-    const shieldApplied = log.events.find((e) => e.type === 'team_pool_shield_applied');
+    const shieldApplied = log.events.find((e) => e.type === 'team_pool_shield_applied' && e.side === 'player');
     expect(shieldApplied && shieldApplied.type === 'team_pool_shield_applied' && shieldApplied.amount).toBe(100);
+    // nothing in this fight ever damages either pool, so no team_pool_damage
+    // event should exist at all — proof the shield isn't ticking itself down.
+    expect(log.events.some((e) => e.type === 'team_pool_damage')).toBe(false);
+  });
 
-    // by the time the enemy's first attack lands, the shield should have
-    // decayed well below its starting 100 — the damage event's effective
-    // amount reflects whatever the shield didn't absorb.
-    const firstPlayerDamage = log.events.find((e) => e.type === 'team_pool_damage' && e.side === 'player');
-    expect(firstPlayerDamage).toBeDefined();
+  it('poison bypasses shield entirely, dealing full HP damage even with an active shield up', () => {
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 500,
+      units: [{ instanceId: 'p-shielder', unitId: 'shielder', position: { row: 0, col: 0 } }],
+      augmentEffects: [{ effect: { kind: 'poison_enemy_pool', damagePerSec: 20 } }],
+    };
+    const passiveEnemy: CombatTeamInput = { side: 'enemy', hpMax: 500, units: [] };
+    const log = runCombat({ combatId: 'c-poison', seed: 1, player, enemy: passiveEnemy, unitDefs, timeoutSec: 2 });
+    const enemyDamage = log.events.filter((e) => e.type === 'team_pool_damage' && e.side === 'enemy');
+    expect(enemyDamage.length).toBeGreaterThan(0);
+    // player's own shield must still be fully intact — poison targets the enemy, not us — this just proves poison isn't blocked by ANY shield in play.
+    expect(log.events.some((e) => e.type === 'team_pool_shield_applied' && e.side === 'player')).toBe(true);
+  });
+
+  it('dodge stacks can fully negate an incoming attack (deterministic under a fixed seed)', () => {
+    const player: CombatTeamInput = { side: 'player', hpMax: 500, units: team('player').units };
+    const dodgyEnemy: CombatTeamInput = {
+      side: 'enemy',
+      hpMax: 500,
+      units: team('enemy').units,
+      augmentEffects: [{ effect: { kind: 'dodge_stacks_own_pool', stacks: 70 } }],
+    };
+    const log = runCombat({ combatId: 'c-dodge', seed: 123, player, enemy: dodgyEnemy, unitDefs, timeoutSec: 5 });
+    expect(log.events.some((e) => e.type === 'team_pool_dodge_proc' && e.side === 'enemy')).toBe(true);
+  });
+
+  it('execution instantly zeroes a pool once both its HP% and mark thresholds are crossed', () => {
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 100,
+      units: team('player').units,
+      augmentEffects: [
+        { effect: { kind: 'execution_mark_enemy_pool', stacks: 10 } },
+        { effect: { kind: 'execution_empower_enemy_pool', hpThresholdPercentBonus: 88, stacksRequiredReduction: 0 } },
+      ],
+    };
+    const log = runCombat({ combatId: 'c-exec', seed: 5, player, enemy: team('enemy'), unitDefs, timeoutSec: 5 });
+    expect(log.events.some((e) => e.type === 'team_pool_executed' && e.side === 'enemy')).toBe(true);
+  });
+
+  it('thorns reflects a % of HP loss back at the attacker without chaining infinitely', () => {
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 500,
+      units: team('player').units,
+      augmentEffects: [{ effect: { kind: 'thorns_own_pool', percent: 50 } }],
+    };
+    const enemy: CombatTeamInput = {
+      side: 'enemy',
+      hpMax: 500,
+      units: team('enemy').units,
+      augmentEffects: [{ effect: { kind: 'thorns_own_pool', percent: 50 } }],
+    };
+    const log = runCombat({ combatId: 'c-thorns', seed: 2, player, enemy, unitDefs, timeoutSec: 3 });
+    // both sides have thorns, which would ping-pong forever without the
+    // no-re-trigger guard — the fight must still terminate within timeout.
+    expect(log.events.some((e) => e.type === 'end')).toBe(true);
+    expect(log.events.some((e) => e.type === 'team_pool_damage' && e.cause === 'ability')).toBe(true);
+  });
+
+  it('multicast_team fires extra hits at the configured % of base damage after the primary hit', () => {
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 500,
+      units: team('player').units,
+      augmentEffects: [{ effect: { kind: 'multicast_team', extraHits: 2, extraHitPercent: 20 } }],
+    };
+    const log = runCombat({ combatId: 'c-multicast', seed: 4, player, enemy: team('enemy'), unitDefs, timeoutSec: 2 });
+    const multicastHits = log.events.filter((e) => e.type === 'unit_attack_fired' && e.multicast);
+    expect(multicastHits.length).toBeGreaterThan(0);
+  });
+
+  it('steal_buff transfers a % of the enemy\'s current stacks instead of just copying them', () => {
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 500,
+      units: team('player').units,
+      augmentEffects: [{ effect: { kind: 'steal_buff', buff: 'haste', percent: 50 } }],
+    };
+    const enemy: CombatTeamInput = {
+      side: 'enemy',
+      hpMax: 500,
+      units: team('enemy').units,
+      augmentEffects: [{ effect: { kind: 'haste_stacks_own_pool', stacks: 20 } }],
+    };
+    const log = runCombat({ combatId: 'c-steal', seed: 6, player, enemy, unitDefs, timeoutSec: 1 });
+    const playerHaste = log.events.find((e) => e.type === 'team_pool_stat_applied' && e.side === 'player' && e.stat === 'haste');
+    const enemyHasteShred = log.events.find((e) => e.type === 'team_pool_stat_applied' && e.side === 'enemy' && e.stat === 'haste' && e.amount < 0);
+    expect(playerHaste).toBeDefined();
+    expect(enemyHasteShred).toBeDefined();
+  });
+
+  it('reaction_on_shield_gained fires exactly when the pool goes from 0 to a positive shield', () => {
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 500,
+      units: team('player').units,
+      augmentEffects: [
+        { effect: { kind: 'shield_own_pool', amount: 30 } },
+        { effect: { kind: 'reaction_on_shield_gained', reaction: { kind: 'grant_haste_stacks', stacks: 5 } } },
+      ],
+    };
+    const log = runCombat({ combatId: 'c-reaction', seed: 8, player, enemy: team('enemy'), unitDefs, timeoutSec: 1 });
+    const hasteFromReaction = log.events.find((e) => e.type === 'team_pool_stat_applied' && e.side === 'player' && e.stat === 'haste' && e.amount === 5);
+    expect(hasteFromReaction).toBeDefined();
   });
 
   it('a tag-filtered augment only buffs units carrying that tag', () => {

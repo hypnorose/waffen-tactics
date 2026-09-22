@@ -1,4 +1,4 @@
-import type { Ability, AbilityEffect, BoardPosition, CombatLog, Side, UnitCombatState, UnitDef } from '@reforged/schema';
+import type { Ability, AbilityEffect, BoardPosition, CombatLog, ReactionEffect, Side, UnitCombatState, UnitDef } from '@reforged/schema';
 import { EventLogBuilder } from './eventLog.js';
 import { resolvePositionalBonuses } from './positionalResolver.js';
 
@@ -31,17 +31,42 @@ export interface RunCombatInput {
 
 // Stacking caps — a support unit firing a team buff every cooldown for up to
 // 120s would otherwise break the game (multiplicative stacking with no
-// ceiling). These are additive-percent accumulators clamped to this range,
-// not a hard multiplier limit, so multiple smaller sources still combine
-// naturally up to the cap.
-const MAX_HASTE_PERCENT = 100; // attack speed can be buffed at most +100% (2x)
-const MAX_SLOW_PERCENT = 80; // attack speed can be slowed at most -80% (0.2x)
-const MAX_ATTACK_BUFF_PERCENT = 200; // attack damage can be buffed at most +200% (3x)
-const MAX_WEAKEN_PERCENT = 80; // attack damage can be weakened at most -80%
-const MAX_POISON_DPS = 40; // stacking poison sources cap out here
+// ceiling). These are additive accumulators clamped to a range, not a hard
+// multiplier limit, so multiple smaller sources still combine naturally up
+// to the cap.
+const MAX_HASTE_PERCENT = 100; // per-unit attackSpeedBonusPercent ceiling (positional/self buffs)
+const MAX_SLOW_PERCENT = 80;
+const MAX_ATTACK_BUFF_PERCENT = 200;
+const MAX_WEAKEN_PERCENT = 80;
+const MAX_POISON_DPS = 40;
+const MAX_REGEN_PER_SEC = 30;
+const MAX_HASTE_STACKS = 100; // pool-level haste — 1 stack = 1%, combined with per-unit speed at read time
+const MAX_DODGE_STACKS = 70;
+const MAX_FRAGILITY_PERCENT = 150;
+const MAX_THORNS_PERCENT = 100;
+const MAX_EXECUTION_STACKS = 30;
+const MAX_MULTICAST_EXTRA_HITS = 5;
+const MAX_SHRED_ON_HIT_STACKS = 10;
+const EXECUTION_DEFAULT_HP_THRESHOLD_PERCENT = 12;
+const EXECUTION_DEFAULT_STACKS_REQUIRED = 10;
+const MULTICAST_HIT_DELAY_SEC = 0.15;
+const MAX_REACTION_DEPTH = 4; // guards against a reaction whose own effect re-triggers itself
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+// Deterministic PRNG (mulberry32) seeded from input.seed — dodge is the only
+// probabilistic mechanic in the engine, and the "same seed -> same events"
+// guarantee (see engine.test.ts) depends on never touching Math.random().
+function createRng(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 interface RuntimeUnit {
@@ -52,26 +77,75 @@ interface RuntimeUnit {
   baseAttackDamage: number; // 0 = no attack stat
   attackDamageBonusPercent: number; // additive, clamped [-MAX_WEAKEN_PERCENT, MAX_ATTACK_BUFF_PERCENT]
   baseAttackIntervalSec: number | null; // null = no attacksPerSecond stat, never acts on a cadence
-  attackSpeedBonusPercent: number; // additive, clamped [-MAX_SLOW_PERCENT, MAX_HASTE_PERCENT]
+  attackSpeedBonusPercent: number; // per-unit additive, clamped [-MAX_SLOW_PERCENT, MAX_HASTE_PERCENT]
   attackDamage: number; // derived from base + bonus
-  attackIntervalSec: number | null; // derived from base + bonus
+  attackIntervalSec: number | null; // derived from base + bonus + pool haste stacks
   lastAttackAt: number;
   abilityCooldowns: Record<string, number>;
   lowHpAbilitiesFired: Set<string>;
+  // Set by multicast_team / shred_dodge_on_hit_team augment effects.
+  multicastExtraHits: number;
+  multicastExtraHitPercent: number;
+  shredDodgeOnHitStacks: number;
+  executionMarkOnHitStacks: number;
 }
 
-function recomputeDerivedStats(u: RuntimeUnit): void {
+function recomputeDerivedStats(u: RuntimeUnit, pool: Pool): void {
   u.attackDamage = u.baseAttackDamage * (1 + u.attackDamageBonusPercent / 100);
-  u.attackIntervalSec = u.baseAttackIntervalSec !== null ? u.baseAttackIntervalSec / (1 + u.attackSpeedBonusPercent / 100) : null;
+  if (u.baseAttackIntervalSec === null) {
+    u.attackIntervalSec = null;
+    return;
+  }
+  const effectiveSpeedPercent = clamp(u.attackSpeedBonusPercent + pool.hasteStacks, -MAX_SLOW_PERCENT, MAX_HASTE_PERCENT);
+  u.attackIntervalSec = u.baseAttackIntervalSec / (1 + effectiveSpeedPercent / 100);
 }
+
+type ReactionHook = 'shield_gained' | 'shield_depleted';
 
 interface Pool {
   hpMax: number;
   hpCurrent: number;
-  shield: number;
-  shieldDecayPercentPerSec: number;
+  shield: number; // never decays on its own — only consumed by damage
   poisonDamagePerSec: number;
   lastPoisonTickAt: number;
+  regenPerSec: number;
+  lastRegenTickAt: number;
+  hasteStacks: number; // 1 stack = 1% attack speed, team-wide
+  dodgeStacks: number; // 1 stack = 1% chance to fully negate an incoming hit
+  fragilityPercent: number; // % more damage taken from every source
+  thornsPercent: number; // % of own HP loss reflected back at the enemy pool
+  executionStacks: number;
+  executionHpThresholdPercent: number;
+  executionStacksRequired: number;
+  momentumHasteStacksPerSec: number;
+  momentumAttackPercentPerSec: number;
+  lastMomentumTickAt: number;
+  reactions: Array<{ on: ReactionHook; effect: ReactionEffect }>;
+  shieldGainReductionPercent: number;
+}
+
+function makePool(hpMax: number): Pool {
+  return {
+    hpMax,
+    hpCurrent: hpMax,
+    shield: 0,
+    poisonDamagePerSec: 0,
+    lastPoisonTickAt: 0,
+    regenPerSec: 0,
+    lastRegenTickAt: 0,
+    hasteStacks: 0,
+    dodgeStacks: 0,
+    fragilityPercent: 0,
+    thornsPercent: 0,
+    executionStacks: 0,
+    executionHpThresholdPercent: EXECUTION_DEFAULT_HP_THRESHOLD_PERCENT,
+    executionStacksRequired: EXECUTION_DEFAULT_STACKS_REQUIRED,
+    momentumHasteStacksPerSec: 0,
+    momentumAttackPercentPerSec: 0,
+    lastMomentumTickAt: 0,
+    reactions: [],
+    shieldGainReductionPercent: 0,
+  };
 }
 
 function otherSide(side: Side): Side {
@@ -85,38 +159,37 @@ function otherSide(side: Side): Side {
  * (or every unit on one side, for team-wide buffs/debuffs). Units never die
  * mid-fight — they act for the whole timeout window, and the pool that first
  * reaches 0 loses (or, at timeout, whichever pool has the higher remaining
- * percentage).
+ * percentage). Egzekucja (execution) is the one exception: it sets a pool's
+ * HP straight to 0 outside the normal damage pipeline once both its HP% and
+ * mark count cross their thresholds.
  *
- * No defense stat exists — damage is never mitigated. attack/attacksPerSecond
- * are both optional per unit: a unit with attacksPerSecond but no attack
- * still triggers its on_attack abilities on schedule (a pure support unit
- * that casts a buff/heal/shield every cooldown instead of dealing damage); a
- * unit with neither only acts through start_of_combat/periodic/low_team_hp.
+ * No defense stat exists — damage is never mitigated except by shield, dodge
+ * and fragility, all team-pool-wide statuses (never per-unit — see the note
+ * at the top of augments.ts on why every status here lives on the pool).
  */
 export function runCombat(input: RunCombatInput): CombatLog {
   const dt = input.dt ?? 0.1;
   const timeoutSec = input.timeoutSec ?? 120;
   const log = new EventLogBuilder();
+  const rng = createRng(input.seed);
 
   const pools: Record<Side, Pool> = {
-    player: { hpMax: input.player.hpMax, hpCurrent: input.player.hpMax, shield: 0, shieldDecayPercentPerSec: 0, poisonDamagePerSec: 0, lastPoisonTickAt: 0 },
-    enemy: { hpMax: input.enemy.hpMax, hpCurrent: input.enemy.hpMax, shield: 0, shieldDecayPercentPerSec: 0, poisonDamagePerSec: 0, lastPoisonTickAt: 0 },
+    player: makePool(input.player.hpMax),
+    enemy: makePool(input.enemy.hpMax),
   };
 
-  const positionalMods = {
-    player: resolvePositionalBonuses(input.player.units, input.unitDefs),
-    enemy: resolvePositionalBonuses(input.enemy.units, input.unitDefs),
+  const positionalMods = resolvePositionalBonuses(input.player.units, input.unitDefs);
+  const enemyPositionalMods = resolvePositionalBonuses(input.enemy.units, input.unitDefs);
+  const positionalModsBySide: Record<Side, ReturnType<typeof resolvePositionalBonuses>> = {
+    player: positionalMods,
+    enemy: enemyPositionalMods,
   };
 
   function buildRuntimeUnits(team: CombatTeamInput): RuntimeUnit[] {
     return team.units.map((p) => {
       const def = input.unitDefs[p.unitId];
       if (!def) throw new Error(`Unknown unitId "${p.unitId}"`);
-      const mod = positionalMods[team.side][p.instanceId] ?? {
-        attackPercent: 0,
-        attackSpeedPercent: 0,
-        appliedBonusIds: [],
-      };
+      const mod = positionalModsBySide[team.side][p.instanceId] ?? { attackPercent: 0, attackSpeedPercent: 0, appliedBonusIds: [] };
       const unit: RuntimeUnit = {
         instanceId: p.instanceId,
         unitId: p.unitId,
@@ -131,24 +204,105 @@ export function runCombat(input: RunCombatInput): CombatLog {
         lastAttackAt: 0,
         abilityCooldowns: {},
         lowHpAbilitiesFired: new Set<string>(),
+        multicastExtraHits: 0,
+        multicastExtraHitPercent: 0,
+        shredDodgeOnHitStacks: 0,
+        executionMarkOnHitStacks: 0,
       };
-      recomputeDerivedStats(unit);
+      recomputeDerivedStats(unit, pools[team.side]);
       return unit;
     });
   }
 
   const units: RuntimeUnit[] = [...buildRuntimeUnits(input.player), ...buildRuntimeUnits(input.enemy)];
 
-  function applyDamageToPool(side: Side, amount: number, cause: 'attack' | 'ability', sourceInstanceId: string | undefined, simTime: number) {
+  function recomputeAllUnits(side: Side) {
     const pool = pools[side];
+    for (const u of units) if (u.side === side) recomputeDerivedStats(u, pool);
+  }
+
+  let reactionDepth = 0;
+  function fireReactions(side: Side, on: ReactionHook, simTime: number) {
+    if (reactionDepth >= MAX_REACTION_DEPTH) return;
+    reactionDepth++;
+    for (const r of pools[side].reactions) {
+      if (r.on === on) applyReactionEffect(side, r.effect, simTime);
+    }
+    reactionDepth--;
+  }
+
+  function applyReactionEffect(side: Side, effect: ReactionEffect, simTime: number) {
+    switch (effect.kind) {
+      case 'grant_haste_stacks':
+        grantHaste(side, effect.stacks, undefined, simTime);
+        break;
+      case 'grant_dodge_stacks':
+        grantDodge(side, effect.stacks, undefined, simTime);
+        break;
+      case 'grant_shield':
+        applyShieldToPool(side, effect.amount, undefined, simTime);
+        break;
+      case 'damage_enemy_pool':
+        applyDamageToPool(otherSide(side), effect.amount, 'ability', undefined, simTime);
+        break;
+      case 'buff_team_attack':
+        for (const ally of units) if (ally.side === side) buffAttack(ally, effect.percent, undefined, simTime);
+        break;
+    }
+  }
+
+  function finalizeDamage(side: Side, amount: number, cause: 'attack' | 'ability', sourceInstanceId: string | undefined, simTime: number, allowThornsReflection: boolean) {
+    const pool = pools[side];
+    pool.hpCurrent = Math.max(0, pool.hpCurrent - amount);
+    if (amount > 0) log.push({ simTime, type: 'team_pool_damage', side, amount, postHp: pool.hpCurrent, cause, sourceInstanceId });
+    if (allowThornsReflection && amount > 0 && pool.thornsPercent > 0) {
+      const reflect = amount * (pool.thornsPercent / 100);
+      if (reflect > 0) applyDamageToPool(otherSide(side), reflect, 'ability', undefined, simTime, true);
+    }
+    checkExecution(side, simTime);
+  }
+
+  function checkExecution(side: Side, simTime: number) {
+    const pool = pools[side];
+    if (pool.hpCurrent <= 0) return;
+    const hpPercent = (pool.hpCurrent / pool.hpMax) * 100;
+    if (hpPercent <= pool.executionHpThresholdPercent && pool.executionStacks >= pool.executionStacksRequired) {
+      pool.hpCurrent = 0;
+      log.push({ simTime, type: 'team_pool_executed', side });
+    }
+  }
+
+  // `isReflection` marks damage that itself came from a thorns reflection —
+  // it still rolls dodge/shield/fragility normally, it just can't spawn a
+  // second reflection (that would be an infinite ping-pong between two
+  // thorns-carrying sides).
+  function applyDamageToPool(side: Side, amount: number, cause: 'attack' | 'ability', sourceInstanceId: string | undefined, simTime: number, isReflection = false) {
+    const pool = pools[side];
+    if (pool.dodgeStacks > 0) {
+      const chance = Math.min(pool.dodgeStacks, MAX_DODGE_STACKS) / 100;
+      if (rng() < chance) {
+        log.push({ simTime, type: 'team_pool_dodge_proc', side, negatedAmount: amount });
+        return;
+      }
+    }
     let effective = amount;
+    if (pool.fragilityPercent > 0) effective *= 1 + pool.fragilityPercent / 100;
     if (pool.shield > 0) {
       const absorbed = Math.min(pool.shield, effective);
       pool.shield -= absorbed;
       effective -= absorbed;
+      if (absorbed > 0 && pool.shield <= 0) fireReactions(side, 'shield_depleted', simTime);
     }
-    pool.hpCurrent = Math.max(0, pool.hpCurrent - effective);
-    log.push({ simTime, type: 'team_pool_damage', side, amount: effective, postHp: pool.hpCurrent, cause, sourceInstanceId });
+    finalizeDamage(side, effective, cause, sourceInstanceId, simTime, !isReflection);
+  }
+
+  // Poison is a status, not a hit — it ignores dodge and shield entirely
+  // (only fragility still amplifies it, and cleanse is the only counter).
+  function applyPoisonTick(side: Side, damagePerSec: number, simTime: number) {
+    const pool = pools[side];
+    let effective = damagePerSec;
+    if (pool.fragilityPercent > 0) effective *= 1 + pool.fragilityPercent / 100;
+    finalizeDamage(side, effective, 'ability', undefined, simTime, true);
   }
 
   function applyHealToPool(side: Side, amount: number, sourceInstanceId: string | undefined, simTime: number) {
@@ -157,26 +311,125 @@ export function runCombat(input: RunCombatInput): CombatLog {
     log.push({ simTime, type: 'team_pool_heal', side, amount, postHp: pool.hpCurrent, sourceInstanceId });
   }
 
-  function applyShieldToPool(side: Side, amount: number, decayPercentPerSec: number, sourceInstanceId: string | undefined, simTime: number) {
-    pools[side].shield += amount;
-    pools[side].shieldDecayPercentPerSec = decayPercentPerSec;
-    log.push({ simTime, type: 'team_pool_shield_applied', side, amount, sourceInstanceId });
+  function applyShieldToPool(side: Side, amount: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const wasZero = pool.shield <= 0;
+    const granted = pool.shieldGainReductionPercent > 0 ? amount * (1 - Math.min(100, pool.shieldGainReductionPercent) / 100) : amount;
+    pool.shield += granted;
+    if (granted !== 0) log.push({ simTime, type: 'team_pool_shield_applied', side, amount: granted, sourceInstanceId });
+    if (wasZero && pool.shield > 0) fireReactions(side, 'shield_gained', simTime);
+  }
+
+  // Only used by steal_buff — removes shield from the victim without
+  // requiring a positive-amount event (the schema allows a negative amount
+  // on this event specifically to cover steals).
+  function removeShieldForSteal(side: Side, amount: number, simTime: number): number {
+    const pool = pools[side];
+    const wasPositive = pool.shield > 0;
+    const removed = Math.min(pool.shield, amount);
+    pool.shield -= removed;
+    if (removed > 0) log.push({ simTime, type: 'team_pool_shield_applied', side, amount: -removed });
+    if (wasPositive && pool.shield <= 0) fireReactions(side, 'shield_depleted', simTime);
+    return removed;
   }
 
   function applyPoisonToPool(side: Side, damagePerSec: number) {
     pools[side].poisonDamagePerSec = Math.min(MAX_POISON_DPS, pools[side].poisonDamagePerSec + damagePerSec);
   }
 
+  function applyRegenToPool(side: Side, amountPerSec: number) {
+    pools[side].regenPerSec = Math.min(MAX_REGEN_PER_SEC, pools[side].regenPerSec + amountPerSec);
+  }
+
+  function grantHaste(side: Side, stacks: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const before = pool.hasteStacks;
+    pool.hasteStacks = clamp(pool.hasteStacks + stacks, 0, MAX_HASTE_STACKS);
+    if (pool.hasteStacks !== before) {
+      log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'haste', amount: pool.hasteStacks - before, total: pool.hasteStacks, sourceInstanceId });
+      recomputeAllUnits(side);
+    }
+  }
+
+  function shredHaste(side: Side, stacks: number, simTime: number) {
+    const pool = pools[side];
+    const before = pool.hasteStacks;
+    pool.hasteStacks = clamp(pool.hasteStacks - stacks, 0, MAX_HASTE_STACKS);
+    if (pool.hasteStacks !== before) {
+      log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'haste', amount: pool.hasteStacks - before, total: pool.hasteStacks });
+      recomputeAllUnits(side);
+    }
+  }
+
+  function grantDodge(side: Side, stacks: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const before = pool.dodgeStacks;
+    pool.dodgeStacks = clamp(pool.dodgeStacks + stacks, 0, MAX_DODGE_STACKS);
+    if (pool.dodgeStacks !== before) log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'dodge', amount: pool.dodgeStacks - before, total: pool.dodgeStacks, sourceInstanceId });
+  }
+
+  function shredDodge(side: Side, stacks: number, simTime: number) {
+    const pool = pools[side];
+    const before = pool.dodgeStacks;
+    pool.dodgeStacks = clamp(pool.dodgeStacks - stacks, 0, MAX_DODGE_STACKS);
+    if (pool.dodgeStacks !== before) log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'dodge', amount: pool.dodgeStacks - before, total: pool.dodgeStacks });
+  }
+
+  function grantFragility(side: Side, percent: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const before = pool.fragilityPercent;
+    pool.fragilityPercent = clamp(pool.fragilityPercent + percent, 0, MAX_FRAGILITY_PERCENT);
+    if (pool.fragilityPercent !== before) log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'fragility', amount: pool.fragilityPercent - before, total: pool.fragilityPercent, sourceInstanceId });
+  }
+
+  function grantThorns(side: Side, percent: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const before = pool.thornsPercent;
+    pool.thornsPercent = clamp(pool.thornsPercent + percent, 0, MAX_THORNS_PERCENT);
+    if (pool.thornsPercent !== before) log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'thorns', amount: pool.thornsPercent - before, total: pool.thornsPercent, sourceInstanceId });
+  }
+
+  function grantExecutionMark(side: Side, stacks: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const before = pool.executionStacks;
+    pool.executionStacks = clamp(pool.executionStacks + stacks, 0, MAX_EXECUTION_STACKS);
+    if (pool.executionStacks !== before) {
+      log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'execution', amount: pool.executionStacks - before, total: pool.executionStacks, sourceInstanceId });
+      checkExecution(side, simTime);
+    }
+  }
+
+  function stealBuff(casterSide: Side, buff: 'haste' | 'dodge' | 'shield', percent: number, simTime: number) {
+    const enemySide = otherSide(casterSide);
+    const enemyPool = pools[enemySide];
+    if (buff === 'haste') {
+      const amount = enemyPool.hasteStacks * (percent / 100);
+      if (amount <= 0) return;
+      shredHaste(enemySide, amount, simTime);
+      grantHaste(casterSide, amount, undefined, simTime);
+    } else if (buff === 'dodge') {
+      const amount = enemyPool.dodgeStacks * (percent / 100);
+      if (amount <= 0) return;
+      shredDodge(enemySide, amount, simTime);
+      grantDodge(casterSide, amount, undefined, simTime);
+    } else {
+      const amount = enemyPool.shield * (percent / 100);
+      if (amount <= 0) return;
+      const removed = removeShieldForSteal(enemySide, amount, simTime);
+      if (removed > 0) applyShieldToPool(casterSide, removed, undefined, simTime);
+    }
+  }
+
   function buffAttack(unit: RuntimeUnit, percent: number, sourceInstanceId: string | undefined, simTime: number) {
     unit.attackDamageBonusPercent = clamp(unit.attackDamageBonusPercent + percent, -MAX_WEAKEN_PERCENT, MAX_ATTACK_BUFF_PERCENT);
-    recomputeDerivedStats(unit);
+    recomputeDerivedStats(unit, pools[unit.side]);
     log.push({ simTime, type: 'unit_buff_applied', instanceId: unit.instanceId, stat: 'attack', percent, sourceInstanceId });
   }
 
   function buffAttackSpeed(unit: RuntimeUnit, percent: number, sourceInstanceId: string | undefined, simTime: number) {
     if (unit.baseAttackIntervalSec === null) return;
     unit.attackSpeedBonusPercent = clamp(unit.attackSpeedBonusPercent + percent, -MAX_SLOW_PERCENT, MAX_HASTE_PERCENT);
-    recomputeDerivedStats(unit);
+    recomputeDerivedStats(unit, pools[unit.side]);
     log.push({ simTime, type: 'unit_buff_applied', instanceId: unit.instanceId, stat: 'attackSpeed', percent, sourceInstanceId });
   }
 
@@ -196,9 +449,11 @@ export function runCombat(input: RunCombatInput): CombatLog {
    * skipped by team-wide effects (a unit's own team-wide buff hits every
    * OTHER ally, not itself) — omitted entirely for augments, which have no
    * single caster and so affect the whole side uniformly. `tagFilter`
-   * (augments only) restricts team-wide/enemy-wide effects to units
-   * carrying one of those tags, so an augment can build toward a
-   * tag-specific specialization instead of always hitting the whole board.
+   * (augments only) restricts team-wide/enemy-wide/per-unit-passive effects
+   * to units carrying one of those tags. Pure pool-level effects (haste,
+   * dodge, shield, fragility, thorns, execution, momentum, reactions) ignore
+   * both `excludeUnit` and `tagFilter` — a status on the shared pool has no
+   * per-unit meaning to exclude or filter.
    */
   function applyEffectFromSide(side: Side, effect: AbilityEffect, simTime: number, excludeUnit?: RuntimeUnit, tagFilter?: string[]) {
     const sourceInstanceId = excludeUnit?.instanceId;
@@ -210,10 +465,13 @@ export function runCombat(input: RunCombatInput): CombatLog {
         applyHealToPool(side, effect.amount, sourceInstanceId, simTime);
         break;
       case 'shield_own_pool':
-        applyShieldToPool(side, effect.amount, effect.decayPercentPerSec ?? 0, sourceInstanceId, simTime);
+        applyShieldToPool(side, effect.amount, sourceInstanceId, simTime);
         break;
       case 'poison_enemy_pool':
         applyPoisonToPool(otherSide(side), effect.damagePerSec);
+        break;
+      case 'regen_own_pool':
+        applyRegenToPool(side, effect.amountPerSec);
         break;
       case 'buff_attack':
         if (excludeUnit) buffAttack(excludeUnit, effect.percent, sourceInstanceId, simTime);
@@ -237,6 +495,69 @@ export function runCombat(input: RunCombatInput): CombatLog {
       case 'slow_enemy_team_attack_speed':
         for (const foe of units) if (foe.side === otherSide(side) && hasAnyTag(foe, tagFilter)) buffAttackSpeed(foe, -effect.percent, sourceInstanceId, simTime);
         break;
+      case 'haste_stacks_own_pool':
+        grantHaste(side, effect.stacks, sourceInstanceId, simTime);
+        break;
+      case 'dodge_stacks_own_pool':
+        grantDodge(side, effect.stacks, sourceInstanceId, simTime);
+        break;
+      case 'fragility_enemy_pool':
+        grantFragility(otherSide(side), effect.percent, sourceInstanceId, simTime);
+        break;
+      case 'thorns_own_pool':
+        grantThorns(side, effect.percent, sourceInstanceId, simTime);
+        break;
+      case 'execution_mark_enemy_pool':
+        grantExecutionMark(otherSide(side), effect.stacks, sourceInstanceId, simTime);
+        break;
+      case 'execution_empower_enemy_pool': {
+        const enemyPool = pools[otherSide(side)];
+        enemyPool.executionHpThresholdPercent += effect.hpThresholdPercentBonus;
+        enemyPool.executionStacksRequired = Math.max(1, enemyPool.executionStacksRequired - effect.stacksRequiredReduction);
+        break;
+      }
+      case 'reduce_own_shield_gain':
+        pools[side].shieldGainReductionPercent = Math.min(100, pools[side].shieldGainReductionPercent + effect.percent);
+        break;
+      case 'shred_enemy_haste_stacks':
+        shredHaste(otherSide(side), effect.stacks, simTime);
+        break;
+      case 'shred_enemy_dodge_stacks':
+        shredDodge(otherSide(side), effect.stacks, simTime);
+        break;
+      case 'shred_dodge_on_hit_team':
+        for (const ally of units) {
+          if (ally.side === side && hasAnyTag(ally, tagFilter)) ally.shredDodgeOnHitStacks = Math.min(MAX_SHRED_ON_HIT_STACKS, ally.shredDodgeOnHitStacks + effect.stacks);
+        }
+        break;
+      case 'execution_mark_on_hit_team':
+        for (const ally of units) {
+          if (ally.side === side && hasAnyTag(ally, tagFilter)) ally.executionMarkOnHitStacks = Math.min(MAX_SHRED_ON_HIT_STACKS, ally.executionMarkOnHitStacks + effect.stacks);
+        }
+        break;
+      case 'steal_buff':
+        stealBuff(side, effect.buff, effect.percent, simTime);
+        break;
+      case 'multicast_team':
+        for (const ally of units) {
+          if (ally.side === side && hasAnyTag(ally, tagFilter)) {
+            ally.multicastExtraHits = Math.min(MAX_MULTICAST_EXTRA_HITS, ally.multicastExtraHits + effect.extraHits);
+            ally.multicastExtraHitPercent = Math.max(ally.multicastExtraHitPercent, effect.extraHitPercent);
+          }
+        }
+        break;
+      case 'momentum_own_pool': {
+        const pool = pools[side];
+        pool.momentumHasteStacksPerSec += effect.hasteStacksPerSec;
+        pool.momentumAttackPercentPerSec += effect.attackPercentPerSec;
+        break;
+      }
+      case 'reaction_on_shield_gained':
+        pools[side].reactions.push({ on: 'shield_gained', effect: effect.reaction });
+        break;
+      case 'reaction_on_shield_depleted':
+        pools[side].reactions.push({ on: 'shield_depleted', effect: effect.reaction });
+        break;
     }
   }
 
@@ -248,7 +569,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
     attackIntervalSec: u.attackIntervalSec,
     lastAttackAt: 0,
     abilityCooldowns: {},
-    positionalBonusesApplied: positionalMods[u.side][u.instanceId]?.appliedBonusIds ?? [],
+    positionalBonusesApplied: positionalModsBySide[u.side][u.instanceId]?.appliedBonusIds ?? [],
   }));
 
   log.push({
@@ -267,11 +588,37 @@ export function runCombat(input: RunCombatInput): CombatLog {
       applyAbilityEffect(unit, ability, 0);
     }
   }
-  for (const app of input.player.augmentEffects ?? []) applyEffectFromSide('player', app.effect, 0, undefined, app.tagFilter);
-  for (const app of input.enemy.augmentEffects ?? []) applyEffectFromSide('enemy', app.effect, 0, undefined, app.tagFilter);
+
+  // Augment effects apply in three passes, so authored order inside one
+  // augment's `effects` array (or pick order between the two sides) never
+  // matters for correctness:
+  //   1. reaction_on_* registrations — armed before anything that could
+  //      fire them, so "shield 30 + react-on-shield-gained" in that exact
+  //      order still catches its own shield grant.
+  //   2. everything else.
+  //   3. steal_buff — always sees the opponent's fully-applied starting
+  //      stacks/shield.
+  const pendingAugments: Array<{ side: Side; effect: AbilityEffect; tagFilter?: string[] }> = [
+    ...(input.player.augmentEffects ?? []).map((a) => ({ side: 'player' as Side, ...a })),
+    ...(input.enemy.augmentEffects ?? []).map((a) => ({ side: 'enemy' as Side, ...a })),
+  ];
+  const isReaction = (k: AbilityEffect['kind']) => k === 'reaction_on_shield_gained' || k === 'reaction_on_shield_depleted';
+  for (const a of pendingAugments) if (isReaction(a.effect.kind)) applyEffectFromSide(a.side, a.effect, 0, undefined, a.tagFilter);
+  for (const a of pendingAugments) if (!isReaction(a.effect.kind) && a.effect.kind !== 'steal_buff') applyEffectFromSide(a.side, a.effect, 0, undefined, a.tagFilter);
+  for (const a of pendingAugments) if (a.effect.kind === 'steal_buff') applyEffectFromSide(a.side, a.effect, 0, undefined, a.tagFilter);
 
   let winner: Side | null = null;
   let simTime = 0;
+
+  function fireAttack(unit: RuntimeUnit, def: UnitDef, atSimTime: number, isMulticastHit: boolean) {
+    log.push({ simTime: atSimTime, type: 'unit_attack_fired', instanceId: unit.instanceId, emoji: def.emoji, multicast: isMulticastHit || undefined });
+    const damage = isMulticastHit ? unit.attackDamage * (unit.multicastExtraHitPercent / 100) : unit.attackDamage;
+    if (damage > 0) {
+      applyDamageToPool(otherSide(unit.side), damage, 'attack', unit.instanceId, atSimTime);
+      if (unit.shredDodgeOnHitStacks > 0) shredDodge(otherSide(unit.side), unit.shredDodgeOnHitStacks, atSimTime);
+      if (unit.executionMarkOnHitStacks > 0) grantExecutionMark(otherSide(unit.side), unit.executionMarkOnHitStacks, unit.instanceId, atSimTime);
+    }
+  }
 
   while (simTime < timeoutSec) {
     for (const unit of units) {
@@ -279,13 +626,16 @@ export function runCombat(input: RunCombatInput): CombatLog {
 
       if (unit.attackIntervalSec !== null && simTime - unit.lastAttackAt >= unit.attackIntervalSec) {
         unit.lastAttackAt = simTime;
-        log.push({ simTime, type: 'unit_attack_fired', instanceId: unit.instanceId, emoji: def.emoji });
-        if (unit.attackDamage > 0) {
-          applyDamageToPool(otherSide(unit.side), unit.attackDamage, 'attack', unit.instanceId, simTime);
-        }
+        fireAttack(unit, def, simTime, false);
 
         for (const ability of def.onTrigger ?? []) {
           if (ability.trigger === 'on_attack') applyAbilityEffect(unit, ability, simTime);
+        }
+
+        if (unit.attackDamage > 0 && unit.multicastExtraHits > 0) {
+          for (let i = 0; i < unit.multicastExtraHits; i++) {
+            fireAttack(unit, def, simTime + (i + 1) * MULTICAST_HIT_DELAY_SEC, true);
+          }
         }
       }
 
@@ -310,12 +660,20 @@ export function runCombat(input: RunCombatInput): CombatLog {
 
     for (const side of ['player', 'enemy'] as const) {
       const pool = pools[side];
-      if (pool.shield > 0 && pool.shieldDecayPercentPerSec > 0) {
-        pool.shield = Math.max(0, pool.shield * (1 - (pool.shieldDecayPercentPerSec / 100) * dt));
-      }
       if (pool.poisonDamagePerSec > 0 && simTime - pool.lastPoisonTickAt >= 1) {
         pool.lastPoisonTickAt = simTime;
-        applyDamageToPool(side, pool.poisonDamagePerSec, 'ability', undefined, simTime);
+        applyPoisonTick(side, pool.poisonDamagePerSec, simTime);
+      }
+      if (pool.regenPerSec > 0 && simTime - pool.lastRegenTickAt >= 1) {
+        pool.lastRegenTickAt = simTime;
+        applyHealToPool(side, pool.regenPerSec, undefined, simTime);
+      }
+      if ((pool.momentumHasteStacksPerSec > 0 || pool.momentumAttackPercentPerSec > 0) && simTime - pool.lastMomentumTickAt >= 1) {
+        pool.lastMomentumTickAt = simTime;
+        if (pool.momentumHasteStacksPerSec > 0) grantHaste(side, pool.momentumHasteStacksPerSec, undefined, simTime);
+        if (pool.momentumAttackPercentPerSec > 0) {
+          for (const ally of units) if (ally.side === side) buffAttack(ally, pool.momentumAttackPercentPerSec, undefined, simTime);
+        }
       }
     }
 

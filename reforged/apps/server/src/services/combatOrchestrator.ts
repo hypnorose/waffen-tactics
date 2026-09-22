@@ -19,7 +19,7 @@ function toAugmentEffects(augmentIds: string[]): Array<{ effect: AbilityEffect; 
   return augmentIds
     .map((id) => augmentDefs.find((a) => a.id === id))
     .filter((a): a is NonNullable<typeof a> => !!a)
-    .map((a) => ({ effect: a.effect, tagFilter: a.tagFilter }));
+    .flatMap((a) => a.effects.map((effect) => ({ effect, tagFilter: a.tagFilter })));
 }
 
 export interface CombatResult {

@@ -12,6 +12,14 @@ export const TeamPoolStateSchema = z.object({
   hpMax: z.number().positive(),
   hpCurrent: z.number(),
   shield: z.number().nonnegative().default(0),
+  // 1 stack = 1% — see ability.ts's haste_stacks_own_pool / dodge_stacks_own_pool.
+  hasteStacks: z.number().nonnegative().default(0),
+  dodgeStacks: z.number().nonnegative().default(0),
+  // % more damage taken (kruchość) / % of own HP loss reflected (kolce).
+  fragilityPercent: z.number().nonnegative().default(0),
+  thornsPercent: z.number().nonnegative().default(0),
+  // Egzekucja marks carried by this pool — see execution_mark_enemy_pool.
+  executionStacks: z.number().nonnegative().default(0),
 });
 export type TeamPoolState = z.infer<typeof TeamPoolStateSchema>;
 
@@ -50,6 +58,10 @@ export const CombatEventSchema = z.discriminatedUnion('type', [
     type: z.literal('unit_attack_fired'),
     instanceId: z.string(),
     emoji: z.string(),
+    // Set on the extra hits a multicast_team passive adds after the primary
+    // hit of the same attack cycle — lets the UI render them as a quick
+    // flurry instead of a second full attack.
+    multicast: z.boolean().optional(),
   }),
   z.object({
     ...baseEventFields,
@@ -72,7 +84,9 @@ export const CombatEventSchema = z.discriminatedUnion('type', [
     ...baseEventFields,
     type: z.literal('team_pool_shield_applied'),
     side: SideSchema,
-    amount: z.number().positive(),
+    // Negative = shield removed by steal_buff landing on the victim side —
+    // every other source only ever grants (positive).
+    amount: z.number(),
     sourceInstanceId: z.string().optional(),
   }),
   z.object({
@@ -92,6 +106,29 @@ export const CombatEventSchema = z.discriminatedUnion('type', [
     percent: z.number(),
     sourceInstanceId: z.string().optional(),
   }),
+  // One shared event for every team-pool status stack change (haste, dodge,
+  // fragility, thorns, execution marks) — `total` is the post-change value,
+  // so the UI never needs to sum deltas itself.
+  z.object({
+    ...baseEventFields,
+    type: z.literal('team_pool_stat_applied'),
+    side: SideSchema,
+    stat: z.enum(['haste', 'dodge', 'fragility', 'thorns', 'execution']),
+    amount: z.number(),
+    total: z.number(),
+    sourceInstanceId: z.string().optional(),
+  }),
+  // A dodge_stacks_own_pool roll fully negated an incoming hit — no damage
+  // event follows for that hit.
+  z.object({
+    ...baseEventFields,
+    type: z.literal('team_pool_dodge_proc'),
+    side: SideSchema,
+    negatedAmount: z.number().positive(),
+  }),
+  // Egzekucja condition met: this pool's HP was set straight to 0, bypassing
+  // shield/dodge/fragility entirely — the fight ends right after this event.
+  z.object({ ...baseEventFields, type: z.literal('team_pool_executed'), side: SideSchema }),
   z.object({ ...baseEventFields, type: z.literal('victory'), winner: SideSchema }),
   z.object({ ...baseEventFields, type: z.literal('end') }),
 ]);
