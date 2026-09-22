@@ -13,7 +13,9 @@ import type { Ability, PositionalBonus } from '@reforged/schema';
  * the point: multiple sources feeding one growing status, not duplication),
  * but no two units anywhere share the same (kind, trigger) pair:
  *
- * - szachista  (Stratedzy)      — control: weaken/slow the enemy, no direct damage.
+ * - szachista  (Stratedzy)      — slow the enemy (on_trigger, start_of_combat, and via an
+ *                                  adjacency aura), then cash the slow in for bonus damage —
+ *                                  control that pays for itself instead of dealing no damage.
  * - figlarz    (Figlarze)       — tempo: team-pool haste/dodge stacks, stealing (steal_buff)
  *                                  or shredding the enemy's own haste/dodge — 2 of the 9 are
  *                                  pure support (4tune, klemens_zydoslawski), ~1/3 of the theme.
@@ -74,14 +76,14 @@ function poisonLowHp(id: string, damagePerSec: number, thresholdPercent: number,
 function regenOpening(id: string, amountPerSec: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'regen_own_pool', amountPerSec }, description: desc };
 }
-function weakenOnAttack(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_trigger', effect: { kind: 'weaken_enemy_team_attack', percent }, description: desc };
-}
-function weakenPeriodic(id: string, percent: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'weaken_enemy_team_attack', percent }, description: desc };
-}
 function slowOpening(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'slow_enemy_team_attack_speed', percent }, description: desc };
+}
+function slowOnTrigger(id: string, percent: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'slow_enemy_team_attack_speed', percent }, description: desc };
+}
+function dmgScaledByEnemySlowOnTrigger(id: string, multiplier: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'damage_enemy_pool_scaled_by_enemy_slow', multiplier }, description: desc };
 }
 function teamAttackOnAttack(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'buff_team_attack', percent }, description: desc };
@@ -125,24 +127,32 @@ function shredOpening(id: string, amount: number, desc: string): Ability {
 
 export const unitOverrides: Record<string, UnitOverride> = {
   // ============================================================
-  // SZACHISTA — Stratedzy: control, no direct damage
+  // SZACHISTA — Stratedzy: slow the enemy (on_trigger + start_of_combat),
+  // then cash it in — sofronow's damage scales with how slowed the enemy
+  // already is, and szachowymentor makes adjacent allies slow on their own
+  // cadence too, regardless of whether they otherwise deal damage.
   // ============================================================
   anamol04: {
-    onTrigger: [weakenOnAttack('anamol04.discipline', 4, 'Każdy atak osłabia atak całej drużyny wroga o 4% (stackuje się).')],
+    onTrigger: [slowOnTrigger('anamol04.discipline', 4, 'Każdy atak spowalnia atak całej drużyny wroga o 4% (stackuje się).')],
   },
   chessowy_mentos: {
     startOfCombat: [slowOpening('chessowy_mentos.opening_gambit', 18, 'Na starcie walki spowalnia atak całej drużyny wroga o 18%.')],
   },
   sofronow: {
-    onTrigger: [weakenPeriodic('sofronow.calculated_pressure', 6, 5, 'Co 5 s osłabia atak wroga o 6% (stackuje się).')],
+    onTrigger: [
+      dmgScaledByEnemySlowOnTrigger(
+        'sofronow.calculated_pressure',
+        1,
+        'Każdy atak zadaje dodatkowe obrażenia równe aktualnemu spowolnieniu wroga (średnio, w %).',
+      ),
+    ],
   },
   szachowymentor: {
     positionalBonus: {
       id: 'szachowymentor.mentor_lesson',
-      shape: 'row',
-      tagFilter: ['szachista'],
-      effect: { kind: 'buff_attack', percent: 22 },
-      description: '+22% ataku sojusznikom z tagiem "szachista" w tym samym rzędzie.',
+      shape: 'adjacent',
+      effect: { kind: 'grant_slow_on_attack', percent: 6 },
+      description: 'Sąsiedni sojusznicy spowalniają wroga o 6% na swoim własnym cyklu ataku/aktywacji.',
     },
   },
 

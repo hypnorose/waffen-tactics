@@ -11,6 +11,10 @@ export const PositionalEffectSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('buff_attack'), percent: z.number() }),
   z.object({ kind: z.literal('buff_attack_speed'), percent: z.number() }),
   z.object({ kind: z.literal('double_trigger') }),
+  // Grants every matching ally a passive: on THEIR OWN on_trigger cadence,
+  // they also slow the whole enemy team by `percent` — fires whether or not
+  // the granted unit deals damage, same as every other on_trigger effect.
+  z.object({ kind: z.literal('grant_slow_on_attack'), percent: z.number().positive() }),
 ]);
 export type PositionalEffect = z.infer<typeof PositionalEffectSchema>;
 

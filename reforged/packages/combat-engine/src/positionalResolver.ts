@@ -6,6 +6,8 @@ export interface PositionalModifiers {
   attackSpeedPercent: number;
   /** 1 normally; 2 when at least one matching double-trigger source applies. */
   triggerMultiplier: number;
+  /** Additive — fires as slow_enemy_team_attack_speed on this unit's own on_trigger cadence. */
+  slowOnAttackPercent: number;
   appliedBonusIds: string[];
 }
 
@@ -31,7 +33,7 @@ export function resolvePositionalBonuses(
 
   const modifiers: Record<string, PositionalModifiers> = {};
   for (const u of units) {
-    modifiers[u.instanceId] = { attackPercent: 0, attackSpeedPercent: 0, triggerMultiplier: 1, appliedBonusIds: [] };
+    modifiers[u.instanceId] = { attackPercent: 0, attackSpeedPercent: 0, triggerMultiplier: 1, slowOnAttackPercent: 0, appliedBonusIds: [] };
   }
 
   for (const source of units) {
@@ -57,6 +59,7 @@ export function resolvePositionalBonuses(
       if (bonus.effect.kind === 'buff_attack') mod.attackPercent += bonus.effect.percent;
       if (bonus.effect.kind === 'buff_attack_speed') mod.attackSpeedPercent += bonus.effect.percent;
       if (bonus.effect.kind === 'double_trigger') mod.triggerMultiplier = 2;
+      if (bonus.effect.kind === 'grant_slow_on_attack') mod.slowOnAttackPercent += bonus.effect.percent;
       // Multiple sources may share the same authored bonus (for example two
       // Yossarians). Keep the event contract free of duplicate effect IDs.
       if (!mod.appliedBonusIds.includes(bonus.id)) mod.appliedBonusIds.push(bonus.id);

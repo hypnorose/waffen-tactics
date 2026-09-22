@@ -11,6 +11,7 @@ export function tagClass(tagId: string): string {
 const EFFECT_ICONS: Record<string, string> = {
   damage_enemy_pool: '💥',
   damage_enemy_pool_scaled_by_own_haste: '💥',
+  damage_enemy_pool_scaled_by_enemy_slow: '💥',
   heal_own_pool: '💚',
   shield_own_pool: '🛡️',
   poison_enemy_pool: '☠️',
@@ -22,6 +23,7 @@ const EFFECT_ICONS: Record<string, string> = {
   buff_team_attack_speed_per_adjacent_ally: '⚡',
   weaken_enemy_team_attack: '📉',
   slow_enemy_team_attack_speed: '🐌',
+  grant_slow_on_attack: '🐌',
   execute_enemy_pool: '⚰️',
   lifesteal_own_pool: '🩸',
   cleanse_own_pool: '✨',

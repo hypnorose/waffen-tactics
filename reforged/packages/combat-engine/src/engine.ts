@@ -97,6 +97,9 @@ interface RuntimeUnit {
   multicastExtraHitPercent: number;
   shredDodgeOnHitStacks: number;
   executionMarkOnHitStacks: number;
+  // Set by a grant_slow_on_attack positional bonus — fires on this unit's
+  // own on_trigger cadence, not gated on it actually dealing damage.
+  slowOnAttackPercent: number;
 }
 
 function recomputeDerivedStats(u: RuntimeUnit, pool: Pool): void {
@@ -213,6 +216,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         attackPercent: 0,
         attackSpeedPercent: 0,
         triggerMultiplier: 1,
+        slowOnAttackPercent: 0,
         appliedBonusIds: [],
       };
       const unit: RuntimeUnit = {
@@ -236,6 +240,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         multicastExtraHitPercent: 0,
         shredDodgeOnHitStacks: 0,
         executionMarkOnHitStacks: 0,
+        slowOnAttackPercent: mod.slowOnAttackPercent,
       };
       recomputeDerivedStats(unit, pools[team.side]);
       return unit;
@@ -575,6 +580,15 @@ export function runCombat(input: RunCombatInput): CombatLog {
         if (bonus > 0) applyDamageToPool(otherSide(side), bonus, 'ability', sourceInstanceId, simTime);
         break;
       }
+      case 'damage_enemy_pool_scaled_by_enemy_slow': {
+        const foes = units.filter((u) => u.side === otherSide(side));
+        const avgSlowPercent = foes.length
+          ? foes.reduce((sum, u) => sum + Math.max(0, -u.attackSpeedBonusPercent), 0) / foes.length
+          : 0;
+        const bonus = avgSlowPercent * effect.multiplier;
+        if (bonus > 0) applyDamageToPool(otherSide(side), bonus, 'ability', sourceInstanceId, simTime);
+        break;
+      }
       case 'dodge_stacks_own_pool':
         grantDodge(side, effect.stacks, sourceInstanceId, simTime);
         break;
@@ -707,6 +721,10 @@ export function runCombat(input: RunCombatInput): CombatLog {
 
         for (const ability of unit.onTriggerAbilities) {
           if (ability.trigger === 'on_trigger') triggerAbility(unit, ability, simTime);
+        }
+
+        if (unit.slowOnAttackPercent > 0) {
+          applyEffectFromSide(unit.side, { kind: 'slow_enemy_team_attack_speed', percent: unit.slowOnAttackPercent }, simTime, unit);
         }
 
         if (unit.attackDamage > 0 && unit.multicastExtraHits > 0) {

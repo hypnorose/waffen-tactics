@@ -24,7 +24,7 @@ describe('content-data', () => {
   it('applies hand-authored overrides on top of ported base stats', () => {
     const units = getUnitDefs();
     expect(units.chessowy_mentos.startOfCombat?.[0]?.trigger).toBe('start_of_combat');
-    expect(units.sofronow.onTrigger?.[0]?.trigger).toBe('periodic');
+    expect(units.empty_melancholy.onTrigger?.[0]?.trigger).toBe('periodic');
     expect(units.boczek.onTrigger?.[0]?.trigger).toBe('low_team_hp');
     expect(units.pytl.positionalBonus?.shape).toBe('cross');
   });
