@@ -10,6 +10,7 @@ export function tagClass(tagId: string): string {
 /** One glyph per effect kind — used on cards for pure-support units (no attack stat) instead of a damage number. */
 const EFFECT_ICONS: Record<string, string> = {
   damage_enemy_pool: '💥',
+  damage_enemy_pool_scaled_by_own_haste: '💥',
   heal_own_pool: '💚',
   shield_own_pool: '🛡️',
   poison_enemy_pool: '☠️',

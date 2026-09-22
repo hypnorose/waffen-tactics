@@ -570,6 +570,11 @@ export function runCombat(input: RunCombatInput): CombatLog {
       case 'haste_stacks_own_pool':
         grantHaste(side, effect.stacks, sourceInstanceId, simTime);
         break;
+      case 'damage_enemy_pool_scaled_by_own_haste': {
+        const bonus = pools[side].hasteStacks * effect.multiplier;
+        if (bonus > 0) applyDamageToPool(otherSide(side), bonus, 'ability', sourceInstanceId, simTime);
+        break;
+      }
       case 'dodge_stacks_own_pool':
         grantDodge(side, effect.stacks, sourceInstanceId, simTime);
         break;

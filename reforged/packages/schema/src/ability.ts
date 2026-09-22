@@ -88,6 +88,12 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // 1 stack = 1% attack speed for every unit on the side, uncapped input but
   // clamped team-wide at MAX_HASTE_STACKS.
   z.object({ kind: z.literal('haste_stacks_own_pool'), stacks: z.number().positive() }),
+  // Bonus damage on top of the caster's own attack, equal to the own side's
+  // CURRENT haste stack count times multiplier (e.g. multiplier 1 = "bonus
+  // damage equal to your team's haste") — a payoff for stacking haste from
+  // other sources rather than a haste source itself. Reads 0 if nobody's
+  // granted the side any haste yet.
+  z.object({ kind: z.literal('damage_enemy_pool_scaled_by_own_haste'), multiplier: z.number().positive() }),
   // 1 stack = 1% chance to fully negate an incoming attack/ability hit
   // (poison excluded — see above), clamped team-wide at MAX_DODGE_STACKS
   // (70).

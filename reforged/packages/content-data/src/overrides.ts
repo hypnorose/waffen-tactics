@@ -92,8 +92,8 @@ function teamAttackLowHp(id: string, percent: number, thresholdPercent: number, 
 function teamHastePerAdjacentAllyOnAttack(id: string, percentPerAlly: number, tagFilter: string[], desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'buff_team_attack_speed_per_adjacent_ally', percentPerAlly, tagFilter }, description: desc };
 }
-function hasteStacksOpening(id: string, stacks: number, desc: string): Ability {
-  return { id, trigger: 'start_of_combat', effect: { kind: 'haste_stacks_own_pool', stacks }, description: desc };
+function dmgScaledByHasteOnTrigger(id: string, multiplier: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'damage_enemy_pool_scaled_by_own_haste', multiplier }, description: desc };
 }
 function hasteStacksPeriodic(id: string, stacks: number, periodSec: number, desc: string): Ability {
   return { id, trigger: 'periodic', periodSec, effect: { kind: 'haste_stacks_own_pool', stacks }, description: desc };
@@ -169,7 +169,9 @@ export const unitOverrides: Record<string, UnitOverride> = {
     },
   },
   szalwia: {
-    startOfCombat: [hasteStacksOpening('szalwia.fey_pulse', 15, 'Na starcie walki drużyna zyskuje 15 stacków haste.')],
+    onTrigger: [
+      dmgScaledByHasteOnTrigger('szalwia.fey_strike', 1, 'Każdy atak zadaje dodatkowe obrażenia równe aktualnym stackom haste drużyny.'),
+    ],
   },
   kotmarcek: {
     startOfCombat: [dodgeStacksOpening('kotmarcek.warmup', 15, 'Na starcie walki drużyna zyskuje 15 stacków uniku.')],
