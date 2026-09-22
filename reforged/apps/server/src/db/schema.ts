@@ -17,7 +17,6 @@ export const runs = sqliteTable('runs', {
   roundNumber: integer('round_number').notNull(),
   gold: integer('gold').notNull(),
   level: integer('level').notNull(),
-  xp: integer('xp').notNull(),
   unitsJson: text('units_json').notNull(),
   boardJson: text('board_json').notNull(),
   augmentsPickedJson: text('augments_picked_json').notNull(),
@@ -33,6 +32,7 @@ export const runSnapshots = sqliteTable('run_snapshots', {
   id: text('id').primaryKey(), // `${userId}:${roundNumber}` — one snapshot per user per round, overwritten as they replay
   userId: text('user_id').notNull(),
   username: text('username').notNull(),
+  avatarUrl: text('avatar_url'), // frozen player avatar used when this snapshot appears as an opponent
   elo: integer('elo').notNull(),
   roundNumber: integer('round_number').notNull(),
   unitsJson: text('units_json').notNull(), // { position, unitId }[], board layout at this round

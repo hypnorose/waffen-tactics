@@ -15,14 +15,14 @@ beforeEach(async () => {
   token = await loginTestUser(app, db, `discord-fighter-${Math.random()}`);
 });
 
-async function createRunWithBoardedUnit() {
-  const runRes = await app.inject({ method: 'POST', url: '/api/run', headers: { authorization: `Bearer ${token}` } });
+async function createRunWithBoardedUnit(authToken = token) {
+  const runRes = await app.inject({ method: 'POST', url: '/api/run', headers: { authorization: `Bearer ${authToken}` } });
   const run = runRes.json() as RunState;
 
   const buyRes = await app.inject({
     method: 'POST',
     url: `/api/run/${run.runId}/buy`,
-    headers: { authorization: `Bearer ${token}` },
+    headers: { authorization: `Bearer ${authToken}` },
     payload: { offerIndex: 0 },
   });
   const afterBuy = buyRes.json() as RunState;
@@ -31,7 +31,7 @@ async function createRunWithBoardedUnit() {
   await app.inject({
     method: 'POST',
     url: `/api/run/${run.runId}/board/place`,
-    headers: { authorization: `Bearer ${token}` },
+    headers: { authorization: `Bearer ${authToken}` },
     payload: { unitInstanceId, position: { row: 1, col: 1 } },
   });
 
@@ -80,11 +80,13 @@ describe('combat orchestration', () => {
 
   it('prefers a snapshot of another real player at the same round over the bot ladder', async () => {
     // Seed a snapshot: user A fights once at round 1.
-    const runIdA = await createRunWithBoardedUnit();
+    const opponentId = `discord-fighter-${Math.random()}`;
+    const opponentToken = await loginTestUser(app, db, opponentId, 'avatar-hash');
+    const runIdA = await createRunWithBoardedUnit(opponentToken);
     const startResA = await app.inject({
       method: 'POST',
       url: `/api/run/${runIdA}/combat/start`,
-      headers: { authorization: `Bearer ${token}` },
+      headers: { authorization: `Bearer ${opponentToken}` },
     });
     expect(startResA.statusCode).toBe(200);
 
@@ -117,7 +119,9 @@ describe('combat orchestration', () => {
       headers: { authorization: `Bearer ${otherToken}` },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().opponentName).toMatch(/^player-discord-fighter-/);
+    const body = res.json() as { opponentName: string; opponentAvatarUrl: string | null };
+    expect(body.opponentName).toBe(`player-${opponentId}`);
+    expect(body.opponentAvatarUrl).toBe(`https://cdn.discordapp.com/avatars/${opponentId}/avatar-hash.png?size=128`);
   });
 
   it('rejects fetching another user\'s combat log', async () => {

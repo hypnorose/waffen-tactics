@@ -5,7 +5,7 @@ import { requireAuth } from '../auth/middleware.js';
 import { persistRun, requireOwnedRun } from '../services/runService.js';
 import * as shopService from '../services/shopService.js';
 import { InsufficientGoldError } from '../services/shopService.js';
-import { applyXp, BUY_XP_AMOUNT, BUY_XP_COST } from '../services/economyService.js';
+import { levelUpCost } from '../services/economyService.js';
 import { handleServiceError } from './errors.js';
 
 const BuySchema = z.object({ offerIndex: z.number().int().min(0).max(4) });
@@ -64,12 +64,13 @@ export function registerShopRoutes(app: FastifyInstance, db: Db): void {
     }
   });
 
-  app.post<{ Params: { id: string } }>('/api/run/:id/buy-xp', { preHandler: requireAuth }, async (request, reply) => {
+  app.post<{ Params: { id: string } }>('/api/run/:id/buy-level', { preHandler: requireAuth }, async (request, reply) => {
     try {
       const run = requireOwnedRun(db, request.user.userId, request.params.id);
-      if (run.gold < BUY_XP_COST) throw new InsufficientGoldError();
-      const { level, xp } = applyXp(run.level, run.xp, BUY_XP_AMOUNT);
-      const updated = persistRun(db, { ...run, gold: run.gold - BUY_XP_COST, level, xp });
+      const cost = levelUpCost(run.level, run.roundNumber);
+      if (cost === null) throw new InsufficientGoldError();
+      if (run.gold < cost) throw new InsufficientGoldError();
+      const updated = persistRun(db, { ...run, gold: run.gold - cost, level: run.level + 1 });
       return reply.send(updated);
     } catch (err) {
       return handleServiceError(reply, err);

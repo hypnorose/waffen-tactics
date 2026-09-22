@@ -1,7 +1,9 @@
 import { findClosestBot, type BotProfile } from '@reforged/content-data';
 import type { BoardPosition, RunState } from '@reforged/schema';
+import { discordAvatarUrl } from '../auth/discord.js';
 import type { Db } from '../db/client.js';
 import { listOtherSnapshots, type RunSnapshot } from '../db/runSnapshotRepository.js';
+import { findUserById } from '../db/userRepository.js';
 import { autoPlaceOnBoard } from './boardService.js';
 
 export interface OpponentUnit {
@@ -11,6 +13,7 @@ export interface OpponentUnit {
 
 export interface Opponent {
   name: string;
+  avatarUrl: string | null;
   units: OpponentUnit[];
   augmentsPicked: string[];
 }
@@ -23,7 +26,15 @@ export interface Opponent {
  */
 export function findOpponent(db: Db, run: RunState, playerElo: number): Opponent {
   const snapshot = findClosestSnapshot(db, run.userId, run.roundNumber, playerElo);
-  if (snapshot) return { name: snapshot.username, units: snapshot.units, augmentsPicked: snapshot.augmentsPicked };
+  if (snapshot) {
+    // Snapshots created before avatar persistence have no URL. Resolve those
+    // from the current user row so existing PvP records still render an image.
+    const avatarUrl = snapshot.avatarUrl ?? (() => {
+      const user = findUserById(db, snapshot.userId);
+      return user ? discordAvatarUrl({ id: user.id, avatarHash: user.avatarHash }) : null;
+    })();
+    return { name: snapshot.username, avatarUrl, units: snapshot.units, augmentsPicked: snapshot.augmentsPicked };
+  }
   return botToOpponent(findClosestBot(run.wins));
 }
 
@@ -48,5 +59,5 @@ function botToOpponent(bot: BotProfile): Opponent {
   const units = board
     .filter((slot) => slot.unitInstanceId !== null)
     .map((slot, i) => ({ unitId: bot.unitIds[i], position: slot.position }));
-  return { name: bot.name, units, augmentsPicked: [] };
+  return { name: bot.name, avatarUrl: null, units, augmentsPicked: [] };
 }

@@ -7,20 +7,33 @@ import { AugmentDefSchema, type AugmentDef } from '@reforged/schema';
  * `augmentEffects` input) — never the self-only buff_attack/buff_attack_speed
  * kinds, since an augment has no single "caster" to exclude from a team buff.
  *
+ * Tiers are qualitatively different, not just bigger numbers on the same
+ * template:
+ * - bronze: single effect each — the basic building blocks.
+ * - silver: two different effect kinds combined into one archetype (a
+ *   debuff pairing, a defense-into-sustain pairing, a dual-stat tag build).
+ * - gold: three-effect archetypes, or the same effect applied twice as a
+ *   deliberate "double" (two separate log events, e.g. two shield pops back
+ *   to back) rather than one bigger number.
+ *
+ * No heal_own_pool on start_of_combat anywhere — an instant heal at t=0 just
+ * reads as bigger max HP. Sustain uses regen_own_pool (a persistent
+ * heal-per-second status, mirroring poison_enemy_pool) instead.
+ *
  * Several are tag-locked (`tagFilter`) so picking a run of them builds toward
  * a specialization instead of every augment just being a flat number-go-up;
  * a few (`grantUnitId`) hand you a specific unit outright on top of their
  * combat effect.
  */
 const raw: AugmentDef[] = [
-  // --- BRONZE ---
+  // --- BRONZE (single effect each) ---
   {
     id: 'bronze-steady-hands',
     name: 'Pewna Ręka',
     tier: 'bronze',
     icon: '⚔️',
     description: 'Wszystkie jednostki zadają +5% obrażeń.',
-    effect: { kind: 'buff_team_attack', percent: 5 },
+    effects: [{ kind: 'buff_team_attack', percent: 5 }],
   },
   {
     id: 'bronze-quick-step',
@@ -28,7 +41,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '👟',
     description: 'Wszystkie jednostki atakują o 5% szybciej.',
-    effect: { kind: 'buff_team_attack_speed', percent: 5 },
+    effects: [{ kind: 'buff_team_attack_speed', percent: 5 }],
   },
   {
     id: 'bronze-reinforced-hull',
@@ -36,7 +49,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '🧱',
     description: 'Drużyna zaczyna każdą walkę z tarczą 30.',
-    effect: { kind: 'shield_own_pool', amount: 30 },
+    effects: [{ kind: 'shield_own_pool', amount: 30 }],
   },
   {
     id: 'bronze-cursed-blade',
@@ -44,7 +57,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '☠️',
     description: 'Zatruwa wroga na 3 obrażeń na sekundę przez całą walkę.',
-    effect: { kind: 'poison_enemy_pool', damagePerSec: 3 },
+    effects: [{ kind: 'poison_enemy_pool', damagePerSec: 3 }],
   },
   {
     id: 'bronze-clumsy-feet',
@@ -52,7 +65,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '🐌',
     description: 'Spowalnia wroga — jego jednostki atakują o 8% wolniej.',
-    effect: { kind: 'slow_enemy_team_attack_speed', percent: 8 },
+    effects: [{ kind: 'slow_enemy_team_attack_speed', percent: 8 }],
   },
   {
     id: 'bronze-rust',
@@ -60,15 +73,15 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '🦠',
     description: 'Osłabia wroga — jego jednostki zadają o 8% mniej obrażeń.',
-    effect: { kind: 'weaken_enemy_team_attack', percent: 8 },
+    effects: [{ kind: 'weaken_enemy_team_attack', percent: 8 }],
   },
   {
     id: 'bronze-field-rations',
     name: 'Suchy Prowiant',
     tier: 'bronze',
     icon: '🍞',
-    description: 'Drużyna leczy 20 HP na starcie każdej walki.',
-    effect: { kind: 'heal_own_pool', amount: 20 },
+    description: 'Drużyna regeneruje 3 HP na sekundę przez całą walkę.',
+    effects: [{ kind: 'regen_own_pool', amountPerSec: 3 }],
   },
   {
     id: 'bronze-figlarz-spirit',
@@ -76,7 +89,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '🃏',
     description: 'Jednostki z tagiem "figlarz" atakują o 12% szybciej.',
-    effect: { kind: 'buff_team_attack_speed', percent: 12 },
+    effects: [{ kind: 'buff_team_attack_speed', percent: 12 }],
     tagFilter: ['figlarz'],
   },
   {
@@ -85,7 +98,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '♟️',
     description: 'Jednostki z tagiem "szachista" zadają +12% obrażeń.',
-    effect: { kind: 'buff_team_attack', percent: 12 },
+    effects: [{ kind: 'buff_team_attack', percent: 12 }],
     tagFilter: ['szachista'],
   },
   {
@@ -94,74 +107,98 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '🎫',
     description: 'Natychmiast dołącza SkibidiKubuś do ławki. Wszystkie jednostki zadają +3% obrażeń.',
-    effect: { kind: 'buff_team_attack', percent: 3 },
+    effects: [{ kind: 'buff_team_attack', percent: 3 }],
     grantUnitId: 'skibidi_kubus',
   },
 
-  // --- SILVER ---
+  // --- SILVER (two different effect kinds combined) ---
   {
     id: 'silver-adrenaline',
     name: 'Adrenalina',
     tier: 'silver',
     icon: '💉',
-    description: 'Wszystkie jednostki zadają +12% obrażeń.',
-    effect: { kind: 'buff_team_attack', percent: 12 },
+    description: 'Wszystkie jednostki zadają +8% obrażeń i atakują o 8% szybciej.',
+    effects: [
+      { kind: 'buff_team_attack', percent: 8 },
+      { kind: 'buff_team_attack_speed', percent: 8 },
+    ],
   },
   {
     id: 'silver-overclock',
     name: 'Przetaktowanie',
     tier: 'silver',
     icon: '⏩',
-    description: 'Wszystkie jednostki atakują o 12% szybciej.',
-    effect: { kind: 'buff_team_attack_speed', percent: 12 },
+    description: 'Wszystkie jednostki atakują o 15% szybciej, a wróg o 10% wolniej.',
+    effects: [
+      { kind: 'buff_team_attack_speed', percent: 15 },
+      { kind: 'slow_enemy_team_attack_speed', percent: 10 },
+    ],
   },
   {
     id: 'silver-battle-medicine',
     name: 'Medycyna Polowa',
     tier: 'silver',
     icon: '💊',
-    description: 'Drużyna leczy 40 HP na starcie każdej walki.',
-    effect: { kind: 'heal_own_pool', amount: 40 },
+    description: 'Drużyna zaczyna walkę z tarczą 20 i regeneruje 6 HP na sekundę przez całą walkę.',
+    effects: [
+      { kind: 'shield_own_pool', amount: 20 },
+      { kind: 'regen_own_pool', amountPerSec: 6 },
+    ],
   },
   {
     id: 'silver-toxic-cloud',
     name: 'Toksyczna Chmura',
     tier: 'silver',
     icon: '☣️',
-    description: 'Zatruwa wroga na 8 obrażeń na sekundę przez całą walkę.',
-    effect: { kind: 'poison_enemy_pool', damagePerSec: 8 },
+    description: 'Zatruwa wroga na 6 obrażeń na sekundę i spowalnia jego atak o 10%.',
+    effects: [
+      { kind: 'poison_enemy_pool', damagePerSec: 6 },
+      { kind: 'slow_enemy_team_attack_speed', percent: 10 },
+    ],
   },
   {
     id: 'silver-quagmire',
     name: 'Bagnisko',
     tier: 'silver',
     icon: '🥾',
-    description: 'Spowalnia wroga — jego jednostki atakują o 15% wolniej.',
-    effect: { kind: 'slow_enemy_team_attack_speed', percent: 15 },
+    description: 'Spowalnia wroga o 12% i osłabia jego obrażenia o 6%.',
+    effects: [
+      { kind: 'slow_enemy_team_attack_speed', percent: 12 },
+      { kind: 'weaken_enemy_team_attack', percent: 6 },
+    ],
   },
   {
     id: 'silver-corrosion',
     name: 'Korozja',
     tier: 'silver',
     icon: '🧪',
-    description: 'Osłabia wroga — jego jednostki zadają o 15% mniej obrażeń.',
-    effect: { kind: 'weaken_enemy_team_attack', percent: 15 },
+    description: 'Osłabia obrażenia wroga o 12% i zatruwa go na 5 obrażeń na sekundę.',
+    effects: [
+      { kind: 'weaken_enemy_team_attack', percent: 12 },
+      { kind: 'poison_enemy_pool', damagePerSec: 5 },
+    ],
   },
   {
     id: 'silver-decaying-ward',
     name: 'Zanikająca Osłona',
     tier: 'silver',
     icon: '🔮',
-    description: 'Drużyna zaczyna walkę z tarczą 80, która zanika o 20% co sekundę.',
-    effect: { kind: 'shield_own_pool', amount: 80, decayPercentPerSec: 20 },
+    description: 'Drużyna zaczyna walkę z tarczą 60 (zanika o 15%/s), a potem regeneruje 4 HP na sekundę.',
+    effects: [
+      { kind: 'shield_own_pool', amount: 60, decayPercentPerSec: 15 },
+      { kind: 'regen_own_pool', amountPerSec: 4 },
+    ],
   },
   {
     id: 'silver-konfident-network',
     name: 'Sieć Konfidenta',
     tier: 'silver',
     icon: '🤝',
-    description: 'Jednostki z tagiem "konfident" atakują o 18% szybciej.',
-    effect: { kind: 'buff_team_attack_speed', percent: 18 },
+    description: 'Jednostki z tagiem "konfident" atakują o 14% szybciej i zadają +8% obrażeń.',
+    effects: [
+      { kind: 'buff_team_attack_speed', percent: 14 },
+      { kind: 'buff_team_attack', percent: 8 },
+    ],
     tagFilter: ['konfident'],
   },
   {
@@ -169,8 +206,11 @@ const raw: AugmentDef[] = [
     name: 'Mądrość Starociota',
     tier: 'silver',
     icon: '📜',
-    description: 'Jednostki z tagiem "starociota" zadają +18% obrażeń.',
-    effect: { kind: 'buff_team_attack', percent: 18 },
+    description: 'Jednostki z tagiem "starociota" zadają +16% obrażeń i atakują o 8% szybciej.',
+    effects: [
+      { kind: 'buff_team_attack', percent: 16 },
+      { kind: 'buff_team_attack_speed', percent: 8 },
+    ],
     tagFilter: ['starociota'],
   },
   {
@@ -178,75 +218,103 @@ const raw: AugmentDef[] = [
     name: 'Weteran',
     tier: 'silver',
     icon: '🎖️',
-    description: 'Natychmiast dołącza Sofronow do ławki. Drużyna leczy 15 HP na starcie walki.',
-    effect: { kind: 'heal_own_pool', amount: 15 },
+    description: 'Natychmiast dołącza Sofronow do ławki. Drużyna regeneruje 4 HP na sekundę przez całą walkę.',
+    effects: [{ kind: 'regen_own_pool', amountPerSec: 4 }],
     grantUnitId: 'sofronow',
   },
 
-  // --- GOLD ---
+  // --- GOLD (three-effect archetypes, or the same effect doubled) ---
   {
     id: 'gold-berserk',
     name: 'Szał Bojowy',
     tier: 'gold',
     icon: '🪓',
-    description: 'Wszystkie jednostki zadają +25% obrażeń.',
-    effect: { kind: 'buff_team_attack', percent: 25 },
+    description: 'Wszystkie jednostki zadają +18% obrażeń i atakują o 10% szybciej.',
+    effects: [
+      { kind: 'buff_team_attack', percent: 18 },
+      { kind: 'buff_team_attack_speed', percent: 10 },
+    ],
   },
   {
     id: 'gold-hyperspeed',
     name: 'Nadprędkość',
     tier: 'gold',
     icon: '🌀',
-    description: 'Wszystkie jednostki atakują o 25% szybciej.',
-    effect: { kind: 'buff_team_attack_speed', percent: 25 },
+    // Same effect applied twice on purpose — two separate speed surges
+    // (two log events) instead of one bigger buff.
+    description: 'Wszystkie jednostki dostają dwie fale przyspieszenia: +13% szybkości ataku, po chwili kolejne +13%.',
+    effects: [
+      { kind: 'buff_team_attack_speed', percent: 13 },
+      { kind: 'buff_team_attack_speed', percent: 13 },
+    ],
   },
   {
     id: 'gold-aegis',
     name: 'Egida',
     tier: 'gold',
     icon: '🛡️',
-    description: 'Drużyna zaczyna każdą walkę z tarczą 100.',
-    effect: { kind: 'shield_own_pool', amount: 100 },
+    // Same effect applied twice — two shield pops back to back.
+    description: 'Drużyna zaczyna walkę z podwójną tarczą: 50, a zaraz potem kolejne 50.',
+    effects: [
+      { kind: 'shield_own_pool', amount: 50 },
+      { kind: 'shield_own_pool', amount: 50 },
+    ],
   },
   {
     id: 'gold-plague',
     name: 'Zaraza',
     tier: 'gold',
     icon: '🦠',
-    description: 'Zatruwa wroga na 15 obrażeń na sekundę przez całą walkę.',
-    effect: { kind: 'poison_enemy_pool', damagePerSec: 15 },
+    description: 'Pełna zaraza: zatruwa wroga na 10 obrażeń/s, spowalnia go o 10% i osłabia jego obrażenia o 10%.',
+    effects: [
+      { kind: 'poison_enemy_pool', damagePerSec: 10 },
+      { kind: 'slow_enemy_team_attack_speed', percent: 10 },
+      { kind: 'weaken_enemy_team_attack', percent: 10 },
+    ],
   },
   {
     id: 'gold-frozen-ground',
     name: 'Zamarznięty Grunt',
     tier: 'gold',
     icon: '❄️',
-    description: 'Spowalnia wroga — jego jednostki atakują o 25% wolniej.',
-    effect: { kind: 'slow_enemy_team_attack_speed', percent: 25 },
+    description: 'Drużyna okopuje się na lodzie (tarcza 40), a wróg grzęźnie — atakuje o 18% wolniej.',
+    effects: [
+      { kind: 'shield_own_pool', amount: 40 },
+      { kind: 'slow_enemy_team_attack_speed', percent: 18 },
+    ],
   },
   {
     id: 'gold-sunder',
     name: 'Rozłam',
     tier: 'gold',
     icon: '💥',
-    description: 'Osłabia wroga — jego jednostki zadają o 25% mniej obrażeń.',
-    effect: { kind: 'weaken_enemy_team_attack', percent: 25 },
+    description: 'Łamie obronę wroga (-20% obrażeń) i hartuje własną drużynę (+10% obrażeń).',
+    effects: [
+      { kind: 'weaken_enemy_team_attack', percent: 20 },
+      { kind: 'buff_team_attack', percent: 10 },
+    ],
   },
   {
     id: 'gold-phoenix-ward',
     name: 'Osłona Feniksa',
     tier: 'gold',
     icon: '🔥',
-    description: 'Drużyna zaczyna walkę z tarczą 150, która zanika o 10% co sekundę.',
-    effect: { kind: 'shield_own_pool', amount: 150, decayPercentPerSec: 10 },
+    description: 'Drużyna zaczyna walkę z tarczą 120 (zanika o 8%/s), a potem stale regeneruje 5 HP na sekundę.',
+    effects: [
+      { kind: 'shield_own_pool', amount: 120, decayPercentPerSec: 8 },
+      { kind: 'regen_own_pool', amountPerSec: 5 },
+    ],
   },
   {
     id: 'gold-srebrna-gwardia-bastion',
     name: 'Bastion Srebrnej Gwardii',
     tier: 'gold',
     icon: '🏰',
-    description: 'Jednostki z tagiem "srebrna gwardia" atakują o 30% szybciej.',
-    effect: { kind: 'buff_team_attack_speed', percent: 30 },
+    description: 'Jednostki z tagiem "srebrna gwardia" atakują o 22% szybciej i zadają +12% obrażeń.',
+    effects: [
+      { kind: 'buff_team_attack_speed', percent: 22 },
+      { kind: 'buff_team_attack', percent: 12 },
+    ],
     tagFilter: ['srebrna-gwardia'],
   },
   {
@@ -254,8 +322,11 @@ const raw: AugmentDef[] = [
     name: 'Zryw Nowociota',
     tier: 'gold',
     icon: '⚡',
-    description: 'Jednostki z tagiem "nowociota" zadają +30% obrażeń.',
-    effect: { kind: 'buff_team_attack', percent: 30 },
+    description: 'Jednostki z tagiem "nowociota" zadają +22% obrażeń i atakują o 12% szybciej.',
+    effects: [
+      { kind: 'buff_team_attack', percent: 22 },
+      { kind: 'buff_team_attack_speed', percent: 12 },
+    ],
     tagFilter: ['nowociota'],
   },
   {
@@ -263,8 +334,11 @@ const raw: AugmentDef[] = [
     name: 'Mistrz Areny',
     tier: 'gold',
     icon: '👑',
-    description: 'Natychmiast dołącza Fiko do ławki. Wszystkie jednostki zadają +10% obrażeń.',
-    effect: { kind: 'buff_team_attack', percent: 10 },
+    description: 'Natychmiast dołącza Fiko do ławki. Drużyna zyskuje +8% obrażeń i +8% szybkości ataku.',
+    effects: [
+      { kind: 'buff_team_attack', percent: 8 },
+      { kind: 'buff_team_attack_speed', percent: 8 },
+    ],
     grantUnitId: 'fiko',
   },
 ];

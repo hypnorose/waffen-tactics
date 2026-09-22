@@ -50,6 +50,13 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
           )}
         </div>
       )}
+      {unit.triggerMultiplier > 1 && (
+        <div className="unit-buff-row">
+          <span className="unit-buff-chip is-buff" title="A same-trait positional synergy doubles this unit's ability triggers.">
+            ✨ ×{unit.triggerMultiplier} triggers
+          </span>
+        </div>
+      )}
     </div>
   );
 }

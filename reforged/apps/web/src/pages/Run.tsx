@@ -11,7 +11,7 @@ import { GameOver } from './GameOver.js';
 const CELL_ID_PATTERN = /^cell-(\d)-(\d)$/;
 
 export function Run() {
-  const { run, units, buy, sell, reroll, toggleLock, buyXp, place, bench, pickAugment, startCombat, loadOrCreateRun, lastCombat, loading, error } =
+  const { run, units, buy, sell, reroll, toggleLock, buyLevel, place, bench, pickAugment, startCombat, loadOrCreateRun, lastCombat, loading, error } =
     useRunStore();
   const profile = useAuthStore((s) => s.profile);
 
@@ -43,7 +43,7 @@ export function Run() {
         <BenchPanel run={run} units={units} onSell={sell} />
       </DndContext>
 
-      <ShopPanel run={run} units={units} onBuy={buy} onReroll={reroll} onToggleLock={toggleLock} onBuyXp={buyXp} />
+      <ShopPanel run={run} units={units} onBuy={buy} onReroll={reroll} onToggleLock={toggleLock} onBuyLevel={buyLevel} />
 
       <div className="run-actions">
         <button className="fight-button" onClick={startCombat} disabled={loading}>
@@ -61,6 +61,7 @@ export function Run() {
           playerName={profile.username}
           playerAvatarUrl={profile.avatarUrl}
           opponentName={lastCombat.opponentName}
+          opponentAvatarUrl={lastCombat.opponentAvatarUrl}
           onClose={() => useRunStore.setState({ lastCombat: null })}
         />
       )}

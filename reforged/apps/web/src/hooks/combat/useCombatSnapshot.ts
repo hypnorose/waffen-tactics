@@ -8,6 +8,7 @@ export interface UnitRuntimeSnapshot {
   position: BoardPosition;
   attackIntervalSec: number | null;
   lastAttackAt: number;
+  triggerMultiplier: number;
 }
 
 export interface RecentAttack {
@@ -50,6 +51,7 @@ function toSnapshot(u: UnitCombatState): UnitRuntimeSnapshot {
     position: u.position,
     attackIntervalSec: u.attackIntervalSec,
     lastAttackAt: u.lastAttackAt,
+    triggerMultiplier: u.triggerMultiplier,
   };
 }
 

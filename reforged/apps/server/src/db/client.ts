@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS runs (
   round_number INTEGER NOT NULL,
   gold INTEGER NOT NULL,
   level INTEGER NOT NULL,
-  xp INTEGER NOT NULL,
   units_json TEXT NOT NULL,
   board_json TEXT NOT NULL,
   augments_picked_json TEXT NOT NULL,
@@ -36,6 +35,7 @@ CREATE TABLE IF NOT EXISTS run_snapshots (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   username TEXT NOT NULL,
+  avatar_url TEXT,
   elo INTEGER NOT NULL,
   round_number INTEGER NOT NULL,
   units_json TEXT NOT NULL,
@@ -63,5 +63,11 @@ export function createDb(fileName: string) {
   const sqlite = new Database(fileName);
   sqlite.pragma('journal_mode = WAL');
   sqlite.exec(DDL);
+  // Existing deployments predate avatar_url. Keep old snapshots usable and
+  // add the nullable column in place instead of requiring a database reset.
+  const snapshotColumns = sqlite.pragma('table_info(run_snapshots)') as Array<{ name: string }>;
+  if (!snapshotColumns.some((column) => column.name === 'avatar_url')) {
+    sqlite.exec('ALTER TABLE run_snapshots ADD COLUMN avatar_url TEXT');
+  }
   return drizzle(sqlite, { schema });
 }

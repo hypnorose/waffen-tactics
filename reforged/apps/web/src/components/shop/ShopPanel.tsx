@@ -1,4 +1,4 @@
-import { xpToNextLevel, type RunState, type UnitDef } from '@reforged/schema';
+import { levelUpCost, MAX_LEVEL, type RunState, type UnitDef } from '@reforged/schema';
 import { RarityLegend } from './RarityLegend.js';
 import { ShopOfferCard } from './ShopOfferCard.js';
 
@@ -8,21 +8,21 @@ interface Props {
   onBuy: (offerIndex: number) => void;
   onReroll: () => void;
   onToggleLock: () => void;
-  onBuyXp: () => void;
+  onBuyLevel: () => void;
 }
 
-export function ShopPanel({ run, units, onBuy, onReroll, onToggleLock, onBuyXp }: Props) {
-  const xpMax = xpToNextLevel(run.level);
+export function ShopPanel({ run, units, onBuy, onReroll, onToggleLock, onBuyLevel }: Props) {
+  const cost = levelUpCost(run.level, run.roundNumber);
 
   return (
     <div className="shop-panel">
       <div className="shop-header">
         <span className="gold">💰 {run.gold}</span>
         <span>
-          Poziom {run.level} {xpMax !== null ? `(${run.xp}/${xpMax} XP)` : '(MAX)'}
+          Poziom {run.level}/{MAX_LEVEL}
         </span>
-        <button onClick={onBuyXp} disabled={run.gold < 4}>
-          Kup XP (4g)
+        <button onClick={onBuyLevel} disabled={cost === null || run.gold < cost}>
+          {cost === null ? 'Max poziom' : `Podnieś poziom (${cost}g)`}
         </button>
         <button onClick={onReroll} disabled={run.gold < 2}>
           🎲 Reroll (2g)

@@ -39,6 +39,7 @@ const MAX_SLOW_PERCENT = 80; // attack speed can be slowed at most -80% (0.2x)
 const MAX_ATTACK_BUFF_PERCENT = 200; // attack damage can be buffed at most +200% (3x)
 const MAX_WEAKEN_PERCENT = 80; // attack damage can be weakened at most -80%
 const MAX_POISON_DPS = 40; // stacking poison sources cap out here
+const MAX_REGEN_PER_SEC = 30; // stacking regen sources cap out here
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -55,6 +56,9 @@ interface RuntimeUnit {
   attackSpeedBonusPercent: number; // additive, clamped [-MAX_SLOW_PERCENT, MAX_HASTE_PERCENT]
   attackDamage: number; // derived from base + bonus
   attackIntervalSec: number | null; // derived from base + bonus
+  triggerMultiplier: number;
+  startOfCombatAbilities: Ability[];
+  onTriggerAbilities: Ability[];
   lastAttackAt: number;
   abilityCooldowns: Record<string, number>;
   lowHpAbilitiesFired: Set<string>;
@@ -72,10 +76,21 @@ interface Pool {
   shieldDecayPercentPerSec: number;
   poisonDamagePerSec: number;
   lastPoisonTickAt: number;
+  regenPerSec: number;
+  lastRegenTickAt: number;
 }
 
 function otherSide(side: Side): Side {
   return side === 'player' ? 'enemy' : 'player';
+}
+
+function uniqueAbilities(abilities: Ability[] | undefined): Ability[] {
+  const seen = new Set<string>();
+  return (abilities ?? []).filter((ability) => {
+    if (seen.has(ability.id)) return false;
+    seen.add(ability.id);
+    return true;
+  });
 }
 
 /**
@@ -99,8 +114,26 @@ export function runCombat(input: RunCombatInput): CombatLog {
   const log = new EventLogBuilder();
 
   const pools: Record<Side, Pool> = {
-    player: { hpMax: input.player.hpMax, hpCurrent: input.player.hpMax, shield: 0, shieldDecayPercentPerSec: 0, poisonDamagePerSec: 0, lastPoisonTickAt: 0 },
-    enemy: { hpMax: input.enemy.hpMax, hpCurrent: input.enemy.hpMax, shield: 0, shieldDecayPercentPerSec: 0, poisonDamagePerSec: 0, lastPoisonTickAt: 0 },
+    player: {
+      hpMax: input.player.hpMax,
+      hpCurrent: input.player.hpMax,
+      shield: 0,
+      shieldDecayPercentPerSec: 0,
+      poisonDamagePerSec: 0,
+      lastPoisonTickAt: 0,
+      regenPerSec: 0,
+      lastRegenTickAt: 0,
+    },
+    enemy: {
+      hpMax: input.enemy.hpMax,
+      hpCurrent: input.enemy.hpMax,
+      shield: 0,
+      shieldDecayPercentPerSec: 0,
+      poisonDamagePerSec: 0,
+      lastPoisonTickAt: 0,
+      regenPerSec: 0,
+      lastRegenTickAt: 0,
+    },
   };
 
   const positionalMods = {
@@ -115,6 +148,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
       const mod = positionalMods[team.side][p.instanceId] ?? {
         attackPercent: 0,
         attackSpeedPercent: 0,
+        triggerMultiplier: 1,
         appliedBonusIds: [],
       };
       const unit: RuntimeUnit = {
@@ -128,6 +162,9 @@ export function runCombat(input: RunCombatInput): CombatLog {
         attackSpeedBonusPercent: clamp(mod.attackSpeedPercent, -MAX_SLOW_PERCENT, MAX_HASTE_PERCENT),
         attackDamage: 0,
         attackIntervalSec: null,
+        triggerMultiplier: mod.triggerMultiplier,
+        startOfCombatAbilities: uniqueAbilities(def.startOfCombat),
+        onTriggerAbilities: uniqueAbilities(def.onTrigger),
         lastAttackAt: 0,
         abilityCooldowns: {},
         lowHpAbilitiesFired: new Set<string>(),
@@ -167,6 +204,10 @@ export function runCombat(input: RunCombatInput): CombatLog {
     pools[side].poisonDamagePerSec = Math.min(MAX_POISON_DPS, pools[side].poisonDamagePerSec + damagePerSec);
   }
 
+  function applyRegenToPool(side: Side, amountPerSec: number) {
+    pools[side].regenPerSec = Math.min(MAX_REGEN_PER_SEC, pools[side].regenPerSec + amountPerSec);
+  }
+
   function buffAttack(unit: RuntimeUnit, percent: number, sourceInstanceId: string | undefined, simTime: number) {
     unit.attackDamageBonusPercent = clamp(unit.attackDamageBonusPercent + percent, -MAX_WEAKEN_PERCENT, MAX_ATTACK_BUFF_PERCENT);
     recomputeDerivedStats(unit);
@@ -183,6 +224,14 @@ export function runCombat(input: RunCombatInput): CombatLog {
   function applyAbilityEffect(unit: RuntimeUnit, ability: Ability, simTime: number) {
     log.push({ simTime, type: 'ability_triggered', instanceId: unit.instanceId, abilityId: ability.id, trigger: ability.trigger });
     applyEffectFromSide(unit.side, ability.effect, simTime, unit);
+  }
+
+  function triggerAbility(unit: RuntimeUnit, ability: Ability, simTime: number): void {
+    // Same-trait positional synergy is additive and capped at x2. This keeps
+    // two overlapping sources from accidentally turning one authored effect
+    // into four or more executions, while still making the synergy visible in
+    // the canonical event stream as two real triggers.
+    for (let i = 0; i < unit.triggerMultiplier; i++) applyAbilityEffect(unit, ability, simTime);
   }
 
   function hasAnyTag(u: RuntimeUnit, tagFilter: string[] | undefined): boolean {
@@ -215,6 +264,9 @@ export function runCombat(input: RunCombatInput): CombatLog {
       case 'poison_enemy_pool':
         applyPoisonToPool(otherSide(side), effect.damagePerSec);
         break;
+      case 'regen_own_pool':
+        applyRegenToPool(side, effect.amountPerSec);
+        break;
       case 'buff_attack':
         if (excludeUnit) buffAttack(excludeUnit, effect.percent, sourceInstanceId, simTime);
         break;
@@ -237,6 +289,25 @@ export function runCombat(input: RunCombatInput): CombatLog {
       case 'slow_enemy_team_attack_speed':
         for (const foe of units) if (foe.side === otherSide(side) && hasAnyTag(foe, tagFilter)) buffAttackSpeed(foe, -effect.percent, sourceInstanceId, simTime);
         break;
+      case 'execute_enemy_pool': {
+        const enemySide = otherSide(side);
+        const amount = pools[enemySide].hpCurrent * (effect.percentOfCurrentHp / 100);
+        if (amount > 0) applyDamageToPool(enemySide, amount, 'ability', sourceInstanceId, simTime);
+        break;
+      }
+      case 'lifesteal_own_pool':
+        if (excludeUnit && excludeUnit.attackDamage > 0) {
+          applyHealToPool(side, excludeUnit.attackDamage * (effect.percent / 100), sourceInstanceId, simTime);
+        }
+        break;
+      case 'cleanse_own_pool':
+        pools[side].poisonDamagePerSec = 0;
+        break;
+      case 'shred_enemy_shield': {
+        const enemyPool = pools[otherSide(side)];
+        enemyPool.shield = Math.max(0, enemyPool.shield - effect.amount);
+        break;
+      }
     }
   }
 
@@ -249,6 +320,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
     lastAttackAt: 0,
     abilityCooldowns: {},
     positionalBonusesApplied: positionalMods[u.side][u.instanceId]?.appliedBonusIds ?? [],
+    triggerMultiplier: u.triggerMultiplier,
   }));
 
   log.push({
@@ -262,9 +334,8 @@ export function runCombat(input: RunCombatInput): CombatLog {
   log.push({ simTime: 0, type: 'start' });
 
   for (const unit of units) {
-    const def = input.unitDefs[unit.unitId];
-    for (const ability of def.startOfCombat ?? []) {
-      applyAbilityEffect(unit, ability, 0);
+    for (const ability of unit.startOfCombatAbilities) {
+      triggerAbility(unit, ability, 0);
     }
   }
   for (const app of input.player.augmentEffects ?? []) applyEffectFromSide('player', app.effect, 0, undefined, app.tagFilter);
@@ -284,17 +355,17 @@ export function runCombat(input: RunCombatInput): CombatLog {
           applyDamageToPool(otherSide(unit.side), unit.attackDamage, 'attack', unit.instanceId, simTime);
         }
 
-        for (const ability of def.onTrigger ?? []) {
-          if (ability.trigger === 'on_attack') applyAbilityEffect(unit, ability, simTime);
+        for (const ability of unit.onTriggerAbilities) {
+          if (ability.trigger === 'on_attack') triggerAbility(unit, ability, simTime);
         }
       }
 
-      for (const ability of def.onTrigger ?? []) {
+      for (const ability of unit.onTriggerAbilities) {
         if (ability.trigger === 'periodic' && ability.periodSec) {
           const last = unit.abilityCooldowns[ability.id] ?? 0;
           if (simTime - last >= ability.periodSec) {
             unit.abilityCooldowns[ability.id] = simTime;
-            applyAbilityEffect(unit, ability, simTime);
+            triggerAbility(unit, ability, simTime);
           }
         }
         if (ability.trigger === 'low_team_hp' && ability.hpThresholdPercent !== undefined) {
@@ -302,7 +373,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
           const pct = pool.hpCurrent / pool.hpMax;
           if (pct <= ability.hpThresholdPercent && !unit.lowHpAbilitiesFired.has(ability.id)) {
             unit.lowHpAbilitiesFired.add(ability.id);
-            applyAbilityEffect(unit, ability, simTime);
+            triggerAbility(unit, ability, simTime);
           }
         }
       }
@@ -316,6 +387,10 @@ export function runCombat(input: RunCombatInput): CombatLog {
       if (pool.poisonDamagePerSec > 0 && simTime - pool.lastPoisonTickAt >= 1) {
         pool.lastPoisonTickAt = simTime;
         applyDamageToPool(side, pool.poisonDamagePerSec, 'ability', undefined, simTime);
+      }
+      if (pool.regenPerSec > 0 && simTime - pool.lastRegenTickAt >= 1) {
+        pool.lastRegenTickAt = simTime;
+        applyHealToPool(side, pool.regenPerSec, undefined, simTime);
       }
     }
 

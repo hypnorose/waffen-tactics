@@ -1,9 +1,7 @@
-import { shopOddsForLevel, xpToNextLevel, type UnitDef } from '@reforged/schema';
+import { levelUpCost, shopOddsForLevel, type UnitDef } from '@reforged/schema';
 
 export const STARTING_GOLD = 50;
 export const REROLL_COST = 2;
-export const BUY_XP_COST = 4;
-export const BUY_XP_AMOUNT = 4;
 export const MAX_BENCH_SIZE = 9;
 
 /** Board capacity is fixed at the full 3x3 grid from round 1 — it does not scale with level. */
@@ -11,20 +9,7 @@ export function maxBoardUnits(_level: number): number {
   return 9;
 }
 
-/** Applies gained xp, cascading through as many level-ups as it earns. */
-export function applyXp(level: number, xp: number, xpGained: number): { level: number; xp: number } {
-  let nextLevel = level;
-  let nextXp = xp + xpGained;
-
-  for (;;) {
-    const required = xpToNextLevel(nextLevel);
-    if (required === null || nextXp < required) break;
-    nextXp -= required;
-    nextLevel += 1;
-  }
-
-  return { level: nextLevel, xp: nextXp };
-}
+export { levelUpCost };
 
 /** Flat base income + savings interest (1 gold per 10 gold saved, capped at 25) — 5x the original economy. */
 export function roundIncome(gold: number): number {

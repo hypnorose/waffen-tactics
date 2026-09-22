@@ -17,7 +17,6 @@ export function createRun(db: Db, userId: string): RunState {
     roundNumber: 1,
     gold: STARTING_GOLD,
     level: 1,
-    xp: 0,
     units: [],
     board: emptyBoard(),
     augmentsPicked: [],

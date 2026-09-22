@@ -11,6 +11,7 @@ export interface SnapshotUnit {
 export interface RunSnapshot {
   userId: string;
   username: string;
+  avatarUrl: string | null;
   elo: number;
   roundNumber: number;
   units: SnapshotUnit[];
@@ -28,6 +29,7 @@ export function saveSnapshot(db: Db, snapshot: RunSnapshot): void {
     id,
     userId: snapshot.userId,
     username: snapshot.username,
+    avatarUrl: snapshot.avatarUrl,
     elo: snapshot.elo,
     roundNumber: snapshot.roundNumber,
     unitsJson: JSON.stringify(snapshot.units),
@@ -53,6 +55,7 @@ export function listOtherSnapshots(db: Db, excludeUserId: string): RunSnapshot[]
     .map((row) => ({
       userId: row.userId,
       username: row.username,
+      avatarUrl: row.avatarUrl,
       elo: row.elo,
       roundNumber: row.roundNumber,
       units: JSON.parse(row.unitsJson),

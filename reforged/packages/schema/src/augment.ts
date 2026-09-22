@@ -8,7 +8,11 @@ export const AugmentDefSchema = z.object({
   tier: AugmentTierSchema,
   icon: z.string(),
   description: z.string(),
-  effect: AbilityEffectSchema,
+  // An array (not a single effect) so an augment can be a genuine compound
+  // archetype — two different effects together, or the same effect applied
+  // twice as a deliberate "double" mechanic — instead of every augment
+  // within a tier being the same template with a bigger number.
+  effects: z.array(AbilityEffectSchema).min(1),
   // Restricts a team-wide/enemy-wide effect to units carrying one of these
   // tags — lets an augment build toward a tag-based specialization instead
   // of always buffing the whole board uniformly.

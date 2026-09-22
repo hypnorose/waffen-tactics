@@ -71,6 +71,41 @@ const unitDefs: Record<string, UnitDef> = {
   [shielder.id]: shielder,
 };
 
+const yossarianSynergy: UnitDef = {
+  id: 'yossarian',
+  name: 'Yossarian',
+  cost: 3,
+  tags: ['figlarz'],
+  emoji: '🔪',
+  baseStats: {},
+  positionalBonus: {
+    id: 'yossarian.figlarz_echo',
+    shape: 'adjacent',
+    tagFilter: ['figlarz'],
+    effect: { kind: 'double_trigger' },
+    description: 'Sąsiedni figlarze uruchamiają swoje efekty podwójnie.',
+  },
+};
+
+function openingEffectUnit(id: string, tags: string[]): UnitDef {
+  return {
+    id,
+    name: id,
+    cost: 1,
+    tags,
+    emoji: '✨',
+    baseStats: {},
+    startOfCombat: [
+      {
+        id: `${id}.opening`,
+        trigger: 'start_of_combat',
+        effect: { kind: 'damage_enemy_pool', amount: 1 },
+        description: 'test',
+      },
+    ],
+  };
+}
+
 function team(side: 'player' | 'enemy'): CombatTeamInput {
   return {
     side,
@@ -124,6 +159,104 @@ describe('runCombat', () => {
     const corner = init.player.find((u) => u.instanceId === 'p-corner');
     expect(adjacent?.positionalBonusesApplied).toContain('buffer-cross-attack');
     expect(corner?.positionalBonusesApplied).not.toContain('buffer-cross-attack');
+  });
+
+  it('doubles each adjacent figlarz ability trigger without affecting other units', () => {
+    const figlarz = openingEffectUnit('figlarz-target', ['figlarz']);
+    const distantFiglarz = openingEffectUnit('distant-figlarz', ['figlarz']);
+    const otherTrait = openingEffectUnit('other-trait', ['nowociota']);
+    const synergyDefs = {
+      yossarian: yossarianSynergy,
+      [figlarz.id]: figlarz,
+      [distantFiglarz.id]: distantFiglarz,
+      [otherTrait.id]: otherTrait,
+      skirmisher,
+    };
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 500,
+      units: [
+        { instanceId: 'p-yossarian', unitId: 'yossarian', position: { row: 0, col: 0 } },
+        { instanceId: 'p-figlarz', unitId: figlarz.id, position: { row: 0, col: 1 } },
+        { instanceId: 'p-distant-figlarz', unitId: distantFiglarz.id, position: { row: 2, col: 2 } },
+        { instanceId: 'p-other-trait', unitId: otherTrait.id, position: { row: 1, col: 0 } },
+      ],
+    };
+    const enemy: CombatTeamInput = { side: 'enemy', hpMax: 500, units: [] };
+    const log = runCombat({ combatId: 'c-synergy', seed: 19, player, enemy, unitDefs: synergyDefs, timeoutSec: 0.1 });
+    const init = log.events.find((e) => e.type === 'units_init');
+    if (init?.type !== 'units_init') throw new Error('expected units_init');
+
+    expect(init.player.find((u) => u.instanceId === 'p-figlarz')?.triggerMultiplier).toBe(2);
+    expect(init.player.find((u) => u.instanceId === 'p-distant-figlarz')?.triggerMultiplier).toBe(1);
+    expect(init.player.find((u) => u.instanceId === 'p-other-trait')?.triggerMultiplier).toBe(1);
+
+    const openingTriggers = log.events.filter((e) => e.type === 'ability_triggered');
+    expect(openingTriggers.filter((e) => e.type === 'ability_triggered' && e.instanceId === 'p-figlarz')).toHaveLength(2);
+    expect(openingTriggers.filter((e) => e.type === 'ability_triggered' && e.instanceId === 'p-distant-figlarz')).toHaveLength(1);
+    expect(openingTriggers.filter((e) => e.type === 'ability_triggered' && e.instanceId === 'p-other-trait')).toHaveLength(1);
+  });
+
+  it('does not duplicate a positional bonus id when two Yossarians overlap', () => {
+    const figlarz = openingEffectUnit('figlarz-target-2', ['figlarz']);
+    const synergyDefs = { yossarian: yossarianSynergy, [figlarz.id]: figlarz };
+    const player: CombatTeamInput = {
+      side: 'player',
+      hpMax: 500,
+      units: [
+        { instanceId: 'p-yossarian-a', unitId: 'yossarian', position: { row: 0, col: 0 } },
+        { instanceId: 'p-yossarian-b', unitId: 'yossarian', position: { row: 1, col: 1 } },
+        { instanceId: 'p-figlarz', unitId: figlarz.id, position: { row: 0, col: 1 } },
+      ],
+    };
+    const log = runCombat({
+      combatId: 'c-synergy-dedup',
+      seed: 23,
+      player,
+      enemy: { side: 'enemy', hpMax: 500, units: [] },
+      unitDefs: synergyDefs,
+      timeoutSec: 0.1,
+    });
+    const init = log.events.find((e) => e.type === 'units_init');
+    if (init?.type !== 'units_init') throw new Error('expected units_init');
+    const target = init.player.find((u) => u.instanceId === 'p-figlarz');
+    expect(target?.triggerMultiplier).toBe(2);
+    expect(target?.positionalBonusesApplied).toEqual(['yossarian.figlarz_echo']);
+    expect(log.events.filter((e) => e.type === 'ability_triggered' && e.instanceId === 'p-figlarz')).toHaveLength(2);
+  });
+
+  it('executes a duplicated ability definition only once per trigger', () => {
+    const repeatedAbility: UnitDef = {
+      id: 'repeated-definition',
+      name: 'Repeated Definition',
+      cost: 1,
+      tags: ['support'],
+      emoji: '🧩',
+      baseStats: { attacksPerSecond: 1 },
+      onTrigger: [
+        {
+          id: 'repeated-definition.pulse',
+          trigger: 'on_attack',
+          effect: { kind: 'damage_enemy_pool', amount: 2 },
+          description: 'test',
+        },
+        {
+          id: 'repeated-definition.pulse',
+          trigger: 'on_attack',
+          effect: { kind: 'damage_enemy_pool', amount: 2 },
+          description: 'test duplicate',
+        },
+      ],
+    };
+    const log = runCombat({
+      combatId: 'c-ability-dedup',
+      seed: 29,
+      player: { side: 'player', hpMax: 500, units: [{ instanceId: 'p-repeated', unitId: repeatedAbility.id, position: { row: 0, col: 0 } }] },
+      enemy: { side: 'enemy', hpMax: 500, units: [] },
+      unitDefs: { [repeatedAbility.id]: repeatedAbility },
+      timeoutSec: 1.1,
+    });
+    expect(log.events.filter((e) => e.type === 'ability_triggered' && e.instanceId === 'p-repeated')).toHaveLength(1);
   });
 
   it('a unit with no attack stat still triggers on_attack abilities on its own cadence, dealing no direct damage itself', () => {

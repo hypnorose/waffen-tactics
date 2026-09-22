@@ -24,6 +24,8 @@ export const UnitCombatStateSchema = z.object({
   lastAttackAt: z.number().nonnegative(),
   abilityCooldowns: z.record(z.string(), z.number()),
   positionalBonusesApplied: z.array(z.string()),
+  // 1 = normal ability cadence, 2 = an active positional same-trait synergy.
+  triggerMultiplier: z.number().int().min(1).max(2),
 });
 export type UnitCombatState = z.infer<typeof UnitCombatStateSchema>;
 
