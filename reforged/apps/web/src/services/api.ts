@@ -43,6 +43,7 @@ export const api = {
 
   getUnits: () => request<UnitDef[]>('GET', '/api/content/units'),
   getTags: () => request<Tag[]>('GET', '/api/content/tags'),
+  getAugmentDefs: () => request<AugmentDef[]>('GET', '/api/content/augments'),
 
   getCurrentRun: () => request<RunState>('GET', '/api/run/current'),
   createRun: () => request<RunState>('POST', '/api/run'),
@@ -63,8 +64,12 @@ export const api = {
   pickAugment: (runId: string, augmentId: string) => request<RunState>('POST', `/api/run/${runId}/augment/pick`, { augmentId }),
 
   startCombat: (runId: string) =>
-    request<{ run: RunState; combatLog: CombatLog; winner: Side; opponentName: string; opponentAvatarUrl: string | null }>(
-      'POST',
-      `/api/run/${runId}/combat/start`,
-    ),
+    request<{
+      run: RunState;
+      combatLog: CombatLog;
+      winner: Side;
+      opponentName: string;
+      opponentAvatarUrl: string | null;
+      opponentAugmentsPicked: string[];
+    }>('POST', `/api/run/${runId}/combat/start`),
 };

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { runCombat, type CombatParticipantInput } from '@reforged/combat-engine';
 import { augmentDefs, getUnitDefs } from '@reforged/content-data';
 import type { AbilityEffect, CombatLog, RunState, Side, UnitDef } from '@reforged/schema';
-import { STARTING_ELO, unitHpContribution } from '@reforged/schema';
+import { roundHpBonus, STARTING_ELO, unitHpContribution } from '@reforged/schema';
 import { discordAvatarUrl } from '../auth/discord.js';
 import type { Db } from '../db/client.js';
 import { insertCombatLog } from '../db/combatLogRepository.js';
@@ -29,6 +29,7 @@ export interface CombatResult {
   winner: Side;
   opponentName: string;
   opponentAvatarUrl: string | null;
+  opponentAugmentsPicked: string[];
 }
 
 export class RunNotActiveError extends Error {}
@@ -91,13 +92,13 @@ export function runCombatForRun(db: Db, run: RunState): CombatResult {
     player: {
       side: 'player',
       units: playerParticipants,
-      hpMax: computeTeamHpMax(playerParticipants.map((p) => p.unitId), unitDefs),
+      hpMax: computeTeamHpMax(playerParticipants.map((p) => p.unitId), unitDefs) + roundHpBonus(run.roundNumber),
       augmentEffects: toAugmentEffects(run.augmentsPicked),
     },
     enemy: {
       side: 'enemy',
       units: enemyParticipants,
-      hpMax: computeTeamHpMax(enemyParticipants.map((p) => p.unitId), unitDefs),
+      hpMax: computeTeamHpMax(enemyParticipants.map((p) => p.unitId), unitDefs) + roundHpBonus(run.roundNumber),
       augmentEffects: toAugmentEffects(opponent.augmentsPicked),
     },
     unitDefs,
@@ -118,5 +119,12 @@ export function runCombatForRun(db: Db, run: RunState): CombatResult {
     updateElo(db, user.id, user.elo + runEloDelta(finalRun.status, finalRun.wins));
   }
 
-  return { run: finalRun, combatLog, winner, opponentName: opponent.name, opponentAvatarUrl: opponent.avatarUrl };
+  return {
+    run: finalRun,
+    combatLog,
+    winner,
+    opponentName: opponent.name,
+    opponentAvatarUrl: opponent.avatarUrl,
+    opponentAugmentsPicked: opponent.augmentsPicked,
+  };
 }

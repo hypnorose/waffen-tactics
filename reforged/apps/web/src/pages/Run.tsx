@@ -5,14 +5,31 @@ import { Board3x3 } from '../components/board/Board3x3.js';
 import { BenchPanel } from '../components/shop/BenchPanel.js';
 import { ShopPanel } from '../components/shop/ShopPanel.js';
 import { AugmentPicker } from '../components/augment/AugmentPicker.js';
+import { AugmentRow } from '../components/augment/AugmentRow.js';
 import { CombatReplayViewer } from '../components/combat/CombatReplayViewer.js';
 import { GameOver } from './GameOver.js';
 
 const CELL_ID_PATTERN = /^cell-(\d)-(\d)$/;
 
 export function Run() {
-  const { run, units, buy, sell, reroll, toggleLock, buyLevel, place, bench, pickAugment, startCombat, loadOrCreateRun, lastCombat, loading, error } =
-    useRunStore();
+  const {
+    run,
+    units,
+    augments,
+    buy,
+    sell,
+    reroll,
+    toggleLock,
+    buyLevel,
+    place,
+    bench,
+    pickAugment,
+    startCombat,
+    loadOrCreateRun,
+    lastCombat,
+    loading,
+    error,
+  } = useRunStore();
   const profile = useAuthStore((s) => s.profile);
 
   if (!run) return <p className="loading">Ładowanie rozgrywki...</p>;
@@ -45,6 +62,8 @@ export function Run() {
 
       <ShopPanel run={run} units={units} onBuy={buy} onReroll={reroll} onToggleLock={toggleLock} onBuyLevel={buyLevel} />
 
+      <AugmentRow augmentIds={run.augmentsPicked} augments={augments} label="Twoje perki:" />
+
       <div className="run-actions">
         <button className="fight-button" onClick={startCombat} disabled={loading}>
           ⚔️ Rozpocznij walkę
@@ -58,10 +77,13 @@ export function Run() {
         <CombatReplayViewer
           combatLog={lastCombat.combatLog}
           units={units}
+          augments={augments}
           playerName={profile.username}
           playerAvatarUrl={profile.avatarUrl}
+          playerAugmentIds={run.augmentsPicked}
           opponentName={lastCombat.opponentName}
           opponentAvatarUrl={lastCombat.opponentAvatarUrl}
+          opponentAugmentIds={lastCombat.opponentAugmentsPicked}
           onClose={() => useRunStore.setState({ lastCombat: null })}
         />
       )}
