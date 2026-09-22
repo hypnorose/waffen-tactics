@@ -17,17 +17,19 @@ import type { Ability, PositionalBonus } from '@reforged/schema';
  *                                  adjacency aura), then cash the slow in for bonus damage —
  *                                  control that pays for itself instead of dealing no damage.
  * - figlarz    (Figlarze)       — tempo: team-pool haste/dodge stacks, stealing (steal_buff)
- *                                  or shredding the enemy's own haste/dodge — 2 of the 9 are
- *                                  pure support (4tune, klemens_zydoslawski), ~1/3 of the theme.
- * - konfident  (Konfidenci)     — poison/assassin: poison, lifesteal, comeback burst finishers.
+ *                                  or shredding the enemy's own haste/dodge — 3 of the 9 are
+ *                                  pure support (4tune, klemens_zydoslawski, vitas), exactly 1/3.
+ * - konfident  (Konfidenci)     — poison/assassin: strip enemy buffs, poison,
+ *                                  execution marks, team vampirism, and payoffs
+ *                                  that consume those statuses.
  * - starociota (Weterani)       — sustain: shield/regen, built to outlast.
  * - srebrna-gwardia (Gwardia)   — defensive formation: shields, protective coordination.
  * - nowociota  (Nowociotowie)   — raw power: flat/execute damage, nothing fancy.
  *
  * A unit with no `attack` in baseStats deals no direct damage at all — its
  * card shows its effect's icon instead of a damage number (see
- * apps/web/src/lib/unitStyle.ts's unitEffectIcon). galanonim, 4tune and
- * klemens_zydoslawski are the pure-support examples: no attack stat at all.
+ * apps/web/src/lib/unitStyle.ts's unitEffectIcon). galanonim, 4tune,
+ * klemens_zydoslawski and vitas are the pure-support examples: no attack stat.
  *
  * Never use heal_own_pool on start_of_combat (instant heal at t=0 just reads
  * as bigger max HP) — use regen_own_pool instead, a persistent heal-per-
@@ -43,8 +45,8 @@ export interface UnitOverride {
 function dmgOnAttack(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'damage_enemy_pool', amount }, description: desc };
 }
-function dmgPeriodic(id: string, amount: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'damage_enemy_pool', amount }, description: desc };
+function dmgOnTrigger(id: string, amount: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'damage_enemy_pool', amount }, description: desc };
 }
 function dmgLowHp(id: string, amount: number, thresholdPercent: number, desc: string): Ability {
   return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'damage_enemy_pool', amount }, description: desc };
@@ -61,8 +63,8 @@ function shieldOpening(id: string, amount: number, desc: string): Ability {
 function shieldLowHp(id: string, amount: number, thresholdPercent: number, desc: string): Ability {
   return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'shield_own_pool', amount }, description: desc };
 }
-function shieldPeriodic(id: string, amount: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'shield_own_pool', amount }, description: desc };
+function shieldOnTrigger(id: string, amount: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'shield_own_pool', amount }, description: desc };
 }
 function poisonOnAttack(id: string, damagePerSec: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
@@ -97,8 +99,11 @@ function teamHastePerAdjacentAllyOnAttack(id: string, percentPerAlly: number, ta
 function dmgScaledByHasteOnTrigger(id: string, multiplier: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'damage_enemy_pool_scaled_by_own_haste', multiplier }, description: desc };
 }
-function hasteStacksPeriodic(id: string, stacks: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'haste_stacks_own_pool', stacks }, description: desc };
+function dmgScaledByEnemyPoisonOnTrigger(id: string, multiplier: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'damage_enemy_pool_scaled_by_enemy_poison', multiplier }, description: desc };
+}
+function hasteStacksOnTrigger(id: string, stacks: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'haste_stacks_own_pool', stacks }, description: desc };
 }
 function dodgeStacksOpening(id: string, stacks: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'dodge_stacks_own_pool', stacks }, description: desc };
@@ -115,14 +120,26 @@ function stealDodgeOnTrigger(id: string, percent: number, desc: string): Ability
 function shredEnemyHasteStacksOnTrigger(id: string, stacks: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'shred_enemy_haste_stacks', stacks }, description: desc };
 }
-function executePeriodic(id: string, percentOfCurrentHp: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'execute_enemy_pool', percentOfCurrentHp }, description: desc };
+function shredAndGrantHasteOnTrigger(id: string, shredStacks: number, grantStacks: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'shred_and_grant_haste', shredStacks, grantStacks }, description: desc };
+}
+function executeOnTrigger(id: string, percentOfCurrentHp: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'execute_enemy_pool', percentOfCurrentHp }, description: desc };
 }
 function lifestealOnAttack(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'lifesteal_own_pool', percent }, description: desc };
 }
 function shredOpening(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'shred_enemy_shield', amount }, description: desc };
+}
+function shredAllEnemyBuffsOnTrigger(id: string, amount: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'shred_all_enemy_buffs', amount }, description: desc };
+}
+function vampirismOpening(id: string, percent: number, desc: string): Ability {
+  return { id, trigger: 'start_of_combat', effect: { kind: 'vampirism_stacks_own_pool', stacks: percent }, description: desc };
+}
+function executionMarksOnHitOpening(id: string, stacks: number, desc: string): Ability {
+  return { id, trigger: 'start_of_combat', effect: { kind: 'execution_mark_on_hit_team', stacks }, description: desc };
 }
 
 export const unitOverrides: Record<string, UnitOverride> = {
@@ -157,7 +174,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
   },
 
   // ============================================================
-  // FIGLARZ — Figlarze: tempo, haste, on-attack procs
+  // FIGLARZ — Figlarze: tempo, haste, dodge and status theft
   // ============================================================
   fiko: {
     onTrigger: [
@@ -189,7 +206,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
   // Pure support — no attack stat at all (see units.data.ts). Doesn't fight,
   // just picks the enemy's pocket for whatever speed they've built up.
   '4tune': {
-    onTrigger: [stealHasteOnAttack('4tune.pickpocket', 30, 'Każdy atak kradnie 30% aktualnych stacków haste wroga.')],
+    onTrigger: [stealHasteOnAttack('4tune.pickpocket', 30, 'Każda aktywacja kradnie 30% aktualnych stacków haste wroga.')],
   },
   jadlainwestycji: {
     onTrigger: [stealDodgeOnTrigger('jadlainwestycji.hostile_takeover', 10, 'Każdy atak kradnie 10% aktualnych stacków uniku wroga.')],
@@ -197,25 +214,32 @@ export const unitOverrides: Record<string, UnitOverride> = {
   // Pure support — no attack stat at all (see units.data.ts). A saboteur who
   // only ever grinds the enemy's tempo down, never swings a weapon.
   klemens_zydoslawski: {
-    onTrigger: [shredEnemyHasteStacksOnTrigger('klemens_zydoslawski.sand_in_gears', 2, 'Każdy atak zdejmuje wrogowi 2 stacki haste.')],
+    onTrigger: [
+      shredAndGrantHasteOnTrigger(
+        'klemens_zydoslawski.sand_in_gears',
+        10,
+        10,
+        'Co 6 s zdejmuje wrogowi 10 stacków haste i daje własnej drużynie 10 stacków haste.',
+      ),
+    ],
   },
   knauff: {
-    onTrigger: [hasteStacksPeriodic('knauff.syndicate_charge', 6, 6, 'Co 6 s drużyna zyskuje 6 stacków haste (stackuje się do końca walki).')],
+    onTrigger: [hasteStacksOnTrigger('knauff.syndicate_charge', 6, 'Co 6 s drużyna zyskuje 6 stacków haste (stackuje się do końca walki).')],
   },
   vitas: {
-    onTrigger: [dodgeStacksOnAttack('vitas.evasive_pressure', 4, 'Każdy atak dodaje drużynie 4 stacki uniku (stackuje się do końca walki).')],
+    onTrigger: [dodgeStacksOnAttack('vitas.evasive_pressure', 8, 'Każda aktywacja dodaje drużynie 8 stacków uniku (stackuje się do końca walki).')],
   },
 
   // ============================================================
-  // KONFIDENT — Konfidenci: poison, lifesteal, comeback finishers
+  // KONFIDENT — Konfidenci: purge, poison, execution and vampirism
   // ============================================================
   uhla: {
     onTrigger: [poisonOnAttack('uhla.whisper', 3, 'Każdy atak nakłada 3 obrażenia trucizny na sekundę (stackuje się).')],
   },
   galanonim: {
-    // Pure support — no attack stat at all (see units.data.ts). Its card
-    // shows this effect's icon instead of a damage number.
-    startOfCombat: [regenOpening('galanonim.deep_cover', 10, 'Na starcie walki drużyna zyskuje regenerację: leczy 10 HP na sekundę do końca walki.')],
+    // Pure support — no attack stat at all (see units.data.ts). Every pulse
+    // strips the same flat amount from each positive enemy team status.
+    onTrigger: [shredAllEnemyBuffsOnTrigger('galanonim.blacklist', 5, 'Co aktywację zdejmuje wrogowi po 5 tarczy, haste, uniku, kolców i wampiryzmu.')],
   },
   pytl: {
     positionalBonus: {
@@ -227,7 +251,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
     },
   },
   optimusprime: {
-    onTrigger: [lifestealOnAttack('optimusprime.blackmail', 25, 'Każdy atak leczy własną pulę o 25% zadanych obrażeń.')],
+    startOfCombat: [vampirismOpening('optimusprime.blackmail', 15, 'Na starcie walki cała drużyna zyskuje 15% wampiryzmu: odzyskuje 15% zadanych obrażeń.')],
   },
   kaktusek: {
     startOfCombat: [poisonOpening('kaktusek.parting_gift', 8, 'Na starcie walki nakłada 8 obrażeń trucizny na sekundę.')],
@@ -236,10 +260,16 @@ export const unitOverrides: Record<string, UnitOverride> = {
     onTrigger: [shieldLowHp('boczek.escape_plan', 60, 0.25, 'Gdy drużyna spadnie poniżej 25% HP, raz zyskuje tarczę 60.')],
   },
   nicosc: {
-    onTrigger: [teamAttackLowHp('nicosc.last_resort', 15, 0.2, 'Gdy drużyna spadnie poniżej 20% HP, raz zyskuje +15% obrażeń całej drużyny.')],
+    onTrigger: [
+      dmgScaledByEnemyPoisonOnTrigger(
+        'nicosc.last_resort',
+        2,
+        'Co 8 s zadaje dodatkowe obrażenia równe dwukrotności aktualnej trucizny wroga.',
+      ),
+    ],
   },
   '9wojtaz9': {
-    onTrigger: [poisonLowHp('9wojtaz9.final_favor', 10, 0.35, 'Gdy drużyna spadnie poniżej 35% HP, raz nakłada 10 obrażeń trucizny na sekundę.')],
+    startOfCombat: [executionMarksOnHitOpening('9wojtaz9.final_favor', 1, 'Na starcie walki każdy trafiony atak drużyny nakłada 1 stack egzekucji na wroga.')],
   },
 
   // ============================================================
@@ -271,7 +301,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
     },
   },
   empty_melancholy: {
-    onTrigger: [shieldPeriodic('empty_melancholy.harden', 8, 6, 'Co 6 s zyskuje tarczę 8.')],
+    onTrigger: [shieldOnTrigger('empty_melancholy.harden', 8, 'Co 6 s zyskuje tarczę 8.')],
   },
 
   // ============================================================
@@ -287,10 +317,10 @@ export const unitOverrides: Record<string, UnitOverride> = {
     onTrigger: [dmgOnAttack('mr0czeq1.wild_swing', 10, 'Każdy atak dodatkowo zadaje 10 obrażeń puli wroga.')],
   },
   bbobel: {
-    onTrigger: [dmgPeriodic('bbobel.rookie_rage', 6, 5, 'Co 5 s zadaje 6 obrażeń puli wroga.')],
+    onTrigger: [dmgOnTrigger('bbobel.rookie_rage', 6, 'Co 5 s zadaje 6 obrażeń puli wroga.')],
   },
   fallensmokk: {
-    onTrigger: [executePeriodic('fallensmokk.rally', 4, 5, 'Co 5 s zadaje obrażenia równe 4% aktualnego HP wroga.')],
+    onTrigger: [executeOnTrigger('fallensmokk.rally', 4, 'Co 5 s zadaje obrażenia równe 4% aktualnego HP wroga.')],
   },
   jaeger: {
     startOfCombat: [openingBlast('jaeger.opening_charge', 18, 'Na starcie walki zadaje 18 obrażeń puli wroga.')],

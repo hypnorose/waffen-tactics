@@ -35,11 +35,12 @@ export interface TeamStatus {
   dodgeStacks: number;
   fragilityPercent: number;
   thornsPercent: number;
+  vampirismPercent: number;
   executionStacks: number;
 }
 
 function emptyTeamStatus(): TeamStatus {
-  return { shield: 0, hasteStacks: 0, dodgeStacks: 0, fragilityPercent: 0, thornsPercent: 0, executionStacks: 0 };
+  return { shield: 0, hasteStacks: 0, dodgeStacks: 0, fragilityPercent: 0, thornsPercent: 0, vampirismPercent: 0, executionStacks: 0 };
 }
 
 export interface CombatSnapshot {
@@ -137,6 +138,7 @@ export function useCombatSnapshot(events: CombatEvent[], currentTime: number): C
           else if (event.stat === 'dodge') status.dodgeStacks = event.total;
           else if (event.stat === 'fragility') status.fragilityPercent = event.total;
           else if (event.stat === 'thorns') status.thornsPercent = event.total;
+          else if (event.stat === 'vampirism') status.vampirismPercent = event.total;
           else if (event.stat === 'execution') status.executionStacks = event.total;
           break;
         }

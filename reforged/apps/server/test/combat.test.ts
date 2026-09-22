@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import type { RunState } from '@reforged/schema';
+import { BASE_TEAM_HP, roundHpBonus, unitHpContribution, type RunState } from '@reforged/schema';
+import { getUnitDefs } from '@reforged/content-data';
 import { buildApp } from '../src/app.js';
 import { createDb, type Db } from '../src/db/client.js';
 import { loginTestUser } from './testAuth.js';
@@ -67,6 +68,21 @@ describe('combat orchestration', () => {
     expect(body.run.wins + body.run.losses).toBe(1);
     // a fight always counts as a round played
     expect(body.run.roundNumber === 2 || body.run.status !== 'active').toBe(true);
+
+    const unitsInit = body.combatLog.events.find(
+      (event): event is {
+        type: 'units_init';
+        player: Array<{ unitId: string }>;
+        playerHpMax: number;
+        enemyHpMax: number;
+      } => typeof event === 'object' && event !== null && (event as { type?: unknown }).type === 'units_init',
+    );
+    expect(unitsInit).toBeDefined();
+    const expectedPlayerHp = BASE_TEAM_HP
+      + unitsInit!.player.reduce((sum, unit) => sum + unitHpContribution(getUnitDefs()[unit.unitId]?.cost ?? 1), 0)
+      + roundHpBonus(1);
+    expect(unitsInit!.playerHpMax).toBe(expectedPlayerHp);
+    expect(unitsInit!.enemyHpMax).toBeGreaterThanOrEqual(BASE_TEAM_HP);
 
     // the persisted log is independently fetchable by its owner
     const fetchRes = await app.inject({

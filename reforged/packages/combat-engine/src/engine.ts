@@ -44,6 +44,7 @@ const MAX_HASTE_STACKS = 100; // pool-level haste — 1 stack = 1%, combined wit
 const MAX_DODGE_STACKS = 70;
 const MAX_FRAGILITY_PERCENT = 150;
 const MAX_THORNS_PERCENT = 100;
+const MAX_VAMPIRISM_PERCENT = 80;
 const MAX_EXECUTION_STACKS = 30;
 // Absolute HP, not a percentage — execution is a finisher for a pool that's
 // already a sliver from HP away from dead, not a build-around instakill on a
@@ -126,6 +127,7 @@ interface Pool {
   dodgeStacks: number; // 1 stack = 1% chance to fully negate an incoming hit
   fragilityPercent: number; // % more damage taken from every source
   thornsPercent: number; // % of own HP loss reflected back at the enemy pool
+  vampirismPercent: number; // % of damage dealt by any unit on this side healed back to it
   executionStacks: number;
   executionHpThreshold: number; // absolute HP, not a percentage
   executionStacksRequired: number;
@@ -149,6 +151,7 @@ function makePool(hpMax: number): Pool {
     dodgeStacks: 0,
     fragilityPercent: 0,
     thornsPercent: 0,
+    vampirismPercent: 0,
     executionStacks: 0,
     executionHpThreshold: EXECUTION_DEFAULT_HP_THRESHOLD,
     executionStacksRequired: EXECUTION_DEFAULT_STACKS_REQUIRED,
@@ -295,6 +298,14 @@ export function runCombat(input: RunCombatInput): CombatLog {
       const reflect = amount * (pool.thornsPercent / 100);
       if (reflect > 0) applyDamageToPool(otherSide(side), reflect, 'ability', undefined, simTime, true);
     }
+    // Vampirism credits whoever dealt this hit, not the victim. Poison is a
+    // status tick, not a landed hit, and pool-wide damage without a unit
+    // source is not something the attacking team should lifesteal from.
+    if (allowThornsReflection && amount > 0 && (cause === 'attack' || sourceInstanceId !== undefined)) {
+      const attackerSide = otherSide(side);
+      const attackerPool = pools[attackerSide];
+      if (attackerPool.vampirismPercent > 0) applyHealToPool(attackerSide, amount * (attackerPool.vampirismPercent / 100), sourceInstanceId, simTime);
+    }
     checkExecution(side, simTime);
   }
 
@@ -355,10 +366,10 @@ export function runCombat(input: RunCombatInput): CombatLog {
     if (wasZero && pool.shield > 0) fireReactions(side, 'shield_gained', simTime);
   }
 
-  // Only used by steal_buff — removes shield from the victim without
-  // requiring a positive-amount event (the schema allows a negative amount
-  // on this event specifically to cover steals).
-  function removeShieldForSteal(side: Side, amount: number, simTime: number): number {
+  // Removes shield without dealing damage. The negative shield event is used
+  // by both steal_buff and the all-buff purge so the replay can show the
+  // removal instead of silently changing the pool.
+  function removeShield(side: Side, amount: number, simTime: number): number {
     const pool = pools[side];
     const wasPositive = pool.shield > 0;
     const removed = Math.min(pool.shield, amount);
@@ -410,6 +421,13 @@ export function runCombat(input: RunCombatInput): CombatLog {
     if (pool.dodgeStacks !== before) log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'dodge', amount: pool.dodgeStacks - before, total: pool.dodgeStacks });
   }
 
+  function shredThorns(side: Side, percent: number, simTime: number) {
+    const pool = pools[side];
+    const before = pool.thornsPercent;
+    pool.thornsPercent = clamp(pool.thornsPercent - percent, 0, MAX_THORNS_PERCENT);
+    if (pool.thornsPercent !== before) log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'thorns', amount: pool.thornsPercent - before, total: pool.thornsPercent });
+  }
+
   function grantFragility(side: Side, percent: number, sourceInstanceId: string | undefined, simTime: number) {
     const pool = pools[side];
     const before = pool.fragilityPercent;
@@ -422,6 +440,22 @@ export function runCombat(input: RunCombatInput): CombatLog {
     const before = pool.thornsPercent;
     pool.thornsPercent = clamp(pool.thornsPercent + percent, 0, MAX_THORNS_PERCENT);
     if (pool.thornsPercent !== before) log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'thorns', amount: pool.thornsPercent - before, total: pool.thornsPercent, sourceInstanceId });
+  }
+
+  function grantVampirism(side: Side, percent: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const before = pool.vampirismPercent;
+    pool.vampirismPercent = clamp(pool.vampirismPercent + percent, 0, MAX_VAMPIRISM_PERCENT);
+    if (pool.vampirismPercent !== before) {
+      log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'vampirism', amount: pool.vampirismPercent - before, total: pool.vampirismPercent, sourceInstanceId });
+    }
+  }
+
+  function shredVampirism(side: Side, percent: number, simTime: number) {
+    const pool = pools[side];
+    const before = pool.vampirismPercent;
+    pool.vampirismPercent = clamp(pool.vampirismPercent - percent, 0, MAX_VAMPIRISM_PERCENT);
+    if (pool.vampirismPercent !== before) log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'vampirism', amount: pool.vampirismPercent - before, total: pool.vampirismPercent });
   }
 
   function grantExecutionMark(side: Side, stacks: number, sourceInstanceId: string | undefined, simTime: number) {
@@ -450,7 +484,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
     } else {
       const amount = enemyPool.shield * (percent / 100);
       if (amount <= 0) return;
-      const removed = removeShieldForSteal(enemySide, amount, simTime);
+      const removed = removeShield(enemySide, amount, simTime);
       if (removed > 0) applyShieldToPool(casterSide, removed, undefined, simTime);
     }
   }
@@ -572,6 +606,15 @@ export function runCombat(input: RunCombatInput): CombatLog {
         enemyPool.shield = Math.max(0, enemyPool.shield - effect.amount);
         break;
       }
+      case 'shred_all_enemy_buffs': {
+        const enemySide = otherSide(side);
+        removeShield(enemySide, effect.amount, simTime);
+        shredHaste(enemySide, effect.amount, simTime);
+        shredDodge(enemySide, effect.amount, simTime);
+        shredThorns(enemySide, effect.amount, simTime);
+        shredVampirism(enemySide, effect.amount, simTime);
+        break;
+      }
       case 'haste_stacks_own_pool':
         grantHaste(side, effect.stacks, sourceInstanceId, simTime);
         break;
@@ -589,6 +632,11 @@ export function runCombat(input: RunCombatInput): CombatLog {
         if (bonus > 0) applyDamageToPool(otherSide(side), bonus, 'ability', sourceInstanceId, simTime);
         break;
       }
+      case 'damage_enemy_pool_scaled_by_enemy_poison': {
+        const bonus = pools[otherSide(side)].poisonDamagePerSec * effect.multiplier;
+        if (bonus > 0) applyDamageToPool(otherSide(side), bonus, 'ability', sourceInstanceId, simTime);
+        break;
+      }
       case 'dodge_stacks_own_pool':
         grantDodge(side, effect.stacks, sourceInstanceId, simTime);
         break;
@@ -597,6 +645,9 @@ export function runCombat(input: RunCombatInput): CombatLog {
         break;
       case 'thorns_own_pool':
         grantThorns(side, effect.percent, sourceInstanceId, simTime);
+        break;
+      case 'vampirism_stacks_own_pool':
+        grantVampirism(side, effect.stacks, sourceInstanceId, simTime);
         break;
       case 'execution_mark_enemy_pool':
         grantExecutionMark(otherSide(side), effect.stacks, sourceInstanceId, simTime);
@@ -612,6 +663,10 @@ export function runCombat(input: RunCombatInput): CombatLog {
         break;
       case 'shred_enemy_haste_stacks':
         shredHaste(otherSide(side), effect.stacks, simTime);
+        break;
+      case 'shred_and_grant_haste':
+        shredHaste(otherSide(side), effect.shredStacks, simTime);
+        grantHaste(side, effect.grantStacks, sourceInstanceId, simTime);
         break;
       case 'shred_enemy_dodge_stacks':
         shredDodge(otherSide(side), effect.stacks, simTime);

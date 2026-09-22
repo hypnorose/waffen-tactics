@@ -16,6 +16,7 @@ const CHIP_DEFS: Array<{
   { key: 'hasteStacks', emoji: '⚡', label: 'Przyspieszenie', kind: 'buff', format: (v) => `+${Math.round(v)}%` },
   { key: 'dodgeStacks', emoji: '💨', label: 'Unik', kind: 'buff', format: (v) => `${Math.round(v)}%` },
   { key: 'thornsPercent', emoji: '🌵', label: 'Kolce', kind: 'buff', format: (v) => `${Math.round(v)}%` },
+  { key: 'vampirismPercent', emoji: '🧛', label: 'Wampiryzm', kind: 'buff', format: (v) => `${Math.round(v)}%` },
   { key: 'fragilityPercent', emoji: '🔻', label: 'Kruchość', kind: 'debuff', format: (v) => `+${Math.round(v)}%` },
   { key: 'executionStacks', emoji: '⚰️', label: 'Egzekucja', kind: 'debuff', format: (v) => `${Math.round(v)}` },
 ];

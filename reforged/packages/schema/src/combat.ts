@@ -116,13 +116,13 @@ export const CombatEventSchema = z.discriminatedUnion('type', [
     sourceInstanceId: z.string().optional(),
   }),
   // One shared event for every team-pool status stack change (haste, dodge,
-  // fragility, thorns, execution marks) — `total` is the post-change value,
-  // so the UI never needs to sum deltas itself.
+  // fragility, thorns, vampirism, execution marks) — `total` is the
+  // post-change value, so the UI never needs to sum deltas itself.
   z.object({
     ...baseEventFields,
     type: z.literal('team_pool_stat_applied'),
     side: SideSchema,
-    stat: z.enum(['haste', 'dodge', 'fragility', 'thorns', 'execution']),
+    stat: z.enum(['haste', 'dodge', 'fragility', 'thorns', 'execution', 'vampirism']),
     amount: z.number(),
     total: z.number(),
     sourceInstanceId: z.string().optional(),

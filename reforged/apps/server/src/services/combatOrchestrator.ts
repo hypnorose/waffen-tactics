@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { runCombat, type CombatParticipantInput } from '@reforged/combat-engine';
 import { augmentDefs, getUnitDefs } from '@reforged/content-data';
 import type { AbilityEffect, CombatLog, RunState, Side, UnitDef } from '@reforged/schema';
-import { roundHpBonus, STARTING_ELO, unitHpContribution } from '@reforged/schema';
+import { BASE_TEAM_HP, roundHpBonus, STARTING_ELO, unitHpContribution } from '@reforged/schema';
 import { discordAvatarUrl } from '../auth/discord.js';
 import type { Db } from '../db/client.js';
 import { insertCombatLog } from '../db/combatLogRepository.js';
@@ -13,7 +13,7 @@ import { runEloDelta } from './rankService.js';
 import { advanceRound, applyMatchResult, persistRun } from './runService.js';
 
 function computeTeamHpMax(unitIds: string[], unitDefs: Record<string, UnitDef>): number {
-  return unitIds.reduce((sum, unitId) => sum + unitHpContribution(unitDefs[unitId]?.cost ?? 1), 0);
+  return BASE_TEAM_HP + unitIds.reduce((sum, unitId) => sum + unitHpContribution(unitDefs[unitId]?.cost ?? 1), 0);
 }
 
 function toAugmentEffects(augmentIds: string[]): Array<{ effect: AbilityEffect; tagFilter?: string[] }> {

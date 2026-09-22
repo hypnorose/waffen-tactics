@@ -24,9 +24,37 @@ describe('content-data', () => {
   it('applies hand-authored overrides on top of ported base stats', () => {
     const units = getUnitDefs();
     expect(units.chessowy_mentos.startOfCombat?.[0]?.trigger).toBe('start_of_combat');
-    expect(units.empty_melancholy.onTrigger?.[0]?.trigger).toBe('periodic');
+    expect(units.empty_melancholy.onTrigger?.[0]?.trigger).toBe('on_trigger');
     expect(units.boczek.onTrigger?.[0]?.trigger).toBe('low_team_hp');
     expect(units.pytl.positionalBonus?.shape).toBe('cross');
+  });
+
+  it('keeps the authored support/status contracts in the roster dossier', () => {
+    const units = getUnitDefs();
+    expect(units.galanonim.onTrigger?.[0]?.trigger).toBe('on_trigger');
+    expect(units.galanonim.onTrigger?.[0]?.effect).toEqual({ kind: 'shred_all_enemy_buffs', amount: 5 });
+    expect(units.galanonim.baseStats).toEqual({ attacksPerSecond: 0.2 });
+    expect(units.optimusprime.startOfCombat?.[0]?.effect).toEqual({ kind: 'vampirism_stacks_own_pool', stacks: 15 });
+    expect(units.nicosc.onTrigger?.[0]?.effect).toEqual({ kind: 'damage_enemy_pool_scaled_by_enemy_poison', multiplier: 2 });
+    expect(units['9wojtaz9'].startOfCombat?.[0]?.effect).toEqual({ kind: 'execution_mark_on_hit_team', stacks: 1 });
+    expect(units.klemens_zydoslawski.onTrigger?.[0]?.effect).toEqual({ kind: 'shred_and_grant_haste', shredStacks: 10, grantStacks: 10 });
+    expect(units.vitas.baseStats.attack).toBeUndefined();
+
+    const figlarzWithoutAttack = ['4tune', 'klemens_zydoslawski', 'vitas'].filter((id) => units[id].baseStats.attack === undefined);
+    expect(figlarzWithoutAttack).toHaveLength(3);
+  });
+
+  it('uses on_trigger with unit cooldowns for every roster proc', () => {
+    const units = getUnitList();
+    const abilities = units.flatMap((unit) => [...(unit.startOfCombat ?? []), ...(unit.onTrigger ?? [])]);
+    expect(abilities.filter((ability) => ability.trigger === 'periodic')).toHaveLength(0);
+    expect(getUnitDefs().galanonim.baseStats.attacksPerSecond).toBe(0.2);
+    expect(getUnitDefs().bbobel.baseStats.attacksPerSecond).toBe(0.2);
+    expect(getUnitDefs().fallensmokk.baseStats.attacksPerSecond).toBe(0.2);
+    expect(getUnitDefs().klemens_zydoslawski.baseStats.attacksPerSecond).toBeCloseTo(1 / 6, 6);
+    expect(getUnitDefs().knauff.baseStats.attacksPerSecond).toBeCloseTo(1 / 6, 6);
+    expect(getUnitDefs().empty_melancholy.baseStats.attacksPerSecond).toBeCloseTo(1 / 6, 6);
+    expect(getUnitDefs().nicosc.baseStats.attacksPerSecond).toBe(0.125);
   });
 
   it('gives adjacent figlarz units Yossarian\'s double-trigger synergy', () => {

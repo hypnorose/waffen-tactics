@@ -95,7 +95,9 @@ export const unitsData = [
     ],
     "emoji": "🔨",
     "avatar": "/avatars/set2/galanonimpl-avatar-1024.png",
-    "baseStats": {}
+    "baseStats": {
+      "attacksPerSecond": 0.2
+    }
   },
   {
     "id": "pytl",
@@ -236,7 +238,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/bbobel.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.8
+      "attacksPerSecond": 0.2
     }
   },
   {
@@ -250,7 +252,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/fallensmok.png",
     "baseStats": {
       "attack": 40,
-      "attacksPerSecond": 1
+      "attacksPerSecond": 0.2
     }
   },
   {
@@ -293,7 +295,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/melancholykillsme-avatar-1024.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.8
+      "attacksPerSecond": 0.1666667
     }
   },
   {
@@ -375,7 +377,7 @@ export const unitsData = [
     "emoji": "🌀",
     "avatar": "/avatars/set2/klemens.png",
     "baseStats": {
-      "attacksPerSecond": 0.9
+      "attacksPerSecond": 0.1666667
     }
   },
   {
@@ -389,7 +391,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/niko_official-avatar-1024.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.8
+      "attacksPerSecond": 0.125
     }
   },
   {
@@ -403,7 +405,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/knauff.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 1.2
+      "attacksPerSecond": 0.1666667
     }
   },
   {
@@ -417,7 +419,6 @@ export const unitsData = [
     "emoji": "🎇",
     "avatar": "/avatars/set2/vitas.png",
     "baseStats": {
-      "attack": 60,
       "attacksPerSecond": 1.2
     }
   },

@@ -81,6 +81,10 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // shred_enemy_haste_stacks/shred_enemy_dodge_stacks below which target the
   // other two team-pool statuses.
   z.object({ kind: z.literal('shred_enemy_shield'), amount: z.number().positive() }),
+  // Strips `amount` off EACH positive enemy team-pool status at once
+  // (shield, haste, dodge, thorns, vampirism) — a single "clear their
+  // buffs" effect for a support unit that does not need five abilities.
+  z.object({ kind: z.literal('shred_all_enemy_buffs'), amount: z.number().positive() }),
 
   // --- Team-pool statuses. All of these live on the shared pool, not on
   // individual units — see the design note at the top of augments.ts. ---
@@ -99,6 +103,11 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // averaged across their units) times multiplier — a payoff for slowing
   // the enemy from other sources rather than a slow source itself.
   z.object({ kind: z.literal('damage_enemy_pool_scaled_by_enemy_slow'), multiplier: z.number().positive() }),
+  // Bonus damage on top of the caster's own attack, equal to the enemy
+  // side's CURRENT poison damage-per-second times multiplier — a payoff
+  // for poisoning the enemy from other sources ("capitalize on the venom
+  // already in them") rather than a poison source itself.
+  z.object({ kind: z.literal('damage_enemy_pool_scaled_by_enemy_poison'), multiplier: z.number().positive() }),
   // 1 stack = 1% chance to fully negate an incoming attack/ability hit
   // (poison excluded — see above), clamped team-wide at MAX_DODGE_STACKS
   // (70).
@@ -111,6 +120,11 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // or ability, this % of that HP loss is dealt back to the enemy pool.
   // Reflected damage never itself re-triggers thorns (no infinite chains).
   z.object({ kind: z.literal('thorns_own_pool'), percent: z.number().positive() }),
+  // Wampiryzm: whenever ANY unit on this side lands a hit (not poison),
+  // this % of the damage dealt is healed back to the own pool — a
+  // team-wide status, not tied to one caster's own attacks (unlike
+  // lifesteal_own_pool). Doesn't trigger off a thorns reflection landing.
+  z.object({ kind: z.literal('vampirism_stacks_own_pool'), stacks: z.number().positive() }),
   // Egzekucja: marks the enemy pool. See execution_empower_enemy_pool for
   // the two knobs (HP threshold, stacks required) that decide when marks
   // actually kill — a pool with marks but no augment that lowered the
@@ -131,6 +145,11 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('reduce_own_shield_gain'), percent: z.number().positive().max(100) }),
   z.object({ kind: z.literal('shred_enemy_haste_stacks'), stacks: z.number().positive() }),
   z.object({ kind: z.literal('shred_enemy_dodge_stacks'), stacks: z.number().positive() }),
+  // Both halves of a steal in one effect, as flat amounts rather than a %
+  // of the enemy's current stacks (see steal_buff for the percent-based
+  // version): removes shredStacks of haste from the enemy, and separately
+  // grants grantStacks of haste to the caster's own side.
+  z.object({ kind: z.literal('shred_and_grant_haste'), shredStacks: z.number().positive(), grantStacks: z.number().positive() }),
   // Per-unit passive granted team-wide (or tag-filtered, via the augment's
   // own tagFilter): every landed attack from an affected unit shreds this
   // many dodge stacks off the enemy pool.

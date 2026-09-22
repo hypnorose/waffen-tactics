@@ -487,4 +487,130 @@ describe('runCombat', () => {
     // ~10s the fighter cannot have fired dramatically more than ~20 times.
     expect(fighterAttacks.length).toBeLessThan(25);
   });
+
+  it('purge support removes a flat amount from every positive enemy pool status', () => {
+    const purgeSupport: UnitDef = {
+      id: 'purge_support',
+      name: 'Purge Support',
+      cost: 4,
+      tags: ['konfident'],
+      emoji: '🔨',
+      baseStats: { attacksPerSecond: 0.2 },
+      onTrigger: [
+        {
+          id: 'purge_support.blacklist',
+          trigger: 'on_trigger',
+          effect: { kind: 'shred_all_enemy_buffs', amount: 5 },
+          description: 'Co aktywację zdejmuje po 5 z każdego pozytywnego statusu wroga.',
+        },
+      ],
+    };
+    const withBuffs = runCombat({
+      combatId: 'c-purge-buffed',
+      seed: 31,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [{ instanceId: 'p-purge', unitId: purgeSupport.id, position: { row: 0, col: 0 } }],
+      },
+      enemy: {
+        side: 'enemy',
+        hpMax: 500,
+        units: [],
+        augmentEffects: [
+          { effect: { kind: 'shield_own_pool', amount: 20 } },
+          { effect: { kind: 'haste_stacks_own_pool', stacks: 20 } },
+          { effect: { kind: 'dodge_stacks_own_pool', stacks: 20 } },
+          { effect: { kind: 'thorns_own_pool', percent: 20 } },
+          { effect: { kind: 'vampirism_stacks_own_pool', stacks: 20 } },
+        ],
+      },
+      unitDefs: { [purgeSupport.id]: purgeSupport },
+      timeoutSec: 5.1,
+    });
+    expect(withBuffs.events.some((event) => event.type === 'ability_triggered' && event.instanceId === 'p-purge')).toBe(true);
+    expect(withBuffs.events.some((event) => event.type === 'team_pool_shield_applied' && event.side === 'enemy' && event.amount === -5)).toBe(true);
+    for (const stat of ['haste', 'dodge', 'thorns', 'vampirism'] as const) {
+      expect(withBuffs.events.some((event) => event.type === 'team_pool_stat_applied' && event.side === 'enemy' && event.stat === stat && event.amount === -5)).toBe(true);
+    }
+  });
+
+  it('vampirism heals from landed attacks but not poison ticks', () => {
+    const attacker: UnitDef = { ...skirmisher, id: 'vampirism_attacker', baseStats: { attack: 10, attacksPerSecond: 1 } };
+    const log = runCombat({
+      combatId: 'c-vampirism',
+      seed: 37,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [{ instanceId: 'p-attacker', unitId: attacker.id, position: { row: 0, col: 0 } }],
+        augmentEffects: [
+          { effect: { kind: 'vampirism_stacks_own_pool', stacks: 50 } },
+          { effect: { kind: 'poison_enemy_pool', damagePerSec: 20 } },
+        ],
+      },
+      enemy: { side: 'enemy', hpMax: 100_000, units: [] },
+      unitDefs: { [attacker.id]: attacker },
+      timeoutSec: 1.1,
+    });
+    const heals = log.events.filter((event) => event.type === 'team_pool_heal' && event.side === 'player');
+    // The first scheduled attack is at t=1 in this engine; the poison tick at
+    // the same timestamp must not create a second heal event.
+    expect(heals).toHaveLength(1);
+    expect(heals.every((event) => event.type === 'team_pool_heal' && event.amount === 5)).toBe(true);
+  });
+
+  it('status payoffs and execution marks resolve from the configured prior status', () => {
+    const poisonPayoff: UnitDef = {
+      id: 'poison_payoff',
+      name: 'Poison Payoff',
+      cost: 4,
+      tags: ['konfident'],
+      emoji: '☠️',
+      baseStats: {},
+      onTrigger: [
+        {
+          id: 'poison_payoff.cashout',
+          trigger: 'periodic',
+          periodSec: 1,
+          effect: { kind: 'damage_enemy_pool_scaled_by_enemy_poison', multiplier: 2 },
+          description: 'Co sekundę zamienia truciznę w obrażenia.',
+        },
+      ],
+    };
+    const marker: UnitDef = {
+      id: 'execution_marker',
+      name: 'Execution Marker',
+      cost: 1,
+      tags: ['konfident'],
+      emoji: '⚰️',
+      baseStats: { attack: 10, attacksPerSecond: 1 },
+      startOfCombat: [
+        {
+          id: 'execution_marker.setup',
+          trigger: 'start_of_combat',
+          effect: { kind: 'execution_mark_on_hit_team', stacks: 1 },
+          description: 'Każdy trafiony atak nakłada egzekucję.',
+        },
+      ],
+    };
+    const log = runCombat({
+      combatId: 'c-status-payoff',
+      seed: 41,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [
+          { instanceId: 'p-payoff', unitId: poisonPayoff.id, position: { row: 0, col: 0 } },
+          { instanceId: 'p-marker', unitId: marker.id, position: { row: 0, col: 1 } },
+        ],
+        augmentEffects: [{ effect: { kind: 'poison_enemy_pool', damagePerSec: 5 } }],
+      },
+      enemy: { side: 'enemy', hpMax: 100_000, units: [] },
+      unitDefs: { [poisonPayoff.id]: poisonPayoff, [marker.id]: marker },
+      timeoutSec: 1.1,
+    });
+    expect(log.events.some((event) => event.type === 'team_pool_damage' && event.sourceInstanceId === 'p-payoff' && event.amount === 10)).toBe(true);
+    expect(log.events.some((event) => event.type === 'team_pool_stat_applied' && event.side === 'enemy' && event.stat === 'execution' && event.amount === 1)).toBe(true);
+  });
 });

@@ -6,6 +6,7 @@
  */
 
 // How much of a team's shared HP pool a unit contributes, derived from cost.
+export const BASE_TEAM_HP = 1_000;
 export const BASE_UNIT_HP = 50;
 export const HP_PER_COST = 20;
 
