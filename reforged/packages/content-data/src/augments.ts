@@ -43,6 +43,14 @@ const raw: AugmentDef[] = [
     effects: [{ kind: 'buff_team_attack', percent: 5 }],
   },
   {
+    id: 'bronze-quick-step',
+    name: 'Szybki Krok',
+    tier: 'bronze',
+    icon: '👟',
+    description: 'Wszystkie jednostki atakują o 5% szybciej.',
+    effects: [{ kind: 'buff_team_attack_speed', percent: 5 }],
+  },
+  {
     id: 'bronze-reinforced-hull',
     name: 'Wzmocniony Kadłub',
     tier: 'bronze',
@@ -207,6 +215,17 @@ const raw: AugmentDef[] = [
     effects: [
       { kind: 'buff_team_attack', percent: 8 },
       { kind: 'buff_team_attack_speed', percent: 8 },
+    ],
+  },
+  {
+    id: 'silver-overclock',
+    name: 'Przetaktowanie',
+    tier: 'silver',
+    icon: '⏩',
+    description: 'Wszystkie jednostki atakują o 15% szybciej, a wróg o 10% wolniej.',
+    effects: [
+      { kind: 'buff_team_attack_speed', percent: 15 },
+      { kind: 'slow_enemy_team_attack_speed', percent: 10 },
     ],
   },
   {
@@ -437,6 +456,19 @@ const raw: AugmentDef[] = [
     ],
   },
   {
+    id: 'gold-hyperspeed',
+    name: 'Nadprędkość',
+    tier: 'gold',
+    icon: '🌀',
+    // Same effect applied twice on purpose — two separate speed surges
+    // (two log events) instead of one bigger buff.
+    description: 'Wszystkie jednostki dostają dwie fale przyspieszenia: +13% szybkości ataku, po chwili kolejne +13%.',
+    effects: [
+      { kind: 'buff_team_attack_speed', percent: 13 },
+      { kind: 'buff_team_attack_speed', percent: 13 },
+    ],
+  },
+  {
     id: 'gold-aegis',
     name: 'Egida',
     tier: 'gold',
@@ -445,6 +477,17 @@ const raw: AugmentDef[] = [
     effects: [
       { kind: 'shield_own_pool', amount: 50 },
       { kind: 'shield_own_pool', amount: 50 },
+    ],
+  },
+  {
+    id: 'gold-frozen-ground',
+    name: 'Zamarznięty Grunt',
+    tier: 'gold',
+    icon: '❄️',
+    description: 'Drużyna okopuje się na lodzie (tarcza 40), a wróg grzęźnie — atakuje o 18% wolniej.',
+    effects: [
+      { kind: 'shield_own_pool', amount: 40 },
+      { kind: 'slow_enemy_team_attack_speed', percent: 18 },
     ],
   },
   {

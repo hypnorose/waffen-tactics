@@ -53,7 +53,7 @@ export const api = {
   toggleLock: (runId: string) => request<RunState>('POST', `/api/run/${runId}/shop/toggle-lock`),
   buy: (runId: string, offerIndex: number) => request<RunState>('POST', `/api/run/${runId}/buy`, { offerIndex }),
   sell: (runId: string, unitInstanceId: string) => request<RunState>('POST', `/api/run/${runId}/sell`, { unitInstanceId }),
-  buyXp: (runId: string) => request<RunState>('POST', `/api/run/${runId}/buy-xp`),
+  buyLevel: (runId: string) => request<RunState>('POST', `/api/run/${runId}/buy-level`),
 
   place: (runId: string, unitInstanceId: string, position: BoardPosition) =>
     request<RunState>('POST', `/api/run/${runId}/board/place`, { unitInstanceId, position }),
@@ -63,5 +63,8 @@ export const api = {
   pickAugment: (runId: string, augmentId: string) => request<RunState>('POST', `/api/run/${runId}/augment/pick`, { augmentId }),
 
   startCombat: (runId: string) =>
-    request<{ run: RunState; combatLog: CombatLog; winner: Side; opponentName: string }>('POST', `/api/run/${runId}/combat/start`),
+    request<{ run: RunState; combatLog: CombatLog; winner: Side; opponentName: string; opponentAvatarUrl: string | null }>(
+      'POST',
+      `/api/run/${runId}/combat/start`,
+    ),
 };

@@ -3,6 +3,7 @@ import { runCombat, type CombatParticipantInput } from '@reforged/combat-engine'
 import { augmentDefs, getUnitDefs } from '@reforged/content-data';
 import type { AbilityEffect, CombatLog, RunState, Side, UnitDef } from '@reforged/schema';
 import { STARTING_ELO, unitHpContribution } from '@reforged/schema';
+import { discordAvatarUrl } from '../auth/discord.js';
 import type { Db } from '../db/client.js';
 import { insertCombatLog } from '../db/combatLogRepository.js';
 import { saveSnapshot } from '../db/runSnapshotRepository.js';
@@ -27,6 +28,7 @@ export interface CombatResult {
   combatLog: CombatLog;
   winner: Side;
   opponentName: string;
+  opponentAvatarUrl: string | null;
 }
 
 export class RunNotActiveError extends Error {}
@@ -69,6 +71,7 @@ export function runCombatForRun(db: Db, run: RunState): CombatResult {
   saveSnapshot(db, {
     userId: run.userId,
     username: user?.username ?? 'Unknown',
+    avatarUrl: user ? discordAvatarUrl({ id: user.id, avatarHash: user.avatarHash }) : null,
     elo: playerElo,
     roundNumber: run.roundNumber,
     units: playerParticipants.map((p) => ({ position: p.position, unitId: p.unitId })),
@@ -115,5 +118,5 @@ export function runCombatForRun(db: Db, run: RunState): CombatResult {
     updateElo(db, user.id, user.elo + runEloDelta(finalRun.status, finalRun.wins));
   }
 
-  return { run: finalRun, combatLog, winner, opponentName: opponent.name };
+  return { run: finalRun, combatLog, winner, opponentName: opponent.name, opponentAvatarUrl: opponent.avatarUrl };
 }

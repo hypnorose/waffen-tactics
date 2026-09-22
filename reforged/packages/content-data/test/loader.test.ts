@@ -29,6 +29,24 @@ describe('content-data', () => {
     expect(units.pytl.positionalBonus?.shape).toBe('cross');
   });
 
+  it('gives adjacent figlarz units Yossarian\'s double-trigger synergy', () => {
+    expect(getUnitDefs().yossarian.positionalBonus).toEqual({
+      id: 'yossarian.figlarz_echo',
+      shape: 'adjacent',
+      tagFilter: ['figlarz'],
+      effect: { kind: 'double_trigger' },
+      description: 'Sąsiedni figlarze uruchamiają swoje efekty podwójnie.',
+    });
+  });
+
+  it('keeps authored ability and positional effect identities unique', () => {
+    const units = getUnitList();
+    const abilityIds = units.flatMap((unit) => [...(unit.startOfCombat ?? []), ...(unit.onTrigger ?? [])].map((ability) => ability.id));
+    const positionalIds = units.flatMap((unit) => (unit.positionalBonus ? [unit.positionalBonus.id] : []));
+    expect(new Set(abilityIds).size).toBe(abilityIds.length);
+    expect(new Set(positionalIds).size).toBe(positionalIds.length);
+  });
+
   it('every bot ladder unitId resolves to a real unit', () => {
     const units = getUnitDefs();
     for (const bot of botLadder) {

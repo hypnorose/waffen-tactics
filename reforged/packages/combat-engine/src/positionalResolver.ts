@@ -4,6 +4,8 @@ import type { Board, BoardPosition, UnitDef } from '@reforged/schema';
 export interface PositionalModifiers {
   attackPercent: number;
   attackSpeedPercent: number;
+  /** 1 normally; 2 when at least one matching double-trigger source applies. */
+  triggerMultiplier: number;
   appliedBonusIds: string[];
 }
 
@@ -29,7 +31,7 @@ export function resolvePositionalBonuses(
 
   const modifiers: Record<string, PositionalModifiers> = {};
   for (const u of units) {
-    modifiers[u.instanceId] = { attackPercent: 0, attackSpeedPercent: 0, appliedBonusIds: [] };
+    modifiers[u.instanceId] = { attackPercent: 0, attackSpeedPercent: 0, triggerMultiplier: 1, appliedBonusIds: [] };
   }
 
   for (const source of units) {
@@ -54,7 +56,10 @@ export function resolvePositionalBonuses(
 
       if (bonus.effect.kind === 'buff_attack') mod.attackPercent += bonus.effect.percent;
       if (bonus.effect.kind === 'buff_attack_speed') mod.attackSpeedPercent += bonus.effect.percent;
-      mod.appliedBonusIds.push(bonus.id);
+      if (bonus.effect.kind === 'double_trigger') mod.triggerMultiplier = 2;
+      // Multiple sources may share the same authored bonus (for example two
+      // Yossarians). Keep the event contract free of duplicate effect IDs.
+      if (!mod.appliedBonusIds.includes(bonus.id)) mod.appliedBonusIds.push(bonus.id);
     }
   }
 

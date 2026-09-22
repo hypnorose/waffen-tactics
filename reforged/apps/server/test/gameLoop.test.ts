@@ -66,19 +66,19 @@ describe('full round loop: shop -> board -> reroll -> level -> augment', () => {
     const afterReroll = rerollRes.json() as RunState;
     expect(afterReroll.gold).toBe(afterPlace.gold - 2);
 
-    // buy xp until level 2 (costs 4 gold each, level 1 needs 4 xp)
-    const buyXpRes = await app.inject({
+    // buy a level up (round 1, level 1 -> 2 costs 20 gold)
+    const buyLevelRes = await app.inject({
       method: 'POST',
-      url: `/api/run/${run.runId}/buy-xp`,
+      url: `/api/run/${run.runId}/buy-level`,
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(buyXpRes.statusCode).toBe(200);
-    const afterXp = buyXpRes.json() as RunState;
-    expect(afterXp.level).toBe(2);
-    expect(afterXp.gold).toBe(afterReroll.gold - 4);
+    expect(buyLevelRes.statusCode).toBe(200);
+    const afterLevel = buyLevelRes.json() as RunState;
+    expect(afterLevel.level).toBe(2);
+    expect(afterLevel.gold).toBe(afterReroll.gold - 20);
 
     // advance to round 2, which is an augment round
-    const advanced = advanceRound(afterXp);
+    const advanced = advanceRound(afterLevel);
     expect(advanced.augmentPending).toBe(true);
     persistRun(db, advanced);
 

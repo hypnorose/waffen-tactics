@@ -80,6 +80,9 @@ interface RuntimeUnit {
   attackSpeedBonusPercent: number; // per-unit additive, clamped [-MAX_SLOW_PERCENT, MAX_HASTE_PERCENT]
   attackDamage: number; // derived from base + bonus
   attackIntervalSec: number | null; // derived from base + bonus + pool haste stacks
+  triggerMultiplier: number;
+  startOfCombatAbilities: Ability[];
+  onTriggerAbilities: Ability[];
   lastAttackAt: number;
   abilityCooldowns: Record<string, number>;
   lowHpAbilitiesFired: Set<string>;
@@ -152,6 +155,15 @@ function otherSide(side: Side): Side {
   return side === 'player' ? 'enemy' : 'player';
 }
 
+function uniqueAbilities(abilities: Ability[] | undefined): Ability[] {
+  const seen = new Set<string>();
+  return (abilities ?? []).filter((ability) => {
+    if (seen.has(ability.id)) return false;
+    seen.add(ability.id);
+    return true;
+  });
+}
+
 /**
  * Runs a full deterministic combat and returns the complete event log for the
  * client to replay. There is no targeting subsystem: HP is a shared team pool,
@@ -189,7 +201,12 @@ export function runCombat(input: RunCombatInput): CombatLog {
     return team.units.map((p) => {
       const def = input.unitDefs[p.unitId];
       if (!def) throw new Error(`Unknown unitId "${p.unitId}"`);
-      const mod = positionalModsBySide[team.side][p.instanceId] ?? { attackPercent: 0, attackSpeedPercent: 0, appliedBonusIds: [] };
+      const mod = positionalModsBySide[team.side][p.instanceId] ?? {
+        attackPercent: 0,
+        attackSpeedPercent: 0,
+        triggerMultiplier: 1,
+        appliedBonusIds: [],
+      };
       const unit: RuntimeUnit = {
         instanceId: p.instanceId,
         unitId: p.unitId,
@@ -201,6 +218,9 @@ export function runCombat(input: RunCombatInput): CombatLog {
         attackSpeedBonusPercent: clamp(mod.attackSpeedPercent, -MAX_SLOW_PERCENT, MAX_HASTE_PERCENT),
         attackDamage: 0,
         attackIntervalSec: null,
+        triggerMultiplier: mod.triggerMultiplier,
+        startOfCombatAbilities: uniqueAbilities(def.startOfCombat),
+        onTriggerAbilities: uniqueAbilities(def.onTrigger),
         lastAttackAt: 0,
         abilityCooldowns: {},
         lowHpAbilitiesFired: new Set<string>(),
@@ -438,6 +458,14 @@ export function runCombat(input: RunCombatInput): CombatLog {
     applyEffectFromSide(unit.side, ability.effect, simTime, unit);
   }
 
+  function triggerAbility(unit: RuntimeUnit, ability: Ability, simTime: number): void {
+    // Same-trait positional synergy is additive and capped at x2. This keeps
+    // two overlapping sources from accidentally turning one authored effect
+    // into four or more executions, while still making the synergy visible in
+    // the canonical event stream as two real triggers.
+    for (let i = 0; i < unit.triggerMultiplier; i++) applyAbilityEffect(unit, ability, simTime);
+  }
+
   function hasAnyTag(u: RuntimeUnit, tagFilter: string[] | undefined): boolean {
     if (!tagFilter) return true;
     const tags = input.unitDefs[u.unitId]?.tags ?? [];
@@ -495,6 +523,25 @@ export function runCombat(input: RunCombatInput): CombatLog {
       case 'slow_enemy_team_attack_speed':
         for (const foe of units) if (foe.side === otherSide(side) && hasAnyTag(foe, tagFilter)) buffAttackSpeed(foe, -effect.percent, sourceInstanceId, simTime);
         break;
+      case 'execute_enemy_pool': {
+        const enemySide = otherSide(side);
+        const amount = pools[enemySide].hpCurrent * (effect.percentOfCurrentHp / 100);
+        if (amount > 0) applyDamageToPool(enemySide, amount, 'ability', sourceInstanceId, simTime);
+        break;
+      }
+      case 'lifesteal_own_pool':
+        if (excludeUnit && excludeUnit.attackDamage > 0) {
+          applyHealToPool(side, excludeUnit.attackDamage * (effect.percent / 100), sourceInstanceId, simTime);
+        }
+        break;
+      case 'cleanse_own_pool':
+        pools[side].poisonDamagePerSec = 0;
+        break;
+      case 'shred_enemy_shield': {
+        const enemyPool = pools[otherSide(side)];
+        enemyPool.shield = Math.max(0, enemyPool.shield - effect.amount);
+        break;
+      }
       case 'haste_stacks_own_pool':
         grantHaste(side, effect.stacks, sourceInstanceId, simTime);
         break;
@@ -570,6 +617,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
     lastAttackAt: 0,
     abilityCooldowns: {},
     positionalBonusesApplied: positionalModsBySide[u.side][u.instanceId]?.appliedBonusIds ?? [],
+    triggerMultiplier: u.triggerMultiplier,
   }));
 
   log.push({
@@ -583,9 +631,8 @@ export function runCombat(input: RunCombatInput): CombatLog {
   log.push({ simTime: 0, type: 'start' });
 
   for (const unit of units) {
-    const def = input.unitDefs[unit.unitId];
-    for (const ability of def.startOfCombat ?? []) {
-      applyAbilityEffect(unit, ability, 0);
+    for (const ability of unit.startOfCombatAbilities) {
+      triggerAbility(unit, ability, 0);
     }
   }
 
@@ -628,8 +675,8 @@ export function runCombat(input: RunCombatInput): CombatLog {
         unit.lastAttackAt = simTime;
         fireAttack(unit, def, simTime, false);
 
-        for (const ability of def.onTrigger ?? []) {
-          if (ability.trigger === 'on_attack') applyAbilityEffect(unit, ability, simTime);
+        for (const ability of unit.onTriggerAbilities) {
+          if (ability.trigger === 'on_attack') triggerAbility(unit, ability, simTime);
         }
 
         if (unit.attackDamage > 0 && unit.multicastExtraHits > 0) {
@@ -639,12 +686,12 @@ export function runCombat(input: RunCombatInput): CombatLog {
         }
       }
 
-      for (const ability of def.onTrigger ?? []) {
+      for (const ability of unit.onTriggerAbilities) {
         if (ability.trigger === 'periodic' && ability.periodSec) {
           const last = unit.abilityCooldowns[ability.id] ?? 0;
           if (simTime - last >= ability.periodSec) {
             unit.abilityCooldowns[ability.id] = simTime;
-            applyAbilityEffect(unit, ability, simTime);
+            triggerAbility(unit, ability, simTime);
           }
         }
         if (ability.trigger === 'low_team_hp' && ability.hpThresholdPercent !== undefined) {
@@ -652,7 +699,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
           const pct = pool.hpCurrent / pool.hpMax;
           if (pct <= ability.hpThresholdPercent && !unit.lowHpAbilitiesFired.has(ability.id)) {
             unit.lowHpAbilitiesFired.add(ability.id);
-            applyAbilityEffect(unit, ability, simTime);
+            triggerAbility(unit, ability, simTime);
           }
         }
       }

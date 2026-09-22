@@ -14,10 +14,11 @@ interface Props {
   playerName: string;
   playerAvatarUrl: string | null;
   opponentName: string;
+  opponentAvatarUrl: string | null;
   onClose: () => void;
 }
 
-export function CombatReplayViewer({ combatLog, units, playerName, playerAvatarUrl, opponentName, onClose }: Props) {
+export function CombatReplayViewer({ combatLog, units, playerName, playerAvatarUrl, opponentName, opponentAvatarUrl, onClose }: Props) {
   const playback = useCombatPlayback(combatLog.events);
   const snapshot = useCombatSnapshot(combatLog.events, playback.currentTime);
   const allUnits = [...snapshot.player, ...snapshot.enemy];
@@ -37,7 +38,7 @@ export function CombatReplayViewer({ combatLog, units, playerName, playerAvatarU
       <div className="combat-replay-viewer">
         <div className="combatant-headers">
           <CombatantHeader name={playerName} avatarUrl={playerAvatarUrl} align="left" />
-          <CombatantHeader name={opponentName} avatarUrl={null} align="right" />
+          <CombatantHeader name={opponentName} avatarUrl={opponentAvatarUrl} align="right" />
         </div>
 
         <div className="combat-hp-bars">

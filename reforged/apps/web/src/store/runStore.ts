@@ -7,7 +7,7 @@ interface RunStoreState {
   run: RunState | null;
   units: Record<string, UnitDef>;
   tags: Record<string, Tag>;
-  lastCombat: { combatLog: CombatLog; winner: Side; opponentName: string } | null;
+  lastCombat: { combatLog: CombatLog; winner: Side; opponentName: string; opponentAvatarUrl: string | null } | null;
   loading: boolean;
   error: string | null;
 
@@ -17,7 +17,7 @@ interface RunStoreState {
   sell: (unitInstanceId: string) => Promise<void>;
   reroll: () => Promise<void>;
   toggleLock: () => Promise<void>;
-  buyXp: () => Promise<void>;
+  buyLevel: () => Promise<void>;
   place: (unitInstanceId: string, position: BoardPosition) => Promise<void>;
   bench: (unitInstanceId: string) => Promise<void>;
   pickAugment: (augmentId: string) => Promise<void>;
@@ -85,10 +85,10 @@ export const useRunStore = create<RunStoreState>((set, get) => ({
     return run(set, () => api.toggleLock(current.runId));
   },
 
-  buyXp: () => {
+  buyLevel: () => {
     const { run: current } = get();
     if (!current) return Promise.resolve();
-    return run(set, () => api.buyXp(current.runId));
+    return run(set, () => api.buyLevel(current.runId));
   },
 
   place: (unitInstanceId, position) => {
@@ -117,7 +117,12 @@ export const useRunStore = create<RunStoreState>((set, get) => ({
       const result = await api.startCombat(current.runId);
       set({
         run: result.run,
-        lastCombat: { combatLog: result.combatLog, winner: result.winner, opponentName: result.opponentName },
+        lastCombat: {
+          combatLog: result.combatLog,
+          winner: result.winner,
+          opponentName: result.opponentName,
+          opponentAvatarUrl: result.opponentAvatarUrl,
+        },
         loading: false,
       });
       useAuthStore.getState().refreshProfile(); // elo changed server-side

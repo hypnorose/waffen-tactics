@@ -35,9 +35,16 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // absorbs a hit blocks it. See combat-engine's MAX_POISON_DPS for the cap.
   z.object({ kind: z.literal('poison_enemy_pool'), damagePerSec: z.number().positive() }),
   // Mirror of poison_enemy_pool, but healing your own pool — a persistent
-  // status instead of an instant heal.
+  // "regen" status instead of an instant heal. Prefer this over
+  // heal_own_pool on start_of_combat: an instant heal at t=0 reads as a
+  // bigger max-HP number, while regen is a genuinely different status effect
+  // (keeps paying off for as long as the fight runs). Stacks additively with
+  // every other active regen source — see MAX_REGEN_PER_SEC for the cap.
   z.object({ kind: z.literal('regen_own_pool'), amountPerSec: z.number().positive() }),
-  // Self-only: modifies only the triggering unit's own attack/speed.
+  // Self-only: modifies only the triggering unit's own attack/speed. Stacks
+  // are additive and clamped — see combat-engine's MAX_*_PERCENT constants
+  // ("haste"/buff stacking needs a ceiling, or a support firing every
+  // cooldown for 120s would break the game).
   z.object({ kind: z.literal('buff_attack'), percent: z.number() }),
   z.object({ kind: z.literal('buff_attack_speed'), percent: z.number() }),
   // Team-wide flat attack%, per-unit event (unchanged legacy path — still
@@ -48,6 +55,21 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('buff_team_attack_speed'), percent: z.number() }),
   z.object({ kind: z.literal('weaken_enemy_team_attack'), percent: z.number().positive() }),
   z.object({ kind: z.literal('slow_enemy_team_attack_speed'), percent: z.number().positive() }),
+  // Damage scaled to the enemy's CURRENT pool, not a flat amount — hits
+  // harder the longer the fight drags on instead of a fixed number.
+  z.object({ kind: z.literal('execute_enemy_pool'), percentOfCurrentHp: z.number().positive() }),
+  // Heals the caster's own pool by a percentage of the damage its own attack
+  // just dealt — on_attack only, scales with the unit's own power instead of
+  // a fixed heal amount.
+  z.object({ kind: z.literal('lifesteal_own_pool'), percent: z.number().positive() }),
+  // Utility, not a number: wipes any active poison currently ticking on the
+  // caster's own side.
+  z.object({ kind: z.literal('cleanse_own_pool') }),
+  // Anti-shield counterplay: strips a flat amount off the enemy's current
+  // shield (does nothing if they have none up) — a one-shot chunk, unlike
+  // shred_enemy_haste_stacks/shred_enemy_dodge_stacks below which target the
+  // other two team-pool statuses.
+  z.object({ kind: z.literal('shred_enemy_shield'), amount: z.number().positive() }),
 
   // --- Team-pool statuses. All of these live on the shared pool, not on
   // individual units — see the design note at the top of augments.ts. ---
