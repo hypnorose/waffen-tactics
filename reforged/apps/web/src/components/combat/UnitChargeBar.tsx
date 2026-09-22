@@ -37,23 +37,41 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
       {buffs && (buffs.attackPercent !== 0 || buffs.attackSpeedPercent !== 0) && (
         <div className="unit-buff-row">
           {buffs.attackPercent !== 0 && (
-            <span className={`unit-buff-chip ${buffs.attackPercent > 0 ? 'is-buff' : 'is-debuff'}`}>
+            <span
+              className={`unit-buff-chip combat-chip-with-tooltip ${buffs.attackPercent > 0 ? 'is-buff' : 'is-debuff'}`}
+              title={`Atak: ${buffs.attackPercent > 0 ? '+' : ''}${Math.round(buffs.attackPercent)}%`}
+            >
               ⚔️ {buffs.attackPercent > 0 ? '+' : ''}
               {Math.round(buffs.attackPercent)}%
+              <span className="combat-chip-tooltip" role="tooltip">
+                <strong>Atak: {buffs.attackPercent > 0 ? '+' : ''}{Math.round(buffs.attackPercent)}%</strong>
+                <span>Łączny modyfikator obrażeń tej jednostki.</span>
+              </span>
             </span>
           )}
           {buffs.attackSpeedPercent !== 0 && (
-            <span className={`unit-buff-chip ${buffs.attackSpeedPercent > 0 ? 'is-buff' : 'is-debuff'}`}>
+            <span
+              className={`unit-buff-chip combat-chip-with-tooltip ${buffs.attackSpeedPercent > 0 ? 'is-buff' : 'is-debuff'}`}
+              title={`Szybkość: ${buffs.attackSpeedPercent > 0 ? '+' : ''}${Math.round(buffs.attackSpeedPercent)}%`}
+            >
               💨 {buffs.attackSpeedPercent > 0 ? '+' : ''}
               {Math.round(buffs.attackSpeedPercent)}%
+              <span className="combat-chip-tooltip" role="tooltip">
+                <strong>Szybkość: {buffs.attackSpeedPercent > 0 ? '+' : ''}{Math.round(buffs.attackSpeedPercent)}%</strong>
+                <span>Dodatnia wartość skraca cooldown ataku lub aktywacji.</span>
+              </span>
             </span>
           )}
         </div>
       )}
       {unit.triggerMultiplier > 1 && (
         <div className="unit-buff-row">
-          <span className="unit-buff-chip is-buff" title="A same-trait positional synergy doubles this unit's ability triggers.">
+          <span className="unit-buff-chip combat-chip-with-tooltip is-buff" title="Synergia pozycyjna: ×2 triggery.">
             ✨ ×{unit.triggerMultiplier} triggers
+            <span className="combat-chip-tooltip" role="tooltip">
+              <strong>Synergia pozycyjna: ×{unit.triggerMultiplier}</strong>
+              <span>Każdy trigger tej jednostki uruchamia jej efekt dodatkową liczbę razy.</span>
+            </span>
           </span>
         </div>
       )}

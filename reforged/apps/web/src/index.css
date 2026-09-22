@@ -783,6 +783,45 @@ button.active {
   padding: 2px 6px;
   white-space: nowrap;
 }
+.combat-chip-with-tooltip {
+  position: relative;
+  cursor: help;
+}
+.combat-chip-tooltip {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 220px;
+  padding: 8px 10px;
+  background: #0c0e15;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1.3;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 60;
+}
+.combat-chip-tooltip strong {
+  font-weight: 700;
+}
+.combat-chip-with-tooltip:hover .combat-chip-tooltip,
+.combat-chip-with-tooltip:focus-visible .combat-chip-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
 .team-status-chip.is-buff {
   background: color-mix(in srgb, #3fb950 30%, var(--panel-alt));
   color: #7ee08a;
