@@ -306,7 +306,6 @@ export const unitsData = [
     "emoji": "🌪️",
     "avatar": "/avatars/set2/4tune.png",
     "baseStats": {
-      "attack": 60,
       "attacksPerSecond": 1.2
     }
   },
@@ -376,7 +375,6 @@ export const unitsData = [
     "emoji": "🌀",
     "avatar": "/avatars/set2/klemens.png",
     "baseStats": {
-      "attack": 30,
       "attacksPerSecond": 0.9
     }
   },

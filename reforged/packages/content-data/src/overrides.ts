@@ -14,7 +14,9 @@ import type { Ability, PositionalBonus } from '@reforged/schema';
  * but no two units anywhere share the same (kind, trigger) pair:
  *
  * - szachista  (Stratedzy)      — control: weaken/slow the enemy, no direct damage.
- * - figlarz    (Figlarze)       — tempo: haste (self/team/adjacency-scaled), on_attack procs.
+ * - figlarz    (Figlarze)       — tempo: team-pool haste/dodge stacks, stealing (steal_buff)
+ *                                  or shredding the enemy's own haste/dodge — 2 of the 9 are
+ *                                  pure support (4tune, klemens_zydoslawski), ~1/3 of the theme.
  * - konfident  (Konfidenci)     — poison/assassin: poison, lifesteal, comeback burst finishers.
  * - starociota (Weterani)       — sustain: shield/regen, built to outlast.
  * - srebrna-gwardia (Gwardia)   — defensive formation: shields, protective coordination.
@@ -22,8 +24,8 @@ import type { Ability, PositionalBonus } from '@reforged/schema';
  *
  * A unit with no `attack` in baseStats deals no direct damage at all — its
  * card shows its effect's icon instead of a damage number (see
- * apps/web/src/lib/unitStyle.ts's unitEffectIcon). galanonim is the
- * flagship example: pure support, no attack stat at all.
+ * apps/web/src/lib/unitStyle.ts's unitEffectIcon). galanonim, 4tune and
+ * klemens_zydoslawski are the pure-support examples: no attack stat at all.
  *
  * Never use heal_own_pool on start_of_combat (instant heal at t=0 just reads
  * as bigger max HP) — use regen_own_pool instead, a persistent heal-per-
@@ -72,15 +74,6 @@ function poisonLowHp(id: string, damagePerSec: number, thresholdPercent: number,
 function regenOpening(id: string, amountPerSec: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'regen_own_pool', amountPerSec }, description: desc };
 }
-function selfPowerOnAttack(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'buff_attack', percent }, description: desc };
-}
-function hasteSelfOnAttack(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'buff_attack_speed', percent }, description: desc };
-}
-function hasteSelfPeriodic(id: string, percent: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'buff_attack_speed', percent }, description: desc };
-}
 function weakenOnAttack(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'on_attack', effect: { kind: 'weaken_enemy_team_attack', percent }, description: desc };
 }
@@ -96,17 +89,29 @@ function teamAttackOnAttack(id: string, percent: number, desc: string): Ability 
 function teamAttackLowHp(id: string, percent: number, thresholdPercent: number, desc: string): Ability {
   return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'buff_team_attack', percent }, description: desc };
 }
-function teamHasteOpening(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'start_of_combat', effect: { kind: 'buff_team_attack_speed', percent }, description: desc };
-}
-function teamHasteOnAttack(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_attack', effect: { kind: 'buff_team_attack_speed', percent }, description: desc };
-}
-function teamHastePeriodic(id: string, percent: number, periodSec: number, desc: string): Ability {
-  return { id, trigger: 'periodic', periodSec, effect: { kind: 'buff_team_attack_speed', percent }, description: desc };
-}
 function teamHastePerAdjacentAllyOnAttack(id: string, percentPerAlly: number, tagFilter: string[], desc: string): Ability {
   return { id, trigger: 'on_attack', effect: { kind: 'buff_team_attack_speed_per_adjacent_ally', percentPerAlly, tagFilter }, description: desc };
+}
+function hasteStacksOpening(id: string, stacks: number, desc: string): Ability {
+  return { id, trigger: 'start_of_combat', effect: { kind: 'haste_stacks_own_pool', stacks }, description: desc };
+}
+function hasteStacksPeriodic(id: string, stacks: number, periodSec: number, desc: string): Ability {
+  return { id, trigger: 'periodic', periodSec, effect: { kind: 'haste_stacks_own_pool', stacks }, description: desc };
+}
+function dodgeStacksOpening(id: string, stacks: number, desc: string): Ability {
+  return { id, trigger: 'start_of_combat', effect: { kind: 'dodge_stacks_own_pool', stacks }, description: desc };
+}
+function dodgeStacksOnAttack(id: string, stacks: number, desc: string): Ability {
+  return { id, trigger: 'on_attack', effect: { kind: 'dodge_stacks_own_pool', stacks }, description: desc };
+}
+function stealHasteOnAttack(id: string, percent: number, desc: string): Ability {
+  return { id, trigger: 'on_attack', effect: { kind: 'steal_buff', buff: 'haste', percent }, description: desc };
+}
+function stealDodgePeriodic(id: string, percent: number, periodSec: number, desc: string): Ability {
+  return { id, trigger: 'periodic', periodSec, effect: { kind: 'steal_buff', buff: 'dodge', percent }, description: desc };
+}
+function shredEnemyHasteStacksPeriodic(id: string, stacks: number, periodSec: number, desc: string): Ability {
+  return { id, trigger: 'periodic', periodSec, effect: { kind: 'shred_enemy_haste_stacks', stacks }, description: desc };
 }
 function executePeriodic(id: string, percentOfCurrentHp: number, periodSec: number, desc: string): Ability {
   return { id, trigger: 'periodic', periodSec, effect: { kind: 'execute_enemy_pool', percentOfCurrentHp }, description: desc };
@@ -164,31 +169,29 @@ export const unitOverrides: Record<string, UnitOverride> = {
     },
   },
   szalwia: {
-    onTrigger: [hasteSelfOnAttack('szalwia.quickstep', 8, 'Każdy atak zwiększa własną szybkość ataku o 8% (stackuje się do końca walki).')],
+    onTrigger: [hasteStacksPeriodic('szalwia.fey_pulse', 8, 6, 'Co 6 s drużyna zyskuje 8 stacków haste (stackuje się do końca walki).')],
   },
   kotmarcek: {
-    onTrigger: [selfPowerOnAttack('kotmarcek.warmup', 5, 'Każdy atak zwiększa własne obrażenia o 5% (stackuje się do końca walki).')],
+    startOfCombat: [dodgeStacksOpening('kotmarcek.warmup', 15, 'Na starcie walki drużyna zyskuje 15 stacków uniku.')],
   },
+  // Pure support — no attack stat at all (see units.data.ts). Doesn't fight,
+  // just picks the enemy's pocket for whatever speed they've built up.
   '4tune': {
-    startOfCombat: [teamHasteOpening('4tune.lucky_start', 16, 'Na starcie walki drużyna zyskuje +16% szybkości ataku.')],
+    onTrigger: [stealHasteOnAttack('4tune.pickpocket', 30, 'Każdy atak kradnie 30% aktualnych stacków haste wroga.')],
   },
   jadlainwestycji: {
-    onTrigger: [hasteSelfPeriodic('jadlainwestycji.quick_math', 8, 8, 'Co 8 s zwiększa własną szybkość ataku o 8% (stackuje się).')],
+    onTrigger: [stealDodgePeriodic('jadlainwestycji.hostile_takeover', 30, 6, 'Co 6 s kradnie 30% aktualnych stacków uniku wroga.')],
   },
+  // Pure support — no attack stat at all (see units.data.ts). A saboteur who
+  // only ever grinds the enemy's tempo down, never swings a weapon.
   klemens_zydoslawski: {
-    onTrigger: [teamHastePeriodic('klemens_zydoslawski.hype_man', 8, 6, 'Co 6 s drużyna zyskuje +8% szybkości ataku (stackuje się do końca walki).')],
+    onTrigger: [shredEnemyHasteStacksPeriodic('klemens_zydoslawski.sand_in_gears', 10, 6, 'Co 6 s zdejmuje wrogowi 10 stacków haste.')],
   },
   knauff: {
-    positionalBonus: {
-      id: 'knauff.trickster_circle',
-      shape: 'adjacent',
-      tagFilter: ['figlarz'],
-      effect: { kind: 'buff_attack', percent: 25 },
-      description: '+25% ataku sąsiadującym sojusznikom z tagiem "figlarz".',
-    },
+    startOfCombat: [hasteStacksOpening('knauff.syndicate_charge', 15, 'Na starcie walki drużyna zyskuje 15 stacków haste.')],
   },
   vitas: {
-    onTrigger: [teamHasteOnAttack('vitas.backline_tempo', 4, 'Każdy atak dodaje całej drużynie +4% szybkości ataku (stackuje się do końca walki).')],
+    onTrigger: [dodgeStacksOnAttack('vitas.evasive_pressure', 4, 'Każdy atak dodaje drużynie 4 stacki uniku (stackuje się do końca walki).')],
   },
 
   // ============================================================
