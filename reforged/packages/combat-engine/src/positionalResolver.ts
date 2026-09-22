@@ -8,6 +8,8 @@ export interface PositionalModifiers {
   triggerMultiplier: number;
   /** Additive — fires as slow_enemy_team_attack_speed on this unit's own on_trigger cadence. */
   slowOnAttackPercent: number;
+  /** Flat shield pulse granted on this unit's own on_trigger cadence. */
+  shieldOnTriggerAmount: number;
   appliedBonusIds: string[];
 }
 
@@ -20,9 +22,8 @@ export interface PositionalParticipant {
 /**
  * Resolves every unit's positionalBonus once, against the frozen board, at
  * combat start (units never move or die mid-fight, so this never needs to
- * re-run). Only buff_attack / buff_attack_speed effect kinds have per-unit
- * meaning here — other effect kinds on a positionalBonus are a content
- * authoring error and are ignored (validated at content-data load time).
+ * re-run). Positional effects resolve into per-unit stat or trigger modifiers;
+ * the engine applies those modifiers on the affected unit's own cadence.
  */
 export function resolvePositionalBonuses(
   units: PositionalParticipant[],
@@ -33,7 +34,14 @@ export function resolvePositionalBonuses(
 
   const modifiers: Record<string, PositionalModifiers> = {};
   for (const u of units) {
-    modifiers[u.instanceId] = { attackPercent: 0, attackSpeedPercent: 0, triggerMultiplier: 1, slowOnAttackPercent: 0, appliedBonusIds: [] };
+    modifiers[u.instanceId] = {
+      attackPercent: 0,
+      attackSpeedPercent: 0,
+      triggerMultiplier: 1,
+      slowOnAttackPercent: 0,
+      shieldOnTriggerAmount: 0,
+      appliedBonusIds: [],
+    };
   }
 
   for (const source of units) {
@@ -60,6 +68,7 @@ export function resolvePositionalBonuses(
       if (bonus.effect.kind === 'buff_attack_speed') mod.attackSpeedPercent += bonus.effect.percent;
       if (bonus.effect.kind === 'double_trigger') mod.triggerMultiplier = 2;
       if (bonus.effect.kind === 'grant_slow_on_attack') mod.slowOnAttackPercent += bonus.effect.percent;
+      if (bonus.effect.kind === 'grant_shield_on_trigger') mod.shieldOnTriggerAmount += bonus.effect.amount;
       // Multiple sources may share the same authored bonus (for example two
       // Yossarians). Keep the event contract free of duplicate effect IDs.
       if (!mod.appliedBonusIds.includes(bonus.id)) mod.appliedBonusIds.push(bonus.id);

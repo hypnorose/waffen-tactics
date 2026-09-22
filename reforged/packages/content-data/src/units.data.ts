@@ -52,10 +52,7 @@ export const unitsData = [
     ],
     "emoji": "🛡️",
     "avatar": "/avatars/set2/kantor.png",
-    "baseStats": {
-      "attack": 30,
-      "attacksPerSecond": 0.8
-    }
+    "baseStats": {}
   },
   {
     "id": "chessowy_mentos",

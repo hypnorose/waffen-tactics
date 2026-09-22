@@ -15,6 +15,7 @@ const EFFECT_ICONS: Record<string, string> = {
   damage_enemy_pool_scaled_by_enemy_poison: '💥',
   heal_own_pool: '💚',
   shield_own_pool: '🛡️',
+  shield_gain_bonus_own_pool: '🛡️',
   poison_enemy_pool: '☠️',
   regen_own_pool: '💚',
   buff_attack: '💪',
@@ -45,6 +46,8 @@ const EFFECT_ICONS: Record<string, string> = {
   execution_mark_on_hit_team: '⚰️',
   steal_buff: '🕵️',
   multicast_team: '🎯',
+  multicast_team_per_unique_unit: '🎯',
+  grant_shield_on_trigger: '🛡️',
   momentum_own_pool: '📈',
   double_trigger: '🔁',
 };

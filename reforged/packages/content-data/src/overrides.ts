@@ -22,8 +22,8 @@ import type { Ability, PositionalBonus } from '@reforged/schema';
  * - konfident  (Konfidenci)     — poison/assassin: strip enemy buffs, poison,
  *                                  execution marks, team vampirism, and payoffs
  *                                  that consume those statuses.
- * - starociota (Weterani)       — sustain: shield/regen, built to outlast.
- * - srebrna-gwardia (Gwardia)   — defensive formation: shields, protective coordination.
+ * - starociota (Weterani)       — regeneration and unique-unit multicast, built to outlast.
+ * - srebrna-gwardia (Gwardia)   — trigger-based shields and shield amplification.
  * - nowociota  (Nowociotowie)   — raw power: flat/execute damage, nothing fancy.
  *
  * A unit with no `attack` in baseStats deals no direct damage at all — its
@@ -57,6 +57,9 @@ function shieldOnAttack(id: string, amount: number, desc: string): Ability {
 function shieldOpening(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'shield_own_pool', amount }, description: desc };
 }
+function shieldGainBonusOpening(id: string, amount: number, desc: string): Ability {
+  return { id, trigger: 'start_of_combat', effect: { kind: 'shield_gain_bonus_own_pool', amount }, description: desc };
+}
 function shieldOnTrigger(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'shield_own_pool', amount }, description: desc };
 }
@@ -68,6 +71,9 @@ function poisonOpening(id: string, damagePerSec: number, desc: string): Ability 
 }
 function regenOpening(id: string, amountPerSec: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'regen_own_pool', amountPerSec }, description: desc };
+}
+function multicastPerUniqueUnitOpening(id: string, extraHitPercent: number, tagFilter: string[], desc: string): Ability {
+  return { id, trigger: 'start_of_combat', effect: { kind: 'multicast_team_per_unique_unit', extraHitPercent, tagFilter }, description: desc };
 }
 function slowOpening(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'slow_enemy_team_attack_speed', percent }, description: desc };
@@ -264,16 +270,17 @@ export const unitOverrides: Record<string, UnitOverride> = {
   // STAROCIOTA — Weterani: shield/regen, built to outlast
   // ============================================================
   alyson_stark: {
-    startOfCombat: [shieldOpening('alyson_stark.veteran_guard', 50, 'Na starcie walki drużyna zyskuje tarczę 50.')],
+    startOfCombat: [regenOpening('alyson_stark.veteran_regeneration', 4, 'Na starcie walki drużyna zyskuje regenerację 4 HP/s.')],
   },
   merex: {
-    positionalBonus: {
-      id: 'merex.veteran_focus',
-      shape: 'cross',
-      tagFilter: ['starociota'],
-      effect: { kind: 'buff_attack_speed', percent: 20 },
-      description: '+20% szybkości ataku sojusznikom z tagiem "starociota" w układzie krzyża.',
-    },
+    startOfCombat: [
+      multicastPerUniqueUnitOpening(
+        'merex.veteran_multicast',
+        20,
+        ['starociota'],
+        'Każdy Starociota zyskuje 1 dodatkowe uderzenie za każdą unikalną jednostkę na własnej planszy; każde zadaje 20% obrażeń.',
+      ),
+    ],
   },
 
   // ============================================================
@@ -281,15 +288,14 @@ export const unitOverrides: Record<string, UnitOverride> = {
   // ============================================================
   szanowny_kantor: {
     positionalBonus: {
-      id: 'szanowny_kantor.formation',
-      shape: 'column',
-      tagFilter: ['srebrna-gwardia'],
-      effect: { kind: 'buff_attack_speed', percent: 20 },
-      description: '+20% szybkości ataku sojusznikom z tagiem "srebrna gwardia" w tej samej kolumnie.',
+      id: 'szanowny_kantor.shield_ring',
+      shape: 'adjacent',
+      effect: { kind: 'grant_shield_on_trigger', amount: 20 },
+      description: 'Sąsiednie jednostki przy swoim triggerze dają drużynie 20 tarczy.',
     },
   },
   empty_melancholy: {
-    onTrigger: [shieldOnTrigger('empty_melancholy.harden', 8, 'Co 6 s zyskuje tarczę 8.')],
+    startOfCombat: [shieldGainBonusOpening('empty_melancholy.reinforced_plates', 10, 'Każdy przyszły zysk tarczy drużyny jest zwiększony o 10.')],
   },
 
   // ============================================================

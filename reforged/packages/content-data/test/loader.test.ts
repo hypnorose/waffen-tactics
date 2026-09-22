@@ -24,7 +24,7 @@ describe('content-data', () => {
   it('applies hand-authored overrides on top of ported base stats', () => {
     const units = getUnitDefs();
     expect(units.chessowy_mentos.startOfCombat?.[0]?.trigger).toBe('start_of_combat');
-    expect(units.empty_melancholy.onTrigger?.[0]?.trigger).toBe('on_trigger');
+    expect(units.empty_melancholy.startOfCombat?.[0]?.trigger).toBe('start_of_combat');
     expect(units.boczek.startOfCombat?.[0]?.trigger).toBe('start_of_combat');
     expect(units.marcel_galadotka.startOfCombat?.[0]?.trigger).toBe('start_of_combat');
     expect(units.pytl.positionalBonus?.shape).toBe('cross');
@@ -38,6 +38,15 @@ describe('content-data', () => {
     expect(units.optimusprime.startOfCombat?.[0]?.effect).toEqual({ kind: 'vampirism_stacks_own_pool', stacks: 15 });
     expect(units.nicosc.onTrigger?.[0]?.effect).toEqual({ kind: 'damage_enemy_pool_scaled_by_enemy_poison', multiplier: 2 });
     expect(units['9wojtaz9'].startOfCombat?.[0]?.effect).toEqual({ kind: 'execution_mark_on_hit_team', stacks: 1 });
+    expect(units.szanowny_kantor.baseStats.attack).toBeUndefined();
+    expect(units.szanowny_kantor.positionalBonus?.effect).toEqual({ kind: 'grant_shield_on_trigger', amount: 20 });
+    expect(units.empty_melancholy.startOfCombat?.[0]?.effect).toEqual({ kind: 'shield_gain_bonus_own_pool', amount: 10 });
+    expect(units.alyson_stark.startOfCombat?.[0]?.effect).toEqual({ kind: 'regen_own_pool', amountPerSec: 4 });
+    expect(units.merex.startOfCombat?.[0]?.effect).toEqual({
+      kind: 'multicast_team_per_unique_unit',
+      extraHitPercent: 20,
+      tagFilter: ['starociota'],
+    });
     expect(units.klemens_zydoslawski.onTrigger?.[0]?.effect).toEqual({ kind: 'shred_and_grant_haste', shredStacks: 10, grantStacks: 10 });
     expect(units.vitas.baseStats.attack).toBeUndefined();
 

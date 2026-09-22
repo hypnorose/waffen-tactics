@@ -101,6 +101,8 @@ interface RuntimeUnit {
   // Set by a grant_slow_on_attack positional bonus — fires on this unit's
   // own on_trigger cadence, not gated on it actually dealing damage.
   slowOnAttackPercent: number;
+  /** Set by a grant_shield_on_trigger positional bonus. */
+  shieldOnTriggerAmount: number;
 }
 
 function recomputeDerivedStats(u: RuntimeUnit, pool: Pool): void {
@@ -136,6 +138,7 @@ interface Pool {
   lastMomentumTickAt: number;
   reactions: Array<{ on: ReactionHook; effect: ReactionEffect }>;
   shieldGainReductionPercent: number;
+  shieldGainBonusFlat: number;
 }
 
 function makePool(hpMax: number): Pool {
@@ -160,6 +163,7 @@ function makePool(hpMax: number): Pool {
     lastMomentumTickAt: 0,
     reactions: [],
     shieldGainReductionPercent: 0,
+    shieldGainBonusFlat: 0,
   };
 }
 
@@ -220,6 +224,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         attackSpeedPercent: 0,
         triggerMultiplier: 1,
         slowOnAttackPercent: 0,
+        shieldOnTriggerAmount: 0,
         appliedBonusIds: [],
       };
       const unit: RuntimeUnit = {
@@ -244,6 +249,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         shredDodgeOnHitStacks: 0,
         executionMarkOnHitStacks: 0,
         slowOnAttackPercent: mod.slowOnAttackPercent,
+        shieldOnTriggerAmount: mod.shieldOnTriggerAmount,
       };
       recomputeDerivedStats(unit, pools[team.side]);
       return unit;
@@ -360,7 +366,10 @@ export function runCombat(input: RunCombatInput): CombatLog {
   function applyShieldToPool(side: Side, amount: number, sourceInstanceId: string | undefined, simTime: number) {
     const pool = pools[side];
     const wasZero = pool.shield <= 0;
-    const granted = pool.shieldGainReductionPercent > 0 ? amount * (1 - Math.min(100, pool.shieldGainReductionPercent) / 100) : amount;
+    const boostedAmount = amount + pool.shieldGainBonusFlat;
+    const granted = pool.shieldGainReductionPercent > 0
+      ? boostedAmount * (1 - Math.min(100, pool.shieldGainReductionPercent) / 100)
+      : boostedAmount;
     pool.shield += granted;
     if (granted !== 0) log.push({ simTime, type: 'team_pool_shield_applied', side, amount: granted, postShield: pool.shield, sourceInstanceId });
     if (wasZero && pool.shield > 0) fireReactions(side, 'shield_gained', simTime);
@@ -548,6 +557,9 @@ export function runCombat(input: RunCombatInput): CombatLog {
       case 'shield_own_pool':
         applyShieldToPool(side, effect.amount, sourceInstanceId, simTime);
         break;
+      case 'shield_gain_bonus_own_pool':
+        pools[side].shieldGainBonusFlat += effect.amount;
+        break;
       case 'poison_enemy_pool':
         applyPoisonToPool(otherSide(side), effect.damagePerSec);
         break;
@@ -692,6 +704,16 @@ export function runCombat(input: RunCombatInput): CombatLog {
           }
         }
         break;
+      case 'multicast_team_per_unique_unit': {
+        const uniqueUnitCount = new Set(units.filter((ally) => ally.side === side).map((ally) => ally.unitId)).size;
+        for (const ally of units) {
+          if (ally.side === side && hasAnyTag(ally, effect.tagFilter)) {
+            ally.multicastExtraHits = Math.min(MAX_MULTICAST_EXTRA_HITS, ally.multicastExtraHits + uniqueUnitCount);
+            ally.multicastExtraHitPercent = Math.max(ally.multicastExtraHitPercent, effect.extraHitPercent);
+          }
+        }
+        break;
+      }
       case 'momentum_own_pool': {
         const pool = pools[side];
         pool.momentumHasteStacksPerSec += effect.hasteStacksPerSec;
@@ -776,6 +798,10 @@ export function runCombat(input: RunCombatInput): CombatLog {
 
         for (const ability of unit.onTriggerAbilities) {
           if (ability.trigger === 'on_trigger') triggerAbility(unit, ability, simTime);
+        }
+
+        if (unit.shieldOnTriggerAmount > 0) {
+          applyShieldToPool(unit.side, unit.shieldOnTriggerAmount, unit.instanceId, simTime);
         }
 
         if (unit.slowOnAttackPercent > 0) {

@@ -29,6 +29,7 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // No decay — a shield is a flat absorb-then-gone buffer, permanent until
   // consumed by damage. It never disappears on its own.
   z.object({ kind: z.literal('shield_own_pool'), amount: z.number().positive() }),
+  z.object({ kind: z.literal('shield_gain_bonus_own_pool'), amount: z.number().positive() }),
   // Ticking damage on the enemy pool — stacks additively with every other
   // active poison source, ticks once per second independent of anyone's
   // attack cadence. Bypasses both shield and dodge (see combat-engine):
@@ -171,6 +172,11 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
     kind: z.literal('multicast_team'),
     extraHits: z.number().int().min(1).max(3),
     extraHitPercent: z.number().positive().max(100),
+  }),
+  z.object({
+    kind: z.literal('multicast_team_per_unique_unit'),
+    extraHitPercent: z.number().positive().max(100),
+    tagFilter: z.array(z.string()).min(1).optional(),
   }),
   // Every second: grants this many haste stacks and this much flat team
   // attack% (both optional/independent), uncapped duration — keeps paying

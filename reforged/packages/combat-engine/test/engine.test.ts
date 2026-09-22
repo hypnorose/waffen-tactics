@@ -161,6 +161,138 @@ describe('runCombat', () => {
     expect(corner?.positionalBonusesApplied).not.toContain('buffer-cross-attack');
   });
 
+  it('grants a shield pulse when an adjacent unit reaches its own trigger', () => {
+    const shieldRing: UnitDef = {
+      id: 'shield-ring',
+      name: 'Shield Ring',
+      cost: 4,
+      tags: ['support'],
+      emoji: '🛡️',
+      baseStats: {},
+      positionalBonus: {
+        id: 'shield-ring.adjacent-pulse',
+        shape: 'adjacent',
+        effect: { kind: 'grant_shield_on_trigger', amount: 20 },
+        description: 'Adjacent allies grant 20 shield on trigger.',
+      },
+    };
+    const pulseFighter: UnitDef = {
+      ...skirmisher,
+      id: 'pulse-fighter',
+      baseStats: { attack: 10, attacksPerSecond: 1 },
+    };
+    const log = runCombat({
+      combatId: 'c-shield-pulse',
+      seed: 31,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [
+          { instanceId: 'p-ring', unitId: shieldRing.id, position: { row: 1, col: 1 } },
+          { instanceId: 'p-fighter', unitId: pulseFighter.id, position: { row: 1, col: 2 } },
+        ],
+      },
+      enemy: { side: 'enemy', hpMax: 500, units: [] },
+      unitDefs: { ...unitDefs, [shieldRing.id]: shieldRing, [pulseFighter.id]: pulseFighter },
+      timeoutSec: 2,
+    });
+    expect(log.events.some((event) => event.type === 'team_pool_shield_applied' && event.amount === 20 && event.sourceInstanceId === 'p-fighter')).toBe(true);
+  });
+
+  it('adds a flat amount to every future shield grant', () => {
+    const shieldBonus: UnitDef = {
+      id: 'shield-bonus',
+      name: 'Shield Bonus',
+      cost: 3,
+      tags: ['support'],
+      emoji: '🧱',
+      baseStats: {},
+      startOfCombat: [{ id: 'shield-bonus.plates', trigger: 'start_of_combat', effect: { kind: 'shield_gain_bonus_own_pool', amount: 10 }, description: 'test' }],
+    };
+    const openingShield: UnitDef = {
+      id: 'opening-shield',
+      name: 'Opening Shield',
+      cost: 2,
+      tags: ['support'],
+      emoji: '🛡️',
+      baseStats: {},
+      startOfCombat: [{ id: 'opening-shield.ward', trigger: 'start_of_combat', effect: { kind: 'shield_own_pool', amount: 30 }, description: 'test' }],
+    };
+    const log = runCombat({
+      combatId: 'c-shield-bonus',
+      seed: 32,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [
+          { instanceId: 'p-bonus', unitId: shieldBonus.id, position: { row: 0, col: 0 } },
+          { instanceId: 'p-shield', unitId: openingShield.id, position: { row: 0, col: 1 } },
+        ],
+      },
+      enemy: { side: 'enemy', hpMax: 500, units: [] },
+      unitDefs: { ...unitDefs, [shieldBonus.id]: shieldBonus, [openingShield.id]: openingShield },
+      timeoutSec: 0.1,
+    });
+    expect(log.events.some((event) => event.type === 'team_pool_shield_applied' && event.amount === 40)).toBe(true);
+  });
+
+  it('regenerates the team pool after taking damage', () => {
+    const regenUnit: UnitDef = {
+      id: 'regen-unit',
+      name: 'Regen Unit',
+      cost: 4,
+      tags: ['starociota'],
+      emoji: '💚',
+      baseStats: {},
+      startOfCombat: [{ id: 'regen-unit.regen', trigger: 'start_of_combat', effect: { kind: 'regen_own_pool', amountPerSec: 4 }, description: 'test' }],
+    };
+    const log = runCombat({
+      combatId: 'c-regen',
+      seed: 34,
+      player: { side: 'player', hpMax: 500, units: [{ instanceId: 'p-regen', unitId: regenUnit.id, position: { row: 0, col: 0 } }] },
+      enemy: { side: 'enemy', hpMax: 500, units: [{ instanceId: 'e-attacker', unitId: 'skirmisher', position: { row: 0, col: 0 } }] },
+      unitDefs: { ...unitDefs, [regenUnit.id]: regenUnit },
+      timeoutSec: 2,
+    });
+    expect(log.events.some((event) => event.type === 'team_pool_heal' && event.side === 'player' && event.amount === 4)).toBe(true);
+  });
+
+  it('gives each unique ally one multicast hit per unique unit on the board', () => {
+    const starociotaCaster: UnitDef = {
+      id: 'starociota-caster',
+      name: 'Starociota Caster',
+      cost: 5,
+      tags: ['starociota'],
+      emoji: '🎯',
+      baseStats: { attack: 10, attacksPerSecond: 1 },
+      startOfCombat: [{
+        id: 'starociota-caster.multicast',
+        trigger: 'start_of_combat',
+        effect: { kind: 'multicast_team_per_unique_unit', extraHitPercent: 20, tagFilter: ['starociota'] },
+        description: 'test',
+      }],
+    };
+    const secondStarociota: UnitDef = { ...starociotaCaster, id: 'second-starociota', name: 'Second Starociota', startOfCombat: undefined };
+    const uniqueAlly: UnitDef = { ...skirmisher, id: 'unique-ally', tags: ['support'] };
+    const log = runCombat({
+      combatId: 'c-unique-multicast',
+      seed: 33,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [
+          { instanceId: 'p-caster', unitId: starociotaCaster.id, position: { row: 0, col: 0 } },
+          { instanceId: 'p-second', unitId: secondStarociota.id, position: { row: 0, col: 1 } },
+          { instanceId: 'p-unique', unitId: uniqueAlly.id, position: { row: 1, col: 0 } },
+        ],
+      },
+      enemy: { side: 'enemy', hpMax: 500, units: [] },
+      unitDefs: { ...unitDefs, [starociotaCaster.id]: starociotaCaster, [secondStarociota.id]: secondStarociota, [uniqueAlly.id]: uniqueAlly },
+      timeoutSec: 1.1,
+    });
+    expect(log.events.filter((event) => event.type === 'unit_attack_fired' && event.instanceId === 'p-caster' && event.multicast)).toHaveLength(3);
+  });
+
   it('doubles each adjacent figlarz ability trigger without affecting other units', () => {
     const figlarz = openingEffectUnit('figlarz-target', ['figlarz']);
     const distantFiglarz = openingEffectUnit('distant-figlarz', ['figlarz']);
