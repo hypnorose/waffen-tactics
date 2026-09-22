@@ -25,7 +25,8 @@ describe('content-data', () => {
     const units = getUnitDefs();
     expect(units.chessowy_mentos.startOfCombat?.[0]?.trigger).toBe('start_of_combat');
     expect(units.empty_melancholy.onTrigger?.[0]?.trigger).toBe('on_trigger');
-    expect(units.boczek.onTrigger?.[0]?.trigger).toBe('low_team_hp');
+    expect(units.boczek.startOfCombat?.[0]?.trigger).toBe('start_of_combat');
+    expect(units.marcel_galadotka.startOfCombat?.[0]?.trigger).toBe('start_of_combat');
     expect(units.pytl.positionalBonus?.shape).toBe('cross');
   });
 
@@ -48,6 +49,7 @@ describe('content-data', () => {
     const units = getUnitList();
     const abilities = units.flatMap((unit) => [...(unit.startOfCombat ?? []), ...(unit.onTrigger ?? [])]);
     expect(abilities.filter((ability) => ability.trigger === 'periodic')).toHaveLength(0);
+    expect(abilities.filter((ability) => ability.trigger === 'low_team_hp')).toHaveLength(0);
     expect(getUnitDefs().galanonim.baseStats.attacksPerSecond).toBe(0.2);
     expect(getUnitDefs().bbobel.baseStats.attacksPerSecond).toBe(0.2);
     expect(getUnitDefs().fallensmokk.baseStats.attacksPerSecond).toBe(0.2);

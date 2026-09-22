@@ -48,9 +48,6 @@ function dmgOnAttack(id: string, amount: number, desc: string): Ability {
 function dmgOnTrigger(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'damage_enemy_pool', amount }, description: desc };
 }
-function dmgLowHp(id: string, amount: number, thresholdPercent: number, desc: string): Ability {
-  return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'damage_enemy_pool', amount }, description: desc };
-}
 function openingBlast(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'damage_enemy_pool', amount }, description: desc };
 }
@@ -60,9 +57,6 @@ function shieldOnAttack(id: string, amount: number, desc: string): Ability {
 function shieldOpening(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'shield_own_pool', amount }, description: desc };
 }
-function shieldLowHp(id: string, amount: number, thresholdPercent: number, desc: string): Ability {
-  return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'shield_own_pool', amount }, description: desc };
-}
 function shieldOnTrigger(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'shield_own_pool', amount }, description: desc };
 }
@@ -71,9 +65,6 @@ function poisonOnAttack(id: string, damagePerSec: number, desc: string): Ability
 }
 function poisonOpening(id: string, damagePerSec: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
-}
-function poisonLowHp(id: string, damagePerSec: number, thresholdPercent: number, desc: string): Ability {
-  return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
 }
 function regenOpening(id: string, amountPerSec: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'regen_own_pool', amountPerSec }, description: desc };
@@ -89,9 +80,6 @@ function dmgScaledByEnemySlowOnTrigger(id: string, multiplier: number, desc: str
 }
 function teamAttackOnAttack(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'buff_team_attack', percent }, description: desc };
-}
-function teamAttackLowHp(id: string, percent: number, thresholdPercent: number, desc: string): Ability {
-  return { id, trigger: 'low_team_hp', hpThresholdPercent: thresholdPercent, effect: { kind: 'buff_team_attack', percent }, description: desc };
 }
 function teamHastePerAdjacentAllyOnAttack(id: string, percentPerAlly: number, tagFilter: string[], desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'buff_team_attack_speed_per_adjacent_ally', percentPerAlly, tagFilter }, description: desc };
@@ -257,7 +245,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
     startOfCombat: [poisonOpening('kaktusek.parting_gift', 8, 'Na starcie walki nakłada 8 obrażeń trucizny na sekundę.')],
   },
   boczek: {
-    onTrigger: [shieldLowHp('boczek.escape_plan', 60, 0.25, 'Gdy drużyna spadnie poniżej 25% HP, raz zyskuje tarczę 60.')],
+    startOfCombat: [shieldOpening('boczek.opening_guard', 60, 'Na starcie walki drużyna zyskuje tarczę 60.')],
   },
   nicosc: {
     onTrigger: [
@@ -326,6 +314,6 @@ export const unitOverrides: Record<string, UnitOverride> = {
     startOfCombat: [openingBlast('jaeger.opening_charge', 18, 'Na starcie walki zadaje 18 obrażeń puli wroga.')],
   },
   marcel_galadotka: {
-    onTrigger: [dmgLowHp('marcel_galadotka.last_stand_swing', 30, 0.3, 'Gdy drużyna spadnie poniżej 30% HP, raz zadaje 30 obrażeń puli wroga.')],
+    startOfCombat: [openingBlast('marcel_galadotka.opening_swing', 30, 'Na starcie walki zadaje 30 obrażeń puli wroga.')],
   },
 };
