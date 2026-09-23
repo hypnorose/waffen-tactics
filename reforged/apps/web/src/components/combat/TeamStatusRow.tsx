@@ -13,11 +13,14 @@ const CHIP_DEFS: Array<{
   kind: 'buff' | 'debuff';
   format: (value: number) => string;
   description: string;
-  tone: 'shield' | 'strength' | 'haste' | 'dodge' | 'thorns' | 'vampirism' | 'fragility' | 'execution';
+  tone: 'shield' | 'poison' | 'strength' | 'haste' | 'slow' | 'weaken' | 'dodge' | 'thorns' | 'vampirism' | 'fragility' | 'execution';
 }> = [
   { key: 'shield', emoji: '🛡️', label: 'Tarcza', kind: 'buff', tone: 'shield', format: (v) => Math.round(v).toString(), description: 'Pochłania obrażenia przed HP drużyny.' },
+  { key: 'poisonDamagePerSec', emoji: '☠️', label: 'Trucizna', kind: 'debuff', tone: 'poison', format: (v) => `${Math.round(v)} DPS`, description: 'Co sekundę zadaje obrażenia bezpośrednio w HP; nie zatrzymują jej Tarcza ani Unik.' },
   { key: 'strengthStacks', emoji: '💪', label: 'Siła', kind: 'buff', tone: 'strength', format: (v) => '+' + Math.round(v) + '%', description: 'Każdy stack Siły daje drużynie +1% ataku.' },
   { key: 'hasteStacks', emoji: '⚡', label: 'Przyspieszenie', kind: 'buff', tone: 'haste', format: (v) => `+${Math.round(v)}%`, description: 'Każdy stack Przyspieszenia daje +1% szybkości ataku i skraca cooldown.' },
+  { key: 'slowPercent', emoji: '🐌', label: 'Spowolnienie', kind: 'debuff', tone: 'slow', format: (v) => `-${Math.round(v)}%`, description: 'Zmniejsza szybkość ataku całej drużyny.' },
+  { key: 'weakenPercent', emoji: '🕸️', label: 'Osłabienie', kind: 'debuff', tone: 'weaken', format: (v) => `-${Math.round(v)}%`, description: 'Zmniejsza obrażenia ataku całej drużyny.' },
   { key: 'dodgeStacks', emoji: '💨', label: 'Unik', kind: 'buff', tone: 'dodge', format: (v) => `${Math.round(v)}%`, description: 'Szansa na całkowite uniknięcie trafienia lub efektu ataku.' },
   { key: 'thornsPercent', emoji: '🌵', label: 'Kolce', kind: 'buff', tone: 'thorns', format: (v) => `${Math.round(v)}%`, description: 'Odbija ten procent utraconego HP do wroga.' },
   { key: 'vampirismPercent', emoji: '🧛', label: 'Wampiryzm', kind: 'buff', tone: 'vampirism', format: (v) => `${Math.round(v)}%`, description: 'Leczy drużynę o ten procent zadanych obrażeń.' },

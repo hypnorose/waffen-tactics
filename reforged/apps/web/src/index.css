@@ -22,6 +22,7 @@
   --status-shield: #93c5fd;
   --status-poison: #86efac;
   --status-slow: #c4b5fd;
+  --status-weaken: #fda4af;
   --status-regen: #6ee7b7;
   --status-fragility: #fca5a5;
   --status-thorns: #fb923c;
@@ -1042,6 +1043,18 @@ button.active {
 .unit-buff-chip.status-haste {
   background: color-mix(in srgb, var(--status-haste) 20%, var(--panel-alt));
   color: var(--status-haste);
+}
+.team-status-chip.status-poison {
+  background: color-mix(in srgb, var(--status-poison) 20%, var(--panel-alt));
+  color: var(--status-poison);
+}
+.team-status-chip.status-slow {
+  background: color-mix(in srgb, var(--status-slow) 20%, var(--panel-alt));
+  color: var(--status-slow);
+}
+.team-status-chip.status-weaken {
+  background: color-mix(in srgb, var(--status-weaken) 20%, var(--panel-alt));
+  color: var(--status-weaken);
 }
 .team-status-chip.status-dodge {
   background: color-mix(in srgb, var(--status-dodge) 20%, var(--panel-alt));

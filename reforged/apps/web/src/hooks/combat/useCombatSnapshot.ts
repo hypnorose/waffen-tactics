@@ -32,8 +32,11 @@ export interface UnitBuffState {
 /** Team-pool-wide status, current as of `currentTime` — see team_pool_shield_applied / team_pool_stat_applied. */
 export interface TeamStatus {
   shield: number;
+  poisonDamagePerSec: number;
   strengthStacks: number;
   hasteStacks: number;
+  slowPercent: number;
+  weakenPercent: number;
   dodgeStacks: number;
   fragilityPercent: number;
   thornsPercent: number;
@@ -42,7 +45,7 @@ export interface TeamStatus {
 }
 
 function emptyTeamStatus(): TeamStatus {
-  return { shield: 0, strengthStacks: 0, hasteStacks: 0, dodgeStacks: 0, fragilityPercent: 0, thornsPercent: 0, vampirismPercent: 0, executionStacks: 0 };
+  return { shield: 0, poisonDamagePerSec: 0, strengthStacks: 0, hasteStacks: 0, slowPercent: 0, weakenPercent: 0, dodgeStacks: 0, fragilityPercent: 0, thornsPercent: 0, vampirismPercent: 0, executionStacks: 0 };
 }
 
 export interface CombatSnapshot {
@@ -134,10 +137,17 @@ export function useCombatSnapshot(events: CombatEvent[], currentTime: number): C
           status.shield = event.postShield;
           break;
         }
+        case 'team_pool_poison_changed': {
+          const status = event.side === 'player' ? playerStatus : enemyStatus;
+          status.poisonDamagePerSec = event.total;
+          break;
+        }
         case 'team_pool_stat_applied': {
           const status = event.side === 'player' ? playerStatus : enemyStatus;
           if (event.stat === 'strength') status.strengthStacks = event.total;
           else if (event.stat === 'haste') status.hasteStacks = event.total;
+          else if (event.stat === 'slow') status.slowPercent = event.total;
+          else if (event.stat === 'weaken') status.weakenPercent = event.total;
           else if (event.stat === 'dodge') status.dodgeStacks = event.total;
           else if (event.stat === 'fragility') status.fragilityPercent = event.total;
           else if (event.stat === 'thorns') status.thornsPercent = event.total;

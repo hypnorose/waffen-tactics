@@ -92,6 +92,14 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // (shield, haste, dodge, thorns, vampirism) — a single "clear their
   // buffs" effect for a support unit that does not need five abilities.
   z.object({ kind: z.literal('shred_all_enemy_buffs'), amount: z.number().positive() }),
+  // Same purge, but if at least one positive status was actually removed it
+  // also adds a poison stack. This keeps the counterplay loop deterministic:
+  // purge a real buff to earn the poison, not by firing into an empty pool.
+  z.object({
+    kind: z.literal('shred_all_enemy_buffs_and_poison'),
+    amount: z.number().positive(),
+    poisonDamagePerSec: z.number().positive(),
+  }),
 
   // --- Team-pool statuses. All of these live on the shared pool, not on
   // individual units — see the design note at the top of augments.ts. ---
@@ -99,6 +107,14 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // 1 stack = 1% attack speed for every unit on the side, uncapped input but
   // clamped team-wide at MAX_HASTE_STACKS.
   z.object({ kind: z.literal('haste_stacks_own_pool'), stacks: z.number().positive() }),
+  // Shared enemy tempo debuff. Unlike the legacy per-unit slow effect below,
+  // this is one status on the enemy pool and therefore has one clear stack
+  // value in the replay/UI.
+  z.object({ kind: z.literal('slow_enemy_pool'), percent: z.number().positive() }),
+  // Shared enemy damage debuff. Keep the legacy weaken_enemy_team_attack kind
+  // for explicitly unit-scoped/tag-filtered content; new common effects use
+  // this pool status instead.
+  z.object({ kind: z.literal('weaken_enemy_pool'), percent: z.number().positive() }),
   // Bonus damage on top of the caster's own attack, equal to the own side's
   // CURRENT haste stack count times multiplier (e.g. multiplier 1 = "bonus
   // damage equal to your team's haste") — a payoff for stacking haste from

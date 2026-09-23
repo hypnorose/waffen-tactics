@@ -66,9 +66,6 @@ function shieldOnTrigger(id: string, amount: number, desc: string): Ability {
 function poisonOnAttack(id: string, damagePerSec: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
 }
-function poisonOpening(id: string, damagePerSec: number, desc: string): Ability {
-  return { id, trigger: 'start_of_combat', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
-}
 function regenOpening(id: string, amountPerSec: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'regen_own_pool', amountPerSec }, description: desc };
 }
@@ -76,16 +73,13 @@ function multicastPerUniqueUnitOpening(id: string, extraHitPercent: number, tagF
   return { id, trigger: 'start_of_combat', effect: { kind: 'multicast_team_per_unique_unit', extraHitPercent, tagFilter }, description: desc };
 }
 function slowOpening(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'start_of_combat', effect: { kind: 'slow_enemy_team_attack_speed', percent }, description: desc };
+  return { id, trigger: 'start_of_combat', effect: { kind: 'slow_enemy_pool', percent }, description: desc };
 }
 function slowOnTrigger(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_trigger', effect: { kind: 'slow_enemy_team_attack_speed', percent }, description: desc };
+  return { id, trigger: 'on_trigger', effect: { kind: 'slow_enemy_pool', percent }, description: desc };
 }
 function dmgScaledByEnemySlowOnTrigger(id: string, multiplier: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'damage_enemy_pool_scaled_by_enemy_slow', multiplier }, description: desc };
-}
-function teamAttackOnAttack(id: string, percent: number, desc: string): Ability {
-  return { id, trigger: 'on_trigger', effect: { kind: 'buff_team_attack', percent }, description: desc };
 }
 function hasteStacksPerAdjacentAllyOnTrigger(id: string, stacksPerAlly: number, tagFilter: string[], desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'haste_stacks_per_adjacent_ally', stacksPerAlly, tagFilter }, description: desc };
@@ -146,8 +140,8 @@ function lifestealOnAttack(id: string, percent: number, desc: string): Ability {
 function shredOpening(id: string, amount: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'shred_enemy_shield', amount }, description: desc };
 }
-function shredAllEnemyBuffsOnTrigger(id: string, amount: number, desc: string): Ability {
-  return { id, trigger: 'on_trigger', effect: { kind: 'shred_all_enemy_buffs', amount }, description: desc };
+function shredAllEnemyBuffsAndPoisonOnTrigger(id: string, amount: number, poisonDamagePerSec: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'shred_all_enemy_buffs_and_poison', amount, poisonDamagePerSec }, description: desc };
 }
 function vampirismOpening(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'vampirism_stacks_own_pool', stacks: percent }, description: desc };
@@ -248,12 +242,13 @@ export const unitOverrides: Record<string, UnitOverride> = {
   // KONFIDENT — Konfidenci: purge, poison, execution and vampirism
   // ============================================================
   uhla: {
-    onTrigger: [poisonOnAttack('uhla.whisper', 3, 'Przy aktywacji nakłada 3 obrażenia trucizny na sekundę (stackuje się).')],
+    onTrigger: [poisonOnAttack('uhla.whisper', 10, 'Przy aktywacji nakłada 10 obrażeń trucizny na sekundę (stackuje się).')],
   },
   galanonim: {
     // Pure support — no attack stat at all (see units.data.ts). Every pulse
-    // strips the same flat amount from each positive enemy team status.
-    onTrigger: [shredAllEnemyBuffsOnTrigger('galanonim.blacklist', 5, 'Przy aktywacji zdejmuje wrogowi po 5 stacków Tarczy, Przyspieszenia, Uniku, Kolców i Wampiryzmu.')],
+    // strips the same flat amount from each positive enemy team status and
+    // rewards a successful purge with poison.
+    onTrigger: [shredAllEnemyBuffsAndPoisonOnTrigger('galanonim.blacklist', 5, 12, 'Przy aktywacji zdejmuje wrogowi po 5 z każdego pozytywnego statusu; jeśli coś zdejmie, nakłada 12 DPS Trucizny.')],
   },
   pytl: {
     positionalBonus: {
@@ -268,7 +263,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
     startOfCombat: [vampirismOpening('optimusprime.blackmail', 15, 'Na starcie walki cała drużyna zyskuje 15% wampiryzmu: odzyskuje 15% zadanych obrażeń.')],
   },
   kaktusek: {
-    startOfCombat: [poisonOpening('kaktusek.parting_gift', 8, 'Na starcie walki nakłada 8 obrażeń trucizny na sekundę.')],
+    onTrigger: [poisonOnAttack('kaktusek.parting_gift', 12, 'Przy aktywacji nakłada 12 obrażeń trucizny na sekundę (stackuje się).')],
   },
   boczek: {
     startOfCombat: [shieldOpening('boczek.opening_guard', 60, 'Na starcie walki drużyna zyskuje tarczę 60.')],
@@ -277,8 +272,8 @@ export const unitOverrides: Record<string, UnitOverride> = {
     onTrigger: [
       dmgScaledByEnemyPoisonOnTrigger(
         'nicosc.last_resort',
-        2,
-        'Przy aktywacji zadaje dodatkowe obrażenia równe dwukrotności aktualnej trucizny wroga.',
+        4,
+        'Przy aktywacji zadaje dodatkowe obrażenia równe czterokrotności aktualnej trucizny wroga.',
       ),
     ],
   },

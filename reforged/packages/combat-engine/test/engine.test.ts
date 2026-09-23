@@ -449,6 +449,28 @@ describe('runCombat', () => {
     expect(log.events.some((e) => e.type === 'team_pool_shield_applied' && e.side === 'player')).toBe(true);
   });
 
+  it('poison stacks up to the boosted 120 DPS cap', () => {
+    const log = runCombat({
+      combatId: 'c-poison-cap',
+      seed: 2,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [],
+        augmentEffects: [
+          { effect: { kind: 'poison_enemy_pool', damagePerSec: 80 } },
+          { effect: { kind: 'poison_enemy_pool', damagePerSec: 60 } },
+        ],
+      },
+      enemy: { side: 'enemy', hpMax: 500, units: [] },
+      unitDefs: {},
+      timeoutSec: 1.1,
+    });
+
+    const poisonDamage = log.events.find((event) => event.type === 'team_pool_damage' && event.side === 'enemy');
+    expect(poisonDamage && poisonDamage.type === 'team_pool_damage' && poisonDamage.amount).toBe(120);
+  });
+
   it('dodge stacks can fully negate an incoming attack (deterministic under a fixed seed)', () => {
     const player: CombatTeamInput = { side: 'player', hpMax: 500, units: team('player').units };
     const dodgyEnemy: CombatTeamInput = {
@@ -665,6 +687,69 @@ describe('runCombat', () => {
     for (const stat of ['haste', 'dodge', 'thorns', 'vampirism'] as const) {
       expect(withBuffs.events.some((event) => event.type === 'team_pool_stat_applied' && event.side === 'enemy' && event.stat === stat && event.amount === -5)).toBe(true);
     }
+  });
+
+  it('poisons only when a trigger actually removes an enemy buff', () => {
+    const poisonPurger: UnitDef = {
+      id: 'poison_purger',
+      name: 'Poison Purger',
+      cost: 4,
+      tags: ['konfident'],
+      emoji: '☣️',
+      baseStats: { attacksPerSecond: 1 },
+      onTrigger: [{
+        id: 'poison_purger.blacklist',
+        trigger: 'on_trigger',
+        effect: { kind: 'shred_all_enemy_buffs_and_poison', amount: 5, poisonDamagePerSec: 12 },
+        description: 'Purge a real buff to poison the enemy.',
+      }],
+    };
+    const run = (augmentEffects: CombatTeamInput['augmentEffects']) => runCombat({
+      combatId: 'c-purge-poison',
+      seed: 33,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [{ instanceId: 'p-purger', unitId: poisonPurger.id, position: { row: 0, col: 0 } }],
+      },
+      enemy: { side: 'enemy', hpMax: 500, units: [], augmentEffects },
+      unitDefs: { [poisonPurger.id]: poisonPurger },
+      timeoutSec: 1.1,
+    });
+
+    const withBuff = run([{ effect: { kind: 'haste_stacks_own_pool', stacks: 20 } }]);
+    expect(withBuff.events).toContainEqual(expect.objectContaining({
+      type: 'team_pool_poison_changed',
+      side: 'enemy',
+      amount: 12,
+      total: 12,
+      sourceInstanceId: 'p-purger',
+    }));
+
+    const withoutBuff = run([]);
+    expect(withoutBuff.events.some((event) => event.type === 'team_pool_poison_changed')).toBe(false);
+  });
+
+  it('common weaken and slow effects are shared statuses, not per-unit buffs', () => {
+    const log = runCombat({
+      combatId: 'c-pool-debuffs',
+      seed: 34,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [],
+        augmentEffects: [
+          { effect: { kind: 'weaken_enemy_pool', percent: 20 } },
+          { effect: { kind: 'slow_enemy_pool', percent: 10 } },
+        ],
+      },
+      enemy: { side: 'enemy', hpMax: 500, units: team('enemy').units },
+      unitDefs,
+      timeoutSec: 1.1,
+    });
+    expect(log.events).toContainEqual(expect.objectContaining({ type: 'team_pool_stat_applied', side: 'enemy', stat: 'weaken', amount: 20, total: 20 }));
+    expect(log.events).toContainEqual(expect.objectContaining({ type: 'team_pool_stat_applied', side: 'enemy', stat: 'slow', amount: 10, total: 10 }));
+    expect(log.events.some((event) => event.type === 'unit_buff_applied')).toBe(false);
   });
 
   it('vampirism heals from landed attacks but not poison ticks', () => {

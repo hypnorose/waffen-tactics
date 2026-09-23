@@ -33,10 +33,10 @@ describe('content-data', () => {
   it('keeps the authored support/status contracts in the roster dossier', () => {
     const units = getUnitDefs();
     expect(units.galanonim.onTrigger?.[0]?.trigger).toBe('on_trigger');
-    expect(units.galanonim.onTrigger?.[0]?.effect).toEqual({ kind: 'shred_all_enemy_buffs', amount: 5 });
+    expect(units.galanonim.onTrigger?.[0]?.effect).toEqual({ kind: 'shred_all_enemy_buffs_and_poison', amount: 5, poisonDamagePerSec: 12 });
     expect(units.galanonim.baseStats).toEqual({ attacksPerSecond: 0.2 });
     expect(units.optimusprime.startOfCombat?.[0]?.effect).toEqual({ kind: 'vampirism_stacks_own_pool', stacks: 15 });
-    expect(units.nicosc.onTrigger?.[0]?.effect).toEqual({ kind: 'damage_enemy_pool_scaled_by_enemy_poison', multiplier: 2 });
+    expect(units.nicosc.onTrigger?.[0]?.effect).toEqual({ kind: 'damage_enemy_pool_scaled_by_enemy_poison', multiplier: 4 });
     expect(units['9wojtaz9'].startOfCombat?.[0]?.effect).toEqual({ kind: 'execution_mark_on_hit_team', stacks: 1 });
     expect(units.szanowny_kantor.baseStats.attack).toBeUndefined();
     expect(units.szanowny_kantor.positionalBonus?.effect).toEqual({ kind: 'grant_shield_on_trigger', amount: 20 });
@@ -75,6 +75,8 @@ describe('content-data', () => {
     });
     expect(units.klemens_zydoslawski.onTrigger?.[0]?.effect).toEqual({ kind: 'shred_and_grant_haste', shredStacks: 10, grantStacks: 10 });
     expect(units.vitas.baseStats.attack).toBeUndefined();
+    expect(units.uhla.onTrigger?.[0]?.effect).toEqual({ kind: 'poison_enemy_pool', damagePerSec: 10 });
+    expect(units.kaktusek.onTrigger?.[0]?.effect).toEqual({ kind: 'poison_enemy_pool', damagePerSec: 12 });
 
     const figlarzWithoutAttack = ['4tune', 'klemens_zydoslawski', 'vitas'].filter((id) => units[id].baseStats.attack === undefined);
     expect(figlarzWithoutAttack).toHaveLength(3);
@@ -127,6 +129,15 @@ describe('content-data', () => {
     expect([...costsByTag.get('srebrna-gwardia')!].sort()).toEqual([1, 3, 4]);
     expect([...costsByTag.get('starociota')!].sort()).toEqual([1, 3, 4, 5]);
     expect([...costsByTag.get('szachista')!].sort()).toEqual([1, 2, 4]);
+  });
+
+  it('uses shared status effects for common tempo and damage modifiers', () => {
+    const byId = new Map(augmentDefs.map((augment) => [augment.id, augment]));
+    expect(byId.get('bronze-quick-step')?.effects).toEqual([{ kind: 'haste_stacks_own_pool', stacks: 5 }]);
+    expect(byId.get('bronze-rust')?.effects).toEqual([{ kind: 'weaken_enemy_pool', percent: 8 }]);
+    expect(byId.get('silver-overclock')?.effects).toContainEqual({ kind: 'slow_enemy_pool', percent: 10 });
+    expect(byId.get('gold-plague')?.effects).toContainEqual({ kind: 'weaken_enemy_pool', percent: 10 });
+    expect(byId.get('bronze-figlarz-spirit')?.effects).toContainEqual({ kind: 'buff_team_attack_speed', percent: 12 });
   });
 
   it('describes on_trigger effects as activations, without exposing their cooldown', () => {

@@ -39,7 +39,9 @@ const MAX_SLOW_PERCENT = 80;
 const MAX_ATTACK_BUFF_PERCENT = 200;
 const MAX_STRENGTH_STACKS = 200;
 const MAX_WEAKEN_PERCENT = 80;
-const MAX_POISON_DPS = 40;
+// Poison is a persistent pool threat and bypasses shield/dodge, but it needs
+// enough headroom to reward multiple poison sources before a fight ends.
+const MAX_POISON_DPS = 120;
 const MAX_REGEN_PER_SEC = 30;
 const MAX_HASTE_STACKS = 100; // pool-level haste — 1 stack = 1%, combined with per-unit speed at read time
 const MAX_DODGE_STACKS = 70;
@@ -108,12 +110,12 @@ interface RuntimeUnit {
 }
 
 function recomputeDerivedStats(u: RuntimeUnit, pool: Pool): void {
-  u.attackDamage = u.baseAttackDamage * (1 + (u.attackDamageBonusPercent + u.strengthStacks + pool.strengthStacks) / 100);
+  u.attackDamage = u.baseAttackDamage * (1 + (u.attackDamageBonusPercent + u.strengthStacks + pool.strengthStacks - pool.weakenPercent) / 100);
   if (u.baseAttackIntervalSec === null) {
     u.attackIntervalSec = null;
     return;
   }
-  const effectiveSpeedPercent = clamp(u.attackSpeedBonusPercent + pool.hasteStacks, -MAX_SLOW_PERCENT, MAX_HASTE_PERCENT);
+  const effectiveSpeedPercent = clamp(u.attackSpeedBonusPercent + pool.hasteStacks - pool.slowPercent, -MAX_SLOW_PERCENT, MAX_HASTE_PERCENT);
   u.attackIntervalSec = u.baseAttackIntervalSec / (1 + effectiveSpeedPercent / 100);
 }
 
@@ -129,6 +131,8 @@ interface Pool {
   lastRegenTickAt: number;
   strengthStacks: number; // 1 stack = 1% attack, team-wide
   hasteStacks: number; // 1 stack = 1% attack speed, team-wide
+  slowPercent: number; // % attack-speed reduction, team-wide
+  weakenPercent: number; // % attack reduction, team-wide
   dodgeStacks: number; // 1 stack = 1% chance to fully negate an incoming hit
   fragilityPercent: number; // % more damage taken from every source
   thornsPercent: number; // % of own HP loss reflected back at the enemy pool
@@ -155,6 +159,8 @@ function makePool(hpMax: number): Pool {
     lastRegenTickAt: 0,
     strengthStacks: 0,
     hasteStacks: 0,
+    slowPercent: 0,
+    weakenPercent: 0,
     dodgeStacks: 0,
     fragilityPercent: 0,
     thornsPercent: 0,
@@ -394,8 +400,20 @@ export function runCombat(input: RunCombatInput): CombatLog {
     return removed;
   }
 
-  function applyPoisonToPool(side: Side, damagePerSec: number) {
-    pools[side].poisonDamagePerSec = Math.min(MAX_POISON_DPS, pools[side].poisonDamagePerSec + damagePerSec);
+  function applyPoisonToPool(side: Side, damagePerSec: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const before = pool.poisonDamagePerSec;
+    pool.poisonDamagePerSec = Math.min(MAX_POISON_DPS, pool.poisonDamagePerSec + damagePerSec);
+    if (pool.poisonDamagePerSec !== before) {
+      log.push({
+        simTime,
+        type: 'team_pool_poison_changed',
+        side,
+        amount: pool.poisonDamagePerSec - before,
+        total: pool.poisonDamagePerSec,
+        sourceInstanceId,
+      });
+    }
   }
 
   function applyRegenToPool(side: Side, amountPerSec: number) {
@@ -408,6 +426,26 @@ export function runCombat(input: RunCombatInput): CombatLog {
     pool.hasteStacks = clamp(pool.hasteStacks + stacks, 0, MAX_HASTE_STACKS);
     if (pool.hasteStacks !== before) {
       log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'haste', amount: pool.hasteStacks - before, total: pool.hasteStacks, sourceInstanceId });
+      recomputeAllUnits(side);
+    }
+  }
+
+  function grantSlow(side: Side, percent: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const before = pool.slowPercent;
+    pool.slowPercent = clamp(pool.slowPercent + percent, 0, MAX_SLOW_PERCENT);
+    if (pool.slowPercent !== before) {
+      log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'slow', amount: pool.slowPercent - before, total: pool.slowPercent, sourceInstanceId });
+      recomputeAllUnits(side);
+    }
+  }
+
+  function grantWeaken(side: Side, percent: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const before = pool.weakenPercent;
+    pool.weakenPercent = clamp(pool.weakenPercent + percent, 0, MAX_WEAKEN_PERCENT);
+    if (pool.weakenPercent !== before) {
+      log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'weaken', amount: pool.weakenPercent - before, total: pool.weakenPercent, sourceInstanceId });
       recomputeAllUnits(side);
     }
   }
@@ -481,6 +519,18 @@ export function runCombat(input: RunCombatInput): CombatLog {
     const before = pool.vampirismPercent;
     pool.vampirismPercent = clamp(pool.vampirismPercent - percent, 0, MAX_VAMPIRISM_PERCENT);
     if (pool.vampirismPercent !== before) log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'vampirism', amount: pool.vampirismPercent - before, total: pool.vampirismPercent });
+  }
+
+  function stripPositiveEnemyStatuses(side: Side, amount: number, simTime: number): number {
+    const pool = pools[side];
+    const before = pool.shield + pool.hasteStacks + pool.dodgeStacks + pool.thornsPercent + pool.vampirismPercent;
+    removeShield(side, amount, simTime);
+    shredHaste(side, amount, simTime);
+    shredDodge(side, amount, simTime);
+    shredThorns(side, amount, simTime);
+    shredVampirism(side, amount, simTime);
+    const after = pool.shield + pool.hasteStacks + pool.dodgeStacks + pool.thornsPercent + pool.vampirismPercent;
+    return before - after;
   }
 
   function grantExecutionMark(side: Side, stacks: number, sourceInstanceId: string | undefined, simTime: number) {
@@ -577,7 +627,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         pools[side].shieldGainBonusFlat += effect.amount;
         break;
       case 'poison_enemy_pool':
-        applyPoisonToPool(otherSide(side), effect.damagePerSec);
+        applyPoisonToPool(otherSide(side), effect.damagePerSec, sourceInstanceId, simTime);
         break;
       case 'regen_own_pool':
         applyRegenToPool(side, effect.amountPerSec);
@@ -623,6 +673,12 @@ export function runCombat(input: RunCombatInput): CombatLog {
       case 'slow_enemy_team_attack_speed':
         for (const foe of units) if (foe.side === otherSide(side) && hasAnyTag(foe, tagFilter)) buffAttackSpeed(foe, -effect.percent, sourceInstanceId, simTime);
         break;
+      case 'slow_enemy_pool':
+        grantSlow(otherSide(side), effect.percent, sourceInstanceId, simTime);
+        break;
+      case 'weaken_enemy_pool':
+        grantWeaken(otherSide(side), effect.percent, sourceInstanceId, simTime);
+        break;
       case 'execute_enemy_pool': {
         const enemySide = otherSide(side);
         const amount = pools[enemySide].hpCurrent * (effect.percentOfCurrentHp / 100);
@@ -635,7 +691,12 @@ export function runCombat(input: RunCombatInput): CombatLog {
         }
         break;
       case 'cleanse_own_pool':
-        pools[side].poisonDamagePerSec = 0;
+        {
+          const pool = pools[side];
+          const removed = pool.poisonDamagePerSec;
+          pool.poisonDamagePerSec = 0;
+          if (removed > 0) log.push({ simTime, type: 'team_pool_poison_changed', side, amount: -removed, total: 0, sourceInstanceId });
+        }
         break;
       case 'shred_enemy_shield': {
         const enemyPool = pools[otherSide(side)];
@@ -644,11 +705,13 @@ export function runCombat(input: RunCombatInput): CombatLog {
       }
       case 'shred_all_enemy_buffs': {
         const enemySide = otherSide(side);
-        removeShield(enemySide, effect.amount, simTime);
-        shredHaste(enemySide, effect.amount, simTime);
-        shredDodge(enemySide, effect.amount, simTime);
-        shredThorns(enemySide, effect.amount, simTime);
-        shredVampirism(enemySide, effect.amount, simTime);
+        stripPositiveEnemyStatuses(enemySide, effect.amount, simTime);
+        break;
+      }
+      case 'shred_all_enemy_buffs_and_poison': {
+        const enemySide = otherSide(side);
+        const removed = stripPositiveEnemyStatuses(enemySide, effect.amount, simTime);
+        if (removed > 0) applyPoisonToPool(enemySide, effect.poisonDamagePerSec, sourceInstanceId, simTime);
         break;
       }
       case 'haste_stacks_own_pool':
@@ -672,11 +735,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         break;
       }
       case 'damage_enemy_pool_scaled_by_enemy_slow': {
-        const foes = units.filter((u) => u.side === otherSide(side));
-        const avgSlowPercent = foes.length
-          ? foes.reduce((sum, u) => sum + Math.max(0, -u.attackSpeedBonusPercent), 0) / foes.length
-          : 0;
-        const bonus = avgSlowPercent * effect.multiplier;
+        const bonus = pools[otherSide(side)].slowPercent * effect.multiplier;
         if (bonus > 0) applyDamageToPool(otherSide(side), bonus, 'ability', sourceInstanceId, simTime);
         break;
       }
@@ -846,7 +905,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         }
 
         if (unit.slowOnAttackPercent > 0) {
-          applyEffectFromSide(unit.side, { kind: 'slow_enemy_team_attack_speed', percent: unit.slowOnAttackPercent }, simTime, unit);
+          applyEffectFromSide(unit.side, { kind: 'slow_enemy_pool', percent: unit.slowOnAttackPercent }, simTime, unit);
         }
 
         if (unit.attackDamage > 0 && unit.multicastExtraHits > 0) {

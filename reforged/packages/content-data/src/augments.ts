@@ -10,10 +10,9 @@ import { AugmentDefSchema, type AugmentDef } from '@reforged/schema';
  * Every status here (shield, haste, dodge, kruchość/fragility, kolce/thorns,
  * egzekucja marks) lives on the shared team pool, never on an individual
  * unit — the team has one HP bar, so it gets one of everything else too.
- * The only per-unit augment effects are the ones that grant a passive to
- * units directly (multicast_team, shred_dodge_on_hit_team) and the legacy
- * flat buff_team_attack(_speed) — both still apply per-unit, filtered by
- * tagFilter, exactly like before.
+ * Common team-wide attack, haste, slow, and weaken effects are pool statuses.
+ * Only explicitly tag-filtered bonuses and passive-on-hit effects remain
+ * per-unit, because their scope is intentionally selective.
  *
  * Shields never decay on their own — only combat damage consumes them.
  * Poison and thorns-reflected damage both bypass shield and dodge (see
@@ -40,7 +39,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '⚔️',
     description: 'Wszystkie jednostki zadają +5% obrażeń.',
-    effects: [{ kind: 'buff_team_attack', percent: 5 }],
+    effects: [{ kind: 'strength_stacks_own_pool', stacks: 5 }],
   },
   {
     id: 'bronze-quick-step',
@@ -48,7 +47,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '👟',
     description: 'Wszystkie jednostki atakują o 5% szybciej.',
-    effects: [{ kind: 'buff_team_attack_speed', percent: 5 }],
+    effects: [{ kind: 'haste_stacks_own_pool', stacks: 5 }],
   },
   {
     id: 'bronze-reinforced-hull',
@@ -63,8 +62,8 @@ const raw: AugmentDef[] = [
     name: 'Przeklęte Ostrze',
     tier: 'bronze',
     icon: '☠️',
-    description: 'Zatruwa wroga na 3 obrażenia na sekundę przez całą walkę.',
-    effects: [{ kind: 'poison_enemy_pool', damagePerSec: 3 }],
+    description: 'Zatruwa wroga na 10 obrażeń na sekundę przez całą walkę.',
+    effects: [{ kind: 'poison_enemy_pool', damagePerSec: 10 }],
   },
   {
     id: 'bronze-clumsy-feet',
@@ -72,7 +71,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '🐌',
     description: 'Spowalnia wroga — jego jednostki atakują o 8% wolniej.',
-    effects: [{ kind: 'slow_enemy_team_attack_speed', percent: 8 }],
+    effects: [{ kind: 'slow_enemy_pool', percent: 8 }],
   },
   {
     id: 'bronze-rust',
@@ -80,7 +79,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '🦠',
     description: 'Osłabia wroga — jego jednostki zadają o 8% mniej obrażeń.',
-    effects: [{ kind: 'weaken_enemy_team_attack', percent: 8 }],
+    effects: [{ kind: 'weaken_enemy_pool', percent: 8 }],
   },
   {
     id: 'bronze-field-rations',
@@ -114,7 +113,7 @@ const raw: AugmentDef[] = [
     tier: 'bronze',
     icon: '🎫',
     description: 'Natychmiast dołącza SkibidiKubuś do ławki. Wszystkie jednostki zadają +3% obrażeń.',
-    effects: [{ kind: 'buff_team_attack', percent: 3 }],
+    effects: [{ kind: 'strength_stacks_own_pool', stacks: 3 }],
     grantUnitId: 'skibidi_kubus',
   },
 
@@ -213,8 +212,8 @@ const raw: AugmentDef[] = [
     icon: '💉',
     description: 'Wszystkie jednostki zadają +8% obrażeń i atakują o 8% szybciej.',
     effects: [
-      { kind: 'buff_team_attack', percent: 8 },
-      { kind: 'buff_team_attack_speed', percent: 8 },
+      { kind: 'strength_stacks_own_pool', stacks: 8 },
+      { kind: 'haste_stacks_own_pool', stacks: 8 },
     ],
   },
   {
@@ -224,8 +223,8 @@ const raw: AugmentDef[] = [
     icon: '⏩',
     description: 'Wszystkie jednostki atakują o 15% szybciej, a wróg o 10% wolniej.',
     effects: [
-      { kind: 'buff_team_attack_speed', percent: 15 },
-      { kind: 'slow_enemy_team_attack_speed', percent: 10 },
+      { kind: 'haste_stacks_own_pool', stacks: 15 },
+      { kind: 'slow_enemy_pool', percent: 10 },
     ],
   },
   {
@@ -244,10 +243,10 @@ const raw: AugmentDef[] = [
     name: 'Toksyczna Chmura',
     tier: 'silver',
     icon: '☣️',
-    description: 'Zatruwa wroga na 6 obrażeń na sekundę i spowalnia jego atak o 10%.',
+    description: 'Zatruwa wroga na 20 obrażeń na sekundę i spowalnia jego atak o 10%.',
     effects: [
-      { kind: 'poison_enemy_pool', damagePerSec: 6 },
-      { kind: 'slow_enemy_team_attack_speed', percent: 10 },
+      { kind: 'poison_enemy_pool', damagePerSec: 20 },
+      { kind: 'slow_enemy_pool', percent: 10 },
     ],
   },
   {
@@ -257,8 +256,8 @@ const raw: AugmentDef[] = [
     icon: '🥾',
     description: 'Spowalnia wroga o 12% i osłabia jego obrażenia o 6%.',
     effects: [
-      { kind: 'slow_enemy_team_attack_speed', percent: 12 },
-      { kind: 'weaken_enemy_team_attack', percent: 6 },
+      { kind: 'slow_enemy_pool', percent: 12 },
+      { kind: 'weaken_enemy_pool', percent: 6 },
     ],
   },
   {
@@ -266,10 +265,10 @@ const raw: AugmentDef[] = [
     name: 'Korozja',
     tier: 'silver',
     icon: '🧪',
-    description: 'Osłabia obrażenia wroga o 12% i zatruwa go na 5 obrażeń na sekundę.',
+    description: 'Osłabia obrażenia wroga o 12% i zatruwa go na 16 obrażeń na sekundę.',
     effects: [
-      { kind: 'weaken_enemy_team_attack', percent: 12 },
-      { kind: 'poison_enemy_pool', damagePerSec: 5 },
+      { kind: 'weaken_enemy_pool', percent: 12 },
+      { kind: 'poison_enemy_pool', damagePerSec: 16 },
     ],
   },
   {
@@ -344,10 +343,10 @@ const raw: AugmentDef[] = [
     name: 'Rozłupanie',
     tier: 'silver',
     icon: '🪨',
-    description: 'Wróg otrzymuje +8% obrażeń ze wszystkich źródeł i jest zatruty na 4 obrażenia na sekundę.',
+    description: 'Wróg otrzymuje +8% obrażeń ze wszystkich źródeł i jest zatruty na 12 obrażeń na sekundę.',
     effects: [
       { kind: 'fragility_enemy_pool', percent: 8 },
-      { kind: 'poison_enemy_pool', damagePerSec: 4 },
+      { kind: 'poison_enemy_pool', damagePerSec: 12 },
     ],
   },
   {
@@ -410,7 +409,7 @@ const raw: AugmentDef[] = [
     description: 'Wszystkie jednostki zadają dodatkowy cios za 20% obrażeń, a ich podstawowy atak zyskuje +6% obrażeń.',
     effects: [
       { kind: 'multicast_team', extraHits: 1, extraHitPercent: 20 },
-      { kind: 'buff_team_attack', percent: 6 },
+      { kind: 'strength_stacks_own_pool', stacks: 6 },
     ],
   },
   {
@@ -428,7 +427,7 @@ const raw: AugmentDef[] = [
     icon: '⚖️',
     description: 'Wszystkie jednostki zadają +20% obrażeń, ale drużyna zyskuje o 10% mniej tarczy z każdego źródła.',
     effects: [
-      { kind: 'buff_team_attack', percent: 20 },
+      { kind: 'strength_stacks_own_pool', stacks: 20 },
       { kind: 'reduce_own_shield_gain', percent: 10 },
     ],
   },
@@ -451,8 +450,8 @@ const raw: AugmentDef[] = [
     icon: '🪓',
     description: 'Wszystkie jednostki zadają +18% obrażeń i atakują o 10% szybciej.',
     effects: [
-      { kind: 'buff_team_attack', percent: 18 },
-      { kind: 'buff_team_attack_speed', percent: 10 },
+      { kind: 'strength_stacks_own_pool', stacks: 18 },
+      { kind: 'haste_stacks_own_pool', stacks: 10 },
     ],
   },
   {
@@ -464,8 +463,8 @@ const raw: AugmentDef[] = [
     // (two log events) instead of one bigger buff.
     description: 'Wszystkie jednostki dostają dwie fale Przyspieszenia: +13%, po chwili kolejne +13%.',
     effects: [
-      { kind: 'buff_team_attack_speed', percent: 13 },
-      { kind: 'buff_team_attack_speed', percent: 13 },
+      { kind: 'haste_stacks_own_pool', stacks: 13 },
+      { kind: 'haste_stacks_own_pool', stacks: 13 },
     ],
   },
   {
@@ -487,7 +486,7 @@ const raw: AugmentDef[] = [
     description: 'Drużyna okopuje się na lodzie (tarcza 40), a wróg grzęźnie — atakuje o 18% wolniej.',
     effects: [
       { kind: 'shield_own_pool', amount: 40 },
-      { kind: 'slow_enemy_team_attack_speed', percent: 18 },
+      { kind: 'slow_enemy_pool', percent: 18 },
     ],
   },
   {
@@ -495,11 +494,11 @@ const raw: AugmentDef[] = [
     name: 'Zaraza',
     tier: 'gold',
     icon: '🦠',
-    description: 'Pełna zaraza: zatruwa wroga na 10 obrażeń/s, spowalnia go o 10% i osłabia jego obrażenia o 10%.',
+    description: 'Pełna zaraza: zatruwa wroga na 30 obrażeń/s, spowalnia go o 10% i osłabia jego obrażenia o 10%.',
     effects: [
-      { kind: 'poison_enemy_pool', damagePerSec: 10 },
-      { kind: 'slow_enemy_team_attack_speed', percent: 10 },
-      { kind: 'weaken_enemy_team_attack', percent: 10 },
+      { kind: 'poison_enemy_pool', damagePerSec: 30 },
+      { kind: 'slow_enemy_pool', percent: 10 },
+      { kind: 'weaken_enemy_pool', percent: 10 },
     ],
   },
   {
@@ -509,8 +508,8 @@ const raw: AugmentDef[] = [
     icon: '💥',
     description: 'Łamie obronę wroga (-20% obrażeń) i hartuje własną drużynę (+10% obrażeń).',
     effects: [
-      { kind: 'weaken_enemy_team_attack', percent: 20 },
-      { kind: 'buff_team_attack', percent: 10 },
+      { kind: 'weaken_enemy_pool', percent: 20 },
+      { kind: 'strength_stacks_own_pool', stacks: 10 },
     ],
   },
   {
@@ -555,8 +554,8 @@ const raw: AugmentDef[] = [
     icon: '👑',
     description: 'Natychmiast dołącza Fiko do ławki. Drużyna zyskuje +8% obrażeń i +8% Przyspieszenia.',
     effects: [
-      { kind: 'buff_team_attack', percent: 8 },
-      { kind: 'buff_team_attack_speed', percent: 8 },
+      { kind: 'strength_stacks_own_pool', stacks: 8 },
+      { kind: 'haste_stacks_own_pool', stacks: 8 },
     ],
     grantUnitId: 'fiko',
   },

@@ -12,8 +12,11 @@ export const TeamPoolStateSchema = z.object({
   hpMax: z.number().positive(),
   hpCurrent: z.number(),
   shield: z.number().nonnegative().default(0),
+  poisonDamagePerSec: z.number().nonnegative().default(0),
   // 1 stack = 1% — see ability.ts's haste_stacks_own_pool / dodge_stacks_own_pool.
   hasteStacks: z.number().nonnegative().default(0),
+  slowPercent: z.number().nonnegative().default(0),
+  weakenPercent: z.number().nonnegative().default(0),
   dodgeStacks: z.number().nonnegative().default(0),
   // % more damage taken (kruchość) / % of own HP loss reflected (kolce).
   fragilityPercent: z.number().nonnegative().default(0),
@@ -100,6 +103,16 @@ export const CombatEventSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     ...baseEventFields,
+    type: z.literal('team_pool_poison_changed'),
+    side: SideSchema,
+    // Signed delta; negative is a cleanse. `total` is the current DPS after
+    // the change, matching team_pool_stat_applied's replay contract.
+    amount: z.number(),
+    total: z.number().nonnegative(),
+    sourceInstanceId: z.string().optional(),
+  }),
+  z.object({
+    ...baseEventFields,
     type: z.literal('ability_triggered'),
     instanceId: z.string(),
     abilityId: z.string(),
@@ -122,7 +135,7 @@ export const CombatEventSchema = z.discriminatedUnion('type', [
     ...baseEventFields,
     type: z.literal('team_pool_stat_applied'),
     side: SideSchema,
-    stat: z.enum(['strength', 'haste', 'dodge', 'fragility', 'thorns', 'execution', 'vampirism']),
+    stat: z.enum(['strength', 'haste', 'slow', 'weaken', 'dodge', 'fragility', 'thorns', 'execution', 'vampirism']),
     amount: z.number(),
     total: z.number(),
     sourceInstanceId: z.string().optional(),
