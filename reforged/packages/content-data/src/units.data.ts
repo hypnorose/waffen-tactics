@@ -249,7 +249,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/fallensmok.png",
     "baseStats": {
       "attack": 40,
-      "attacksPerSecond": 0.2
+      "attacksPerSecond": 0.4
     }
   },
   {
@@ -402,7 +402,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/knauff.png",
     "baseStats": {
       "attack": 60,
-      "attacksPerSecond": 0.1666667
+      "attacksPerSecond": 0.3333334
     }
   },
   {

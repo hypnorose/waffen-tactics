@@ -60,9 +60,9 @@ describe('content-data', () => {
     expect(abilities.filter((ability) => ability.trigger === 'low_team_hp')).toHaveLength(0);
     expect(getUnitDefs().galanonim.baseStats.attacksPerSecond).toBe(0.2);
     expect(getUnitDefs().bbobel.baseStats.attacksPerSecond).toBe(0.2);
-    expect(getUnitDefs().fallensmokk.baseStats.attacksPerSecond).toBe(0.2);
+    expect(getUnitDefs().fallensmokk.baseStats.attacksPerSecond).toBe(0.4);
     expect(getUnitDefs().klemens_zydoslawski.baseStats.attacksPerSecond).toBeCloseTo(1 / 6, 6);
-    expect(getUnitDefs().knauff.baseStats.attacksPerSecond).toBeCloseTo(1 / 6, 6);
+    expect(getUnitDefs().knauff.baseStats.attacksPerSecond).toBeCloseTo(1 / 3, 6);
     expect(getUnitDefs().empty_melancholy.baseStats.attacksPerSecond).toBeCloseTo(1 / 6, 6);
     expect(getUnitDefs().nicosc.baseStats.attacksPerSecond).toBe(0.125);
   });
