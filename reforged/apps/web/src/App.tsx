@@ -32,9 +32,9 @@ export function App() {
   return (
     <div className="app-shell">
       <PlayerHeader profile={profile} run={run} />
+      <LeaderboardPanel currentUsername={profile.username} />
       <div className="app-main-layout">
         <Run />
-        <LeaderboardPanel currentUsername={profile.username} />
       </div>
     </div>
   );

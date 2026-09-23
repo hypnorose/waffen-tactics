@@ -246,15 +246,36 @@ button.active {
   gap: 1rem;
 }
 .app-main-layout {
+  display: block;
+}
+.leaderboard-launcher {
+  display: flex;
+  justify-content: flex-end;
+}
+.leaderboard-toggle {
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  color: var(--text);
+  font-weight: 700;
+}
+.leaderboard-toggle:hover,
+.leaderboard-toggle:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 22%, var(--panel));
+}
+.leaderboard-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
-  align-items: start;
-  gap: 1rem;
+  place-items: center;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  background: rgba(4, 6, 12, 0.72);
 }
 .leaderboard-panel {
-  position: sticky;
-  top: 1rem;
-  max-height: calc(100vh - 2rem);
+  width: min(440px, 100%);
+  max-height: min(720px, calc(100vh - 2rem));
   overflow: auto;
   padding: 1rem;
   background: var(--panel);
@@ -269,6 +290,25 @@ button.active {
   gap: 0.75rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border);
+}
+.leaderboard-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.leaderboard-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.leaderboard-close:hover,
+.leaderboard-close:focus-visible {
+  border-color: var(--accent);
+  color: var(--text);
 }
 .leaderboard-heading h2 {
   margin: 0;
@@ -378,12 +418,8 @@ button.active {
 }
 
 @media (max-width: 960px) {
-  .app-main-layout {
-    grid-template-columns: 1fr;
-  }
   .leaderboard-panel {
-    position: static;
-    max-height: none;
+    max-height: calc(100vh - 2rem);
   }
 }
 

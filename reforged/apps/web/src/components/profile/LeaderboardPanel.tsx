@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { LeaderboardEntry } from '@reforged/schema';
 import { api } from '../../services/api.js';
 import { RankBadge } from './RankBadge.js';
@@ -19,9 +19,12 @@ function avatarFallback(username: string): string {
 }
 
 export function LeaderboardPanel({ currentUsername }: Props) {
+  const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   async function loadLeaderboard() {
     setLoading(true);
@@ -39,14 +42,63 @@ export function LeaderboardPanel({ currentUsername }: Props) {
     void loadLeaderboard();
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    closeRef.current?.focus();
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   return (
-    <aside className="leaderboard-panel" aria-labelledby="leaderboard-title" aria-busy={loading}>
+    <>
+      <div className="leaderboard-launcher">
+        <button
+          ref={triggerRef}
+          type="button"
+          className="leaderboard-toggle"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen(true)}
+        >
+          🏆 Ranking graczy
+        </button>
+      </div>
+
+      {open && (
+        <div className="leaderboard-modal-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
+          <section
+            className="leaderboard-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="leaderboard-title"
+            aria-busy={loading}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
       <div className="leaderboard-heading">
         <div>
           <h2 id="leaderboard-title">Ranking graczy</h2>
           <p>Top 20 według ELO</p>
         </div>
-        <span className="leaderboard-live-dot" title="Ranking pobierany na żywo" aria-label="Ranking pobierany na żywo" />
+        <div className="leaderboard-heading-actions">
+          <span className="leaderboard-live-dot" title="Ranking pobierany na żywo" aria-label="Ranking pobierany na żywo" />
+          <button
+            ref={closeRef}
+            type="button"
+            className="leaderboard-close"
+            aria-label="Zamknij ranking"
+            onClick={() => setOpen(false)}
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       {loading && <p className="leaderboard-message">Ładowanie rankingu...</p>}
@@ -86,6 +138,9 @@ export function LeaderboardPanel({ currentUsername }: Props) {
           })}
         </ol>
       )}
-    </aside>
+          </section>
+        </div>
+      )}
+    </>
   );
 }
