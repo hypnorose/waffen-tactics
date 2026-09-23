@@ -1,3 +1,8 @@
+/**
+ * Balance pass: direct-damage carries use a cost-aware DPS budget instead of
+ * repeating the same 60 / 1.2 profile in every shop tier. Cost 4-5 units can
+ * therefore spend more of their budget on effects, support, and team HP.
+ */
 export const unitsData = [
   {
     "id": "anamol04",
@@ -25,7 +30,7 @@ export const unitsData = [
     "emoji": "🗡️",
     "avatar": "/avatars/set2/fiko.png",
     "baseStats": {
-      "attack": 60,
+      "attack": 50,
       "attacksPerSecond": 1.2
     }
   },
@@ -79,7 +84,7 @@ export const unitsData = [
     "emoji": "🔪",
     "avatar": "/avatars/set2/yossarian.png",
     "baseStats": {
-      "attack": 60,
+      "attack": 55,
       "attacksPerSecond": 1.2
     }
   },
@@ -135,7 +140,7 @@ export const unitsData = [
     "emoji": "🎯",
     "avatar": "/avatars/set2/alyson.jpg",
     "baseStats": {
-      "attack": 60,
+      "attack": 50,
       "attacksPerSecond": 1.2
     }
   },
@@ -149,7 +154,7 @@ export const unitsData = [
     "emoji": "💫",
     "avatar": "/avatars/set2/skibidi.png",
     "baseStats": {
-      "attack": 60,
+      "attack": 40,
       "attacksPerSecond": 1.2
     }
   },
@@ -219,7 +224,7 @@ export const unitsData = [
     "emoji": "⚡",
     "avatar": "/avatars/set2/marcek_heban-avatar-1024.png",
     "baseStats": {
-      "attack": 60,
+      "attack": 50,
       "attacksPerSecond": 1.2
     }
   },
@@ -241,7 +246,7 @@ export const unitsData = [
   {
     "id": "fallensmokk",
     "name": "FallenSmokk",
-    "cost": 2,
+    "cost": 4,
     "tags": [
       "nowociota"
     ],
@@ -318,7 +323,7 @@ export const unitsData = [
     "emoji": "🍃",
     "avatar": "/avatars/set2/xkuba.h-avatar-1024.png",
     "baseStats": {
-      "attack": 60,
+      "attack": 55,
       "attacksPerSecond": 1.2
     }
   },
@@ -327,7 +332,8 @@ export const unitsData = [
     "name": "boczek",
     "cost": 1,
     "tags": [
-      "konfident"
+      "konfident",
+      "srebrna-gwardia"
     ],
     "emoji": "💥",
     "avatar": "/avatars/set2/vmwu-avatar-1024.png",
@@ -346,14 +352,14 @@ export const unitsData = [
     "emoji": "🔫",
     "avatar": "/avatars/set2/nos.gov-avatar-1024.png",
     "baseStats": {
-      "attack": 60,
+      "attack": 50,
       "attacksPerSecond": 1.2
     }
   },
   {
     "id": "marcel_galadotka",
     "name": "Marcel Galadotka",
-    "cost": 2,
+    "cost": 5,
     "tags": [
       "nowociota"
     ],
@@ -422,7 +428,7 @@ export const unitsData = [
   {
     "id": "szachowymentor",
     "name": "SzachowyMentor",
-    "cost": 5,
+    "cost": 4,
     "tags": [
       "szachista"
     ],
@@ -443,7 +449,7 @@ export const unitsData = [
     "emoji": "✨",
     "avatar": "/avatars/set2/9wojtaz9.png",
     "baseStats": {
-      "attack": 60,
+      "attack": 40,
       "attacksPerSecond": 1.2
     }
   }

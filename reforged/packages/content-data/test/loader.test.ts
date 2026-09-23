@@ -94,6 +94,41 @@ describe('content-data', () => {
     expect(getUnitDefs().nicosc.baseStats.attacksPerSecond).toBe(0.125);
   });
 
+  it('keeps direct-damage carries on a cost-aware DPS budget', () => {
+    const units = getUnitDefs();
+    const dps = (unitId: string) => {
+      const stats = units[unitId].baseStats;
+      return (stats.attack ?? 0) * (stats.attacksPerSecond ?? 0);
+    };
+
+    expect(dps('skibidi_kubus')).toBeCloseTo(48, 6);
+    expect(dps('9wojtaz9')).toBeCloseTo(48, 6);
+    expect(dps('kotmarcek')).toBeCloseTo(60, 6);
+    expect(dps('jadlainwestycji')).toBeCloseTo(66, 6);
+    expect(dps('yossarian')).toBeCloseTo(66, 6);
+    expect(dps('alyson_stark')).toBeCloseTo(60, 6);
+    expect(dps('fiko')).toBeCloseTo(60, 6);
+    expect(dps('merex')).toBeCloseTo(60, 6);
+  });
+
+  it('keeps tag availability distributed across the shop cost curve', () => {
+    const costsByTag = new Map<string, Set<number>>();
+    for (const unit of getUnitList()) {
+      for (const tag of unit.tags) {
+        const costs = costsByTag.get(tag) ?? new Set<number>();
+        costs.add(unit.cost);
+        costsByTag.set(tag, costs);
+      }
+    }
+
+    expect([...costsByTag.get('figlarz')!].sort()).toEqual([1, 2, 3, 4, 5]);
+    expect([...costsByTag.get('konfident')!].sort()).toEqual([1, 2, 3, 4, 5]);
+    expect([...costsByTag.get('nowociota')!].sort()).toEqual([1, 2, 3, 4, 5]);
+    expect([...costsByTag.get('srebrna-gwardia')!].sort()).toEqual([1, 3, 4]);
+    expect([...costsByTag.get('starociota')!].sort()).toEqual([1, 3, 4, 5]);
+    expect([...costsByTag.get('szachista')!].sort()).toEqual([1, 2, 4]);
+  });
+
   it('describes on_trigger effects as activations, without exposing their cooldown', () => {
     const abilities = getUnitList().flatMap((unit) => unit.onTrigger ?? []);
     expect(abilities.length).toBeGreaterThan(0);
