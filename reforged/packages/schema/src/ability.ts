@@ -236,6 +236,10 @@ export const AbilitySchema = z
     hpThresholdPercent: z.number().min(0).max(1).optional(),
     effect: AbilityEffectSchema,
     description: z.string(),
+    // Some team-wide opening passives are authored once per unit copy but
+    // should only register once for a side. Omitted means the historical
+    // stacking behavior remains unchanged.
+    duplicatePolicy: z.enum(['stack', 'unique_per_side']).optional(),
   })
   .refine((ability) => ability.trigger !== 'low_team_hp' || ability.hpThresholdPercent !== undefined, {
     message: 'low_team_hp abilities require hpThresholdPercent',

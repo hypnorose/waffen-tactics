@@ -54,7 +54,10 @@ const MAX_EXECUTION_STACKS = 30;
 // execution_empower_enemy_pool augment picked) this caps out at a fraction
 // of any real team pool's size.
 const MAX_EXECUTION_HP_THRESHOLD = 20;
-const MAX_MULTICAST_EXTRA_HITS = 5;
+// Multicast is a strong team-wide payoff; keep duplicate Starociota copies
+// from turning it into an unbounded burst while preserving three extra hits
+// as a meaningful cap for a fully assembled board.
+const MAX_MULTICAST_EXTRA_HITS = 3;
 const MAX_SHRED_ON_HIT_STACKS = 10;
 const EXECUTION_DEFAULT_HP_THRESHOLD = 3; // absolute HP, not a percentage
 const EXECUTION_DEFAULT_STACKS_REQUIRED = 10;
@@ -799,12 +802,11 @@ export function runCombat(input: RunCombatInput): CombatLog {
         }
         break;
       case 'multicast_team_per_unique_unit': {
-        const uniqueUnitCount = new Set(units.filter((ally) => ally.side === side).map((ally) => ally.unitId)).size;
-        for (const ally of units) {
-          if (ally.side === side && hasAnyTag(ally, effect.tagFilter)) {
-            ally.multicastExtraHits = Math.min(MAX_MULTICAST_EXTRA_HITS, ally.multicastExtraHits + uniqueUnitCount);
-            ally.multicastExtraHitPercent = Math.max(ally.multicastExtraHitPercent, effect.extraHitPercent);
-          }
+        const eligibleAllies = units.filter((ally) => ally.side === side && hasAnyTag(ally, effect.tagFilter));
+        const uniqueEligibleUnitCount = new Set(eligibleAllies.map((ally) => ally.unitId)).size;
+        for (const ally of eligibleAllies) {
+          ally.multicastExtraHits = Math.min(MAX_MULTICAST_EXTRA_HITS, ally.multicastExtraHits + uniqueEligibleUnitCount);
+          ally.multicastExtraHitPercent = Math.max(ally.multicastExtraHitPercent, effect.extraHitPercent);
         }
         break;
       }
@@ -850,8 +852,14 @@ export function runCombat(input: RunCombatInput): CombatLog {
   }
   log.push({ simTime: 0, type: 'start' });
 
+  const startedUniquePerSideAbilities = new Set<string>();
   for (const unit of units) {
     for (const ability of unit.startOfCombatAbilities) {
+      if (ability.duplicatePolicy === 'unique_per_side') {
+        const sideAbilityKey = `${unit.side}:${ability.id}`;
+        if (startedUniquePerSideAbilities.has(sideAbilityKey)) continue;
+        startedUniquePerSideAbilities.add(sideAbilityKey);
+      }
       triggerAbility(unit, ability, 0);
     }
   }

@@ -73,7 +73,13 @@ function regenOpening(id: string, amountPerSec: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'regen_own_pool', amountPerSec }, description: desc };
 }
 function multicastPerUniqueUnitOpening(id: string, extraHitPercent: number, tagFilter: string[], desc: string): Ability {
-  return { id, trigger: 'start_of_combat', effect: { kind: 'multicast_team_per_unique_unit', extraHitPercent, tagFilter }, description: desc };
+  return {
+    id,
+    trigger: 'start_of_combat',
+    effect: { kind: 'multicast_team_per_unique_unit', extraHitPercent, tagFilter },
+    description: desc,
+    duplicatePolicy: 'unique_per_side',
+  };
 }
 function slowOpening(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'slow_enemy_pool', percent }, description: desc };
@@ -150,7 +156,13 @@ function vampirismOpening(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'vampirism_stacks_own_pool', stacks: percent }, description: desc };
 }
 function executionMarksOnHitOpening(id: string, stacks: number, desc: string): Ability {
-  return { id, trigger: 'start_of_combat', effect: { kind: 'execution_mark_on_hit_team', stacks }, description: desc };
+  return {
+    id,
+    trigger: 'start_of_combat',
+    effect: { kind: 'execution_mark_on_hit_team', stacks },
+    description: desc,
+    duplicatePolicy: 'unique_per_side',
+  };
 }
 
 export const unitOverrides: Record<string, UnitOverride> = {
@@ -296,7 +308,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
         'merex.veteran_multicast',
         20,
         ['starociota'],
-        'Każdy Starociota zyskuje 1 dodatkowe uderzenie za każdą unikalną jednostkę na własnej planszy; każde zadaje 20% obrażeń.',
+        'Każdy unikalny Starociota daje Starociotom 1 dodatkowe uderzenie (maks. 3); każde zadaje 20% obrażeń.',
       ),
     ],
   },

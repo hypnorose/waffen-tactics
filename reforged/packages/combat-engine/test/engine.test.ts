@@ -257,7 +257,7 @@ describe('runCombat', () => {
     expect(log.events.some((event) => event.type === 'team_pool_heal' && event.side === 'player' && event.amount === 4)).toBe(true);
   });
 
-  it('gives each unique ally one multicast hit per unique unit on the board', () => {
+  it('counts unique Starociota units for multicast and deduplicates duplicate opening passives', () => {
     const starociotaCaster: UnitDef = {
       id: 'starociota-caster',
       name: 'Starociota Caster',
@@ -270,9 +270,10 @@ describe('runCombat', () => {
         trigger: 'start_of_combat',
         effect: { kind: 'multicast_team_per_unique_unit', extraHitPercent: 20, tagFilter: ['starociota'] },
         description: 'test',
+        duplicatePolicy: 'unique_per_side',
       }],
     };
-    const secondStarociota: UnitDef = { ...starociotaCaster, id: 'second-starociota', name: 'Second Starociota', startOfCombat: undefined };
+    const secondStarociota: UnitDef = { ...starociotaCaster, id: 'second-starociota', name: 'Second Starociota' };
     const uniqueAlly: UnitDef = { ...skirmisher, id: 'unique-ally', tags: ['support'] };
     const log = runCombat({
       combatId: 'c-unique-multicast',
@@ -290,7 +291,63 @@ describe('runCombat', () => {
       unitDefs: { ...unitDefs, [starociotaCaster.id]: starociotaCaster, [secondStarociota.id]: secondStarociota, [uniqueAlly.id]: uniqueAlly },
       timeoutSec: 1.1,
     });
-    expect(log.events.filter((event) => event.type === 'unit_attack_fired' && event.instanceId === 'p-caster' && event.multicast)).toHaveLength(3);
+    expect(log.events.filter((event) => event.type === 'unit_attack_fired' && event.instanceId === 'p-caster' && event.multicast)).toHaveLength(2);
+  });
+
+  it('caps multicast from a fully assembled Starociota board at three extra hits', () => {
+    const multicastSource: UnitDef = {
+      id: 'multicast-source',
+      name: 'Multicast Source',
+      cost: 5,
+      tags: ['starociota'],
+      emoji: '🎯',
+      baseStats: { attack: 10, attacksPerSecond: 1 },
+      startOfCombat: [{
+        id: 'multicast-source.opening',
+        trigger: 'start_of_combat',
+        effect: { kind: 'multicast_team_per_unique_unit', extraHitPercent: 20, tagFilter: ['starociota'] },
+        description: 'test',
+        duplicatePolicy: 'unique_per_side',
+      }],
+    };
+    const starociotaUnit = (id: string): UnitDef => ({
+      id,
+      name: id,
+      cost: 1,
+      tags: ['starociota'],
+      emoji: '⭐',
+      baseStats: {},
+    });
+    const starociotaOne = starociotaUnit('starociota-one');
+    const starociotaTwo = starociotaUnit('starociota-two');
+    const starociotaThree = starociotaUnit('starociota-three');
+    const starociotaFour = starociotaUnit('starociota-four');
+    const log = runCombat({
+      combatId: 'c-multicast-cap',
+      seed: 35,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [
+          { instanceId: 'p-source', unitId: multicastSource.id, position: { row: 0, col: 0 } },
+          { instanceId: 'p-one', unitId: starociotaOne.id, position: { row: 0, col: 1 } },
+          { instanceId: 'p-two', unitId: starociotaTwo.id, position: { row: 1, col: 0 } },
+          { instanceId: 'p-three', unitId: starociotaThree.id, position: { row: 1, col: 1 } },
+          { instanceId: 'p-four', unitId: starociotaFour.id, position: { row: 2, col: 0 } },
+        ],
+      },
+      enemy: { side: 'enemy', hpMax: 500, units: [] },
+      unitDefs: {
+        ...unitDefs,
+        [multicastSource.id]: multicastSource,
+        [starociotaOne.id]: starociotaOne,
+        [starociotaTwo.id]: starociotaTwo,
+        [starociotaThree.id]: starociotaThree,
+        [starociotaFour.id]: starociotaFour,
+      },
+      timeoutSec: 1.1,
+    });
+    expect(log.events.filter((event) => event.type === 'unit_attack_fired' && event.instanceId === 'p-source' && event.multicast)).toHaveLength(3);
   });
 
   it('doubles each adjacent figlarz ability trigger without affecting other units', () => {
