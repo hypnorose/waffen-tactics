@@ -744,4 +744,124 @@ describe('runCombat', () => {
     expect(log.events.some((event) => event.type === 'team_pool_damage' && event.sourceInstanceId === 'p-payoff' && event.amount === 10)).toBe(true);
     expect(log.events.some((event) => event.type === 'team_pool_stat_applied' && event.side === 'enemy' && event.stat === 'execution' && event.amount === 1)).toBe(true);
   });
+
+  it('applies team Strength as visible stacks and attack power', () => {
+    const strengthUnit: UnitDef = {
+      id: 'strength_unit',
+      name: 'Strength Unit',
+      cost: 3,
+      tags: ['nowociota'],
+      emoji: '💪',
+      baseStats: { attack: 10, attacksPerSecond: 1 },
+      startOfCombat: [{
+        id: 'strength_unit.rally',
+        trigger: 'start_of_combat',
+        effect: { kind: 'strength_stacks_own_pool', stacks: 5 },
+        description: 'test',
+      }],
+    };
+    const log = runCombat({
+      combatId: 'c-strength',
+      seed: 43,
+      player: { side: 'player', hpMax: 500, units: [{ instanceId: 'p-strength', unitId: strengthUnit.id, position: { row: 0, col: 0 } }] },
+      enemy: { side: 'enemy', hpMax: 500, units: [] },
+      unitDefs: { [strengthUnit.id]: strengthUnit },
+      timeoutSec: 1.1,
+    });
+    expect(log.events).toContainEqual(expect.objectContaining({ type: 'team_pool_stat_applied', side: 'player', stat: 'strength', amount: 5, total: 5 }));
+    expect(log.events).toContainEqual(expect.objectContaining({ type: 'team_pool_damage', side: 'enemy', amount: 10.5, sourceInstanceId: 'p-strength' }));
+  });
+
+  it('resolves Nowociota adjacency and cross Strength bonuses', () => {
+    const neighborScaler: UnitDef = {
+      id: 'neighbor_scaler',
+      name: 'Neighbor Scaler',
+      cost: 2,
+      tags: ['nowociota'],
+      emoji: '🌈',
+      baseStats: { attack: 10 },
+      positionalBonus: {
+        id: 'neighbor_scaler.adjacency',
+        shape: 'adjacent',
+        tagFilter: ['nowociota'],
+        effect: { kind: 'grant_strength_per_adjacent_ally', stacksPerAlly: 10, maxStacks: 30 },
+        description: 'test',
+      },
+    };
+    const crossBuffer: UnitDef = {
+      id: 'cross_buffer',
+      name: 'Cross Buffer',
+      cost: 1,
+      tags: ['nowociota'],
+      emoji: '➕',
+      baseStats: {},
+      positionalBonus: {
+        id: 'cross_buffer.strength',
+        shape: 'cross',
+        tagFilter: ['nowociota'],
+        effect: { kind: 'grant_strength_stacks', stacks: 10 },
+        description: 'test',
+      },
+    };
+    const target: UnitDef = { ...skirmisher, id: 'nowociota_target', tags: ['nowociota'] };
+    const diagonal: UnitDef = { ...skirmisher, id: 'nowociota_diagonal', tags: ['nowociota'] };
+    const log = runCombat({
+      combatId: 'c-nowociota-position',
+      seed: 44,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [
+          { instanceId: 'p-scaler', unitId: neighborScaler.id, position: { row: 2, col: 2 } },
+          { instanceId: 'p-target', unitId: target.id, position: { row: 2, col: 1 } },
+          { instanceId: 'p-neighbor', unitId: target.id, position: { row: 1, col: 2 } },
+          { instanceId: 'p-cross', unitId: crossBuffer.id, position: { row: 0, col: 0 } },
+          { instanceId: 'p-cross-target', unitId: target.id, position: { row: 0, col: 1 } },
+          { instanceId: 'p-diagonal', unitId: diagonal.id, position: { row: 1, col: 1 } },
+        ],
+      },
+      enemy: { side: 'enemy', hpMax: 500, units: [] },
+      unitDefs: { [neighborScaler.id]: neighborScaler, [crossBuffer.id]: crossBuffer, [target.id]: target, [diagonal.id]: diagonal },
+      timeoutSec: 0.1,
+    });
+    expect(log.events).toContainEqual(expect.objectContaining({ type: 'unit_buff_applied', instanceId: 'p-scaler', stat: 'strength', percent: 30 }));
+    expect(log.events).toContainEqual(expect.objectContaining({ type: 'unit_buff_applied', instanceId: 'p-cross-target', stat: 'strength', percent: 10 }));
+    expect(log.events).not.toContainEqual(expect.objectContaining({ type: 'unit_buff_applied', instanceId: 'p-diagonal', stat: 'strength', percent: 10 }));
+  });
+
+  it('keeps Marcel-style random opening buffs free of opening damage', () => {
+    const marcel: UnitDef = {
+      id: 'marcel_test',
+      name: 'Marcel Test',
+      cost: 2,
+      tags: ['nowociota'],
+      emoji: '💎',
+      baseStats: { attack: 30 },
+      startOfCombat: [{
+        id: 'marcel_test.roulette',
+        trigger: 'start_of_combat',
+        effect: {
+          kind: 'random_team_buff',
+          options: [
+            { kind: 'strength', stacks: 8 },
+            { kind: 'haste', stacks: 10 },
+            { kind: 'dodge', stacks: 6 },
+            { kind: 'vampirism', stacks: 5 },
+            { kind: 'shield', amount: 6 },
+          ],
+        },
+        description: 'test',
+      }],
+    };
+    const log = runCombat({
+      combatId: 'c-marcel-opening',
+      seed: 45,
+      player: { side: 'player', hpMax: 500, units: [{ instanceId: 'p-marcel', unitId: marcel.id, position: { row: 0, col: 0 } }] },
+      enemy: { side: 'enemy', hpMax: 500, units: [] },
+      unitDefs: { [marcel.id]: marcel },
+      timeoutSec: 0.1,
+    });
+    expect(log.events.some((event) => event.type === 'team_pool_damage' && event.side === 'enemy')).toBe(false);
+    expect(log.events.some((event) => event.type === 'team_pool_stat_applied' || event.type === 'team_pool_shield_applied')).toBe(true);
+  });
 });

@@ -37,6 +37,7 @@ export interface RunCombatInput {
 const MAX_HASTE_PERCENT = 100; // per-unit attackSpeedBonusPercent ceiling (positional/self buffs)
 const MAX_SLOW_PERCENT = 80;
 const MAX_ATTACK_BUFF_PERCENT = 200;
+const MAX_STRENGTH_STACKS = 200;
 const MAX_WEAKEN_PERCENT = 80;
 const MAX_POISON_DPS = 40;
 const MAX_REGEN_PER_SEC = 30;
@@ -83,6 +84,7 @@ interface RuntimeUnit {
   position: BoardPosition;
   baseAttackDamage: number; // 0 = no attack stat
   attackDamageBonusPercent: number; // additive, clamped [-MAX_WEAKEN_PERCENT, MAX_ATTACK_BUFF_PERCENT]
+  strengthStacks: number; // personal positional Strength, 1 stack = 1% attack
   baseAttackIntervalSec: number | null; // null = no attacksPerSecond stat, never acts on a cadence
   attackSpeedBonusPercent: number; // per-unit additive, clamped [-MAX_SLOW_PERCENT, MAX_HASTE_PERCENT]
   attackDamage: number; // derived from base + bonus
@@ -106,7 +108,7 @@ interface RuntimeUnit {
 }
 
 function recomputeDerivedStats(u: RuntimeUnit, pool: Pool): void {
-  u.attackDamage = u.baseAttackDamage * (1 + u.attackDamageBonusPercent / 100);
+  u.attackDamage = u.baseAttackDamage * (1 + (u.attackDamageBonusPercent + u.strengthStacks + pool.strengthStacks) / 100);
   if (u.baseAttackIntervalSec === null) {
     u.attackIntervalSec = null;
     return;
@@ -125,6 +127,7 @@ interface Pool {
   lastPoisonTickAt: number;
   regenPerSec: number;
   lastRegenTickAt: number;
+  strengthStacks: number; // 1 stack = 1% attack, team-wide
   hasteStacks: number; // 1 stack = 1% attack speed, team-wide
   dodgeStacks: number; // 1 stack = 1% chance to fully negate an incoming hit
   fragilityPercent: number; // % more damage taken from every source
@@ -150,6 +153,7 @@ function makePool(hpMax: number): Pool {
     lastPoisonTickAt: 0,
     regenPerSec: 0,
     lastRegenTickAt: 0,
+    strengthStacks: 0,
     hasteStacks: 0,
     dodgeStacks: 0,
     fragilityPercent: 0,
@@ -225,6 +229,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         triggerMultiplier: 1,
         slowOnAttackPercent: 0,
         shieldOnTriggerAmount: 0,
+        strengthStacks: 0,
         appliedBonusIds: [],
       };
       const unit: RuntimeUnit = {
@@ -234,6 +239,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
         position: p.position,
         baseAttackDamage: def.baseStats.attack ?? 0,
         attackDamageBonusPercent: clamp(mod.attackPercent, -MAX_WEAKEN_PERCENT, MAX_ATTACK_BUFF_PERCENT),
+        strengthStacks: Math.min(MAX_STRENGTH_STACKS, mod.strengthStacks),
         baseAttackIntervalSec: def.baseStats.attacksPerSecond ? 1 / def.baseStats.attacksPerSecond : null,
         attackSpeedBonusPercent: clamp(mod.attackSpeedPercent, -MAX_SLOW_PERCENT, MAX_HASTE_PERCENT),
         attackDamage: 0,
@@ -402,6 +408,16 @@ export function runCombat(input: RunCombatInput): CombatLog {
     pool.hasteStacks = clamp(pool.hasteStacks + stacks, 0, MAX_HASTE_STACKS);
     if (pool.hasteStacks !== before) {
       log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'haste', amount: pool.hasteStacks - before, total: pool.hasteStacks, sourceInstanceId });
+      recomputeAllUnits(side);
+    }
+  }
+
+  function grantStrength(side: Side, stacks: number, sourceInstanceId: string | undefined, simTime: number) {
+    const pool = pools[side];
+    const before = pool.strengthStacks;
+    pool.strengthStacks = clamp(pool.strengthStacks + stacks, 0, MAX_STRENGTH_STACKS);
+    if (pool.strengthStacks !== before) {
+      log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'strength', amount: pool.strengthStacks - before, total: pool.strengthStacks, sourceInstanceId });
       recomputeAllUnits(side);
     }
   }
@@ -630,6 +646,18 @@ export function runCombat(input: RunCombatInput): CombatLog {
       case 'haste_stacks_own_pool':
         grantHaste(side, effect.stacks, sourceInstanceId, simTime);
         break;
+      case 'strength_stacks_own_pool':
+        grantStrength(side, effect.stacks, sourceInstanceId, simTime);
+        break;
+      case 'random_team_buff': {
+        const option = effect.options[Math.floor(rng() * effect.options.length)];
+        if (option.kind === 'strength') grantStrength(side, option.stacks, sourceInstanceId, simTime);
+        else if (option.kind === 'haste') grantHaste(side, option.stacks, sourceInstanceId, simTime);
+        else if (option.kind === 'dodge') grantDodge(side, option.stacks, sourceInstanceId, simTime);
+        else if (option.kind === 'vampirism') grantVampirism(side, option.stacks, sourceInstanceId, simTime);
+        else applyShieldToPool(side, option.amount, sourceInstanceId, simTime);
+        break;
+      }
       case 'damage_enemy_pool_scaled_by_own_haste': {
         const bonus = pools[side].hasteStacks * effect.multiplier;
         if (bonus > 0) applyDamageToPool(otherSide(side), bonus, 'ability', sourceInstanceId, simTime);
@@ -749,6 +777,11 @@ export function runCombat(input: RunCombatInput): CombatLog {
     playerHpMax: pools.player.hpMax,
     enemyHpMax: pools.enemy.hpMax,
   });
+  for (const unit of units) {
+    if (unit.strengthStacks > 0) {
+      log.push({ simTime: 0, type: 'unit_buff_applied', instanceId: unit.instanceId, stat: 'strength', percent: unit.strengthStacks });
+    }
+  }
   log.push({ simTime: 0, type: 'start' });
 
   for (const unit of units) {

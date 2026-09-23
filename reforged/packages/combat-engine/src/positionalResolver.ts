@@ -10,6 +10,8 @@ export interface PositionalModifiers {
   slowOnAttackPercent: number;
   /** Flat shield pulse granted on this unit's own on_trigger cadence. */
   shieldOnTriggerAmount: number;
+  /** Personal Strength stacks from a positional bonus. */
+  strengthStacks: number;
   appliedBonusIds: string[];
 }
 
@@ -40,6 +42,7 @@ export function resolvePositionalBonuses(
       triggerMultiplier: 1,
       slowOnAttackPercent: 0,
       shieldOnTriggerAmount: 0,
+      strengthStacks: 0,
       appliedBonusIds: [],
     };
   }
@@ -57,6 +60,18 @@ export function resolvePositionalBonuses(
       : undefined;
 
     const affectedCells = getAffectedCells(bonus.shape, source.position, board, tagFilterMatches);
+    if (bonus.effect.kind === 'grant_strength_per_adjacent_ally') {
+      const sourceMod = modifiers[source.instanceId];
+      if (sourceMod) {
+        sourceMod.strengthStacks += Math.min(
+          bonus.effect.maxStacks,
+          affectedCells.length * bonus.effect.stacksPerAlly,
+        );
+        if (!sourceMod.appliedBonusIds.includes(bonus.id)) sourceMod.appliedBonusIds.push(bonus.id);
+      }
+      continue;
+    }
+
     for (const cell of affectedCells) {
       const slot = board.find((s) => samePosition(s.position, cell));
       const targetInstanceId = slot?.unitInstanceId;
@@ -69,6 +84,7 @@ export function resolvePositionalBonuses(
       if (bonus.effect.kind === 'double_trigger') mod.triggerMultiplier = 2;
       if (bonus.effect.kind === 'grant_slow_on_attack') mod.slowOnAttackPercent += bonus.effect.percent;
       if (bonus.effect.kind === 'grant_shield_on_trigger') mod.shieldOnTriggerAmount += bonus.effect.amount;
+      if (bonus.effect.kind === 'grant_strength_stacks') mod.strengthStacks += bonus.effect.stacks;
       // Multiple sources may share the same authored bonus (for example two
       // Yossarians). Keep the event contract free of duplicate effect IDs.
       if (!mod.appliedBonusIds.includes(bonus.id)) mod.appliedBonusIds.push(bonus.id);

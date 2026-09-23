@@ -55,6 +55,7 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // abilities and existing content.
   z.object({ kind: z.literal('buff_team_attack'), percent: z.number() }),
   z.object({ kind: z.literal('buff_team_attack_speed'), percent: z.number() }),
+  z.object({ kind: z.literal('strength_stacks_own_pool'), stacks: z.number().positive() }),
   // Team-wide speed buff scaled by how many allies adjacent to the caster's
   // (frozen) board position carry a tag in tagFilter — e.g. "give the team
   // haste per adjacent figlarz". Resolved fresh each time the ability fires
@@ -113,6 +114,16 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // (poison excluded — see above), clamped team-wide at MAX_DODGE_STACKS
   // (70).
   z.object({ kind: z.literal('dodge_stacks_own_pool'), stacks: z.number().positive() }),
+  z.object({
+    kind: z.literal('random_team_buff'),
+    options: z.array(z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('strength'), stacks: z.number().positive() }),
+      z.object({ kind: z.literal('haste'), stacks: z.number().positive() }),
+      z.object({ kind: z.literal('dodge'), stacks: z.number().positive() }),
+      z.object({ kind: z.literal('vampirism'), stacks: z.number().positive() }),
+      z.object({ kind: z.literal('shield'), amount: z.number().positive() }),
+    ])).min(1),
+  }),
   // Kruchość: the enemy pool takes this many % MORE damage from every
   // source, including poison — a multiplier on top of mitigation, not a
   // mitigation itself.

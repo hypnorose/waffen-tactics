@@ -34,7 +34,7 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
           </div>
         )}
       </div>
-      {buffs && (buffs.attackPercent !== 0 || buffs.attackSpeedPercent !== 0) && (
+      {buffs && (buffs.attackPercent !== 0 || buffs.attackSpeedPercent !== 0 || buffs.strengthStacks !== 0) && (
         <div className="unit-buff-row">
           {buffs.attackPercent !== 0 && (
             <span
@@ -59,6 +59,18 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
               <span className="combat-chip-tooltip" role="tooltip">
                 <strong>Szybkość: {buffs.attackSpeedPercent > 0 ? '+' : ''}{Math.round(buffs.attackSpeedPercent)}%</strong>
                 <span>Dodatnia wartość skraca cooldown ataku lub aktywacji.</span>
+              </span>
+            </span>
+          )}
+          {buffs.strengthStacks !== 0 && (
+            <span
+              className="unit-buff-chip combat-chip-with-tooltip is-buff"
+              title={'Strength: +' + Math.round(buffs.strengthStacks) + '% ataku'}
+            >
+              💪 +{Math.round(buffs.strengthStacks)}
+              <span className="combat-chip-tooltip" role="tooltip">
+                <strong>Strength: +{Math.round(buffs.strengthStacks)}%</strong>
+                <span>Każdy stack Strength daje +1% ataku tej jednostce.</span>
               </span>
             </span>
           )}

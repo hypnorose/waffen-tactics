@@ -47,6 +47,26 @@ describe('content-data', () => {
       extraHitPercent: 20,
       tagFilter: ['starociota'],
     });
+    expect(units.skibidi_kubus.startOfCombat?.[0]?.effect).toEqual({ kind: 'shred_enemy_shield', amount: 15 });
+    expect(units.aus_sher.onTrigger?.[0]?.effect).toEqual({ kind: 'strength_stacks_own_pool', stacks: 5 });
+    expect(units.mr0czeq1.positionalBonus?.effect).toEqual({
+      kind: 'grant_strength_per_adjacent_ally',
+      stacksPerAlly: 10,
+      maxStacks: 30,
+    });
+    expect(units.bbobel.onTrigger?.[0]?.effect).toEqual({ kind: 'haste_stacks_own_pool', stacks: 5 });
+    expect(units.jaeger.startOfCombat).toBeUndefined();
+    expect(units.jaeger.positionalBonus?.effect).toEqual({ kind: 'grant_strength_stacks', stacks: 10 });
+    expect(units.marcel_galadotka.startOfCombat?.[0]?.effect).toEqual({
+      kind: 'random_team_buff',
+      options: [
+        { kind: 'strength', stacks: 8 },
+        { kind: 'haste', stacks: 10 },
+        { kind: 'dodge', stacks: 6 },
+        { kind: 'vampirism', stacks: 5 },
+        { kind: 'shield', amount: 6 },
+      ],
+    });
     expect(units.klemens_zydoslawski.onTrigger?.[0]?.effect).toEqual({ kind: 'shred_and_grant_haste', shredStacks: 10, grantStacks: 10 });
     expect(units.vitas.baseStats.attack).toBeUndefined();
 
@@ -60,7 +80,8 @@ describe('content-data', () => {
     expect(abilities.filter((ability) => ability.trigger === 'low_team_hp')).toHaveLength(0);
     expect(getUnitDefs().galanonim.baseStats.attacksPerSecond).toBe(0.2);
     expect(getUnitDefs().bbobel.baseStats.attacksPerSecond).toBe(0.2);
-    expect(getUnitDefs().fallensmokk.baseStats.attacksPerSecond).toBe(0.4);
+    expect(getUnitDefs().aus_sher.baseStats.attacksPerSecond).toBe(0.5);
+    expect(getUnitDefs().fallensmokk.baseStats.attacksPerSecond).toBe(0.2);
     expect(getUnitDefs().klemens_zydoslawski.baseStats.attacksPerSecond).toBeCloseTo(1 / 6, 6);
     expect(getUnitDefs().knauff.baseStats.attacksPerSecond).toBeCloseTo(1 / 3, 6);
     expect(getUnitDefs().empty_melancholy.baseStats.attacksPerSecond).toBeCloseTo(1 / 6, 6);

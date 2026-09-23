@@ -14,6 +14,7 @@ const CHIP_DEFS: Array<{
   description: string;
 }> = [
   { key: 'shield', emoji: '🛡️', label: 'Tarcza', kind: 'buff', format: (v) => Math.round(v).toString(), description: 'Pochłania obrażenia przed HP drużyny.' },
+  { key: 'strengthStacks', emoji: '💪', label: 'Strength', kind: 'buff', format: (v) => '+' + Math.round(v) + '%', description: 'Każdy stack Strength daje drużynie +1% ataku.' },
   { key: 'hasteStacks', emoji: '⚡', label: 'Przyspieszenie', kind: 'buff', format: (v) => `+${Math.round(v)}%`, description: 'Każdy stack daje +1% szybkości ataku i skraca cooldown.' },
   { key: 'dodgeStacks', emoji: '💨', label: 'Unik', kind: 'buff', format: (v) => `${Math.round(v)}%`, description: 'Szansa na całkowite uniknięcie trafienia lub efektu ataku.' },
   { key: 'thornsPercent', emoji: '🌵', label: 'Kolce', kind: 'buff', format: (v) => `${Math.round(v)}%`, description: 'Odbija ten procent utraconego HP do wroga.' },

@@ -26,11 +26,13 @@ export interface RecentAbility {
 export interface UnitBuffState {
   attackPercent: number;
   attackSpeedPercent: number;
+  strengthStacks: number;
 }
 
 /** Team-pool-wide status, current as of `currentTime` — see team_pool_shield_applied / team_pool_stat_applied. */
 export interface TeamStatus {
   shield: number;
+  strengthStacks: number;
   hasteStacks: number;
   dodgeStacks: number;
   fragilityPercent: number;
@@ -40,7 +42,7 @@ export interface TeamStatus {
 }
 
 function emptyTeamStatus(): TeamStatus {
-  return { shield: 0, hasteStacks: 0, dodgeStacks: 0, fragilityPercent: 0, thornsPercent: 0, vampirismPercent: 0, executionStacks: 0 };
+  return { shield: 0, strengthStacks: 0, hasteStacks: 0, dodgeStacks: 0, fragilityPercent: 0, thornsPercent: 0, vampirismPercent: 0, executionStacks: 0 };
 }
 
 export interface CombatSnapshot {
@@ -75,7 +77,7 @@ function toSnapshot(u: UnitCombatState): UnitRuntimeSnapshot {
 function buffFor(unitBuffs: Record<string, UnitBuffState>, instanceId: string): UnitBuffState {
   let entry = unitBuffs[instanceId];
   if (!entry) {
-    entry = { attackPercent: 0, attackSpeedPercent: 0 };
+    entry = { attackPercent: 0, attackSpeedPercent: 0, strengthStacks: 0 };
     unitBuffs[instanceId] = entry;
   }
   return entry;
@@ -134,7 +136,8 @@ export function useCombatSnapshot(events: CombatEvent[], currentTime: number): C
         }
         case 'team_pool_stat_applied': {
           const status = event.side === 'player' ? playerStatus : enemyStatus;
-          if (event.stat === 'haste') status.hasteStacks = event.total;
+          if (event.stat === 'strength') status.strengthStacks = event.total;
+          else if (event.stat === 'haste') status.hasteStacks = event.total;
           else if (event.stat === 'dodge') status.dodgeStacks = event.total;
           else if (event.stat === 'fragility') status.fragilityPercent = event.total;
           else if (event.stat === 'thorns') status.thornsPercent = event.total;
@@ -150,6 +153,7 @@ export function useCombatSnapshot(events: CombatEvent[], currentTime: number): C
         case 'unit_buff_applied': {
           const entry = buffFor(unitBuffs, event.instanceId);
           if (event.stat === 'attack') entry.attackPercent += event.percent;
+          else if (event.stat === 'strength') entry.strengthStacks += event.percent;
           else entry.attackSpeedPercent += event.percent;
           break;
         }

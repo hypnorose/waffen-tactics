@@ -99,6 +99,26 @@ function dmgScaledByEnemyPoisonOnTrigger(id: string, multiplier: number, desc: s
 function hasteStacksOnTrigger(id: string, stacks: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'haste_stacks_own_pool', stacks }, description: desc };
 }
+function strengthStacksOnTrigger(id: string, stacks: number, desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'strength_stacks_own_pool', stacks }, description: desc };
+}
+function randomNowociotaBuff(id: string, desc: string): Ability {
+  return {
+    id,
+    trigger: 'start_of_combat',
+    effect: {
+      kind: 'random_team_buff',
+      options: [
+        { kind: 'strength', stacks: 8 },
+        { kind: 'haste', stacks: 10 },
+        { kind: 'dodge', stacks: 6 },
+        { kind: 'vampirism', stacks: 5 },
+        { kind: 'shield', amount: 6 },
+      ],
+    },
+    description: desc,
+  };
+}
 function dodgeStacksOpening(id: string, stacks: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'dodge_stacks_own_pool', stacks }, description: desc };
 }
@@ -299,27 +319,39 @@ export const unitOverrides: Record<string, UnitOverride> = {
   },
 
   // ============================================================
-  // NOWOCIOTA — Nowociotowie: raw power, no frills
+  // NOWOCIOTA — Nowociotowie: Strength, formation and volatile power
   // ============================================================
   skibidi_kubus: {
-    startOfCombat: [shredOpening('skibidi_kubus.rookie_smash', 15, 'Na starcie walki zrywa wrogowi 15 punktów tarczy.')],
+    startOfCombat: [shredOpening('skibidi_kubus.rookie_smash', 15, 'Na starcie walki zrywa wrogowi 15 stacków Shield.')],
   },
   aus_sher: {
-    onTrigger: [teamAttackOnAttack('aus_sher.rally_the_strongest', 6, 'Przy aktywacji dodaje całej drużynie +6% obrażeń (stackuje się do końca walki).')],
+    onTrigger: [strengthStacksOnTrigger('aus_sher.rally_the_strongest', 5, 'Przy aktywacji drużyna zyskuje 5 Strength.')],
   },
   mr0czeq1: {
-    onTrigger: [dmgOnAttack('mr0czeq1.wild_swing', 10, 'Przy aktywacji dodatkowo zadaje 10 obrażeń puli wroga.')],
+    positionalBonus: {
+      id: 'mr0czeq1.neighborhood_strength',
+      shape: 'adjacent',
+      tagFilter: ['nowociota'],
+      effect: { kind: 'grant_strength_per_adjacent_ally', stacksPerAlly: 10, maxStacks: 30 },
+      description: 'Zyskuje 10 Strength za każdego sąsiedniego Nowociotę (maks. 30).',
+    },
   },
   bbobel: {
-    onTrigger: [dmgOnTrigger('bbobel.rookie_rage', 6, 'Przy aktywacji zadaje 6 obrażeń puli wroga.')],
+    onTrigger: [hasteStacksOnTrigger('bbobel.rookie_rage', 5, 'Przy aktywacji drużyna zyskuje 5 Haste.')],
   },
   fallensmokk: {
     onTrigger: [executeOnTrigger('fallensmokk.rally', 4, 'Przy aktywacji zadaje obrażenia równe 4% aktualnego HP wroga.')],
   },
   jaeger: {
-    startOfCombat: [openingBlast('jaeger.opening_charge', 18, 'Na starcie walki zadaje 18 obrażeń puli wroga.')],
+    positionalBonus: {
+      id: 'jaeger.nowociota_cross_strength',
+      shape: 'cross',
+      tagFilter: ['nowociota'],
+      effect: { kind: 'grant_strength_stacks', stacks: 10 },
+      description: 'Inni Nowociotowie w kształcie + zyskują 10 Strength.',
+    },
   },
   marcel_galadotka: {
-    startOfCombat: [openingBlast('marcel_galadotka.opening_swing', 30, 'Na starcie walki zadaje 30 obrażeń puli wroga.')],
+    startOfCombat: [randomNowociotaBuff('marcel_galadotka.roulette', 'Na starcie walki losuje jeden buff: 8 Strength, 10 Haste, 6 Dodge, 5 Vampirism albo 6 Shield.')],
   },
 };
