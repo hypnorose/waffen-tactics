@@ -67,6 +67,13 @@ describe('content-data', () => {
     expect(getUnitDefs().nicosc.baseStats.attacksPerSecond).toBe(0.125);
   });
 
+  it('describes on_trigger effects as activations, without exposing their cooldown', () => {
+    const abilities = getUnitList().flatMap((unit) => unit.onTrigger ?? []);
+    expect(abilities.length).toBeGreaterThan(0);
+    expect(abilities.every((ability) => ability.description.startsWith('Przy aktywacji'))).toBe(true);
+    expect(abilities.some((ability) => /\bCo \d/.test(ability.description))).toBe(false);
+  });
+
   it('gives adjacent figlarz units Yossarian\'s double-trigger synergy', () => {
     expect(getUnitDefs().yossarian.positionalBonus).toEqual({
       id: 'yossarian.figlarz_echo',

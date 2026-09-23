@@ -144,7 +144,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
   // cadence too, regardless of whether they otherwise deal damage.
   // ============================================================
   anamol04: {
-    onTrigger: [slowOnTrigger('anamol04.discipline', 4, 'Każdy atak spowalnia atak całej drużyny wroga o 4% (stackuje się).')],
+    onTrigger: [slowOnTrigger('anamol04.discipline', 4, 'Przy aktywacji spowalnia atak całej drużyny wroga o 4% (stackuje się).')],
   },
   chessowy_mentos: {
     startOfCombat: [slowOpening('chessowy_mentos.opening_gambit', 18, 'Na starcie walki spowalnia atak całej drużyny wroga o 18%.')],
@@ -154,7 +154,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
       dmgScaledByEnemySlowOnTrigger(
         'sofronow.calculated_pressure',
         1,
-        'Każdy atak zadaje dodatkowe obrażenia równe aktualnemu spowolnieniu wroga (średnio, w %).',
+        'Przy aktywacji zadaje dodatkowe obrażenia równe aktualnemu spowolnieniu wroga (średnio, w %).',
       ),
     ],
   },
@@ -163,7 +163,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
       id: 'szachowymentor.mentor_lesson',
       shape: 'adjacent',
       effect: { kind: 'grant_slow_on_attack', percent: 6 },
-      description: 'Sąsiedni sojusznicy spowalniają wroga o 6% na swoim własnym cyklu ataku/aktywacji.',
+      description: 'Sąsiedni sojusznicy przy aktywacji spowalniają wroga o 6%.',
     },
   },
 
@@ -176,7 +176,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
         'fiko.crowd_pleaser',
         2,
         ['figlarz'],
-        'Każdy atak dodaje całej drużynie +2% szybkości ataku za każdego sąsiadującego figlarza (stackuje się do końca walki).',
+        'Przy aktywacji dodaje całej drużynie +2% szybkości ataku za każdego sąsiadującego figlarza (stackuje się do końca walki).',
       ),
     ],
   },
@@ -191,7 +191,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
   },
   szalwia: {
     onTrigger: [
-      dmgScaledByHasteOnTrigger('szalwia.fey_strike', 1, 'Każdy atak zadaje dodatkowe obrażenia równe aktualnym stackom haste drużyny.'),
+      dmgScaledByHasteOnTrigger('szalwia.fey_strike', 1, 'Przy aktywacji zadaje dodatkowe obrażenia równe aktualnym stackom haste drużyny.'),
     ],
   },
   kotmarcek: {
@@ -200,10 +200,10 @@ export const unitOverrides: Record<string, UnitOverride> = {
   // Pure support — no attack stat at all (see units.data.ts). Doesn't fight,
   // just picks the enemy's pocket for whatever speed they've built up.
   '4tune': {
-    onTrigger: [stealHasteOnAttack('4tune.pickpocket', 30, 'Każda aktywacja kradnie 30% aktualnych stacków haste wroga.')],
+    onTrigger: [stealHasteOnAttack('4tune.pickpocket', 30, 'Przy aktywacji kradnie 30% aktualnych stacków haste wroga.')],
   },
   jadlainwestycji: {
-    onTrigger: [stealDodgeOnTrigger('jadlainwestycji.hostile_takeover', 10, 'Każdy atak kradnie 10% aktualnych stacków uniku wroga.')],
+    onTrigger: [stealDodgeOnTrigger('jadlainwestycji.hostile_takeover', 10, 'Przy aktywacji kradnie 10% aktualnych stacków uniku wroga.')],
   },
   // Pure support — no attack stat at all (see units.data.ts). A saboteur who
   // only ever grinds the enemy's tempo down, never swings a weapon.
@@ -213,27 +213,27 @@ export const unitOverrides: Record<string, UnitOverride> = {
         'klemens_zydoslawski.sand_in_gears',
         10,
         10,
-        'Co 6 s zdejmuje wrogowi 10 stacków haste i daje własnej drużynie 10 stacków haste.',
+        'Przy aktywacji zdejmuje wrogowi 10 stacków haste i daje własnej drużynie 10 stacków haste.',
       ),
     ],
   },
   knauff: {
-    onTrigger: [hasteStacksOnTrigger('knauff.syndicate_charge', 6, 'Co 6 s drużyna zyskuje 6 stacków haste (stackuje się do końca walki).')],
+    onTrigger: [hasteStacksOnTrigger('knauff.syndicate_charge', 6, 'Przy aktywacji drużyna zyskuje 6 stacków haste (stackuje się do końca walki).')],
   },
   vitas: {
-    onTrigger: [dodgeStacksOnAttack('vitas.evasive_pressure', 8, 'Każda aktywacja dodaje drużynie 8 stacków uniku (stackuje się do końca walki).')],
+    onTrigger: [dodgeStacksOnAttack('vitas.evasive_pressure', 8, 'Przy aktywacji dodaje drużynie 8 stacków uniku (stackuje się do końca walki).')],
   },
 
   // ============================================================
   // KONFIDENT — Konfidenci: purge, poison, execution and vampirism
   // ============================================================
   uhla: {
-    onTrigger: [poisonOnAttack('uhla.whisper', 3, 'Każdy atak nakłada 3 obrażenia trucizny na sekundę (stackuje się).')],
+    onTrigger: [poisonOnAttack('uhla.whisper', 3, 'Przy aktywacji nakłada 3 obrażenia trucizny na sekundę (stackuje się).')],
   },
   galanonim: {
     // Pure support — no attack stat at all (see units.data.ts). Every pulse
     // strips the same flat amount from each positive enemy team status.
-    onTrigger: [shredAllEnemyBuffsOnTrigger('galanonim.blacklist', 5, 'Co aktywację zdejmuje wrogowi po 5 tarczy, haste, uniku, kolców i wampiryzmu.')],
+    onTrigger: [shredAllEnemyBuffsOnTrigger('galanonim.blacklist', 5, 'Przy aktywacji zdejmuje wrogowi po 5 tarczy, haste, uniku, kolców i wampiryzmu.')],
   },
   pytl: {
     positionalBonus: {
@@ -258,7 +258,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
       dmgScaledByEnemyPoisonOnTrigger(
         'nicosc.last_resort',
         2,
-        'Co 8 s zadaje dodatkowe obrażenia równe dwukrotności aktualnej trucizny wroga.',
+        'Przy aktywacji zadaje dodatkowe obrażenia równe dwukrotności aktualnej trucizny wroga.',
       ),
     ],
   },
@@ -291,7 +291,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
       id: 'szanowny_kantor.shield_ring',
       shape: 'adjacent',
       effect: { kind: 'grant_shield_on_trigger', amount: 20 },
-      description: 'Sąsiednie jednostki przy swoim triggerze dają drużynie 20 tarczy.',
+      description: 'Sąsiednie jednostki przy aktywacji dają drużynie 20 tarczy.',
     },
   },
   empty_melancholy: {
@@ -305,16 +305,16 @@ export const unitOverrides: Record<string, UnitOverride> = {
     startOfCombat: [shredOpening('skibidi_kubus.rookie_smash', 15, 'Na starcie walki zrywa wrogowi 15 punktów tarczy.')],
   },
   aus_sher: {
-    onTrigger: [teamAttackOnAttack('aus_sher.rally_the_strongest', 6, 'Każdy atak dodaje całej drużynie +6% obrażeń (stackuje się do końca walki).')],
+    onTrigger: [teamAttackOnAttack('aus_sher.rally_the_strongest', 6, 'Przy aktywacji dodaje całej drużynie +6% obrażeń (stackuje się do końca walki).')],
   },
   mr0czeq1: {
-    onTrigger: [dmgOnAttack('mr0czeq1.wild_swing', 10, 'Każdy atak dodatkowo zadaje 10 obrażeń puli wroga.')],
+    onTrigger: [dmgOnAttack('mr0czeq1.wild_swing', 10, 'Przy aktywacji dodatkowo zadaje 10 obrażeń puli wroga.')],
   },
   bbobel: {
-    onTrigger: [dmgOnTrigger('bbobel.rookie_rage', 6, 'Co 5 s zadaje 6 obrażeń puli wroga.')],
+    onTrigger: [dmgOnTrigger('bbobel.rookie_rage', 6, 'Przy aktywacji zadaje 6 obrażeń puli wroga.')],
   },
   fallensmokk: {
-    onTrigger: [executeOnTrigger('fallensmokk.rally', 4, 'Co 5 s zadaje obrażenia równe 4% aktualnego HP wroga.')],
+    onTrigger: [executeOnTrigger('fallensmokk.rally', 4, 'Przy aktywacji zadaje obrażenia równe 4% aktualnego HP wroga.')],
   },
   jaeger: {
     startOfCombat: [openingBlast('jaeger.opening_charge', 18, 'Na starcie walki zadaje 18 obrażeń puli wroga.')],
