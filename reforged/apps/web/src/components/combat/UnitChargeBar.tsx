@@ -52,7 +52,7 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
           )}
           {buffs.attackSpeedPercent !== 0 && (
             <span
-              className={`unit-buff-chip combat-chip-with-tooltip ${buffs.attackSpeedPercent > 0 ? 'is-buff' : 'is-debuff'}`}
+              className={`unit-buff-chip combat-chip-with-tooltip status-haste ${buffs.attackSpeedPercent > 0 ? 'is-buff' : 'is-debuff'}`}
               title={`Przyspieszenie: ${buffs.attackSpeedPercent > 0 ? '+' : ''}${Math.round(buffs.attackSpeedPercent)}%`}
             >
               💨 {buffs.attackSpeedPercent > 0 ? '+' : ''}
@@ -65,7 +65,7 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
           )}
           {buffs.strengthStacks !== 0 && (
             <span
-              className="unit-buff-chip combat-chip-with-tooltip is-buff"
+              className="unit-buff-chip combat-chip-with-tooltip is-buff status-strength"
               title={'Siła: +' + Math.round(buffs.strengthStacks) + '% ataku'}
             >
               💪 +{Math.round(buffs.strengthStacks)}

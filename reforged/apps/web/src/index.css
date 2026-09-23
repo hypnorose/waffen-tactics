@@ -15,6 +15,18 @@
   --diamond: #6fb3ff;
   --master: #d477ff;
   --discord: #5865f2;
+  --status-strength: #ffd166;
+  --status-haste: #67e8f9;
+  --status-dodge: #a7f3d0;
+  --status-vampirism: #f0abfc;
+  --status-shield: #93c5fd;
+  --status-poison: #86efac;
+  --status-slow: #c4b5fd;
+  --status-regen: #6ee7b7;
+  --status-fragility: #fca5a5;
+  --status-thorns: #fb923c;
+  --status-execution: #fda4af;
+  --status-multicast: #fcd34d;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
@@ -985,6 +997,55 @@ button.active {
   background: color-mix(in srgb, var(--hp) 30%, var(--panel-alt));
   color: #ff9aa6;
 }
+.team-status-chip.status-strength,
+.unit-buff-chip.status-strength {
+  background: color-mix(in srgb, var(--status-strength) 20%, var(--panel-alt));
+  color: var(--status-strength);
+}
+.team-status-chip.status-haste,
+.unit-buff-chip.status-haste {
+  background: color-mix(in srgb, var(--status-haste) 20%, var(--panel-alt));
+  color: var(--status-haste);
+}
+.team-status-chip.status-dodge {
+  background: color-mix(in srgb, var(--status-dodge) 20%, var(--panel-alt));
+  color: var(--status-dodge);
+}
+.team-status-chip.status-vampirism {
+  background: color-mix(in srgb, var(--status-vampirism) 20%, var(--panel-alt));
+  color: var(--status-vampirism);
+}
+.team-status-chip.status-shield {
+  background: color-mix(in srgb, var(--status-shield) 20%, var(--panel-alt));
+  color: var(--status-shield);
+}
+.team-status-chip.status-fragility {
+  background: color-mix(in srgb, var(--status-fragility) 20%, var(--panel-alt));
+  color: var(--status-fragility);
+}
+.team-status-chip.status-thorns {
+  background: color-mix(in srgb, var(--status-thorns) 20%, var(--panel-alt));
+  color: var(--status-thorns);
+}
+.team-status-chip.status-execution {
+  background: color-mix(in srgb, var(--status-execution) 20%, var(--panel-alt));
+  color: var(--status-execution);
+}
+.status-keyword {
+  font-weight: 800;
+}
+.status-keyword-strength { color: var(--status-strength); }
+.status-keyword-haste { color: var(--status-haste); }
+.status-keyword-dodge { color: var(--status-dodge); }
+.status-keyword-vampirism { color: var(--status-vampirism); }
+.status-keyword-shield { color: var(--status-shield); }
+.status-keyword-poison { color: var(--status-poison); }
+.status-keyword-slow { color: var(--status-slow); }
+.status-keyword-regen { color: var(--status-regen); }
+.status-keyword-fragility { color: var(--status-fragility); }
+.status-keyword-thorns { color: var(--status-thorns); }
+.status-keyword-execution { color: var(--status-execution); }
+.status-keyword-multicast { color: var(--status-multicast); }
 
 .combat-field {
   position: relative;
