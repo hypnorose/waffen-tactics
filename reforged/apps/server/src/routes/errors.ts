@@ -1,7 +1,7 @@
 import type { FastifyReply } from 'fastify';
 import { RunForbiddenError, RunNotFoundError } from '../services/runService.js';
 import { BenchFullError, InsufficientGoldError, InvalidShopOfferError, UnitInstanceNotFoundError as ShopUnitNotFoundError } from '../services/shopService.js';
-import { BoardCapacityError, SlotOccupiedError, UnitInstanceNotFoundError as BoardUnitNotFoundError } from '../services/boardService.js';
+import { BoardCapacityError, UnitInstanceNotFoundError as BoardUnitNotFoundError } from '../services/boardService.js';
 import { InvalidAugmentChoiceError, NoAugmentPendingError } from '../services/augmentService.js';
 import { AugmentPendingError, EmptyBoardError, RunNotActiveError } from '../services/combatOrchestrator.js';
 
@@ -11,7 +11,6 @@ const BAD_REQUEST = [
   InsufficientGoldError,
   BenchFullError,
   InvalidShopOfferError,
-  SlotOccupiedError,
   BoardCapacityError,
   NoAugmentPendingError,
   InvalidAugmentChoiceError,

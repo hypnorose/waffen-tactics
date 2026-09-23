@@ -75,29 +75,39 @@ export function CombatReplayViewer({
         <div className="combat-field">
           <div className="combat-side">
             {snapshot.player.map((unit) => (
-              <UnitChargeBar
+              <div
                 key={unit.instanceId}
-                unit={unit}
-                unitDef={units[unit.unitId]}
-                currentTime={playback.currentTime}
-                justAttacked={snapshot.recentAttacks.some((a) => a.instanceId === unit.instanceId)}
-                justTriggeredAbility={snapshot.recentAbilities.some((a) => a.instanceId === unit.instanceId)}
-                buffs={snapshot.unitBuffs[unit.instanceId]}
-              />
+                className="combat-grid-cell"
+                style={{ gridRow: unit.position.row + 1, gridColumn: unit.position.col + 1 }}
+              >
+                <UnitChargeBar
+                  unit={unit}
+                  unitDef={units[unit.unitId]}
+                  currentTime={playback.currentTime}
+                  justAttacked={snapshot.recentAttacks.some((a) => a.instanceId === unit.instanceId)}
+                  justTriggeredAbility={snapshot.recentAbilities.some((a) => a.instanceId === unit.instanceId)}
+                  buffs={snapshot.unitBuffs[unit.instanceId]}
+                />
+              </div>
             ))}
           </div>
           <ProjectileLayer projectiles={projectiles} />
           <div className="combat-side">
             {snapshot.enemy.map((unit) => (
-              <UnitChargeBar
+              <div
                 key={unit.instanceId}
-                unit={unit}
-                unitDef={units[unit.unitId]}
-                currentTime={playback.currentTime}
-                justAttacked={snapshot.recentAttacks.some((a) => a.instanceId === unit.instanceId)}
-                justTriggeredAbility={snapshot.recentAbilities.some((a) => a.instanceId === unit.instanceId)}
-                buffs={snapshot.unitBuffs[unit.instanceId]}
-              />
+                className="combat-grid-cell"
+                style={{ gridRow: unit.position.row + 1, gridColumn: unit.position.col + 1 }}
+              >
+                <UnitChargeBar
+                  unit={unit}
+                  unitDef={units[unit.unitId]}
+                  currentTime={playback.currentTime}
+                  justAttacked={snapshot.recentAttacks.some((a) => a.instanceId === unit.instanceId)}
+                  justTriggeredAbility={snapshot.recentAbilities.some((a) => a.instanceId === unit.instanceId)}
+                  buffs={snapshot.unitBuffs[unit.instanceId]}
+                />
+              </div>
             ))}
           </div>
         </div>

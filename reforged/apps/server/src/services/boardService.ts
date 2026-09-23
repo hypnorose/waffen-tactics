@@ -2,29 +2,31 @@ import { emptyBoard, samePosition, type Board, type BoardPosition, type RunState
 import { maxBoardUnits } from './economyService.js';
 
 export class UnitInstanceNotFoundError extends Error {}
-export class SlotOccupiedError extends Error {}
 export class BoardCapacityError extends Error {}
 
+/** Placing onto an occupied slot swaps the two units; placing from the bench onto one sends the occupant to the bench. */
 export function place(run: RunState, unitInstanceId: string, position: BoardPosition): RunState {
   const instance = run.units.find((u) => u.instanceId === unitInstanceId);
   if (!instance) throw new UnitInstanceNotFoundError();
 
-  const targetSlot = run.board.find((slot) => samePosition(slot.position, position));
-  if (targetSlot?.unitInstanceId && targetSlot.unitInstanceId !== unitInstanceId) {
-    throw new SlotOccupiedError();
-  }
+  const sourceSlot = run.board.find((slot) => slot.unitInstanceId === unitInstanceId);
+  if (sourceSlot && samePosition(sourceSlot.position, position)) return run;
 
-  const currentlyPlaced = run.board.filter((slot) => slot.unitInstanceId !== null).length;
-  const alreadyOnBoard = run.board.some((slot) => slot.unitInstanceId === unitInstanceId);
-  if (!alreadyOnBoard && currentlyPlaced >= maxBoardUnits(run.level)) {
-    throw new BoardCapacityError();
+  const targetSlot = run.board.find((slot) => samePosition(slot.position, position));
+  const occupantId = targetSlot?.unitInstanceId ?? null;
+
+  if (!sourceSlot && !occupantId) {
+    const currentlyPlaced = run.board.filter((slot) => slot.unitInstanceId !== null).length;
+    if (currentlyPlaced >= maxBoardUnits(run.level)) {
+      throw new BoardCapacityError();
+    }
   }
 
   return {
     ...run,
     board: run.board.map((slot) => {
-      if (slot.unitInstanceId === unitInstanceId) return { ...slot, unitInstanceId: null };
       if (samePosition(slot.position, position)) return { ...slot, unitInstanceId };
+      if (sourceSlot && samePosition(slot.position, sourceSlot.position)) return { ...slot, unitInstanceId: occupantId };
       return slot;
     }),
   };

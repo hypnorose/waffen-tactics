@@ -1090,10 +1090,17 @@ button.active {
   min-height: 160px;
 }
 .combat-side {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, auto);
   gap: 8px;
   width: 45%;
+}
+.combat-grid-cell {
+  display: flex;
+}
+.combat-grid-cell .unit-charge-wrapper {
+  width: 100%;
 }
 .unit-charge-wrapper {
   display: flex;
