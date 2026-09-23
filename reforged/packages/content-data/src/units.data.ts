@@ -394,7 +394,7 @@ export const unitsData = [
     "avatar": "/avatars/set2/niko_official-avatar-1024.png",
     "baseStats": {
       "attack": 30,
-      "attacksPerSecond": 0.125
+      "attacksPerSecond": 1
     }
   },
   {

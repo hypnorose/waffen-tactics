@@ -54,8 +54,8 @@ const raw: AugmentDef[] = [
     name: 'Wzmocniony Kadłub',
     tier: 'bronze',
     icon: '🧱',
-    description: 'Drużyna zaczyna każdą walkę z tarczą 30.',
-    effects: [{ kind: 'shield_own_pool', amount: 30 }],
+    description: 'Drużyna zaczyna każdą walkę z tarczą 90 — wystarczającą, by przyjąć co najmniej jeden mocny cios.',
+    effects: [{ kind: 'shield_own_pool', amount: 90 }],
   },
   {
     id: 'bronze-cursed-blade',
@@ -232,9 +232,9 @@ const raw: AugmentDef[] = [
     name: 'Medycyna Polowa',
     tier: 'silver',
     icon: '💊',
-    description: 'Drużyna zaczyna walkę z tarczą 20 i regeneruje 6 HP na sekundę przez całą walkę.',
+    description: 'Drużyna zaczyna walkę z tarczą 100 i regeneruje 6 HP na sekundę przez całą walkę.',
     effects: [
-      { kind: 'shield_own_pool', amount: 20 },
+      { kind: 'shield_own_pool', amount: 100 },
       { kind: 'regen_own_pool', amountPerSec: 6 },
     ],
   },
@@ -276,9 +276,9 @@ const raw: AugmentDef[] = [
     name: 'Osłona Odwetu',
     tier: 'silver',
     icon: '🔮',
-    description: 'Drużyna zaczyna walkę z Tarczą 50. Gdy ta Tarcza padnie, drużyna zyskuje 10 stacków Przyspieszenia.',
+    description: 'Drużyna zaczyna walkę z Tarczą 140. Gdy ta Tarcza padnie, drużyna zyskuje 10 stacków Przyspieszenia.',
     effects: [
-      { kind: 'shield_own_pool', amount: 50 },
+      { kind: 'shield_own_pool', amount: 140 },
       { kind: 'reaction_on_shield_depleted', reaction: { kind: 'grant_haste_stacks', stacks: 10 } },
     ],
   },
@@ -354,10 +354,10 @@ const raw: AugmentDef[] = [
     name: 'Odbite Ostrze',
     tier: 'silver',
     icon: '🪞',
-    description: 'Drużyna odbija 12% otrzymanych obrażeń na wroga i zaczyna walkę z tarczą 15.',
+    description: 'Drużyna odbija 12% otrzymanych obrażeń na wroga i zaczyna walkę z tarczą 90.',
     effects: [
       { kind: 'thorns_own_pool', percent: 12 },
-      { kind: 'shield_own_pool', amount: 15 },
+      { kind: 'shield_own_pool', amount: 90 },
     ],
   },
   {
@@ -395,10 +395,10 @@ const raw: AugmentDef[] = [
     name: 'Uzurpator',
     tier: 'silver',
     icon: '👑',
-    description: 'Drużyna kradnie 25% aktualnej tarczy wroga i dodaje do niej własne 5.',
+    description: 'Drużyna kradnie 25% aktualnej tarczy wroga i dodaje do niej własne 50.',
     effects: [
       { kind: 'steal_buff', buff: 'shield', percent: 25 },
-      { kind: 'shield_own_pool', amount: 5 },
+      { kind: 'shield_own_pool', amount: 50 },
     ],
   },
   {
@@ -472,10 +472,10 @@ const raw: AugmentDef[] = [
     name: 'Egida',
     tier: 'gold',
     icon: '🛡️',
-    description: 'Drużyna zaczyna walkę z podwójną tarczą: 50, a zaraz potem kolejne 50.',
+    description: 'Drużyna zaczyna walkę z podwójną tarczą: 140, a zaraz potem kolejne 140.',
     effects: [
-      { kind: 'shield_own_pool', amount: 50 },
-      { kind: 'shield_own_pool', amount: 50 },
+      { kind: 'shield_own_pool', amount: 140 },
+      { kind: 'shield_own_pool', amount: 140 },
     ],
   },
   {
@@ -483,9 +483,9 @@ const raw: AugmentDef[] = [
     name: 'Zamarznięty Grunt',
     tier: 'gold',
     icon: '❄️',
-    description: 'Drużyna okopuje się na lodzie (tarcza 40), a wróg grzęźnie — atakuje o 18% wolniej.',
+    description: 'Drużyna okopuje się na lodzie (tarcza 110), a wróg grzęźnie — atakuje o 18% wolniej.',
     effects: [
-      { kind: 'shield_own_pool', amount: 40 },
+      { kind: 'shield_own_pool', amount: 110 },
       { kind: 'slow_enemy_pool', percent: 18 },
     ],
   },
@@ -517,9 +517,9 @@ const raw: AugmentDef[] = [
     name: 'Osłona Feniksa',
     tier: 'gold',
     icon: '🔥',
-    description: 'Drużyna zaczyna walkę z tarczą 120 i regeneruje 5 HP na sekundę przez całą walkę.',
+    description: 'Drużyna zaczyna walkę z tarczą 220 i regeneruje 5 HP na sekundę przez całą walkę.',
     effects: [
-      { kind: 'shield_own_pool', amount: 120 },
+      { kind: 'shield_own_pool', amount: 220 },
       { kind: 'regen_own_pool', amountPerSec: 5 },
     ],
   },
@@ -601,10 +601,10 @@ const raw: AugmentDef[] = [
     name: 'Zemsta Płomieni',
     tier: 'gold',
     icon: '🔥',
-    description: 'Drużyna odbija 18% otrzymanych obrażeń na wroga i zaczyna walkę z tarczą 30.',
+    description: 'Drużyna odbija 18% otrzymanych obrażeń na wroga i zaczyna walkę z tarczą 100.',
     effects: [
       { kind: 'thorns_own_pool', percent: 18 },
-      { kind: 'shield_own_pool', amount: 30 },
+      { kind: 'shield_own_pool', amount: 100 },
     ],
   },
   {
@@ -659,10 +659,10 @@ const raw: AugmentDef[] = [
     name: 'Ostatni Bastion',
     tier: 'gold',
     icon: '🛡️',
-    description: 'Drużyna zaczyna walkę z tarczą 60. Gdy ta tarcza padnie, drużyna natychmiast zyskuje nową tarczę 40.',
+    description: 'Drużyna zaczyna walkę z tarczą 150. Gdy ta tarcza padnie, drużyna natychmiast zyskuje nową tarczę 120.',
     effects: [
-      { kind: 'shield_own_pool', amount: 60 },
-      { kind: 'reaction_on_shield_depleted', reaction: { kind: 'grant_shield', amount: 40 } },
+      { kind: 'shield_own_pool', amount: 150 },
+      { kind: 'reaction_on_shield_depleted', reaction: { kind: 'grant_shield', amount: 120 } },
     ],
   },
 ];

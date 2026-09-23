@@ -34,7 +34,7 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
   // active poison source, ticks once per second independent of anyone's
   // attack cadence. Bypasses both shield and dodge (see combat-engine):
   // poison is a status, not an attack instance, so nothing that blocks or
-  // absorbs a hit blocks it. See combat-engine's MAX_POISON_DPS for the cap.
+  // absorbs a hit blocks it. Poison stacks without an authored cap.
   z.object({ kind: z.literal('poison_enemy_pool'), damagePerSec: z.number().positive() }),
   // Mirror of poison_enemy_pool, but healing your own pool — a persistent
   // "regen" status instead of an instant heal. Prefer this over

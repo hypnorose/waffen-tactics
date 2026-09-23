@@ -66,6 +66,9 @@ function shieldOnTrigger(id: string, amount: number, desc: string): Ability {
 function poisonOnAttack(id: string, damagePerSec: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
 }
+function poisonOpening(id: string, damagePerSec: number, desc: string): Ability {
+  return { id, trigger: 'start_of_combat', effect: { kind: 'poison_enemy_pool', damagePerSec }, description: desc };
+}
 function regenOpening(id: string, amountPerSec: number, desc: string): Ability {
   return { id, trigger: 'start_of_combat', effect: { kind: 'regen_own_pool', amountPerSec }, description: desc };
 }
@@ -107,7 +110,7 @@ function randomNowociotaBuff(id: string, desc: string): Ability {
         { kind: 'haste', stacks: 10 },
         { kind: 'dodge', stacks: 6 },
         { kind: 'vampirism', stacks: 5 },
-        { kind: 'shield', amount: 6 },
+        { kind: 'shield', amount: 50 },
       ],
     },
     description: desc,
@@ -248,7 +251,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
     // Pure support — no attack stat at all (see units.data.ts). Every pulse
     // strips the same flat amount from each positive enemy team status and
     // rewards a successful purge with poison.
-    onTrigger: [shredAllEnemyBuffsAndPoisonOnTrigger('galanonim.blacklist', 5, 12, 'Przy aktywacji zdejmuje wrogowi po 5 z każdego pozytywnego statusu; jeśli coś zdejmie, nakłada 12 DPS Trucizny.')],
+    onTrigger: [shredAllEnemyBuffsAndPoisonOnTrigger('galanonim.blacklist', 20, 12, 'Przy aktywacji zdejmuje wrogowi po 20 z każdego pozytywnego statusu; jeśli coś zdejmie, nakłada 12 DPS Trucizny.')],
   },
   pytl: {
     positionalBonus: {
@@ -263,17 +266,17 @@ export const unitOverrides: Record<string, UnitOverride> = {
     startOfCombat: [vampirismOpening('optimusprime.blackmail', 15, 'Na starcie walki cała drużyna zyskuje 15% wampiryzmu: odzyskuje 15% zadanych obrażeń.')],
   },
   kaktusek: {
-    onTrigger: [poisonOnAttack('kaktusek.parting_gift', 12, 'Przy aktywacji nakłada 12 obrażeń trucizny na sekundę (stackuje się).')],
+    startOfCombat: [poisonOpening('kaktusek.parting_gift', 24, 'Na starcie walki nakłada 24 DPS Trucizny — toksyczne otwarcie, które daje przewagę od pierwszej sekundy.')],
   },
   boczek: {
-    startOfCombat: [shieldOpening('boczek.opening_guard', 60, 'Na starcie walki drużyna zyskuje tarczę 60.')],
+    startOfCombat: [shieldOpening('boczek.opening_guard', 120, 'Na starcie walki drużyna zyskuje tarczę 120.')],
   },
   nicosc: {
     onTrigger: [
       dmgScaledByEnemyPoisonOnTrigger(
         'nicosc.last_resort',
-        4,
-        'Przy aktywacji zadaje dodatkowe obrażenia równe czterokrotności aktualnej trucizny wroga.',
+        1,
+        'Przy aktywacji co 1 s zadaje dodatkowe obrażenia równe aktualnej trucizny wroga.',
       ),
     ],
   },
@@ -305,19 +308,19 @@ export const unitOverrides: Record<string, UnitOverride> = {
     positionalBonus: {
       id: 'szanowny_kantor.shield_ring',
       shape: 'adjacent',
-      effect: { kind: 'grant_shield_on_trigger', amount: 20 },
-      description: 'Sąsiednie jednostki przy aktywacji dają drużynie 20 tarczy.',
+      effect: { kind: 'grant_shield_on_trigger', amount: 30 },
+      description: 'Sąsiednie jednostki przy aktywacji dają drużynie 30 tarczy.',
     },
   },
   empty_melancholy: {
-    startOfCombat: [shieldGainBonusOpening('empty_melancholy.reinforced_plates', 10, 'Każdy przyszły zysk tarczy drużyny jest zwiększony o 10.')],
+    startOfCombat: [shieldGainBonusOpening('empty_melancholy.reinforced_plates', 25, 'Każdy przyszły zysk tarczy drużyny jest zwiększony o 25.')],
   },
 
   // ============================================================
   // NOWOCIOTA — Nowociotowie: Strength, formation and volatile power
   // ============================================================
   skibidi_kubus: {
-    startOfCombat: [shredOpening('skibidi_kubus.rookie_smash', 15, 'Na starcie walki zrywa wrogowi 15 stacków Tarczy.')],
+    startOfCombat: [shredOpening('skibidi_kubus.rookie_smash', 60, 'Na starcie walki zrywa wrogowi 60 punktów Tarczy.')],
   },
   aus_sher: {
     onTrigger: [strengthStacksOnTrigger('aus_sher.rally_the_strongest', 5, 'Przy aktywacji drużyna zyskuje 5 stacków Siły.')],

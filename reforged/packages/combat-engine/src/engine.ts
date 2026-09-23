@@ -39,9 +39,8 @@ const MAX_SLOW_PERCENT = 80;
 const MAX_ATTACK_BUFF_PERCENT = 200;
 const MAX_STRENGTH_STACKS = 200;
 const MAX_WEAKEN_PERCENT = 80;
-// Poison is a persistent pool threat and bypasses shield/dodge, but it needs
-// enough headroom to reward multiple poison sources before a fight ends.
-const MAX_POISON_DPS = 120;
+// Poison is a persistent pool threat and bypasses shield/dodge. It has no
+// stacking cap: every authored source remains relevant to poison payoffs.
 const MAX_REGEN_PER_SEC = 30;
 const MAX_HASTE_STACKS = 100; // pool-level haste — 1 stack = 1%, combined with per-unit speed at read time
 const MAX_DODGE_STACKS = 70;
@@ -403,7 +402,7 @@ export function runCombat(input: RunCombatInput): CombatLog {
   function applyPoisonToPool(side: Side, damagePerSec: number, sourceInstanceId: string | undefined, simTime: number) {
     const pool = pools[side];
     const before = pool.poisonDamagePerSec;
-    pool.poisonDamagePerSec = Math.min(MAX_POISON_DPS, pool.poisonDamagePerSec + damagePerSec);
+    pool.poisonDamagePerSec += damagePerSec;
     if (pool.poisonDamagePerSec !== before) {
       log.push({
         simTime,

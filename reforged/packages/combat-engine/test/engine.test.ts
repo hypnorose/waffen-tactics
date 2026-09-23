@@ -449,9 +449,9 @@ describe('runCombat', () => {
     expect(log.events.some((e) => e.type === 'team_pool_shield_applied' && e.side === 'player')).toBe(true);
   });
 
-  it('poison stacks up to the boosted 120 DPS cap', () => {
+  it('poison stacks without a DPS cap', () => {
     const log = runCombat({
-      combatId: 'c-poison-cap',
+      combatId: 'c-poison-no-cap',
       seed: 2,
       player: {
         side: 'player',
@@ -468,7 +468,7 @@ describe('runCombat', () => {
     });
 
     const poisonDamage = log.events.find((event) => event.type === 'team_pool_damage' && event.side === 'enemy');
-    expect(poisonDamage && poisonDamage.type === 'team_pool_damage' && poisonDamage.amount).toBe(120);
+    expect(poisonDamage && poisonDamage.type === 'team_pool_damage' && poisonDamage.amount).toBe(140);
   });
 
   it('dodge stacks can fully negate an incoming attack (deterministic under a fixed seed)', () => {

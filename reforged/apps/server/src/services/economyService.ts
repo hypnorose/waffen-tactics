@@ -11,10 +11,10 @@ export function maxBoardUnits(_level: number): number {
 
 export { levelUpCost };
 
-/** Flat base income + savings interest (1 gold per 10 gold saved, capped at 25) — 5x the original economy. */
+/** Flat base income + savings interest, reduced by half to slow down the economy. */
 export function roundIncome(gold: number): number {
-  const interest = Math.min(25, Math.floor(gold / 10));
-  return 25 + interest;
+  const previousIncome = 25 + Math.min(25, Math.floor(gold / 10));
+  return Math.floor(previousIncome / 2);
 }
 
 function pickWeighted<T>(items: T[], weights: number[]): T {
