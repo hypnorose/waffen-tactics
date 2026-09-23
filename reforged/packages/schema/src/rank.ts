@@ -10,6 +10,13 @@ export const RankInfoSchema = z.object({
 });
 export type RankInfo = z.infer<typeof RankInfoSchema>;
 
+export const LeaderboardEntrySchema = z.object({
+  username: z.string(),
+  avatarUrl: z.string().nullable(),
+  rank: RankInfoSchema,
+});
+export type LeaderboardEntry = z.infer<typeof LeaderboardEntrySchema>;
+
 const TIER_FLOORS: Array<{ tier: RankTier; floor: number }> = [
   { tier: 'bronze', floor: 0 },
   { tier: 'silver', floor: 1200 },

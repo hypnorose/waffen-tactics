@@ -4,6 +4,7 @@ import { useRunStore } from './store/runStore.js';
 import { AuthPanel } from './components/auth/AuthPanel.js';
 import { AuthCallback } from './pages/AuthCallback.js';
 import { PlayerHeader } from './components/profile/PlayerHeader.js';
+import { LeaderboardPanel } from './components/profile/LeaderboardPanel.js';
 import { Run } from './pages/Run.js';
 
 const isAuthCallback = window.location.pathname === '/auth/callback';
@@ -31,7 +32,10 @@ export function App() {
   return (
     <div className="app-shell">
       <PlayerHeader profile={profile} run={run} />
-      <Run />
+      <div className="app-main-layout">
+        <Run />
+        <LeaderboardPanel currentUsername={profile.username} />
+      </div>
     </div>
   );
 }
