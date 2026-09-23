@@ -1,4 +1,5 @@
 import type { TeamStatus } from '../../hooks/combat/useCombatSnapshot.js';
+import { StatusText } from '../../lib/statusText.js';
 
 interface Props {
   status: TeamStatus;
@@ -14,8 +15,8 @@ const CHIP_DEFS: Array<{
   description: string;
 }> = [
   { key: 'shield', emoji: '🛡️', label: 'Tarcza', kind: 'buff', format: (v) => Math.round(v).toString(), description: 'Pochłania obrażenia przed HP drużyny.' },
-  { key: 'strengthStacks', emoji: '💪', label: 'Strength', kind: 'buff', format: (v) => '+' + Math.round(v) + '%', description: 'Każdy stack Strength daje drużynie +1% ataku.' },
-  { key: 'hasteStacks', emoji: '⚡', label: 'Haste', kind: 'buff', format: (v) => `+${Math.round(v)}%`, description: 'Każdy stack Haste daje +1% szybkości ataku i skraca cooldown.' },
+  { key: 'strengthStacks', emoji: '💪', label: 'Siła', kind: 'buff', format: (v) => '+' + Math.round(v) + '%', description: 'Każdy stack Siły daje drużynie +1% ataku.' },
+  { key: 'hasteStacks', emoji: '⚡', label: 'Przyspieszenie', kind: 'buff', format: (v) => `+${Math.round(v)}%`, description: 'Każdy stack Przyspieszenia daje +1% szybkości ataku i skraca cooldown.' },
   { key: 'dodgeStacks', emoji: '💨', label: 'Unik', kind: 'buff', format: (v) => `${Math.round(v)}%`, description: 'Szansa na całkowite uniknięcie trafienia lub efektu ataku.' },
   { key: 'thornsPercent', emoji: '🌵', label: 'Kolce', kind: 'buff', format: (v) => `${Math.round(v)}%`, description: 'Odbija ten procent utraconego HP do wroga.' },
   { key: 'vampirismPercent', emoji: '🧛', label: 'Wampiryzm', kind: 'buff', format: (v) => `${Math.round(v)}%`, description: 'Leczy drużynę o ten procent zadanych obrażeń.' },
@@ -35,7 +36,7 @@ export function TeamStatusRow({ status, align }: Props) {
           {def.emoji} {def.format(status[def.key])}
           <span className="combat-chip-tooltip" role="tooltip">
             <strong>{def.label}: {def.format(status[def.key])}</strong>
-            <span>{def.description}</span>
+            <span><StatusText text={def.description} /></span>
           </span>
         </span>
       ))}

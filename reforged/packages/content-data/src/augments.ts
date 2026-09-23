@@ -126,7 +126,7 @@ const raw: AugmentDef[] = [
     name: 'Wiatr w Żagle',
     tier: 'bronze',
     icon: '💨',
-    description: 'Drużyna zyskuje 10 stacków haste.',
+    description: 'Drużyna zyskuje 10 stacków Przyspieszenia.',
     effects: [{ kind: 'haste_stacks_own_pool', stacks: 10 }],
   },
   {
@@ -175,7 +175,7 @@ const raw: AugmentDef[] = [
     name: 'Wampir Prędkości',
     tier: 'bronze',
     icon: '🧲',
-    description: 'Drużyna kradnie 20% aktualnych stacków haste wroga.',
+    description: 'Drużyna kradnie 20% aktualnych stacków Przyspieszenia wroga.',
     effects: [{ kind: 'steal_buff', buff: 'haste', percent: 20 }],
   },
   {
@@ -191,7 +191,7 @@ const raw: AugmentDef[] = [
     name: 'Rozpęd',
     tier: 'bronze',
     icon: '📈',
-    description: 'Co sekundę drużyna zyskuje 2 stacki haste.',
+    description: 'Co sekundę drużyna zyskuje 2 stacki Przyspieszenia.',
     effects: [{ kind: 'momentum_own_pool', hasteStacksPerSec: 2, attackPercentPerSec: 0 }],
   },
   {
@@ -199,7 +199,7 @@ const raw: AugmentDef[] = [
     name: 'Rezonans Tarczy',
     tier: 'bronze',
     icon: '🔔',
-    description: 'Gdy drużyna zyskuje tarczę, dostaje też 5 stacków haste.',
+    description: 'Gdy drużyna zyskuje Tarczę, dostaje też 5 stacków Przyspieszenia.',
     effects: [{ kind: 'reaction_on_shield_gained', reaction: { kind: 'grant_haste_stacks', stacks: 5 } }],
   },
 
@@ -277,7 +277,7 @@ const raw: AugmentDef[] = [
     name: 'Osłona Odwetu',
     tier: 'silver',
     icon: '🔮',
-    description: 'Drużyna zaczyna walkę z tarczą 50. Gdy ta tarcza padnie, drużyna zyskuje 10 stacków haste.',
+    description: 'Drużyna zaczyna walkę z Tarczą 50. Gdy ta Tarcza padnie, drużyna zyskuje 10 stacków Przyspieszenia.',
     effects: [
       { kind: 'shield_own_pool', amount: 50 },
       { kind: 'reaction_on_shield_depleted', reaction: { kind: 'grant_haste_stacks', stacks: 10 } },
@@ -325,7 +325,7 @@ const raw: AugmentDef[] = [
     name: 'Podmuch',
     tier: 'silver',
     icon: '🌬️',
-    description: 'Drużyna zyskuje 8 stacków haste na starcie, a potem 0,4 stacka co sekundę przez całą walkę.',
+    description: 'Drużyna zyskuje 8 stacków Przyspieszenia na starcie, a potem 0,4 stacka co sekundę przez całą walkę.',
     effects: [{ kind: 'haste_stacks_own_pool', stacks: 8 }, { kind: 'momentum_own_pool', hasteStacksPerSec: 0.4, attackPercentPerSec: 0 }],
   },
   {
@@ -333,7 +333,7 @@ const raw: AugmentDef[] = [
     name: 'Cień Szachisty',
     tier: 'silver',
     icon: '🕳️',
-    description: 'Drużyna zyskuje 12 stacków uniku. Gdy zyska tarczę z dowolnego źródła, dostaje dodatkowo 3 stacki haste.',
+    description: 'Drużyna zyskuje 12 stacków Uniku. Gdy zyska Tarczę z dowolnego źródła, dostaje dodatkowo 3 stacki Przyspieszenia.',
     effects: [
       { kind: 'dodge_stacks_own_pool', stacks: 12 },
       { kind: 'reaction_on_shield_gained', reaction: { kind: 'grant_haste_stacks', stacks: 3 } },
@@ -385,7 +385,7 @@ const raw: AugmentDef[] = [
     name: 'Rozbrojenie',
     tier: 'silver',
     icon: '⚔️',
-    description: 'Zdejmuje wrogowi 15 stacków haste i 10 stacków uniku na starcie walki.',
+    description: 'Zdejmuje wrogowi 15 stacków Przyspieszenia i 10 stacków Uniku na starcie walki.',
     effects: [
       { kind: 'shred_enemy_haste_stacks', stacks: 15 },
       { kind: 'shred_enemy_dodge_stacks', stacks: 10 },
@@ -462,7 +462,7 @@ const raw: AugmentDef[] = [
     icon: '🌀',
     // Same effect applied twice on purpose — two separate speed surges
     // (two log events) instead of one bigger buff.
-    description: 'Wszystkie jednostki dostają dwie fale Haste: +13%, po chwili kolejne +13%.',
+    description: 'Wszystkie jednostki dostają dwie fale Przyspieszenia: +13%, po chwili kolejne +13%.',
     effects: [
       { kind: 'buff_team_attack_speed', percent: 13 },
       { kind: 'buff_team_attack_speed', percent: 13 },
@@ -553,7 +553,7 @@ const raw: AugmentDef[] = [
     name: 'Mistrz Areny',
     tier: 'gold',
     icon: '👑',
-    description: 'Natychmiast dołącza Fiko do ławki. Drużyna zyskuje +8% obrażeń i +8% Haste.',
+    description: 'Natychmiast dołącza Fiko do ławki. Drużyna zyskuje +8% obrażeń i +8% Przyspieszenia.',
     effects: [
       { kind: 'buff_team_attack', percent: 8 },
       { kind: 'buff_team_attack_speed', percent: 8 },
@@ -569,7 +569,7 @@ const raw: AugmentDef[] = [
     name: 'Trąba Powietrzna',
     tier: 'gold',
     icon: '🌀',
-    description: 'Drużyna zyskuje 12 stacków haste i kradnie 6 stacków haste wrogowi.',
+    description: 'Drużyna zyskuje 12 stacków Przyspieszenia i kradnie 6 stacków Przyspieszenia wrogowi.',
     effects: [
       { kind: 'haste_stacks_own_pool', stacks: 12 },
       { kind: 'steal_buff', buff: 'haste', percent: 100 },
@@ -580,7 +580,7 @@ const raw: AugmentDef[] = [
     name: 'Duch Pola Bitwy',
     tier: 'gold',
     icon: '🥷',
-    description: 'Drużyna zyskuje 20 stacków uniku i 10 stacków haste.',
+    description: 'Drużyna zyskuje 20 stacków Uniku i 10 stacków Przyspieszenia.',
     effects: [
       { kind: 'dodge_stacks_own_pool', stacks: 20 },
       { kind: 'haste_stacks_own_pool', stacks: 10 },
@@ -633,7 +633,7 @@ const raw: AugmentDef[] = [
     name: 'Totalna Dekonstrukcja',
     tier: 'gold',
     icon: '💥',
-    description: 'Zdejmuje wrogowi 20 stacków haste i 20 stacków uniku na starcie walki.',
+    description: 'Zdejmuje wrogowi 20 stacków Przyspieszenia i 20 stacków Uniku na starcie walki.',
     effects: [
       { kind: 'shred_enemy_haste_stacks', stacks: 20 },
       { kind: 'shred_enemy_dodge_stacks', stacks: 20 },
@@ -652,7 +652,7 @@ const raw: AugmentDef[] = [
     name: 'Długi Marsz',
     tier: 'gold',
     icon: '⏳',
-    description: 'Co sekundę drużyna zyskuje 5 stacków haste i +1% obrażeń, przez całą walkę.',
+    description: 'Co sekundę drużyna zyskuje 5 stacków Przyspieszenia i +1% obrażeń, przez całą walkę.',
     effects: [{ kind: 'momentum_own_pool', hasteStacksPerSec: 5, attackPercentPerSec: 1 }],
   },
   {

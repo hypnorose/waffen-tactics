@@ -196,7 +196,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
         'fiko.crowd_pleaser',
         2,
         ['figlarz'],
-        'Przy aktywacji drużyna zyskuje 2 Haste za każdego sąsiadującego Figlarza.',
+        'Przy aktywacji drużyna zyskuje 2 stacki Przyspieszenia za każdego sąsiadującego Figlarza.',
       ),
     ],
   },
@@ -211,7 +211,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
   },
   szalwia: {
     onTrigger: [
-      dmgScaledByHasteOnTrigger('szalwia.fey_strike', 1, 'Przy aktywacji zadaje dodatkowe obrażenia równe aktualnym stackom haste drużyny.'),
+      dmgScaledByHasteOnTrigger('szalwia.fey_strike', 1, 'Przy aktywacji zadaje dodatkowe obrażenia równe aktualnym stackom Przyspieszenia drużyny.'),
     ],
   },
   kotmarcek: {
@@ -220,7 +220,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
   // Pure support — no attack stat at all (see units.data.ts). Doesn't fight,
   // just picks the enemy's pocket for whatever speed they've built up.
   '4tune': {
-    onTrigger: [stealHasteOnAttack('4tune.pickpocket', 30, 'Przy aktywacji kradnie 30% aktualnych stacków haste wroga.')],
+    onTrigger: [stealHasteOnAttack('4tune.pickpocket', 30, 'Przy aktywacji kradnie 30% aktualnych stacków Przyspieszenia wroga.')],
   },
   jadlainwestycji: {
     onTrigger: [stealDodgeOnTrigger('jadlainwestycji.hostile_takeover', 10, 'Przy aktywacji kradnie 10% aktualnych stacków uniku wroga.')],
@@ -233,12 +233,12 @@ export const unitOverrides: Record<string, UnitOverride> = {
         'klemens_zydoslawski.sand_in_gears',
         10,
         10,
-        'Przy aktywacji zdejmuje wrogowi 10 stacków haste i daje własnej drużynie 10 stacków haste.',
+        'Przy aktywacji zdejmuje wrogowi 10 stacków Przyspieszenia i daje własnej drużynie 10 stacków Przyspieszenia.',
       ),
     ],
   },
   knauff: {
-    onTrigger: [hasteStacksOnTrigger('knauff.syndicate_charge', 6, 'Przy aktywacji drużyna zyskuje 6 stacków haste (stackuje się do końca walki).')],
+    onTrigger: [hasteStacksOnTrigger('knauff.syndicate_charge', 6, 'Przy aktywacji drużyna zyskuje 6 stacków Przyspieszenia (stackuje się do końca walki).')],
   },
   vitas: {
     onTrigger: [dodgeStacksOnAttack('vitas.evasive_pressure', 8, 'Przy aktywacji dodaje drużynie 8 stacków uniku (stackuje się do końca walki).')],
@@ -253,7 +253,7 @@ export const unitOverrides: Record<string, UnitOverride> = {
   galanonim: {
     // Pure support — no attack stat at all (see units.data.ts). Every pulse
     // strips the same flat amount from each positive enemy team status.
-    onTrigger: [shredAllEnemyBuffsOnTrigger('galanonim.blacklist', 5, 'Przy aktywacji zdejmuje wrogowi po 5 tarczy, haste, uniku, kolców i wampiryzmu.')],
+    onTrigger: [shredAllEnemyBuffsOnTrigger('galanonim.blacklist', 5, 'Przy aktywacji zdejmuje wrogowi po 5 stacków Tarczy, Przyspieszenia, Uniku, Kolców i Wampiryzmu.')],
   },
   pytl: {
     positionalBonus: {
@@ -322,10 +322,10 @@ export const unitOverrides: Record<string, UnitOverride> = {
   // NOWOCIOTA — Nowociotowie: Strength, formation and volatile power
   // ============================================================
   skibidi_kubus: {
-    startOfCombat: [shredOpening('skibidi_kubus.rookie_smash', 15, 'Na starcie walki zrywa wrogowi 15 stacków Shield.')],
+    startOfCombat: [shredOpening('skibidi_kubus.rookie_smash', 15, 'Na starcie walki zrywa wrogowi 15 stacków Tarczy.')],
   },
   aus_sher: {
-    onTrigger: [strengthStacksOnTrigger('aus_sher.rally_the_strongest', 5, 'Przy aktywacji drużyna zyskuje 5 Strength.')],
+    onTrigger: [strengthStacksOnTrigger('aus_sher.rally_the_strongest', 5, 'Przy aktywacji drużyna zyskuje 5 stacków Siły.')],
   },
   mr0czeq1: {
     positionalBonus: {
@@ -333,11 +333,11 @@ export const unitOverrides: Record<string, UnitOverride> = {
       shape: 'adjacent',
       tagFilter: ['nowociota'],
       effect: { kind: 'grant_strength_per_adjacent_ally', stacksPerAlly: 10, maxStacks: 30 },
-      description: 'Zyskuje 10 Strength za każdego sąsiedniego Nowociotę (maks. 30).',
+      description: 'Zyskuje 10 stacków Siły za każdego sąsiedniego Nowociotę (maks. 30).',
     },
   },
   bbobel: {
-    onTrigger: [hasteStacksOnTrigger('bbobel.rookie_rage', 5, 'Przy aktywacji drużyna zyskuje 5 Haste.')],
+    onTrigger: [hasteStacksOnTrigger('bbobel.rookie_rage', 5, 'Przy aktywacji drużyna zyskuje 5 stacków Przyspieszenia.')],
   },
   fallensmokk: {
     onTrigger: [executeOnTrigger('fallensmokk.rally', 4, 'Przy aktywacji zadaje obrażenia równe 4% aktualnego HP wroga.')],
@@ -348,10 +348,10 @@ export const unitOverrides: Record<string, UnitOverride> = {
       shape: 'cross',
       tagFilter: ['nowociota'],
       effect: { kind: 'grant_strength_stacks', stacks: 10 },
-      description: 'Inni Nowociotowie w kształcie + zyskują 10 Strength.',
+      description: 'Inni Nowociotowie w kształcie + zyskują 10 stacków Siły.',
     },
   },
   marcel_galadotka: {
-    startOfCombat: [randomNowociotaBuff('marcel_galadotka.roulette', 'Na starcie walki losuje jeden buff: 8 Strength, 10 Haste, 6 Dodge, 5 Vampirism albo 6 Shield.')],
+    startOfCombat: [randomNowociotaBuff('marcel_galadotka.roulette', 'Na starcie walki losuje jeden efekt: 8 stacków Siły, 10 stacków Przyspieszenia, 6 stacków Uniku, 5 stacków Wampiryzmu albo 6 Tarczy.')],
   },
 };

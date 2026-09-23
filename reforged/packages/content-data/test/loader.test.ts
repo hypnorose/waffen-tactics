@@ -53,7 +53,7 @@ describe('content-data', () => {
       stacksPerAlly: 2,
       tagFilter: ['figlarz'],
     });
-    expect(units.fiko.onTrigger?.[0]?.description).toContain('Haste');
+    expect(units.fiko.onTrigger?.[0]?.description).toContain('Przyspieszenia');
     expect(units.aus_sher.onTrigger?.[0]?.effect).toEqual({ kind: 'strength_stacks_own_pool', stacks: 5 });
     expect(units.mr0czeq1.positionalBonus?.effect).toEqual({
       kind: 'grant_strength_per_adjacent_ally',

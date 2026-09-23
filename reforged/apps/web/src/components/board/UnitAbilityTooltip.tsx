@@ -1,4 +1,5 @@
 import type { UnitDef } from '@reforged/schema';
+import { StatusText } from '../../lib/statusText.js';
 import { tagClass } from '../../lib/unitStyle.js';
 
 export function UnitAbilityTooltip({ unitDef }: { unitDef: UnitDef }) {
@@ -14,13 +15,13 @@ export function UnitAbilityTooltip({ unitDef }: { unitDef: UnitDef }) {
           </span>
         ))}
       </div>
-      {unitDef.positionalBonus && <p className="unit-tooltip-ability">📍 {unitDef.positionalBonus.description}</p>}
+      {unitDef.positionalBonus && <p className="unit-tooltip-ability">📍 <StatusText text={unitDef.positionalBonus.description} /></p>}
       {abilities.map((ability) => (
         <p key={ability.id} className="unit-tooltip-ability">
           {ability.trigger === 'start_of_combat' && '⚡ '}
           {ability.trigger === 'on_trigger' && '🗡️ '}
           {ability.trigger === 'low_team_hp' && '🩸 '}
-          {ability.description}
+          <StatusText text={ability.description} />
         </p>
       ))}
       {abilities.length === 0 && !unitDef.positionalBonus && <p className="unit-tooltip-ability muted">Brak dodatkowych efektów.</p>}

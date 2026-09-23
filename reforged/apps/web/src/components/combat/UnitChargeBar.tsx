@@ -1,6 +1,7 @@
 import type { UnitDef } from '@reforged/schema';
 import type { UnitBuffState, UnitRuntimeSnapshot } from '../../hooks/combat/useCombatSnapshot.js';
 import { rarityClass } from '../../lib/unitStyle.js';
+import { StatusText } from '../../lib/statusText.js';
 
 interface Props {
   unit: UnitRuntimeSnapshot;
@@ -52,12 +53,12 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
           {buffs.attackSpeedPercent !== 0 && (
             <span
               className={`unit-buff-chip combat-chip-with-tooltip ${buffs.attackSpeedPercent > 0 ? 'is-buff' : 'is-debuff'}`}
-              title={`Haste: ${buffs.attackSpeedPercent > 0 ? '+' : ''}${Math.round(buffs.attackSpeedPercent)}%`}
+              title={`Przyspieszenie: ${buffs.attackSpeedPercent > 0 ? '+' : ''}${Math.round(buffs.attackSpeedPercent)}%`}
             >
               💨 {buffs.attackSpeedPercent > 0 ? '+' : ''}
               {Math.round(buffs.attackSpeedPercent)}%
               <span className="combat-chip-tooltip" role="tooltip">
-                <strong>Haste: {buffs.attackSpeedPercent > 0 ? '+' : ''}{Math.round(buffs.attackSpeedPercent)}%</strong>
+                <strong>Przyspieszenie: {buffs.attackSpeedPercent > 0 ? '+' : ''}{Math.round(buffs.attackSpeedPercent)}%</strong>
                 <span>Dodatnia wartość skraca cooldown ataku lub aktywacji.</span>
               </span>
             </span>
@@ -65,12 +66,12 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
           {buffs.strengthStacks !== 0 && (
             <span
               className="unit-buff-chip combat-chip-with-tooltip is-buff"
-              title={'Strength: +' + Math.round(buffs.strengthStacks) + '% ataku'}
+              title={'Siła: +' + Math.round(buffs.strengthStacks) + '% ataku'}
             >
               💪 +{Math.round(buffs.strengthStacks)}
               <span className="combat-chip-tooltip" role="tooltip">
-                <strong>Strength: +{Math.round(buffs.strengthStacks)}%</strong>
-                <span>Każdy stack Strength daje +1% ataku tej jednostce.</span>
+                <strong>Siła: +{Math.round(buffs.strengthStacks)}%</strong>
+                <span><StatusText text="Każdy stack Siły daje +1% ataku tej jednostce." /></span>
               </span>
             </span>
           )}

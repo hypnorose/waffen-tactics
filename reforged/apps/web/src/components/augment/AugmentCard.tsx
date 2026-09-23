@@ -1,4 +1,5 @@
 import type { AugmentDef } from '@reforged/schema';
+import { StatusText } from '../../lib/statusText.js';
 
 interface Props {
   augment: AugmentDef;
@@ -11,7 +12,7 @@ export function AugmentCard({ augment, onPick }: Props) {
       <div className="augment-icon">{augment.icon}</div>
       <div className="augment-tier">{augment.tier.toUpperCase()}</div>
       <div className="augment-name">{augment.name}</div>
-      <div className="augment-desc">{augment.description}</div>
+      <div className="augment-desc"><StatusText text={augment.description} /></div>
     </button>
   );
 }
