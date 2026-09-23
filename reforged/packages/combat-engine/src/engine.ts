@@ -609,6 +609,14 @@ export function runCombat(input: RunCombatInput): CombatLog {
         }
         break;
       }
+      case 'haste_stacks_per_adjacent_ally': {
+        if (!excludeUnit) break;
+        const adjacentCount = units.filter(
+          (u) => u.side === side && u !== excludeUnit && isAdjacentPosition(u.position, excludeUnit.position) && hasAnyTag(u, effect.tagFilter),
+        ).length;
+        if (adjacentCount > 0) grantHaste(side, adjacentCount * effect.stacksPerAlly, sourceInstanceId, simTime);
+        break;
+      }
       case 'weaken_enemy_team_attack':
         for (const foe of units) if (foe.side === otherSide(side) && hasAnyTag(foe, tagFilter)) buffAttack(foe, -effect.percent, sourceInstanceId, simTime);
         break;

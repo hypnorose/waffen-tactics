@@ -66,6 +66,11 @@ export const AbilityEffectSchema = z.discriminatedUnion('kind', [
     percentPerAlly: z.number().positive(),
     tagFilter: z.array(z.string()).min(1),
   }),
+  z.object({
+    kind: z.literal('haste_stacks_per_adjacent_ally'),
+    stacksPerAlly: z.number().positive(),
+    tagFilter: z.array(z.string()).min(1),
+  }),
   z.object({ kind: z.literal('weaken_enemy_team_attack'), percent: z.number().positive() }),
   z.object({ kind: z.literal('slow_enemy_team_attack_speed'), percent: z.number().positive() }),
   // Damage scaled to the enemy's CURRENT pool, not a flat amount — hits

@@ -864,4 +864,57 @@ describe('runCombat', () => {
     expect(log.events.some((event) => event.type === 'team_pool_damage' && event.side === 'enemy')).toBe(false);
     expect(log.events.some((event) => event.type === 'team_pool_stat_applied' || event.type === 'team_pool_shield_applied')).toBe(true);
   });
+
+  it('Fiko grants team Haste stacks from adjacent Figlarze', () => {
+    const fiko: UnitDef = {
+      id: 'fiko_test',
+      name: 'Fiko Test',
+      cost: 5,
+      tags: ['figlarz'],
+      emoji: '⚡',
+      baseStats: { attack: 10, attacksPerSecond: 1 },
+      onTrigger: [{
+        id: 'fiko_test.crowd_pleaser',
+        trigger: 'on_trigger',
+        effect: { kind: 'haste_stacks_per_adjacent_ally', stacksPerAlly: 2, tagFilter: ['figlarz'] },
+        description: 'Przy aktywacji drużyna zyskuje Haste.',
+      }],
+    };
+    const figlarzNeighbor: UnitDef = {
+      id: 'figlarz_neighbor',
+      name: 'Figlarz Neighbor',
+      cost: 1,
+      tags: ['figlarz'],
+      emoji: '🃏',
+      baseStats: {},
+    };
+    const passiveEnemy: CombatTeamInput = {
+      side: 'enemy',
+      hpMax: 500,
+      units: [{ instanceId: 'e-passive', unitId: 'shielder', position: { row: 0, col: 0 } }],
+    };
+    const log = runCombat({
+      combatId: 'c-fiko-haste',
+      seed: 46,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [
+          { instanceId: 'p-fiko', unitId: fiko.id, position: { row: 1, col: 1 } },
+          { instanceId: 'p-neighbor', unitId: figlarzNeighbor.id, position: { row: 1, col: 2 } },
+        ],
+      },
+      enemy: passiveEnemy,
+      unitDefs: { ...unitDefs, [fiko.id]: fiko, [figlarzNeighbor.id]: figlarzNeighbor },
+      timeoutSec: 1.1,
+    });
+    expect(log.events).toContainEqual(expect.objectContaining({
+      type: 'team_pool_stat_applied',
+      side: 'player',
+      stat: 'haste',
+      amount: 2,
+      total: 2,
+      sourceInstanceId: 'p-fiko',
+    }));
+  });
 });

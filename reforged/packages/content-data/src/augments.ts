@@ -462,7 +462,7 @@ const raw: AugmentDef[] = [
     icon: '🌀',
     // Same effect applied twice on purpose — two separate speed surges
     // (two log events) instead of one bigger buff.
-    description: 'Wszystkie jednostki dostają dwie fale przyspieszenia: +13% szybkości ataku, po chwili kolejne +13%.',
+    description: 'Wszystkie jednostki dostają dwie fale Haste: +13%, po chwili kolejne +13%.',
     effects: [
       { kind: 'buff_team_attack_speed', percent: 13 },
       { kind: 'buff_team_attack_speed', percent: 13 },
@@ -553,7 +553,7 @@ const raw: AugmentDef[] = [
     name: 'Mistrz Areny',
     tier: 'gold',
     icon: '👑',
-    description: 'Natychmiast dołącza Fiko do ławki. Drużyna zyskuje +8% obrażeń i +8% szybkości ataku.',
+    description: 'Natychmiast dołącza Fiko do ławki. Drużyna zyskuje +8% obrażeń i +8% Haste.',
     effects: [
       { kind: 'buff_team_attack', percent: 8 },
       { kind: 'buff_team_attack_speed', percent: 8 },

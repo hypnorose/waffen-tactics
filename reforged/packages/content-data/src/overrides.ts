@@ -87,8 +87,8 @@ function dmgScaledByEnemySlowOnTrigger(id: string, multiplier: number, desc: str
 function teamAttackOnAttack(id: string, percent: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'buff_team_attack', percent }, description: desc };
 }
-function teamHastePerAdjacentAllyOnAttack(id: string, percentPerAlly: number, tagFilter: string[], desc: string): Ability {
-  return { id, trigger: 'on_trigger', effect: { kind: 'buff_team_attack_speed_per_adjacent_ally', percentPerAlly, tagFilter }, description: desc };
+function hasteStacksPerAdjacentAllyOnTrigger(id: string, stacksPerAlly: number, tagFilter: string[], desc: string): Ability {
+  return { id, trigger: 'on_trigger', effect: { kind: 'haste_stacks_per_adjacent_ally', stacksPerAlly, tagFilter }, description: desc };
 }
 function dmgScaledByHasteOnTrigger(id: string, multiplier: number, desc: string): Ability {
   return { id, trigger: 'on_trigger', effect: { kind: 'damage_enemy_pool_scaled_by_own_haste', multiplier }, description: desc };
@@ -192,11 +192,11 @@ export const unitOverrides: Record<string, UnitOverride> = {
   // ============================================================
   fiko: {
     onTrigger: [
-      teamHastePerAdjacentAllyOnAttack(
+      hasteStacksPerAdjacentAllyOnTrigger(
         'fiko.crowd_pleaser',
         2,
         ['figlarz'],
-        'Przy aktywacji dodaje całej drużynie +2% szybkości ataku za każdego sąsiadującego figlarza (stackuje się do końca walki).',
+        'Przy aktywacji drużyna zyskuje 2 Haste za każdego sąsiadującego Figlarza.',
       ),
     ],
   },

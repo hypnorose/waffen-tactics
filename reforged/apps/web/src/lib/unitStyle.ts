@@ -23,6 +23,7 @@ const EFFECT_ICONS: Record<string, string> = {
   buff_team_attack: '💪',
   buff_team_attack_speed: '⚡',
   buff_team_attack_speed_per_adjacent_ally: '⚡',
+  haste_stacks_per_adjacent_ally: '⚡',
   weaken_enemy_team_attack: '📉',
   slow_enemy_team_attack_speed: '🐌',
   grant_slow_on_attack: '🐌',

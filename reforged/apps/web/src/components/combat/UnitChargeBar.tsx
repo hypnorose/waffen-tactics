@@ -52,12 +52,12 @@ export function UnitChargeBar({ unit, unitDef, currentTime, justAttacked, justTr
           {buffs.attackSpeedPercent !== 0 && (
             <span
               className={`unit-buff-chip combat-chip-with-tooltip ${buffs.attackSpeedPercent > 0 ? 'is-buff' : 'is-debuff'}`}
-              title={`Szybkość: ${buffs.attackSpeedPercent > 0 ? '+' : ''}${Math.round(buffs.attackSpeedPercent)}%`}
+              title={`Haste: ${buffs.attackSpeedPercent > 0 ? '+' : ''}${Math.round(buffs.attackSpeedPercent)}%`}
             >
               💨 {buffs.attackSpeedPercent > 0 ? '+' : ''}
               {Math.round(buffs.attackSpeedPercent)}%
               <span className="combat-chip-tooltip" role="tooltip">
-                <strong>Szybkość: {buffs.attackSpeedPercent > 0 ? '+' : ''}{Math.round(buffs.attackSpeedPercent)}%</strong>
+                <strong>Haste: {buffs.attackSpeedPercent > 0 ? '+' : ''}{Math.round(buffs.attackSpeedPercent)}%</strong>
                 <span>Dodatnia wartość skraca cooldown ataku lub aktywacji.</span>
               </span>
             </span>
