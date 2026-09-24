@@ -50,7 +50,7 @@ describe('content-data', () => {
     expect(units.skibidi_kubus.startOfCombat?.[0]?.effect).toEqual({ kind: 'shred_enemy_shield', amount: 60 });
     expect(units.fiko.onTrigger?.[0]?.effect).toEqual({
       kind: 'haste_stacks_per_adjacent_ally',
-      stacksPerAlly: 2,
+      stacksPerAlly: 1,
       tagFilter: ['figlarz'],
     });
     expect(units.fiko.onTrigger?.[0]?.description).toContain('Przyspieszenia');

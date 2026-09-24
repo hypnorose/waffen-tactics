@@ -424,20 +424,38 @@ export function runCombat(input: RunCombatInput): CombatLog {
 
   function grantHaste(side: Side, stacks: number, sourceInstanceId: string | undefined, simTime: number) {
     const pool = pools[side];
+    const cancelledSlow = Math.min(pool.slowPercent, stacks);
+    if (cancelledSlow > 0) {
+      pool.slowPercent -= cancelledSlow;
+      log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'slow', amount: -cancelledSlow, total: pool.slowPercent, sourceInstanceId });
+    }
+
     const before = pool.hasteStacks;
-    pool.hasteStacks = clamp(pool.hasteStacks + stacks, 0, MAX_HASTE_STACKS);
+    const remainingHaste = stacks - cancelledSlow;
+    pool.hasteStacks = clamp(pool.hasteStacks + remainingHaste, 0, MAX_HASTE_STACKS);
     if (pool.hasteStacks !== before) {
       log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'haste', amount: pool.hasteStacks - before, total: pool.hasteStacks, sourceInstanceId });
+    }
+    if (cancelledSlow > 0 || pool.hasteStacks !== before) {
       recomputeAllUnits(side);
     }
   }
 
   function grantSlow(side: Side, percent: number, sourceInstanceId: string | undefined, simTime: number) {
     const pool = pools[side];
+    const cancelledHaste = Math.min(pool.hasteStacks, percent);
+    if (cancelledHaste > 0) {
+      pool.hasteStacks -= cancelledHaste;
+      log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'haste', amount: -cancelledHaste, total: pool.hasteStacks, sourceInstanceId });
+    }
+
     const before = pool.slowPercent;
-    pool.slowPercent = clamp(pool.slowPercent + percent, 0, MAX_SLOW_PERCENT);
+    const remainingSlow = percent - cancelledHaste;
+    pool.slowPercent = clamp(pool.slowPercent + remainingSlow, 0, MAX_SLOW_PERCENT);
     if (pool.slowPercent !== before) {
       log.push({ simTime, type: 'team_pool_stat_applied', side, stat: 'slow', amount: pool.slowPercent - before, total: pool.slowPercent, sourceInstanceId });
+    }
+    if (cancelledHaste > 0 || pool.slowPercent !== before) {
       recomputeAllUnits(side);
     }
   }

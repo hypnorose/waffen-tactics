@@ -203,9 +203,9 @@ export const unitOverrides: Record<string, UnitOverride> = {
     onTrigger: [
       hasteStacksPerAdjacentAllyOnTrigger(
         'fiko.crowd_pleaser',
-        2,
+        1,
         ['figlarz'],
-        'Przy aktywacji drużyna zyskuje 2 stacki Przyspieszenia za każdego sąsiadującego Figlarza.',
+        'Przy aktywacji drużyna zyskuje 1 stack Przyspieszenia za każdego sąsiadującego Figlarza.',
       ),
     ],
   },

@@ -809,6 +809,56 @@ describe('runCombat', () => {
     expect(log.events.some((event) => event.type === 'unit_buff_applied')).toBe(false);
   });
 
+  it('cancels haste and slow against each other instead of keeping both statuses active', () => {
+    const openingStatusUnit = (id: string, effect: NonNullable<UnitDef['startOfCombat']>[number]['effect']): UnitDef => ({
+      id,
+      name: id,
+      cost: 1,
+      tags: ['support'],
+      emoji: '✨',
+      baseStats: {},
+      startOfCombat: [{ id: `${id}.opening`, trigger: 'start_of_combat', effect, description: 'test' }],
+    });
+    const playerHaste = openingStatusUnit('player-haste', { kind: 'haste_stacks_own_pool', stacks: 20 });
+    const playerSlow = openingStatusUnit('player-slow', { kind: 'slow_enemy_pool', percent: 15 });
+    const enemySlow = openingStatusUnit('enemy-slow', { kind: 'slow_enemy_pool', percent: 10 });
+    const enemyHaste = openingStatusUnit('enemy-haste', { kind: 'haste_stacks_own_pool', stacks: 20 });
+    const log = runCombat({
+      combatId: 'c-haste-slow-cancel',
+      seed: 48,
+      player: {
+        side: 'player',
+        hpMax: 500,
+        units: [
+          { instanceId: 'p-haste', unitId: playerHaste.id, position: { row: 0, col: 0 } },
+          { instanceId: 'p-slow', unitId: playerSlow.id, position: { row: 0, col: 1 } },
+        ],
+      },
+      enemy: {
+        side: 'enemy',
+        hpMax: 500,
+        units: [
+          { instanceId: 'e-slow', unitId: enemySlow.id, position: { row: 1, col: 0 } },
+          { instanceId: 'e-haste', unitId: enemyHaste.id, position: { row: 1, col: 1 } },
+        ],
+      },
+      unitDefs: {
+        [playerHaste.id]: playerHaste,
+        [playerSlow.id]: playerSlow,
+        [enemySlow.id]: enemySlow,
+        [enemyHaste.id]: enemyHaste,
+      },
+      timeoutSec: 0.1,
+    });
+
+    expect(log.events).toContainEqual(expect.objectContaining({ type: 'team_pool_stat_applied', side: 'player', stat: 'haste', amount: -10, total: 10 }));
+    expect(log.events).toContainEqual(expect.objectContaining({ type: 'team_pool_stat_applied', side: 'enemy', stat: 'slow', amount: -15, total: 0 }));
+    expect(log.events).toContainEqual(expect.objectContaining({ type: 'team_pool_stat_applied', side: 'enemy', stat: 'haste', amount: 5, total: 5 }));
+    const lastSlowEvent = (side: 'player' | 'enemy') => [...log.events].reverse().find((event) => event.type === 'team_pool_stat_applied' && event.side === side && event.stat === 'slow');
+    expect(lastSlowEvent('player')?.total ?? 0).toBe(0);
+    expect(lastSlowEvent('enemy')?.total ?? 0).toBe(0);
+  });
+
   it('vampirism heals from landed attacks but not poison ticks', () => {
     const attacker: UnitDef = { ...skirmisher, id: 'vampirism_attacker', baseStats: { attack: 10, attacksPerSecond: 1 } };
     const log = runCombat({
@@ -1018,7 +1068,7 @@ describe('runCombat', () => {
       onTrigger: [{
         id: 'fiko_test.crowd_pleaser',
         trigger: 'on_trigger',
-        effect: { kind: 'haste_stacks_per_adjacent_ally', stacksPerAlly: 2, tagFilter: ['figlarz'] },
+        effect: { kind: 'haste_stacks_per_adjacent_ally', stacksPerAlly: 1, tagFilter: ['figlarz'] },
         description: 'Przy aktywacji drużyna zyskuje Haste.',
       }],
     };
@@ -1054,8 +1104,8 @@ describe('runCombat', () => {
       type: 'team_pool_stat_applied',
       side: 'player',
       stat: 'haste',
-      amount: 2,
-      total: 2,
+      amount: 1,
+      total: 1,
       sourceInstanceId: 'p-fiko',
     }));
   });
